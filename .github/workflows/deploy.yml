@@ -1,0 +1,35 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Pull latest changes
+        run: git pull origin main
+
+      - name: Build and restart services
+        run: docker compose up -d --build
+
+      - name: Wait for services to start
+        run: sleep 10
+
+      - name: Health check
+        run: |
+          curl -f http://localhost:3000/api/status || exit 1
+          echo "Health check passed"
+
+      - name: Notify deployment
+        if: success()
+        run: echo "✅ Deployment successful at $(date)"
+
+      - name: Notify failure
+        if: failure()
+        run: echo "❌ Deployment failed at $(date)"

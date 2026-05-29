@@ -36,3 +36,10 @@ data/
 token_estimator_test.go
 skills-lock.json
 .playwright-mcp
+
+# Vancine frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.env.local
+frontend/.env.*.local
