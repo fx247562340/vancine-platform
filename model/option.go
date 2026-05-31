@@ -91,6 +91,14 @@ func InitOptionMap() {
 	common.OptionMap["CreemProducts"] = setting.CreemProducts
 	common.OptionMap["CreemTestMode"] = strconv.FormatBool(setting.CreemTestMode)
 	common.OptionMap["CreemWebhookSecret"] = setting.CreemWebhookSecret
+	common.OptionMap["PayPalClientId"] = setting.PayPalClientId
+	common.OptionMap["PayPalClientSecret"] = setting.PayPalClientSecret
+	common.OptionMap["PayPalWebhookId"] = setting.PayPalWebhookId
+	common.OptionMap["PayPalTestMode"] = strconv.FormatBool(setting.PayPalTestMode)
+	common.OptionMap["PayPalProducts"] = setting.PayPalProducts
+	common.OptionMap["PayPalMinTopUp"] = strconv.Itoa(setting.PayPalMinTopUp)
+	common.OptionMap["PayPalUnitPrice"] = strconv.FormatFloat(setting.PayPalUnitPrice, 'f', -1, 64)
+	common.OptionMap["PayPalCurrency"] = setting.PayPalCurrency
 	common.OptionMap["WaffoEnabled"] = strconv.FormatBool(setting.WaffoEnabled)
 	common.OptionMap["WaffoApiKey"] = setting.WaffoApiKey
 	common.OptionMap["WaffoPrivateKey"] = setting.WaffoPrivateKey
@@ -418,6 +426,22 @@ func updateOptionMap(key string, value string) (err error) {
 		setting.CreemTestMode = value == "true"
 	case "CreemWebhookSecret":
 		setting.CreemWebhookSecret = value
+	case "PayPalClientId":
+		setting.PayPalClientId = value
+	case "PayPalClientSecret":
+		setting.PayPalClientSecret = value
+	case "PayPalWebhookId":
+		setting.PayPalWebhookId = value
+	case "PayPalTestMode":
+		setting.PayPalTestMode = value == "true"
+	case "PayPalProducts":
+		setting.PayPalProducts = value
+	case "PayPalMinTopUp":
+		setting.PayPalMinTopUp, _ = strconv.Atoi(value)
+	case "PayPalUnitPrice":
+		setting.PayPalUnitPrice, _ = strconv.ParseFloat(value, 64)
+	case "PayPalCurrency":
+		setting.PayPalCurrency = value
 	case "WaffoEnabled":
 		setting.WaffoEnabled = value == "true"
 	case "WaffoApiKey":

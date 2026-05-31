@@ -52,6 +52,27 @@ func GetTopUpInfo(c *gin.Context) {
 		}
 	}
 
+	// 如果启用了 PayPal 支付，添加到支付方法列表
+	if isPayPalTopUpEnabled() {
+		hasPayPal := false
+		for _, method := range payMethods {
+			if method["type"] == "paypal" {
+				hasPayPal = true
+				break
+			}
+		}
+
+		if !hasPayPal {
+			paypalMethod := map[string]string{
+				"name":      "PayPal",
+				"type":      "paypal",
+				"color":     "rgba(var(--semi-blue-5), 1)",
+				"min_topup": strconv.Itoa(setting.PayPalMinTopUp),
+			}
+			payMethods = append(payMethods, paypalMethod)
+		}
+	}
+
 	// Waffo Pancake displayed above the legacy Waffo gateway.
 	enableWaffoPancake := isWaffoPancakeTopUpEnabled()
 	if enableWaffoPancake {
@@ -99,6 +120,7 @@ func GetTopUpInfo(c *gin.Context) {
 		"enable_online_topup":              isEpayTopUpEnabled(),
 		"enable_stripe_topup":              isStripeTopUpEnabled(),
 		"enable_creem_topup":               isCreemTopUpEnabled(),
+		"enable_paypal_topup":              isPayPalTopUpEnabled(),
 		"enable_waffo_topup":               enableWaffo,
 		"enable_waffo_pancake_topup":       enableWaffoPancake,
 		"enable_redemption":                complianceConfirmed,
@@ -111,6 +133,8 @@ func GetTopUpInfo(c *gin.Context) {
 			return nil
 		}(),
 		"creem_products":          setting.CreemProducts,
+		"paypal_products":         setting.PayPalProducts,
+		"paypal_min_topup":        setting.PayPalMinTopUp,
 		"pay_methods":             payMethods,
 		"min_topup":               operation_setting.MinTopUp,
 		"stripe_min_topup":        setting.StripeMinTopUp,
