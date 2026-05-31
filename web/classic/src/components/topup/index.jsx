@@ -221,6 +221,11 @@ const TopUp = () => {
         showError(t('管理员未开启Stripe充值！'));
         return;
       }
+    } else if (payment === 'paypal') {
+      if (!enablePayPalTopUp) {
+        showError(t('管理员未开启PayPal充值！'));
+        return;
+      }
     } else if (payment === 'waffo_pancake') {
       if (!enableWaffoPancakeTopUp) {
         showError(t('管理员未开启 Waffo Pancake 充值！'));
