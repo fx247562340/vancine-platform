@@ -44,6 +44,9 @@ export default function SettingsPaymentGatewayPayPal(props) {
     PayPalClientId: '',
     PayPalClientSecret: '',
     PayPalWebhookId: '',
+    PayPalSandboxClientId: '',
+    PayPalSandboxClientSecret: '',
+    PayPalSandboxWebhookId: '',
     PayPalProducts: '[]',
     PayPalTestMode: false,
     PayPalMinTopUp: 1,
@@ -69,6 +72,9 @@ export default function SettingsPaymentGatewayPayPal(props) {
         PayPalClientId: props.options.PayPalClientId || '',
         PayPalClientSecret: props.options.PayPalClientSecret || '',
         PayPalWebhookId: props.options.PayPalWebhookId || '',
+        PayPalSandboxClientId: props.options.PayPalSandboxClientId || '',
+        PayPalSandboxClientSecret: props.options.PayPalSandboxClientSecret || '',
+        PayPalSandboxWebhookId: props.options.PayPalSandboxWebhookId || '',
         PayPalProducts: props.options.PayPalProducts || '[]',
         PayPalTestMode: props.options.PayPalTestMode === 'true',
         PayPalMinTopUp: parseInt(props.options.PayPalMinTopUp) || 1,
@@ -112,6 +118,27 @@ export default function SettingsPaymentGatewayPayPal(props) {
         options.push({
           key: 'PayPalWebhookId',
           value: inputs.PayPalWebhookId,
+        });
+      }
+
+      if (inputs.PayPalSandboxClientId && inputs.PayPalSandboxClientId !== '') {
+        options.push({
+          key: 'PayPalSandboxClientId',
+          value: inputs.PayPalSandboxClientId,
+        });
+      }
+
+      if (inputs.PayPalSandboxClientSecret && inputs.PayPalSandboxClientSecret !== '') {
+        options.push({
+          key: 'PayPalSandboxClientSecret',
+          value: inputs.PayPalSandboxClientSecret,
+        });
+      }
+
+      if (inputs.PayPalSandboxWebhookId && inputs.PayPalSandboxWebhookId !== '') {
+        options.push({
+          key: 'PayPalSandboxWebhookId',
+          value: inputs.PayPalSandboxWebhookId,
         });
       }
 
@@ -302,37 +329,10 @@ export default function SettingsPaymentGatewayPayPal(props) {
 
           <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 24, xl: 24, xxl: 24 }}>
             <Col xs={24} sm={24} md={8} lg={8} xl={8}>
-              <Form.Input
-                field='PayPalClientId'
-                label={t('Client ID')}
-                placeholder={t('PayPal Client ID')}
-                type='password'
-              />
-            </Col>
-            <Col xs={24} sm={24} md={8} lg={8} xl={8}>
-              <Form.Input
-                field='PayPalClientSecret'
-                label={t('Client Secret')}
-                placeholder={t('PayPal Client Secret')}
-                type='password'
-              />
-            </Col>
-            <Col xs={24} sm={24} md={8} lg={8} xl={8}>
-              <Form.Input
-                field='PayPalWebhookId'
-                label={t('Webhook ID')}
-                placeholder={t('PayPal Webhook ID，用于验证回调签名')}
-                type='password'
-              />
-            </Col>
-          </Row>
-
-          <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 24, xl: 24, xxl: 24 }}>
-            <Col xs={24} sm={24} md={8} lg={8} xl={8}>
               <Form.Switch
                 field='PayPalTestMode'
                 label={t('沙盒模式')}
-                extraText={t('启用后将使用 PayPal Sandbox 环境')}
+                extraText={t(inputs.PayPalTestMode ? '当前使用 Sandbox 环境' : '当前使用 Production 环境')}
               />
             </Col>
             <Col xs={24} sm={24} md={8} lg={8} xl={8}>
@@ -352,6 +352,76 @@ export default function SettingsPaymentGatewayPayPal(props) {
               />
             </Col>
           </Row>
+
+          {inputs.PayPalTestMode ? (
+            <>
+              <Banner
+                type='warning'
+                description={t('当前为 Sandbox 模式，使用沙盒环境的 Client ID 和 Secret')}
+                style={{ marginBottom: 16 }}
+              />
+              <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 24, xl: 24, xxl: 24 }}>
+                <Col xs={24} sm={24} md={8} lg={8} xl={8}>
+                  <Form.Input
+                    field='PayPalSandboxClientId'
+                    label={t('Sandbox Client ID')}
+                    placeholder={t('PayPal Sandbox Client ID')}
+                    type='password'
+                  />
+                </Col>
+                <Col xs={24} sm={24} md={8} lg={8} xl={8}>
+                  <Form.Input
+                    field='PayPalSandboxClientSecret'
+                    label={t('Sandbox Client Secret')}
+                    placeholder={t('PayPal Sandbox Client Secret')}
+                    type='password'
+                  />
+                </Col>
+                <Col xs={24} sm={24} md={8} lg={8} xl={8}>
+                  <Form.Input
+                    field='PayPalSandboxWebhookId'
+                    label={t('Sandbox Webhook ID')}
+                    placeholder={t('PayPal Sandbox Webhook ID')}
+                    type='password'
+                  />
+                </Col>
+              </Row>
+            </>
+          ) : (
+            <>
+              <Banner
+                type='info'
+                description={t('当前为 Production 模式，使用正式环境的 Client ID 和 Secret')}
+                style={{ marginBottom: 16 }}
+              />
+              <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 24, xl: 24, xxl: 24 }}>
+                <Col xs={24} sm={24} md={8} lg={8} xl={8}>
+                  <Form.Input
+                    field='PayPalClientId'
+                    label={t('Production Client ID')}
+                    placeholder={t('PayPal Client ID')}
+                    type='password'
+                  />
+                </Col>
+                <Col xs={24} sm={24} md={8} lg={8} xl={8}>
+                  <Form.Input
+                    field='PayPalClientSecret'
+                    label={t('Production Client Secret')}
+                    placeholder={t('PayPal Client Secret')}
+                    type='password'
+                  />
+                </Col>
+                <Col xs={24} sm={24} md={8} lg={8} xl={8}>
+                  <Form.Input
+                    field='PayPalWebhookId'
+                    label={t('Production Webhook ID')}
+                    placeholder={t('PayPal Webhook ID')}
+                    type='password'
+                  />
+                </Col>
+              </Row>
+            </>
+          )}
 
           <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 24, xl: 24, xxl: 24 }}>
             <Col xs={24} sm={24} md={8} lg={8} xl={8}>

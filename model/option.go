@@ -94,6 +94,9 @@ func InitOptionMap() {
 	common.OptionMap["PayPalClientId"] = setting.PayPalClientId
 	common.OptionMap["PayPalClientSecret"] = setting.PayPalClientSecret
 	common.OptionMap["PayPalWebhookId"] = setting.PayPalWebhookId
+	common.OptionMap["PayPalSandboxClientId"] = setting.PayPalSandboxClientId
+	common.OptionMap["PayPalSandboxClientSecret"] = setting.PayPalSandboxClientSecret
+	common.OptionMap["PayPalSandboxWebhookId"] = setting.PayPalSandboxWebhookId
 	common.OptionMap["PayPalTestMode"] = strconv.FormatBool(setting.PayPalTestMode)
 	common.OptionMap["PayPalProducts"] = setting.PayPalProducts
 	common.OptionMap["PayPalMinTopUp"] = strconv.Itoa(setting.PayPalMinTopUp)
@@ -432,6 +435,12 @@ func updateOptionMap(key string, value string) (err error) {
 		setting.PayPalClientSecret = value
 	case "PayPalWebhookId":
 		setting.PayPalWebhookId = value
+	case "PayPalSandboxClientId":
+		setting.PayPalSandboxClientId = value
+	case "PayPalSandboxClientSecret":
+		setting.PayPalSandboxClientSecret = value
+	case "PayPalSandboxWebhookId":
+		setting.PayPalSandboxWebhookId = value
 	case "PayPalTestMode":
 		setting.PayPalTestMode = value == "true"
 	case "PayPalProducts":

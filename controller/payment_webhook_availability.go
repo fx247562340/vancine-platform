@@ -51,14 +51,14 @@ func isPayPalTopUpEnabled() bool {
 		return false
 	}
 	products := strings.TrimSpace(setting.PayPalProducts)
-	return strings.TrimSpace(setting.PayPalClientId) != "" &&
-		strings.TrimSpace(setting.PayPalClientSecret) != "" &&
+	return strings.TrimSpace(setting.GetPayPalClientId()) != "" &&
+		strings.TrimSpace(setting.GetPayPalClientSecret()) != "" &&
 		products != "" &&
 		products != "[]"
 }
 
 func isPayPalWebhookConfigured() bool {
-	return strings.TrimSpace(setting.PayPalWebhookId) != ""
+	return strings.TrimSpace(setting.GetPayPalWebhookId()) != ""
 }
 
 func isPayPalWebhookEnabled() bool {
