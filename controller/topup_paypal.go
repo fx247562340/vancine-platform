@@ -2,6 +2,7 @@ package controller
 
 import (
 	"bytes"
+	"context"
 	"crypto"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -9,10 +10,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -257,8 +260,10 @@ func genPayPalOrder(referenceId string, amount float64, email string) (approveUR
 			},
 		},
 		"application_context": map[string]interface{}{
-			"return_url": setting.ServerAddress + "/api/user/paypal/return?token=" + referenceId,
-			"cancel_url": setting.ServerAddress + "/console/topup",
+			"brand_name":  "Vancine",
+			"locale":      "en-US",
+			"landing_page": "BILLING",
+			"shipping_preference": "NO_SHIPPING",
 		},
 	}
 
@@ -502,12 +507,11 @@ func handlePayPalCapture(ctx context.Context, event *PayPalWebhookEvent, callerI
 	defer UnlockOrder(referenceId)
 
 	// Try subscription first
-	user, _ := model.GetUserById(0, false)
-	if user != nil {
-		if err := model.CompleteSubscriptionOrder(referenceId, "", callerIp); err == nil {
-			logger.LogInfo(ctx, fmt.Sprintf("PayPal 订阅订单完成 trade_no=%s", referenceId))
-			return
-		}
+	if err := model.CompleteSubscriptionOrder(referenceId, string(payload), model.PaymentProviderPayPal, callerIp); err == nil {
+		logger.LogInfo(ctx, fmt.Sprintf("PayPal 订阅订单完成 trade_no=%s", referenceId))
+		return
+	} else if err != nil && !errors.Is(err, model.ErrSubscriptionOrderNotFound) {
+		logger.LogError(ctx, fmt.Sprintf("PayPal 订阅订单处理失败 trade_no=%s error=%q", referenceId, err.Error()))
 	}
 
 	// Regular topup
