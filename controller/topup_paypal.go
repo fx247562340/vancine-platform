@@ -75,7 +75,7 @@ func getPayPalToken() (string, error) {
 		return "", fmt.Errorf("创建 token 请求失败: %w", err)
 	}
 
-	req.SetBasicAuth(setting.PayPalClientId, setting.PayPalClientSecret)
+	req.SetBasicAuth(setting.GetPayPalClientId(), setting.GetPayPalClientSecret())
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	client := &http.Client{Timeout: 30 * time.Second}
@@ -349,7 +349,7 @@ type PayPalWebhookEvent struct {
 }
 
 func verifyPayPalSignature(payload []byte, headers map[string]string) bool {
-	if setting.PayPalWebhookId == "" {
+	if setting.GetPayPalWebhookId() == "" {
 		return false
 	}
 
@@ -385,7 +385,7 @@ func verifyPayPalSignature(payload []byte, headers map[string]string) bool {
 	// Verify the signature
 	transmissionId := headers[paypalSignatureHeader]
 	timestamp := headers[paypalSignatureTimestampHeader]
-	webhookId := setting.PayPalWebhookId
+	webhookId := setting.GetPayPalWebhookId()
 
 	signedData := fmt.Sprintf("%s|%s|%s|%s", transmissionId, timestamp, webhookId, string(payload))
 	sigBytes, err := base64.StdEncoding.DecodeString(headers[paypalSignatureSigHeader])
