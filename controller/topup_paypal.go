@@ -498,8 +498,38 @@ func handlePayPalCapture(ctx context.Context, event *PayPalWebhookEvent, rawPayl
 		}
 
 		if orderDetail.Status != "COMPLETED" {
-			logger.LogInfo(ctx, fmt.Sprintf("PayPal 订单未完成 order_id=%s status=%s, 等待 capture", event.Resource.Id, orderDetail.Status))
-			return
+			// Try to capture the order
+			captureUrl := fmt.Sprintf("%s/v2/checkout/orders/%s/capture", apiBase, event.Resource.Id)
+			captureReq, err := http.NewRequest("POST", captureUrl, strings.NewReader("{}"))
+			if err != nil {
+				logger.LogError(ctx, fmt.Sprintf("PayPal 创建 capture 请求失败 order_id=%s error=%q", event.Resource.Id, err.Error()))
+				return
+			}
+			captureReq.Header.Set("Authorization", "Bearer "+token)
+			captureReq.Header.Set("Content-Type", "application/json")
+			captureReq.Header.Set("Prefer", "return=representation")
+
+			captureResp, err := client.Do(captureReq)
+			if err != nil {
+				logger.LogError(ctx, fmt.Sprintf("PayPal capture 失败 order_id=%s error=%q", event.Resource.Id, err.Error()))
+				return
+			}
+			defer captureResp.Body.Close()
+
+			captureBody, _ := io.ReadAll(captureResp.Body)
+			var captureDetail struct {
+				Status string `json:"status"`
+			}
+			if err := json.Unmarshal(captureBody, &captureDetail); err != nil {
+				logger.LogError(ctx, fmt.Sprintf("PayPal capture 响应解析失败 order_id=%s body=%s", event.Resource.Id, string(captureBody)))
+				return
+			}
+
+			if captureDetail.Status != "COMPLETED" {
+				logger.LogInfo(ctx, fmt.Sprintf("PayPal capture 后状态仍非 COMPLETED order_id=%s status=%s", event.Resource.Id, captureDetail.Status))
+				return
+			}
+			logger.LogInfo(ctx, fmt.Sprintf("PayPal capture 成功 order_id=%s", event.Resource.Id))
 		}
 	}
 
