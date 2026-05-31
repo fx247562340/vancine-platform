@@ -441,7 +441,7 @@ func PayPalWebhook(c *gin.Context) {
 
 	switch event.EventType {
 	case "CHECKOUT.ORDER.APPROVED", "PAYMENT.CAPTURE.COMPLETED":
-		handlePayPalCapture(ctx, &event, callerIp)
+		handlePayPalCapture(ctx, &event, payload, callerIp)
 	default:
 		logger.LogInfo(ctx, fmt.Sprintf("PayPal webhook 忽略事件 event_type=%s", event.EventType))
 	}
@@ -449,7 +449,7 @@ func PayPalWebhook(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func handlePayPalCapture(ctx context.Context, event *PayPalWebhookEvent, callerIp string) {
+func handlePayPalCapture(ctx context.Context, event *PayPalWebhookEvent, rawPayload []byte, callerIp string) {
 	// Extract referenceId from custom_id or purchase_units
 	var referenceId string
 	if event.Resource.CustomId != "" {
@@ -507,7 +507,7 @@ func handlePayPalCapture(ctx context.Context, event *PayPalWebhookEvent, callerI
 	defer UnlockOrder(referenceId)
 
 	// Try subscription first
-	if err := model.CompleteSubscriptionOrder(referenceId, string(payload), model.PaymentProviderPayPal, callerIp); err == nil {
+	if err := model.CompleteSubscriptionOrder(referenceId, string(rawPayload), model.PaymentProviderPayPal, callerIp); err == nil {
 		logger.LogInfo(ctx, fmt.Sprintf("PayPal 订阅订单完成 trade_no=%s", referenceId))
 		return
 	} else if err != nil && !errors.Is(err, model.ErrSubscriptionOrderNotFound) {
