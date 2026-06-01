@@ -57,8 +57,8 @@ export default function SettingsPaymentGatewayPayPal(props) {
 
   useEffect(() => {
     if (props.options) {
-      const enabled = props.options.PayPalEnabled === 'true';
-      const test = props.options.PayPalTestMode === 'true';
+      const enabled = !!props.options.PayPalEnabled;
+      const test = props.options.PayPalTestMode === 'true' || props.options.PayPalTestMode === true;
       setPayPalEnabled(enabled);
       setTestMode(test);
 
