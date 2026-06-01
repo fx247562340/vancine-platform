@@ -497,11 +497,18 @@ func HandlePayPalReturn(c *gin.Context) {
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
+	type purchaseUnit struct {
+		ReferenceId string `json:"reference_id"`
+		Payments    struct {
+			Captures []struct {
+				Id     string `json:"id"`
+				Status string `json:"status"`
+			} `json:"captures"`
+		} `json:"payments"`
+	}
 	var orderDetail struct {
-		Status        string `json:"status"`
-		PurchaseUnits []struct {
-			ReferenceId string `json:"reference_id"`
-		} `json:"purchase_units"`
+		Status        string         `json:"status"`
+		PurchaseUnits []purchaseUnit `json:"purchase_units"`
 	}
 	if err := json.Unmarshal(body, &orderDetail); err != nil {
 		logger.LogError(ctx, fmt.Sprintf("PayPal return 解析订单失败 order_id=%s body=%s", orderId, string(body)))
@@ -532,16 +539,8 @@ func HandlePayPalReturn(c *gin.Context) {
 
 		captureBody, _ := io.ReadAll(captureResp.Body)
 		var captureDetail struct {
-			Status        string `json:"status"`
-			PurchaseUnits []struct {
-				ReferenceId string `json:"reference_id"`
-				Payments    struct {
-					Captures []struct {
-						Id     string `json:"id"`
-						Status string `json:"status"`
-					} `json:"captures"`
-				} `json:"payments"`
-			} `json:"purchase_units"`
+			Status        string         `json:"status"`
+			PurchaseUnits []purchaseUnit `json:"purchase_units"`
 		}
 		if err := json.Unmarshal(captureBody, &captureDetail); err != nil {
 			logger.LogError(ctx, fmt.Sprintf("PayPal return 解析 capture 失败 order_id=%s body=%s", orderId, string(captureBody)))
