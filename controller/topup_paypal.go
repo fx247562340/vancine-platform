@@ -46,13 +46,16 @@ type paypalTokenCache struct {
 	mu         sync.RWMutex
 	accessToken string
 	expiresAt   time.Time
+	testMode    bool
 }
 
 var tokenCache = &paypalTokenCache{}
 
 func getPayPalToken() (string, error) {
+	currentTestMode := setting.PayPalTestMode
+
 	tokenCache.mu.RLock()
-	if tokenCache.accessToken != "" && time.Now().Before(tokenCache.expiresAt) {
+	if tokenCache.accessToken != "" && time.Now().Before(tokenCache.expiresAt) && tokenCache.testMode == currentTestMode {
 		defer tokenCache.mu.RUnlock()
 		return tokenCache.accessToken, nil
 	}
@@ -62,7 +65,7 @@ func getPayPalToken() (string, error) {
 	defer tokenCache.mu.Unlock()
 
 	// Double-check after acquiring write lock
-	if tokenCache.accessToken != "" && time.Now().Before(tokenCache.expiresAt) {
+	if tokenCache.accessToken != "" && time.Now().Before(tokenCache.expiresAt) && tokenCache.testMode == currentTestMode {
 		return tokenCache.accessToken, nil
 	}
 
@@ -108,6 +111,7 @@ func getPayPalToken() (string, error) {
 
 	tokenCache.accessToken = tokenResp.AccessToken
 	tokenCache.expiresAt = time.Now().Add(time.Duration(tokenResp.ExpiresIn-300) * time.Second) // 提前5分钟刷新
+	tokenCache.testMode = currentTestMode
 
 	logger.LogInfo(nil, fmt.Sprintf("PayPal token 获取成功 expires_in=%d", tokenResp.ExpiresIn))
 	return tokenResp.AccessToken, nil
