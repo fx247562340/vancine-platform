@@ -197,6 +197,7 @@ func (*PayPalAdaptor) RequestPay(c *gin.Context, req *PayPalPayRequest) {
 		TradeNo:         referenceId,
 		PaymentMethod:   model.PaymentMethodPayPal,
 		PaymentProvider: model.PaymentProviderPayPal,
+		PaymentId:       orderId,
 		CreateTime:      time.Now().Unix(),
 		Status:          common.TopUpStatusPending,
 	}
