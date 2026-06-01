@@ -18,9 +18,9 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 export const supportedLanguages = [
+  'en',
   'zh-CN',
   'zh-TW',
-  'en',
   'fr',
   'ru',
   'ja',
