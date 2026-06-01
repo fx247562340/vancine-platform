@@ -336,8 +336,8 @@ const TopUp = () => {
             // Stripe 支付回调处理
             window.open(data.pay_link, '_blank');
           } else if (payWay === 'paypal') {
-            // PayPal 支付回调处理
-            window.open(data.pay_link, '_blank');
+            // PayPal 支付 — 当前窗口跳转，用户完成后自动跳回
+            window.location.href = data.pay_link;
           } else {
             // 普通支付表单提交
             let params = data;

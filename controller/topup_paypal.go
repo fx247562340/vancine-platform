@@ -260,10 +260,13 @@ func genPayPalOrder(referenceId string, amount float64, email string) (approveUR
 			},
 		},
 		"application_context": map[string]interface{}{
-			"brand_name":  "Vancine",
-			"locale":      "en-US",
-			"landing_page": "BILLING",
+			"brand_name":          "Vancine",
+			"locale":              "en-US",
+			"landing_page":        "BILLING",
 			"shipping_preference": "NO_SHIPPING",
+			"return_url":          paymentReturnPath("/api/paypal/return"),
+			"cancel_url":          paymentReturnPath("/console/topup"),
+			"user_action":         "PAY_NOW",
 		},
 	}
 
@@ -447,6 +450,139 @@ func PayPalWebhook(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
+}
+
+// HandlePayPalReturn handles the user redirect back from PayPal after payment approval.
+// PayPal appends ?token={ORDER_ID} to the return_url. This handler queries the order,
+// captures it if needed, and credits the user's balance. It serves as a fallback
+// alongside the webhook to ensure payment completion even if webhook delivery fails.
+func HandlePayPalReturn(c *gin.Context) {
+	ctx := c.Request.Context()
+	orderId := c.Query("token")
+	if orderId == "" {
+		logger.LogWarn(ctx, "PayPal return 回调缺少 token 参数")
+		c.Redirect(http.StatusFound, paymentReturnPath("/console/topup"))
+		return
+	}
+
+	logger.LogInfo(ctx, fmt.Sprintf("PayPal return 回调 order_id=%s client_ip=%s", orderId, c.ClientIP()))
+
+	token, err := getPayPalToken()
+	if err != nil {
+		logger.LogError(ctx, fmt.Sprintf("PayPal return 获取 token 失败 error=%q", err.Error()))
+		c.Redirect(http.StatusFound, paymentReturnPath("/console/topup?payment_error=true"))
+		return
+	}
+
+	apiBase := setting.GetPayPalAPIBase()
+
+	// 1. Query order detail
+	orderUrl := fmt.Sprintf("%s/v2/checkout/orders/%s", apiBase, orderId)
+	req, err := http.NewRequest("GET", orderUrl, nil)
+	if err != nil {
+		logger.LogError(ctx, fmt.Sprintf("PayPal return 创建查询请求失败 order_id=%s error=%q", orderId, err.Error()))
+		c.Redirect(http.StatusFound, paymentReturnPath("/console/topup?payment_error=true"))
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		logger.LogError(ctx, fmt.Sprintf("PayPal return 查询订单失败 order_id=%s error=%q", orderId, err.Error()))
+		c.Redirect(http.StatusFound, paymentReturnPath("/console/topup?payment_error=true"))
+		return
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	var orderDetail struct {
+		Status        string `json:"status"`
+		PurchaseUnits []struct {
+			ReferenceId string `json:"reference_id"`
+		} `json:"purchase_units"`
+	}
+	if err := json.Unmarshal(body, &orderDetail); err != nil {
+		logger.LogError(ctx, fmt.Sprintf("PayPal return 解析订单失败 order_id=%s body=%s", orderId, string(body)))
+		c.Redirect(http.StatusFound, paymentReturnPath("/console/topup?payment_error=true"))
+		return
+	}
+
+	// 2. Capture if order is APPROVED but not yet COMPLETED
+	if orderDetail.Status == "APPROVED" {
+		captureUrl := fmt.Sprintf("%s/v2/checkout/orders/%s/capture", apiBase, orderId)
+		captureReq, err := http.NewRequest("POST", captureUrl, strings.NewReader("{}"))
+		if err != nil {
+			logger.LogError(ctx, fmt.Sprintf("PayPal return 创建 capture 请求失败 order_id=%s error=%q", orderId, err.Error()))
+			c.Redirect(http.StatusFound, paymentReturnPath("/console/topup?payment_error=true"))
+			return
+		}
+		captureReq.Header.Set("Authorization", "Bearer "+token)
+		captureReq.Header.Set("Content-Type", "application/json")
+		captureReq.Header.Set("Prefer", "return=representation")
+
+		captureResp, err := client.Do(captureReq)
+		if err != nil {
+			logger.LogError(ctx, fmt.Sprintf("PayPal return capture 失败 order_id=%s error=%q", orderId, err.Error()))
+			c.Redirect(http.StatusFound, paymentReturnPath("/console/topup?payment_error=true"))
+			return
+		}
+		defer captureResp.Body.Close()
+
+		captureBody, _ := io.ReadAll(captureResp.Body)
+		var captureDetail struct {
+			Status        string `json:"status"`
+			PurchaseUnits []struct {
+				ReferenceId string `json:"reference_id"`
+			} `json:"purchase_units"`
+		}
+		if err := json.Unmarshal(captureBody, &captureDetail); err != nil {
+			logger.LogError(ctx, fmt.Sprintf("PayPal return 解析 capture 失败 order_id=%s body=%s", orderId, string(captureBody)))
+			c.Redirect(http.StatusFound, paymentReturnPath("/console/topup?payment_error=true"))
+			return
+		}
+
+		if captureDetail.Status != "COMPLETED" {
+			logger.LogInfo(ctx, fmt.Sprintf("PayPal return capture 状态非 COMPLETED order_id=%s status=%s", orderId, captureDetail.Status))
+			c.Redirect(http.StatusFound, paymentReturnPath("/console/topup?payment_pending=true"))
+			return
+		}
+
+		// Use reference_id from capture response
+		if len(captureDetail.PurchaseUnits) > 0 {
+			orderDetail.PurchaseUnits = captureDetail.PurchaseUnits
+		}
+		logger.LogInfo(ctx, fmt.Sprintf("PayPal return capture 成功 order_id=%s", orderId))
+	} else if orderDetail.Status != "COMPLETED" {
+		logger.LogInfo(ctx, fmt.Sprintf("PayPal return 订单状态异常 order_id=%s status=%s", orderId, orderDetail.Status))
+		c.Redirect(http.StatusFound, paymentReturnPath("/console/topup?payment_pending=true"))
+		return
+	}
+
+	// 3. Extract referenceId and credit the user
+	var referenceId string
+	if len(orderDetail.PurchaseUnits) > 0 {
+		referenceId = orderDetail.PurchaseUnits[0].ReferenceId
+	}
+	if referenceId == "" {
+		logger.LogWarn(ctx, fmt.Sprintf("PayPal return 无法提取 referenceId order_id=%s", orderId))
+		c.Redirect(http.StatusFound, paymentReturnPath("/console/topup?payment_error=true"))
+		return
+	}
+
+	callerIp := c.ClientIP()
+	LockOrder(referenceId)
+	defer UnlockOrder(referenceId)
+
+	err = model.RechargePayPal(referenceId, "", "", callerIp)
+	if err != nil {
+		// May already be processed by webhook — not an error
+		logger.LogInfo(ctx, fmt.Sprintf("PayPal return 充值结果 trade_no=%s error=%v", referenceId, err))
+	} else {
+		logger.LogInfo(ctx, fmt.Sprintf("PayPal return 充值成功 trade_no=%s order_id=%s", referenceId, orderId))
+	}
+
+	c.Redirect(http.StatusFound, paymentReturnPath("/console/topup?show_history=true"))
 }
 
 func handlePayPalCapture(ctx context.Context, event *PayPalWebhookEvent, rawPayload []byte, callerIp string) {
