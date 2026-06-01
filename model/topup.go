@@ -500,8 +500,8 @@ func RechargePayPal(referenceId string, customerEmail string, customerName strin
 			return err
 		}
 
-		// PayPal 使用 Amount 作为充值额度（整数）
-		quota = topUp.Amount
+		// PayPal 使用 Money（美元）乘以 QuotaPerUnit 作为充值额度
+		quota = int64(topUp.Money * common.QuotaPerUnit)
 
 		updateFields := map[string]interface{}{
 			"quota": gorm.Expr("quota + ?", quota),
