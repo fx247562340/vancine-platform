@@ -255,6 +255,7 @@ const RechargeCard = ({
                       disabled={
                         !enableOnlineTopUp &&
                         !enableStripeTopUp &&
+                        !enablePayPalTopUp &&
                         !enableWaffoTopUp &&
                         !enableWaffoPancakeTopUp
                       }
