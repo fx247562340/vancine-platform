@@ -14,10 +14,31 @@
 }
 
 /* ==================== 全局基础样式 ==================== */
+/* ==================== Vancine 品牌主题色 ==================== */
 :root {
   --sidebar-width: 180px;
   --sidebar-width-collapsed: 60px;
   --sidebar-current-width: var(--sidebar-width);
+
+  /* 覆盖 Semi Design 主色为 Vancine Purple */
+  --semi-color-primary: #6C5CE7;
+  --semi-color-primary-hover: #7E70F0;
+  --semi-color-primary-active: #5541D9;
+  --semi-color-primary-disabled: #B8B0F5;
+  --semi-color-primary-light-default: #F0EEFE;
+  --semi-color-primary-light-hover: #E4E0FD;
+  --semi-color-primary-light-active: #D5CFFC;
+}
+
+/* Dark mode 主题色调整 */
+html.dark {
+  --semi-color-primary: #A29BFE;
+  --semi-color-primary-hover: #B8B0FE;
+  --semi-color-primary-active: #6C5CE7;
+  --semi-color-primary-disabled: #4A3DB0;
+  --semi-color-primary-light-default: rgba(108, 92, 231, 0.2);
+  --semi-color-primary-light-hover: rgba(108, 92, 231, 0.3);
+  --semi-color-primary-light-active: rgba(108, 92, 231, 0.4);
 }
 
 body.sidebar-collapsed {
@@ -25,8 +46,7 @@ body.sidebar-collapsed {
 }
 
 body {
-  font-family: Lato, 'Helvetica Neue', Arial, Helvetica, 'Microsoft YaHei',
-    sans-serif;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'Microsoft YaHei', sans-serif;
   color: var(--semi-color-text-0);
   background-color: var(--semi-color-bg-0);
 }
@@ -156,12 +176,12 @@ code {
 }
 
 .sidebar-nav-item:hover {
-  background-color: rgba(var(--semi-blue-0), 0.08);
+  background-color: rgba(108, 92, 231, 0.08);
   color: var(--semi-color-primary);
 }
 
 .sidebar-nav-item-selected {
-  background-color: rgba(var(--semi-blue-0), 0.12);
+  background-color: rgba(108, 92, 231, 0.12);
   color: var(--semi-color-primary);
   font-weight: 500;
 }
