@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   Banner,
   Button,
@@ -25,6 +25,7 @@ import {
   Col,
   Typography,
   Spin,
+  Switch,
   Select,
 } from '@douyinfe/semi-ui';
 const { Text } = Typography;
@@ -36,43 +37,48 @@ export default function SettingsPaymentGatewayPayPal(props) {
   const { t } = useTranslation();
   const sectionTitle = props.hideSectionTitle ? undefined : t('PayPal 设置');
   const [loading, setLoading] = useState(false);
+
+  // Use independent state for switches to avoid Form sync issues
+  const [payPalEnabled, setPayPalEnabled] = useState(false);
+  const [testMode, setTestMode] = useState(false);
+
   const [inputs, setInputs] = useState({
-    PayPalEnabled: false,
     PayPalClientId: '',
     PayPalClientSecret: '',
     PayPalWebhookId: '',
     PayPalSandboxClientId: '',
     PayPalSandboxClientSecret: '',
     PayPalSandboxWebhookId: '',
-    PayPalTestMode: false,
     PayPalMinTopUp: 1,
     PayPalCurrency: 'USD',
   });
   const [originInputs, setOriginInputs] = useState({});
   const formApiRef = useRef(null);
 
-  const syncFormFromOptions = useCallback(() => {
-    if (!props.options || !formApiRef.current) return;
-    const currentInputs = {
-      PayPalEnabled: props.options.PayPalEnabled === 'true',
-      PayPalClientId: props.options.PayPalClientId || '',
-      PayPalClientSecret: props.options.PayPalClientSecret || '',
-      PayPalWebhookId: props.options.PayPalWebhookId || '',
-      PayPalSandboxClientId: props.options.PayPalSandboxClientId || '',
-      PayPalSandboxClientSecret: props.options.PayPalSandboxClientSecret || '',
-      PayPalSandboxWebhookId: props.options.PayPalSandboxWebhookId || '',
-      PayPalTestMode: props.options.PayPalTestMode === 'true',
-      PayPalMinTopUp: parseInt(props.options.PayPalMinTopUp) || 1,
-      PayPalCurrency: props.options.PayPalCurrency || 'USD',
-    };
-    setInputs(currentInputs);
-    setOriginInputs({ ...currentInputs });
-    formApiRef.current.setValues(currentInputs);
-  }, [props.options]);
-
   useEffect(() => {
-    syncFormFromOptions();
-  }, [syncFormFromOptions]);
+    if (props.options) {
+      const enabled = props.options.PayPalEnabled === 'true';
+      const test = props.options.PayPalTestMode === 'true';
+      setPayPalEnabled(enabled);
+      setTestMode(test);
+
+      const formValues = {
+        PayPalClientId: props.options.PayPalClientId || '',
+        PayPalClientSecret: props.options.PayPalClientSecret || '',
+        PayPalWebhookId: props.options.PayPalWebhookId || '',
+        PayPalSandboxClientId: props.options.PayPalSandboxClientId || '',
+        PayPalSandboxClientSecret: props.options.PayPalSandboxClientSecret || '',
+        PayPalSandboxWebhookId: props.options.PayPalSandboxWebhookId || '',
+        PayPalMinTopUp: parseInt(props.options.PayPalMinTopUp) || 1,
+        PayPalCurrency: props.options.PayPalCurrency || 'USD',
+      };
+      setInputs(formValues);
+      setOriginInputs({ ...formValues });
+      if (formApiRef.current) {
+        formApiRef.current.setValues(formValues);
+      }
+    }
+  }, [props.options]);
 
   const handleFormChange = (values) => {
     setInputs((prev) => ({ ...prev, ...values }));
@@ -83,15 +89,8 @@ export default function SettingsPaymentGatewayPayPal(props) {
     try {
       const options = [];
 
-      options.push({
-        key: 'PayPalEnabled',
-        value: inputs.PayPalEnabled ? 'true' : 'false',
-      });
-
-      options.push({
-        key: 'PayPalTestMode',
-        value: inputs.PayPalTestMode ? 'true' : 'false',
-      });
+      options.push({ key: 'PayPalEnabled', value: payPalEnabled ? 'true' : 'false' });
+      options.push({ key: 'PayPalTestMode', value: testMode ? 'true' : 'false' });
 
       if (inputs.PayPalClientId) {
         options.push({ key: 'PayPalClientId', value: inputs.PayPalClientId });
@@ -139,11 +138,7 @@ export default function SettingsPaymentGatewayPayPal(props) {
       <Form
         initValues={inputs}
         onValueChange={handleFormChange}
-        getFormApi={(api) => {
-          formApiRef.current = api;
-          // Sync immediately when form API becomes available
-          syncFormFromOptions();
-        }}
+        getFormApi={(api) => (formApiRef.current = api)}
       >
         <Form.Section text={sectionTitle}>
           <Banner
@@ -165,16 +160,30 @@ export default function SettingsPaymentGatewayPayPal(props) {
 
           <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 24, xl: 24, xxl: 24 }}>
             <Col xs={24} sm={24} md={8} lg={8} xl={8}>
-              <Form.Switch
-                field='PayPalEnabled'
-                label={t('启用 PayPal 支付')}
-              />
+              <div style={{ marginBottom: 12 }}>
+                <Text strong style={{ display: 'block', marginBottom: 8 }}>
+                  {t('启用 PayPal 支付')}
+                </Text>
+                <Switch
+                  checked={payPalEnabled}
+                  onChange={(checked) => setPayPalEnabled(checked)}
+                  checkedText='ON'
+                  uncheckedText='OFF'
+                />
+              </div>
             </Col>
             <Col xs={24} sm={24} md={8} lg={8} xl={8}>
-              <Form.Switch
-                field='PayPalTestMode'
-                label={t('沙盒模式')}
-              />
+              <div style={{ marginBottom: 12 }}>
+                <Text strong style={{ display: 'block', marginBottom: 8 }}>
+                  {t('沙盒模式')}
+                </Text>
+                <Switch
+                  checked={testMode}
+                  onChange={(checked) => setTestMode(checked)}
+                  checkedText='Sandbox'
+                  uncheckedText='Production'
+                />
+              </div>
             </Col>
             <Col xs={24} sm={24} md={8} lg={8} xl={8}>
               <Form.InputNumber
@@ -185,7 +194,7 @@ export default function SettingsPaymentGatewayPayPal(props) {
             </Col>
           </Row>
 
-          {inputs.PayPalTestMode ? (
+          {testMode ? (
             <>
               <Banner
                 type='warning'
