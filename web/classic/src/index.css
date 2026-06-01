@@ -19,8 +19,12 @@
   --sidebar-width: 180px;
   --sidebar-width-collapsed: 60px;
   --sidebar-current-width: var(--sidebar-width);
+}
 
-  /* 覆盖 Semi Design 蓝色色阶为 Vancine Purple */
+/* 覆盖 Semi Design 蓝色色阶为 Vancine Purple */
+/* 必须在 body 上定义，因为 Semi 的变量也定义在 body 选择器上 */
+body,
+body.semi-always-light {
   --semi-blue-0: 240, 238, 254;
   --semi-blue-1: 228, 224, 253;
   --semi-blue-2: 200, 192, 252;
@@ -34,8 +38,9 @@
 }
 
 /* Dark mode */
-html.dark,
-body[theme-mode="dark"] {
+body[theme-mode="dark"],
+html.dark body,
+body.semi-always-dark {
   --semi-blue-0: 35, 27, 107;
   --semi-blue-1: 50, 38, 143;
   --semi-blue-2: 68, 50, 180;
