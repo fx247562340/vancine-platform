@@ -20,25 +20,32 @@
   --sidebar-width-collapsed: 60px;
   --sidebar-current-width: var(--sidebar-width);
 
-  /* 覆盖 Semi Design 主色为 Vancine Purple */
-  --semi-color-primary: #6C5CE7;
-  --semi-color-primary-hover: #7E70F0;
-  --semi-color-primary-active: #5541D9;
-  --semi-color-primary-disabled: #B8B0F5;
-  --semi-color-primary-light-default: #F0EEFE;
-  --semi-color-primary-light-hover: #E4E0FD;
-  --semi-color-primary-light-active: #D5CFFC;
+  /* 覆盖 Semi Design 蓝色色阶为 Vancine Purple */
+  --semi-blue-0: 240, 238, 254;
+  --semi-blue-1: 228, 224, 253;
+  --semi-blue-2: 200, 192, 252;
+  --semi-blue-3: 170, 158, 250;
+  --semi-blue-4: 140, 125, 245;
+  --semi-blue-5: 108, 92, 231;
+  --semi-blue-6: 85, 65, 217;
+  --semi-blue-7: 68, 50, 180;
+  --semi-blue-8: 50, 38, 143;
+  --semi-blue-9: 35, 27, 107;
 }
 
-/* Dark mode 主题色调整 */
-html.dark {
-  --semi-color-primary: #A29BFE;
-  --semi-color-primary-hover: #B8B0FE;
-  --semi-color-primary-active: #6C5CE7;
-  --semi-color-primary-disabled: #4A3DB0;
-  --semi-color-primary-light-default: rgba(108, 92, 231, 0.2);
-  --semi-color-primary-light-hover: rgba(108, 92, 231, 0.3);
-  --semi-color-primary-light-active: rgba(108, 92, 231, 0.4);
+/* Dark mode */
+html.dark,
+body[theme-mode="dark"] {
+  --semi-blue-0: 35, 27, 107;
+  --semi-blue-1: 50, 38, 143;
+  --semi-blue-2: 68, 50, 180;
+  --semi-blue-3: 85, 65, 217;
+  --semi-blue-4: 108, 92, 231;
+  --semi-blue-5: 162, 155, 254;
+  --semi-blue-6: 184, 176, 254;
+  --semi-blue-7: 200, 192, 252;
+  --semi-blue-8: 228, 224, 253;
+  --semi-blue-9: 240, 238, 254;
 }
 
 body.sidebar-collapsed {
