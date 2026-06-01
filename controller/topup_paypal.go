@@ -535,6 +535,12 @@ func HandlePayPalReturn(c *gin.Context) {
 			Status        string `json:"status"`
 			PurchaseUnits []struct {
 				ReferenceId string `json:"reference_id"`
+				Payments    struct {
+					Captures []struct {
+						Id     string `json:"id"`
+						Status string `json:"status"`
+					} `json:"captures"`
+				} `json:"payments"`
 			} `json:"purchase_units"`
 		}
 		if err := json.Unmarshal(captureBody, &captureDetail); err != nil {
@@ -560,10 +566,14 @@ func HandlePayPalReturn(c *gin.Context) {
 		return
 	}
 
-	// 3. Extract referenceId and credit the user
+	// 3. Extract referenceId, transactionId and credit the user
 	var referenceId string
+	var transactionId string
 	if len(orderDetail.PurchaseUnits) > 0 {
 		referenceId = orderDetail.PurchaseUnits[0].ReferenceId
+		if len(orderDetail.PurchaseUnits[0].Payments.Captures) > 0 {
+			transactionId = orderDetail.PurchaseUnits[0].Payments.Captures[0].Id
+		}
 	}
 	if referenceId == "" {
 		logger.LogWarn(ctx, fmt.Sprintf("PayPal return 无法提取 referenceId order_id=%s", orderId))
@@ -575,7 +585,7 @@ func HandlePayPalReturn(c *gin.Context) {
 	LockOrder(referenceId)
 	defer UnlockOrder(referenceId)
 
-	err = model.RechargePayPal(referenceId, "", "", callerIp)
+	err = model.RechargePayPal(referenceId, "", "", callerIp, transactionId)
 	if err != nil {
 		// May already be processed by webhook — not an error
 		logger.LogInfo(ctx, fmt.Sprintf("PayPal return 充值结果 trade_no=%s error=%v", referenceId, err))
@@ -684,8 +694,9 @@ func handlePayPalCapture(ctx context.Context, event *PayPalWebhookEvent, rawPayl
 	// Regular topup
 	payerEmail := event.Resource.Payer.EmailAddress
 	payerName := event.Resource.Payer.PayerId
+	transactionId := event.Resource.Id
 
-	err := model.RechargePayPal(referenceId, payerEmail, payerName, callerIp)
+	err := model.RechargePayPal(referenceId, payerEmail, payerName, callerIp, transactionId)
 	if err != nil {
 		logger.LogError(ctx, fmt.Sprintf("PayPal 充值失败 trade_no=%s error=%q", referenceId, err.Error()))
 		return

@@ -20,6 +20,7 @@ type TopUp struct {
 	PaymentMethod   string  `json:"payment_method" gorm:"type:varchar(50)"`
 	PaymentProvider string  `json:"payment_provider" gorm:"type:varchar(50);default:''"`
 	PaymentId       string  `json:"payment_id" gorm:"type:varchar(255);default:'';index"`
+	TransactionId   string  `json:"transaction_id" gorm:"type:varchar(255);default:'';index"`
 	CreateTime      int64   `json:"create_time"`
 	CompleteTime    int64   `json:"complete_time"`
 	Status          string  `json:"status"`
@@ -467,7 +468,7 @@ func RechargeCreem(referenceId string, customerEmail string, customerName string
 	return nil
 }
 
-func RechargePayPal(referenceId string, customerEmail string, customerName string, callerIp string) (err error) {
+func RechargePayPal(referenceId string, customerEmail string, customerName string, callerIp string, transactionId string) (err error) {
 	if referenceId == "" {
 		return errors.New("未提供支付单号")
 	}
@@ -496,6 +497,9 @@ func RechargePayPal(referenceId string, customerEmail string, customerName strin
 
 		topUp.CompleteTime = common.GetTimestamp()
 		topUp.Status = common.TopUpStatusSuccess
+		if transactionId != "" {
+			topUp.TransactionId = transactionId
+		}
 		err = tx.Save(topUp).Error
 		if err != nil {
 			return err
