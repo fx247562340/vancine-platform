@@ -127,7 +127,7 @@ func getPayPalPayMoney(amount float64, group string) float64 {
 	if topupGroupRatio == 0 {
 		topupGroupRatio = 1
 	}
-	return amount * setting.PayPalUnitPrice * topupGroupRatio
+	return amount * topupGroupRatio
 }
 
 // --- Request Handlers ---

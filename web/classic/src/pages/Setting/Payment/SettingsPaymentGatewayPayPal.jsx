@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   Banner,
   Button,
@@ -46,35 +46,36 @@ export default function SettingsPaymentGatewayPayPal(props) {
     PayPalSandboxWebhookId: '',
     PayPalTestMode: false,
     PayPalMinTopUp: 1,
-    PayPalUnitPrice: 8.0,
     PayPalCurrency: 'USD',
   });
   const [originInputs, setOriginInputs] = useState({});
   const formApiRef = useRef(null);
 
-  useEffect(() => {
-    if (props.options && formApiRef.current) {
-      const currentInputs = {
-        PayPalEnabled: props.options.PayPalEnabled === 'true',
-        PayPalClientId: props.options.PayPalClientId || '',
-        PayPalClientSecret: props.options.PayPalClientSecret || '',
-        PayPalWebhookId: props.options.PayPalWebhookId || '',
-        PayPalSandboxClientId: props.options.PayPalSandboxClientId || '',
-        PayPalSandboxClientSecret: props.options.PayPalSandboxClientSecret || '',
-        PayPalSandboxWebhookId: props.options.PayPalSandboxWebhookId || '',
-        PayPalTestMode: props.options.PayPalTestMode === 'true',
-        PayPalMinTopUp: parseInt(props.options.PayPalMinTopUp) || 1,
-        PayPalUnitPrice: parseFloat(props.options.PayPalUnitPrice) || 8.0,
-        PayPalCurrency: props.options.PayPalCurrency || 'USD',
-      };
-      setInputs(currentInputs);
-      setOriginInputs({ ...currentInputs });
-      formApiRef.current.setValues(currentInputs);
-    }
+  const syncFormFromOptions = useCallback(() => {
+    if (!props.options || !formApiRef.current) return;
+    const currentInputs = {
+      PayPalEnabled: props.options.PayPalEnabled === 'true',
+      PayPalClientId: props.options.PayPalClientId || '',
+      PayPalClientSecret: props.options.PayPalClientSecret || '',
+      PayPalWebhookId: props.options.PayPalWebhookId || '',
+      PayPalSandboxClientId: props.options.PayPalSandboxClientId || '',
+      PayPalSandboxClientSecret: props.options.PayPalSandboxClientSecret || '',
+      PayPalSandboxWebhookId: props.options.PayPalSandboxWebhookId || '',
+      PayPalTestMode: props.options.PayPalTestMode === 'true',
+      PayPalMinTopUp: parseInt(props.options.PayPalMinTopUp) || 1,
+      PayPalCurrency: props.options.PayPalCurrency || 'USD',
+    };
+    setInputs(currentInputs);
+    setOriginInputs({ ...currentInputs });
+    formApiRef.current.setValues(currentInputs);
   }, [props.options]);
 
+  useEffect(() => {
+    syncFormFromOptions();
+  }, [syncFormFromOptions]);
+
   const handleFormChange = (values) => {
-    setInputs(values);
+    setInputs((prev) => ({ ...prev, ...values }));
   };
 
   const submitPayPalSetting = async () => {
@@ -87,79 +88,41 @@ export default function SettingsPaymentGatewayPayPal(props) {
         value: inputs.PayPalEnabled ? 'true' : 'false',
       });
 
-      if (inputs.PayPalClientId && inputs.PayPalClientId !== '') {
-        options.push({ key: 'PayPalClientId', value: inputs.PayPalClientId });
-      }
-
-      if (inputs.PayPalClientSecret && inputs.PayPalClientSecret !== '') {
-        options.push({
-          key: 'PayPalClientSecret',
-          value: inputs.PayPalClientSecret,
-        });
-      }
-
-      if (inputs.PayPalWebhookId && inputs.PayPalWebhookId !== '') {
-        options.push({
-          key: 'PayPalWebhookId',
-          value: inputs.PayPalWebhookId,
-        });
-      }
-
-      if (inputs.PayPalSandboxClientId && inputs.PayPalSandboxClientId !== '') {
-        options.push({
-          key: 'PayPalSandboxClientId',
-          value: inputs.PayPalSandboxClientId,
-        });
-      }
-
-      if (inputs.PayPalSandboxClientSecret && inputs.PayPalSandboxClientSecret !== '') {
-        options.push({
-          key: 'PayPalSandboxClientSecret',
-          value: inputs.PayPalSandboxClientSecret,
-        });
-      }
-
-      if (inputs.PayPalSandboxWebhookId && inputs.PayPalSandboxWebhookId !== '') {
-        options.push({
-          key: 'PayPalSandboxWebhookId',
-          value: inputs.PayPalSandboxWebhookId,
-        });
-      }
-
       options.push({
         key: 'PayPalTestMode',
         value: inputs.PayPalTestMode ? 'true' : 'false',
       });
 
-      options.push({
-        key: 'PayPalMinTopUp',
-        value: String(inputs.PayPalMinTopUp || 1),
-      });
+      if (inputs.PayPalClientId) {
+        options.push({ key: 'PayPalClientId', value: inputs.PayPalClientId });
+      }
+      if (inputs.PayPalClientSecret) {
+        options.push({ key: 'PayPalClientSecret', value: inputs.PayPalClientSecret });
+      }
+      if (inputs.PayPalWebhookId) {
+        options.push({ key: 'PayPalWebhookId', value: inputs.PayPalWebhookId });
+      }
+      if (inputs.PayPalSandboxClientId) {
+        options.push({ key: 'PayPalSandboxClientId', value: inputs.PayPalSandboxClientId });
+      }
+      if (inputs.PayPalSandboxClientSecret) {
+        options.push({ key: 'PayPalSandboxClientSecret', value: inputs.PayPalSandboxClientSecret });
+      }
+      if (inputs.PayPalSandboxWebhookId) {
+        options.push({ key: 'PayPalSandboxWebhookId', value: inputs.PayPalSandboxWebhookId });
+      }
 
-      options.push({
-        key: 'PayPalUnitPrice',
-        value: String(inputs.PayPalUnitPrice || 8.0),
-      });
-
-      options.push({
-        key: 'PayPalCurrency',
-        value: inputs.PayPalCurrency || 'USD',
-      });
+      options.push({ key: 'PayPalMinTopUp', value: String(inputs.PayPalMinTopUp || 1) });
+      options.push({ key: 'PayPalCurrency', value: inputs.PayPalCurrency || 'USD' });
 
       const requestQueue = options.map((opt) =>
-        API.put('/api/option/', {
-          key: opt.key,
-          value: opt.value,
-        }),
+        API.put('/api/option/', { key: opt.key, value: opt.value }),
       );
 
       const results = await Promise.all(requestQueue);
-
       const errorResults = results.filter((res) => !res.data.success);
       if (errorResults.length > 0) {
-        errorResults.forEach((res) => {
-          showError(res.data.message);
-        });
+        errorResults.forEach((res) => showError(res.data.message));
       } else {
         showSuccess(t('更新成功'));
         setOriginInputs({ ...inputs });
@@ -176,7 +139,11 @@ export default function SettingsPaymentGatewayPayPal(props) {
       <Form
         initValues={inputs}
         onValueChange={handleFormChange}
-        getFormApi={(api) => (formApiRef.current = api)}
+        getFormApi={(api) => {
+          formApiRef.current = api;
+          // Sync immediately when form API becomes available
+          syncFormFromOptions();
+        }}
       >
         <Form.Section text={sectionTitle}>
           <Banner
@@ -201,20 +168,18 @@ export default function SettingsPaymentGatewayPayPal(props) {
               <Form.Switch
                 field='PayPalEnabled'
                 label={t('启用 PayPal 支付')}
-                extraText={t(inputs.PayPalEnabled ? 'PayPal 支付已启用' : 'PayPal 支付已关闭')}
               />
             </Col>
             <Col xs={24} sm={24} md={8} lg={8} xl={8}>
               <Form.Switch
                 field='PayPalTestMode'
                 label={t('沙盒模式')}
-                extraText={t(inputs.PayPalTestMode ? '当前使用 Sandbox 环境' : '当前使用 Production 环境')}
               />
             </Col>
             <Col xs={24} sm={24} md={8} lg={8} xl={8}>
               <Form.InputNumber
                 field='PayPalMinTopUp'
-                label={t('最低充值额度')}
+                label={t('最低充值额度 (USD)')}
                 min={1}
               />
             </Col>
@@ -225,7 +190,7 @@ export default function SettingsPaymentGatewayPayPal(props) {
               <Banner
                 type='warning'
                 description={t('当前为 Sandbox 模式，使用沙盒环境的 Client ID 和 Secret')}
-                style={{ marginBottom: 16 }}
+                style={{ marginBottom: 16, marginTop: 16 }}
               />
               <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 24, xl: 24, xxl: 24 }}>
                 <Col xs={24} sm={24} md={8} lg={8} xl={8}>
@@ -259,7 +224,7 @@ export default function SettingsPaymentGatewayPayPal(props) {
               <Banner
                 type='info'
                 description={t('当前为 Production 模式，使用正式环境的 Client ID 和 Secret')}
-                style={{ marginBottom: 16 }}
+                style={{ marginBottom: 16, marginTop: 16 }}
               />
               <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 24, xl: 24, xxl: 24 }}>
                 <Col xs={24} sm={24} md={8} lg={8} xl={8}>
@@ -291,15 +256,6 @@ export default function SettingsPaymentGatewayPayPal(props) {
           )}
 
           <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 24, xl: 24, xxl: 24 }}>
-            <Col xs={24} sm={24} md={8} lg={8} xl={8}>
-              <Form.InputNumber
-                field='PayPalUnitPrice'
-                label={t('汇率 (Unit Price)')}
-                min={0}
-                step={0.1}
-                precision={2}
-              />
-            </Col>
             <Col xs={24} sm={24} md={8} lg={8} xl={8}>
               <Form.Select field='PayPalCurrency' label={t('默认货币')}>
                 <Select.Option value='USD'>USD ($)</Select.Option>
