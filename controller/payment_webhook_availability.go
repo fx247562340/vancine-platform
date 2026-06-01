@@ -50,11 +50,11 @@ func isPayPalTopUpEnabled() bool {
 	if !isPaymentComplianceConfirmed() {
 		return false
 	}
-	products := strings.TrimSpace(setting.PayPalProducts)
+	if !setting.PayPalEnabled {
+		return false
+	}
 	return strings.TrimSpace(setting.GetPayPalClientId()) != "" &&
-		strings.TrimSpace(setting.GetPayPalClientSecret()) != "" &&
-		products != "" &&
-		products != "[]"
+		strings.TrimSpace(setting.GetPayPalClientSecret()) != ""
 }
 
 func isPayPalWebhookConfigured() bool {

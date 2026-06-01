@@ -12,6 +12,7 @@ var (
 	PayPalSandboxWebhookId    = ""
 
 	// Switch
+	PayPalEnabled  = false
 	PayPalTestMode = false
 
 	// Shared settings
