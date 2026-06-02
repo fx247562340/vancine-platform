@@ -45,7 +45,7 @@ const features = [
     desc: 'Generate stunning videos from text or images with Wan, Kling, and more.',
     descZh: '使用 Wan、Kling 等模型，从文本或图片生成高质量视频。',
     models: 'Wan 2.2 · Kling · Hailuo',
-    color: 'bg-pink-50 dark:bg-pink-900/20',
+    color: 'bg-semi-color-primary-light-default dark:bg-semi-color-primary-light-default',
   },
   {
     icon: '🎨',
@@ -54,7 +54,7 @@ const features = [
     desc: 'Create high-quality images with FLUX, Qwen-Image, Seedream, and more.',
     descZh: '使用 FLUX、Qwen-Image、Seedream 等模型生成高质量图片。',
     models: 'FLUX · Qwen-Image · Seedream',
-    color: 'bg-purple-50 dark:bg-purple-900/20',
+    color: 'bg-semi-color-tertiary-light-default dark:bg-semi-color-tertiary-light-default',
   },
   {
     icon: '🧠',
@@ -63,7 +63,7 @@ const features = [
     desc: 'Access the best Chinese LLMs through a single OpenAI-compatible endpoint.',
     descZh: '通过统一的 OpenAI 兼容接口访问最强大的中文大语言模型。',
     models: 'DeepSeek V4 · Qwen 3.6 · GLM 5.1',
-    color: 'bg-green-50 dark:bg-green-900/20',
+    color: 'bg-semi-color-success-light-default dark:bg-semi-color-success-light-default',
   },
   {
     icon: '🎵',
@@ -72,7 +72,7 @@ const features = [
     desc: 'Compose full songs with vocals and instruments from text descriptions.',
     descZh: '从文本描述生成完整的歌曲，包含人声和乐器。',
     models: 'Suno · Udio',
-    color: 'bg-yellow-50 dark:bg-yellow-900/20',
+    color: 'bg-semi-color-warning-light-default dark:bg-semi-color-warning-light-default',
   },
 ];
 
@@ -203,7 +203,7 @@ const Home = () => {
                   <Button
                     theme='solid'
                     size={isMobile ? 'default' : 'large'}
-                    className='!rounded-xl !bg-white !text-purple-700 hover:!bg-white/90 !font-semibold !px-8 !py-3'
+                    className='!rounded-xl !bg-white !text-semi-color-primary hover:!bg-white/90 !font-semibold !px-8 !py-3'
                     icon={<IconPlay />}
                   >
                     {t('Get Started Free')}
