@@ -25,5 +25,34 @@
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
     <script type="module" src="/src/index.jsx"></script>
+    <!-- Vancine brand theme override - must be last to override Semi Design defaults -->
+    <style>
+      body, body.semi-always-light {
+        --semi-blue-0: 240, 238, 254 !important;
+        --semi-blue-1: 228, 224, 253 !important;
+        --semi-blue-2: 200, 192, 252 !important;
+        --semi-blue-3: 170, 158, 250 !important;
+        --semi-blue-4: 140, 125, 245 !important;
+        --semi-blue-5: 108, 92, 231 !important;
+        --semi-blue-6: 85, 65, 217 !important;
+        --semi-blue-7: 68, 50, 180 !important;
+        --semi-blue-8: 50, 38, 143 !important;
+        --semi-blue-9: 35, 27, 107 !important;
+      }
+      body[theme-mode="dark"],
+      html.dark body,
+      body.semi-always-dark {
+        --semi-blue-0: 35, 27, 107 !important;
+        --semi-blue-1: 50, 38, 143 !important;
+        --semi-blue-2: 68, 50, 180 !important;
+        --semi-blue-3: 85, 65, 217 !important;
+        --semi-blue-4: 108, 92, 231 !important;
+        --semi-blue-5: 162, 155, 254 !important;
+        --semi-blue-6: 184, 176, 254 !important;
+        --semi-blue-7: 200, 192, 252 !important;
+        --semi-blue-8: 228, 224, 253 !important;
+        --semi-blue-9: 240, 238, 254 !important;
+      }
+    </style>
   </body>
 </html>
