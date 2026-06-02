@@ -308,8 +308,8 @@ const Home = () => {
               </Text>
               <div className='flex flex-wrap items-center justify-center gap-4 sm:gap-5 md:gap-6 max-w-4xl mx-auto'>
                 <div className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity'><Moonshot size={36} /></div>
-                <div className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity'><OpenAI.Color size={36} /></div>
-                <div className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity'><XAI.Color size={36} /></div>
+                <div className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity'><OpenAI size={36} /></div>
+                <div className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity'><XAI size={36} /></div>
                 <div className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity'><Zhipu.Color size={36} /></div>
                 <div className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity'><Volcengine.Color size={36} /></div>
                 <div className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity'><Cohere.Color size={36} /></div>
