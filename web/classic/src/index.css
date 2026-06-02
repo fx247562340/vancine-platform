@@ -25,32 +25,32 @@
 /* 必须在 body 上定义，因为 Semi 的变量也定义在 body 选择器上 */
 body,
 body.semi-always-light {
-  --semi-blue-0: 240, 238, 254;
-  --semi-blue-1: 228, 224, 253;
-  --semi-blue-2: 200, 192, 252;
-  --semi-blue-3: 170, 158, 250;
-  --semi-blue-4: 140, 125, 245;
-  --semi-blue-5: 108, 92, 231;
-  --semi-blue-6: 85, 65, 217;
-  --semi-blue-7: 68, 50, 180;
-  --semi-blue-8: 50, 38, 143;
-  --semi-blue-9: 35, 27, 107;
+  --semi-blue-0: 245, 243, 254;
+  --semi-blue-1: 237, 234, 254;
+  --semi-blue-2: 219, 214, 253;
+  --semi-blue-3: 196, 191, 250;
+  --semi-blue-4: 175, 168, 249;
+  --semi-blue-5: 155, 147, 242;
+  --semi-blue-6: 126, 116, 232;
+  --semi-blue-7: 100, 90, 210;
+  --semi-blue-8: 74, 64, 170;
+  --semi-blue-9: 52, 44, 128;
 }
 
 /* Dark mode */
 body[theme-mode="dark"],
 html.dark body,
 body.semi-always-dark {
-  --semi-blue-0: 35, 27, 107;
-  --semi-blue-1: 50, 38, 143;
-  --semi-blue-2: 68, 50, 180;
-  --semi-blue-3: 85, 65, 217;
-  --semi-blue-4: 108, 92, 231;
-  --semi-blue-5: 162, 155, 254;
-  --semi-blue-6: 184, 176, 254;
-  --semi-blue-7: 200, 192, 252;
-  --semi-blue-8: 228, 224, 253;
-  --semi-blue-9: 240, 238, 254;
+  --semi-blue-0: 52, 44, 128;
+  --semi-blue-1: 74, 64, 170;
+  --semi-blue-2: 100, 90, 210;
+  --semi-blue-3: 126, 116, 232;
+  --semi-blue-4: 155, 147, 242;
+  --semi-blue-5: 185, 178, 254;
+  --semi-blue-6: 200, 194, 254;
+  --semi-blue-7: 219, 214, 253;
+  --semi-blue-8: 237, 234, 254;
+  --semi-blue-9: 245, 243, 254;
 }
 
 body.sidebar-collapsed {
@@ -188,12 +188,12 @@ code {
 }
 
 .sidebar-nav-item:hover {
-  background-color: rgba(108, 92, 231, 0.08);
+  background-color: rgba(155, 147, 242, 0.08);
   color: var(--semi-color-primary);
 }
 
 .sidebar-nav-item-selected {
-  background-color: rgba(108, 92, 231, 0.12);
+  background-color: rgba(155, 147, 242, 0.12);
   color: var(--semi-color-primary);
   font-weight: 500;
 }

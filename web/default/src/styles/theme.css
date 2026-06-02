@@ -19,7 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: 'Public Sans', sans-serif;
+  --font-sans: 'Inter', 'Public Sans', sans-serif;
   /* Editorial serif token — the body face used by the `serif` font axis
    * and by presets that opt in (currently Anthropic). Lora carries only
    * Latin glyphs, so the stack walks through CJK serifs (Noto / Source Han
@@ -91,7 +91,7 @@ For commercial licensing, please contact support@quantumnous.com
 }
 
 :root {
-  --radius: 1rem;
+  --radius: 0.75rem;
   --app-header-height: 3rem;
   /* Static build-channel fallback consumed when JS hasn't booted yet. */
   --app-rev: '2k6e8r7p';
@@ -146,7 +146,7 @@ For commercial licensing, please contact support@quantumnous.com
 
 .dark {
   /* OpenAI-like dark mode: nearly black chrome, readable raised surfaces. */
-  --background: oklch(0.185 0 0);
+  --background: oklch(0.12 0 0);
   --foreground: oklch(0.965 0 0);
   --card: oklch(0.235 0 0);
   --card-foreground: oklch(0.965 0 0);

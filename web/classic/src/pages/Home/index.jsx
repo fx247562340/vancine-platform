@@ -159,7 +159,7 @@ const Home = () => {
           <div
             className='relative w-full min-h-[600px] md:min-h-[700px] flex items-center justify-center overflow-hidden'
             style={{
-              background: 'linear-gradient(135deg, #6C5CE7 0%, #A29BFE 40%, #00B894 100%)',
+              background: 'linear-gradient(135deg, #9B93F2 0%, #C4BFFA 40%, #00B894 100%)',
             }}
           >
             {/* Dot pattern overlay */}
@@ -203,7 +203,7 @@ const Home = () => {
                   <Button
                     size={isMobile ? 'default' : 'large'}
                     className='!rounded-xl !font-semibold !px-8 !py-3'
-                    style={{ backgroundColor: '#fff', color: '#6C5CE7', border: 'none' }}
+                    style={{ backgroundColor: '#fff', color: '#9B93F2', border: 'none' }}
                     icon={<IconPlay />}
                   >
                     {t('Get Started Free')}

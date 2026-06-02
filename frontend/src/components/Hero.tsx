@@ -9,8 +9,7 @@ export default function Hero() {
       <div
         className="absolute inset-0 -z-10"
         style={{
-          background:
-            "linear-gradient(135deg, #6C5CE7 0%, #A29BFE 40%, #00B894 100%)",
+          background: "var(--gradient-hero)",
         }}
       />
       {/* Overlay pattern */}

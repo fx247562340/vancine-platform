@@ -291,6 +291,47 @@ For commercial licensing, please contact support@quantumnous.com
   --sidebar-ring: oklch(0.6359 0.1699 307.95);
 }
 
+/* ── Vancine Brand ─────────────────────────────────────────────────────── */
+/* Vancine brand palette: softer purple primary (#9B93F2) paired with
+ * teal-green secondary (#00B894). The semantic surface bridge auto-derives
+ * card / popover / muted / border / accent from the primary, so only
+ * brand-critical tokens are declared here. */
+[data-theme-preset='vancine'] {
+  --primary: oklch(0.67 0.16 290);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.72 0.17 163);
+  --secondary-foreground: oklch(0.99 0 0);
+  --ring: oklch(0.67 0.16 290);
+  --chart-1: oklch(0.67 0.16 290);
+  --chart-2: oklch(0.72 0.17 163);
+  --chart-3: oklch(0.82 0.10 295);
+  --chart-4: oklch(0.76 0.12 170);
+  --chart-5: oklch(0.88 0.07 290);
+  --sidebar-primary: oklch(0.67 0.16 290);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.67 0.16 290);
+  --sidebar-accent-foreground: oklch(0.99 0 0);
+  --sidebar-ring: oklch(0.67 0.16 290);
+  --radius: 0.75rem;
+}
+.dark [data-theme-preset='vancine'] {
+  --primary: oklch(0.71 0.15 290);
+  --primary-foreground: oklch(0.14 0 0);
+  --secondary: oklch(0.72 0.17 163);
+  --secondary-foreground: oklch(0.14 0 0);
+  --ring: oklch(0.71 0.15 290);
+  --chart-1: oklch(0.71 0.15 290);
+  --chart-2: oklch(0.72 0.17 163);
+  --chart-3: oklch(0.82 0.10 295);
+  --chart-4: oklch(0.76 0.12 170);
+  --chart-5: oklch(0.88 0.07 290);
+  --sidebar-primary: oklch(0.71 0.15 290);
+  --sidebar-primary-foreground: oklch(0.14 0 0);
+  --sidebar-accent: oklch(0.71 0.15 290);
+  --sidebar-accent-foreground: oklch(0.99 0 0);
+  --sidebar-ring: oklch(0.71 0.15 290);
+}
+
 /* ── Simple Large-font ────────────────────────────────────────────────── */
 [data-theme-preset='simple-large'] {
   --background: oklch(0.99 0 0);

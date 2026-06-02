@@ -25,6 +25,11 @@ For commercial licensing, please contact support@quantumnous.com
 
 export const THEME_PRESETS = [
   {
+    value: 'vancine',
+    name: 'Vancine',
+    swatches: ['oklch(0.67 0.16 290)', 'oklch(0.72 0.17 163)'],
+  },
+  {
     value: 'default',
     name: 'Default',
     swatches: ['oklch(0.13 0 0)', 'oklch(0.95 0 0)'],
@@ -116,7 +121,7 @@ export type ThemeCustomization = {
 }
 
 export const DEFAULT_THEME_CUSTOMIZATION: ThemeCustomization = {
-  preset: 'default',
+  preset: 'vancine',
   font: 'default',
   radius: 'default',
   scale: 'default',
@@ -176,6 +181,7 @@ export const THEME_COOKIE_KEYS = {
 export const PRESET_DEFAULT_FONT: Partial<
   Record<ThemePreset, ResolvedThemeFont>
 > = {
+  vancine: 'sans',
   default: 'sans',
   anthropic: 'serif',
 }
