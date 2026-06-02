@@ -201,9 +201,9 @@ const Home = () => {
               <div className='flex flex-col sm:flex-row items-center justify-center gap-4 mb-12'>
                 <Link to='/console'>
                   <Button
-                    theme='solid'
                     size={isMobile ? 'default' : 'large'}
-                    className='!rounded-xl !bg-white !text-semi-color-primary hover:!bg-white/90 !font-semibold !px-8 !py-3'
+                    className='!rounded-xl !font-semibold !px-8 !py-3'
+                    style={{ backgroundColor: '#fff', color: '#6C5CE7', border: 'none' }}
                     icon={<IconPlay />}
                   >
                     {t('Get Started Free')}
@@ -212,7 +212,8 @@ const Home = () => {
                 {docsLink && (
                   <Button
                     size={isMobile ? 'default' : 'large'}
-                    className='!rounded-xl !border-2 !border-white/30 !text-white hover:!bg-white/10 !font-semibold !px-8 !py-3'
+                    className='!rounded-xl !font-semibold !px-8 !py-3'
+                    style={{ backgroundColor: 'transparent', color: '#fff', border: '2px solid rgba(255,255,255,0.4)' }}
                     icon={<IconFile />}
                     onClick={() => window.open(docsLink, '_blank')}
                   >
