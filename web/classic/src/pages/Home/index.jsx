@@ -307,13 +307,26 @@ const Home = () => {
                 {t('支持众多的大模型供应商')}
               </Text>
               <div className='flex flex-wrap items-center justify-center gap-4 sm:gap-5 md:gap-6 max-w-4xl mx-auto'>
-                {[Moonshot, OpenAI, XAI, Zhipu, Volcengine, Cohere, Claude, Gemini, Suno, Minimax, Wenxin, Spark, Qingyan, DeepSeek, Qwen, Midjourney, Grok, AzureAI, Hunyuan, Xinference].map(
-                  (Icon, i) => (
-                    <div key={i} className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity'>
-                      <Icon.Color size={36} />
-                    </div>
-                  ),
-                )}
+                <div className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity'><Moonshot size={36} /></div>
+                <div className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity'><OpenAI.Color size={36} /></div>
+                <div className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity'><XAI.Color size={36} /></div>
+                <div className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity'><Zhipu.Color size={36} /></div>
+                <div className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity'><Volcengine.Color size={36} /></div>
+                <div className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity'><Cohere.Color size={36} /></div>
+                <div className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity'><Claude.Color size={36} /></div>
+                <div className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity'><Gemini.Color size={36} /></div>
+                <div className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity'><Suno size={36} /></div>
+                <div className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity'><Minimax.Color size={36} /></div>
+                <div className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity'><Wenxin.Color size={36} /></div>
+                <div className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity'><Spark.Color size={36} /></div>
+                <div className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity'><Qingyan.Color size={36} /></div>
+                <div className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity'><DeepSeek.Color size={36} /></div>
+                <div className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity'><Qwen.Color size={36} /></div>
+                <div className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity'><Midjourney size={36} /></div>
+                <div className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity'><Grok size={36} /></div>
+                <div className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity'><AzureAI.Color size={36} /></div>
+                <div className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity'><Hunyuan.Color size={36} /></div>
+                <div className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity'><Xinference.Color size={36} /></div>
                 <div className='w-10 h-10 md:w-12 md:h-12 flex items-center justify-center'>
                   <Text className='text-xl md:text-2xl font-bold text-semi-color-text-2'>30+</Text>
                 </div>
