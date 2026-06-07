@@ -208,6 +208,12 @@ func InitTask(platform constant.TaskPlatform, relayInfo *commonRelay.RelayInfo) 
 	return t
 }
 
+func TaskGetByTaskId(taskId string, userId int) (*Task, error) {
+	var task Task
+	err := DB.Where("task_id = ? AND user_id = ?", taskId, userId).First(&task).Error
+	return &task, err
+}
+
 func TaskGetAllUserTask(userId int, startIdx int, num int, queryParams SyncTaskQueryParams) []*Task {
 	var tasks []*Task
 	var err error

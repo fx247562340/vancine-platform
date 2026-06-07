@@ -41,6 +41,14 @@ func SetApiRouter(router *gin.Engine) {
 		apiRouter.GET("/verification", middleware.EmailVerificationRateLimit(), middleware.TurnstileCheck(), controller.SendEmailVerification)
 		apiRouter.GET("/reset_password", middleware.CriticalRateLimit(), middleware.TurnstileCheck(), controller.SendPasswordResetEmail)
 		apiRouter.POST("/user/reset", middleware.CriticalRateLimit(), controller.ResetPassword)
+
+		// Waitlist (public, no auth)
+		apiRouter.POST("/waitlist", middleware.CriticalRateLimit(), controller.JoinWaitlist)
+		apiRouter.GET("/waitlist/count", controller.GetWaitlistCount)
+
+		// Image upload (authenticated users only)
+		apiRouter.POST("/upload/image", middleware.UserAuth(), middleware.UploadRateLimit(), controller.UploadImage)
+
 		// OAuth routes - specific routes must come before :provider wildcard
 		apiRouter.GET("/oauth/state", middleware.CriticalRateLimit(), controller.GenerateOAuthCode)
 		apiRouter.POST("/oauth/email/bind", middleware.CriticalRateLimit(), controller.EmailBind)
@@ -347,6 +355,7 @@ func SetApiRouter(router *gin.Engine) {
 		taskRoute := apiRouter.Group("/task")
 		{
 			taskRoute.GET("/self", middleware.UserAuth(), controller.GetUserTask)
+			taskRoute.GET("/:id", middleware.UserAuth(), controller.GetTaskByTaskId)
 			taskRoute.GET("/", middleware.AdminAuth(), controller.GetAllTask)
 		}
 

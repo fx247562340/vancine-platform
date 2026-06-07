@@ -66,6 +66,28 @@ func GetUserTask(c *gin.Context) {
 	common.ApiSuccess(c, pageInfo)
 }
 
+func GetTaskByTaskId(c *gin.Context) {
+	taskId := c.Param("id")
+	if taskId == "" {
+		common.ApiErrorMsg(c, "task_id is required")
+		return
+	}
+
+	userId := c.GetInt("id")
+	task, err := model.TaskGetByTaskId(taskId, userId)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+
+	dtoItem := tasksToDto([]*model.Task{task}, false)
+	if len(dtoItem) > 0 {
+		common.ApiSuccess(c, dtoItem[0])
+	} else {
+		common.ApiErrorMsg(c, "task not found")
+	}
+}
+
 func tasksToDto(tasks []*model.Task, fillUser bool) []*dto.TaskDto {
 	var userIdMap map[int]*model.UserBase
 	if fillUser {

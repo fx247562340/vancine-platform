@@ -132,6 +132,7 @@ export interface ParameterEnabled {
 export interface ModelOption {
   label: string
   value: string
+  endpoints?: string[]
 }
 
 export interface GroupOption {

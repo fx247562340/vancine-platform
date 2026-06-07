@@ -256,18 +256,81 @@ export function useTaskLogsColumns(isAdmin: boolean): ColumnDef<TaskLog>[] {
         const isSuccess = status === TASK_STATUS.SUCCESS
         const isUrl = failReason?.startsWith('http')
 
-        if (isSuccess && isVideoTask && isUrl) {
-          const videoUrl = `/v1/videos/${log.task_id}/content`
-          return (
-            <a
-              href={videoUrl}
-              target='_blank'
-              rel='noopener noreferrer'
-              className='text-foreground text-xs hover:underline'
-            >
-              {t('Click to preview video')}
-            </a>
-          )
+        // Extract result URL from data field (supports video, 3D model, file)
+        const extractResultUrl = (): {
+          url: string
+          type: 'video' | '3d'
+        } | null => {
+          if (!log.data) return null
+          try {
+            const parsed =
+              typeof log.data === 'string' ? JSON.parse(log.data) : log.data
+            const content = parsed?.content
+            if (content) {
+              if (content.video_url)
+                return { url: content.video_url, type: 'video' }
+              if (content.model_url)
+                return { url: content.model_url, type: '3d' }
+              if (content.file_url) {
+                const url = content.file_url
+                // 3D file extensions
+                const is3dExt = /\.(glb|obj|fbx|gltf|stl|ply|zip)(\?|$)/i.test(
+                  url
+                )
+                // URL path contains 3D model name
+                const is3dPath =
+                  /seed3d|hitem3d|hyper3d|3d-gen/i.test(url)
+                return { url, type: is3dExt || is3dPath ? '3d' : 'video' }
+              }
+            }
+            if (parsed?.video_url)
+              return { url: parsed.video_url, type: 'video' }
+            if (Array.isArray(parsed)) {
+              const item = parsed.find(
+                (c) =>
+                  c &&
+                  typeof c === 'object' &&
+                  (c.video_url || c.model_url || c.file_url)
+              )
+              if (item?.video_url)
+                return { url: item.video_url, type: 'video' }
+              if (item?.model_url)
+                return { url: item.model_url, type: '3d' }
+              if (item?.file_url)
+                return { url: item.file_url, type: '3d' }
+            }
+          } catch {
+            // ignore parse errors
+          }
+          return null
+        }
+
+        if (isSuccess && isVideoTask) {
+          const result = extractResultUrl()
+          const resultUrl = isUrl
+            ? { url: failReason, type: 'video' as const }
+            : result
+          if (resultUrl) {
+            // 3D models use direct URL (signed TOS link), videos use proxy
+            const href =
+              resultUrl.type === '3d'
+                ? resultUrl.url
+                : `/v1/videos/${log.task_id}/content`
+            const label =
+              resultUrl.type === '3d'
+                ? t('Click to download 3D model')
+                : t('Click to preview video')
+            return (
+              <a
+                href={href}
+                target='_blank'
+                rel='noopener noreferrer'
+                className='text-foreground text-xs hover:underline'
+              >
+                {label}
+              </a>
+            )
+          }
         }
 
         if (!failReason) {

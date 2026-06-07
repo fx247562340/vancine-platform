@@ -16,9 +16,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useCallback } from 'react'
+import { useCallback, useMemo, useRef } from 'react'
 import { toast } from 'sonner'
-import { sendChatCompletion } from '../api'
+import { sendChatCompletion, sendPlaygroundRequest, getApiPathForEndpoint } from '../api'
 import { MESSAGE_STATUS, ERROR_MESSAGES } from '../constants'
 import {
   buildChatCompletionPayload,
@@ -27,13 +27,32 @@ import {
   processStreamingContent,
   finalizeMessage,
 } from '../lib'
-import type { Message, PlaygroundConfig, ParameterEnabled } from '../types'
+import type { Message, PlaygroundConfig, ParameterEnabled, ModelOption } from '../types'
 import { useStreamRequest } from './use-stream-request'
 
 interface UseChatHandlerOptions {
   config: PlaygroundConfig
   parameterEnabled: ParameterEnabled
+  models: ModelOption[]
   onMessageUpdate: (updater: (prev: Message[]) => Message[]) => void
+}
+
+/**
+ * 获取模型的主 endpoint 类型
+ */
+function getPrimaryEndpoint(model: string, models: ModelOption[]): string {
+  const found = models.find((m) => m.value === model)
+  if (found?.endpoints?.length) {
+    return found.endpoints[0]
+  }
+  return 'openai'
+}
+
+/**
+ * 判断 endpoint 类型是否是 task 类（异步任务，非 chat 流式）
+ */
+function isTaskEndpoint(endpointType: string): boolean {
+  return ['openai-video', '3d-generation'].includes(endpointType)
 }
 
 /**
@@ -42,9 +61,17 @@ interface UseChatHandlerOptions {
 export function useChatHandler({
   config,
   parameterEnabled,
+  models,
   onMessageUpdate,
 }: UseChatHandlerOptions) {
   const { sendStreamRequest, stopStream, isStreaming } = useStreamRequest()
+  const pendingImagesRef = useRef<string[]>([])
+
+  // 当前模型的 endpoint 类型
+  const endpointType = useMemo(
+    () => getPrimaryEndpoint(config.model, models),
+    [config.model, models]
+  )
 
   // Handle stream update
   const handleStreamUpdate = useCallback(
@@ -98,6 +125,106 @@ export function useChatHandler({
       )
     },
     [onMessageUpdate]
+  )
+
+  // 发送图片生成请求
+  const sendImageRequest = useCallback(
+    async (messages: Message[]) => {
+      // 取最后一条用户消息作为 prompt
+      const lastUserMsg = [...messages].reverse().find((m) => m.from === 'user')
+      const prompt = lastUserMsg?.versions?.[0]?.content || ''
+
+      const payload = {
+        model: config.model,
+        group: config.group,
+        prompt,
+        size: '2K',
+        response_format: 'url',
+      }
+
+      try {
+        const response = await sendPlaygroundRequest('image-generation', payload) as {
+          data?: Array<{ url?: string; b64_json?: string }>
+          error?: { message?: string }
+        }
+
+        if (response?.data?.[0]?.url) {
+          const imageUrl = response.data[0].url
+          onMessageUpdate((prev) =>
+            updateLastAssistantMessage(prev, (message) => ({
+              ...finalizeMessage({
+                ...message,
+                versions: [{
+                  ...message.versions[0],
+                  content: `![生成图片](${imageUrl})`,
+                }],
+              }),
+              status: MESSAGE_STATUS.COMPLETE,
+            }))
+          )
+        } else if (response?.error?.message) {
+          handleStreamError(response.error.message)
+        }
+      } catch (error: unknown) {
+        const err = error as { response?: { data?: { message?: string } }; message?: string }
+        handleStreamError(
+          err?.response?.data?.message || err?.message || ERROR_MESSAGES.API_REQUEST_ERROR
+        )
+      }
+    },
+    [config, onMessageUpdate, handleStreamError]
+  )
+
+  // 发送任务类请求（视频/3D）
+  const sendTaskRequest = useCallback(
+    async (messages: Message[]) => {
+      const lastUserMsg = [...messages].reverse().find((m) => m.from === 'user')
+      const prompt = lastUserMsg?.versions?.[0]?.content || ''
+
+      const apiPath = getApiPathForEndpoint(endpointType)
+      const payload: Record<string, unknown> = {
+        model: config.model,
+        group: config.group,
+        prompt,
+      }
+      // Include images if pending (for 3D generation)
+      if (pendingImagesRef.current.length > 0) {
+        payload.images = pendingImagesRef.current
+        pendingImagesRef.current = []
+      }
+
+      try {
+        const response = await sendPlaygroundRequest(endpointType, payload) as {
+          task_id?: string
+          id?: string
+          error?: { message?: string }
+        }
+
+        const taskId = response?.task_id || response?.id
+        if (taskId) {
+          onMessageUpdate((prev) =>
+            updateLastAssistantMessage(prev, (message) => ({
+              ...finalizeMessage({
+                ...message,
+                versions: [{
+                  ...message.versions[0],
+                  content: `任务已提交，ID: ${taskId}\n\n请在任务管理中查看进度。`,
+                }],
+              }),
+              status: MESSAGE_STATUS.COMPLETE,
+            }))
+          )
+        } else if (response?.error?.message) {
+          handleStreamError(response.error.message)
+        }
+      } catch (error: unknown) {
+        const err = error as { response?: { data?: { message?: string } }; message?: string }
+        handleStreamError(
+          err?.response?.data?.message || err?.message || ERROR_MESSAGES.API_REQUEST_ERROR
+        )
+      }
+    },
+    [config, endpointType, onMessageUpdate, handleStreamError]
   )
 
   // Send streaming chat request
@@ -174,16 +301,20 @@ export function useChatHandler({
     [config, parameterEnabled, onMessageUpdate, handleStreamError]
   )
 
-  // Send chat request (stream or non-stream based on config)
+  // Send chat request (route by endpoint type)
   const sendChat = useCallback(
     (messages: Message[]) => {
-      if (config.stream) {
+      if (endpointType === 'image-generation') {
+        sendImageRequest(messages)
+      } else if (isTaskEndpoint(endpointType)) {
+        sendTaskRequest(messages)
+      } else if (config.stream) {
         sendStreamingChat(messages)
       } else {
         sendNonStreamingChat(messages)
       }
     },
-    [config.stream, sendStreamingChat, sendNonStreamingChat]
+    [endpointType, config.stream, sendImageRequest, sendTaskRequest, sendStreamingChat, sendNonStreamingChat]
   )
 
   // Stop generation
@@ -203,5 +334,8 @@ export function useChatHandler({
     sendChat,
     stopGeneration,
     isGenerating: isStreaming,
+    setPendingImages: (imgs: string[]) => {
+      pendingImagesRef.current = imgs
+    },
   }
 }

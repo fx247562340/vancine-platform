@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SSE } from 'sse.js';
 import {
@@ -490,8 +490,188 @@ export const useApiRequest = (
     ],
   );
 
+  const taskPollingTimerRef = useRef(null);
+
+  // 查询任务状态
+  const pollTask = useCallback(
+    (submitData, isImageTask = false) => {
+      taskPollingTimerRef.current = setInterval(async () => {
+        try {
+          const pollUrl = `${API_ENDPOINTS.TASKS}${submitData.taskId}`;
+          const pollRes = await fetch(pollUrl, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'New-Api-User': getUserIdFromLocalStorage(),
+            },
+          });
+          if (!pollRes.ok) throw new Error(`HTTP ${pollRes.status}`);
+          const res = await pollRes.json();
+
+          const task = res.data;
+          if (!task) throw new Error('未找到任务数据');
+
+          const status = task.status;
+          if (status && status !== 'NOT_START' && status !== 'SUBMITTED' && status !== 'QUEUED' && status !== 'IN_PROGRESS') {
+            clearInterval(taskPollingTimerRef.current);
+            taskPollingTimerRef.current = null;
+
+            if (status === 'SUCCESS') {
+              if (isImageTask) {
+                const images = task.data || [];
+                const imgContent = Array.isArray(images)
+                  ? images.map((img) => `![image](${img.url || img})`).join('\n')
+                  : `任务已完成`;
+                streamMessageUpdate(imgContent, 'content');
+              } else {
+                // 视频/3D等任务 — 优先用 result_url
+                if (task.result_url) {
+                  streamMessageUpdate(`任务完成！\n\n${task.result_url}`, 'content');
+                } else {
+                  streamMessageUpdate('任务已完成，请在任务日志中查看详情', 'content');
+                }
+              }
+              completeMessage(MESSAGE_STATUS.COMPLETE);
+            } else {
+              // 失败
+              const failReason = task.fail_reason || '任务失败';
+              streamMessageUpdate(`任务失败: ${failReason}`, 'content');
+              completeMessage(MESSAGE_STATUS.ERROR);
+            }
+          }
+        } catch (err) {
+          clearInterval(taskPollingTimerRef.current);
+          taskPollingTimerRef.current = null;
+          streamMessageUpdate(`查询任务状态失败: ${err.message}`, 'content');
+          completeMessage(MESSAGE_STATUS.ERROR);
+        }
+      }, 3000);
+    },
+    [streamMessageUpdate, completeMessage],
+  );
+
+  // 发送图片生成请求
+  const sendImageRequest = useCallback(
+    (payload) => {
+      setDebugData((prev) => ({
+        ...prev,
+        request: payload,
+        timestamp: new Date().toISOString(),
+        response: null,
+        isStreaming: false,
+      }));
+      setActiveDebugTab(DEBUG_TABS.REQUEST);
+
+      fetch(API_ENDPOINTS.IMAGES_GENERATIONS, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'New-Api-User': getUserIdFromLocalStorage(),
+        },
+        body: JSON.stringify(payload),
+      })
+        .then((response) => {
+          if (!response.ok) {
+            return response.text().then((text) => {
+              throw new Error(`HTTP ${response.status}: ${text}`);
+            });
+          }
+          return response.json();
+        })
+        .then((data) => {
+          setDebugData((prev) => ({ ...prev, response: JSON.stringify(data, null, 2) }));
+          setActiveDebugTab(DEBUG_TABS.RESPONSE);
+
+          // 兼容多种响应格式
+          const imgData = data.data?.[0];
+          const imgUrl = imgData?.url || imgData?.image_url || imgData?.b64_json;
+          if (imgUrl) {
+            const isBase64 = imgUrl.startsWith('data:') || (!imgUrl.startsWith('http') && imgData?.b64_json);
+            const imgSrc = isBase64 ? `data:image/png;base64,${imgData.b64_json || imgUrl}` : imgUrl;
+            streamMessageUpdate(`![image](${imgSrc})`, 'content');
+            completeMessage(MESSAGE_STATUS.COMPLETE);
+          } else if (data.task_id) {
+            pollTask({ taskId: data.task_id }, true);
+          } else {
+            console.log('Seedream response:', JSON.stringify(data).substring(0, 500));
+            streamMessageUpdate('图片生成成功，但未返回图片URL', 'content');
+            completeMessage(MESSAGE_STATUS.COMPLETE);
+          }
+        })
+        .catch((error) => {
+          setDebugData((prev) => ({ ...prev, response: error.message }));
+          setActiveDebugTab(DEBUG_TABS.RESPONSE);
+          streamMessageUpdate(`图片生成失败: ${error.message}`, 'content');
+          completeMessage(MESSAGE_STATUS.ERROR);
+        });
+    },
+    [setDebugData, setActiveDebugTab, streamMessageUpdate, completeMessage, pollTask],
+  );
+
+  // 发送任务请求（视频/3D等）
+  const sendTaskRequest = useCallback(
+    (payload, endpoint) => {
+      setDebugData((prev) => ({
+        ...prev,
+        request: payload,
+        timestamp: new Date().toISOString(),
+        response: null,
+        isStreaming: false,
+      }));
+      setActiveDebugTab(DEBUG_TABS.REQUEST);
+
+      fetch(endpoint || API_ENDPOINTS.VIDEO_GENERATIONS, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'New-Api-User': getUserIdFromLocalStorage(),
+        },
+        body: JSON.stringify(payload),
+      })
+        .then((response) => {
+          if (!response.ok) {
+            return response.text().then((text) => {
+              throw new Error(`HTTP ${response.status}: ${text}`);
+            });
+          }
+          return response.json();
+        })
+        .then((data) => {
+          setDebugData((prev) => ({ ...prev, response: JSON.stringify(data, null, 2) }));
+          setActiveDebugTab(DEBUG_TABS.RESPONSE);
+
+          const taskId = data.task_id || data.id;
+          if (taskId) {
+            streamMessageUpdate(
+              `任务已提交！ID: ${taskId}\n\n请在任务日志中查看进度，完成后视频将在此显示。`,
+              'content',
+            );
+            completeMessage(MESSAGE_STATUS.COMPLETE);
+          } else if (data.error) {
+            streamMessageUpdate(`任务提交失败: ${data.error.message || JSON.stringify(data.error)}`, 'content');
+            completeMessage(MESSAGE_STATUS.ERROR);
+          } else {
+            streamMessageUpdate('任务提交成功，但未返回任务ID', 'content');
+            completeMessage(MESSAGE_STATUS.COMPLETE);
+          }
+        })
+        .catch((error) => {
+          setDebugData((prev) => ({ ...prev, response: error.message }));
+          setActiveDebugTab(DEBUG_TABS.RESPONSE);
+          streamMessageUpdate(`任务请求失败: ${error.message}`, 'content');
+          completeMessage(MESSAGE_STATUS.ERROR);
+        });
+    },
+    [setDebugData, setActiveDebugTab, streamMessageUpdate, completeMessage],
+  );
+
   // 停止生成
   const onStopGenerator = useCallback(() => {
+    // 清理任务轮询
+    if (taskPollingTimerRef.current) {
+      clearInterval(taskPollingTimerRef.current);
+      taskPollingTimerRef.current = null;
+    }
     // 如果仍有活动的 SSE 连接，首先关闭
     if (sseSourceRef.current) {
       sseSourceRef.current.close();
@@ -548,6 +728,8 @@ export const useApiRequest = (
 
   return {
     sendRequest,
+    sendImageRequest,
+    sendTaskRequest,
     onStopGenerator,
     streamMessageUpdate,
     completeMessage,

@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
@@ -71,6 +72,8 @@ type responseTask struct {
 	Status  string `json:"status"`
 	Content struct {
 		VideoURL string `json:"video_url"`
+		ModelURL string `json:"model_url"`
+		FileURL  string `json:"file_url"`
 	} `json:"content"`
 	Seed            int    `json:"seed"`
 	Resolution      string `json:"resolution"`
@@ -182,6 +185,52 @@ func (a *TaskAdaptor) BuildRequestBody(c *gin.Context, info *relaycommon.RelayIn
 		return nil, err
 	}
 
+	modelName := strings.ToLower(info.OriginModelName)
+	is3DModel := strings.Contains(modelName, "seed3d") || strings.Contains(modelName, "hitem3d")
+
+	if is3DModel {
+		// 3D models: build request directly without convertToRequestPayload
+		// to preserve the original format expected by each 3D API
+		r := requestPayload{
+			Model:   info.OriginModelName,
+			Content: []ContentItem{},
+		}
+		if req.HasImage() {
+			for _, imgURL := range req.Images {
+				r.Content = append(r.Content, ContentItem{
+					Type: "image_url",
+					ImageURL: &MediaURL{URL: imgURL},
+				})
+			}
+		}
+		// Also check metadata for image data (base64 data URLs from frontend)
+		if metadata, ok := req.Metadata["images"]; ok {
+			if imgs, ok := metadata.([]interface{}); ok {
+				for _, img := range imgs {
+					if imgStr, ok := img.(string); ok {
+						r.Content = append(r.Content, ContentItem{
+							Type: "image_url",
+							ImageURL: &MediaURL{URL: imgStr},
+						})
+					}
+				}
+			}
+		}
+		r.Content = append(r.Content, ContentItem{
+			Type: "text",
+			Text: req.Prompt,
+		})
+		if info.IsModelMapped {
+			r.Model = info.UpstreamModelName
+		} else {
+			info.UpstreamModelName = r.Model
+		}
+		data, err := common.Marshal(r)
+		if err != nil {
+			return nil, err
+		}
+		return bytes.NewReader(data), nil
+	}
 	body, err := a.convertToRequestPayload(&req)
 	if err != nil {
 		return nil, errors.Wrap(err, "convert request payload failed")
@@ -325,6 +374,12 @@ func (a *TaskAdaptor) ParseTaskResult(respBody []byte) (*relaycommon.TaskInfo, e
 		taskResult.Status = model.TaskStatusSuccess
 		taskResult.Progress = "100%"
 		taskResult.Url = resTask.Content.VideoURL
+		if taskResult.Url == "" {
+			taskResult.Url = resTask.Content.ModelURL
+		}
+		if taskResult.Url == "" {
+			taskResult.Url = resTask.Content.FileURL
+		}
 		// 解析 usage 信息用于按倍率计费
 		taskResult.CompletionTokens = resTask.Usage.CompletionTokens
 		taskResult.TotalTokens = resTask.Usage.TotalTokens
@@ -353,6 +408,12 @@ func (a *TaskAdaptor) ConvertToOpenAIVideo(originTask *model.Task) ([]byte, erro
 	openAIVideo.Status = originTask.Status.ToVideoStatus()
 	openAIVideo.SetProgressStr(originTask.Progress)
 	openAIVideo.SetMetadata("url", dResp.Content.VideoURL)
+	if dResp.Content.VideoURL == "" {
+		openAIVideo.SetMetadata("url", dResp.Content.ModelURL)
+	}
+	if dResp.Content.VideoURL == "" && dResp.Content.ModelURL == "" {
+		openAIVideo.SetMetadata("url", dResp.Content.FileURL)
+	}
 	openAIVideo.CreatedAt = originTask.CreatedAt
 	openAIVideo.CompletedAt = originTask.UpdatedAt
 	openAIVideo.Model = originTask.Properties.OriginModelName

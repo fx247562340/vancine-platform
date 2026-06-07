@@ -192,7 +192,14 @@ export async function getUserModels(): Promise<{
   data?: string[]
 }> {
   const res = await api.get('/api/user/models')
-  return res.data
+  const raw = res.data
+  // 兼容新格式 [{model, endpoints}] 和旧格式 string[]
+  if (raw?.success && Array.isArray(raw.data)) {
+    raw.data = raw.data.map((item: string | { model: string }) =>
+      typeof item === 'string' ? item : item.model
+    )
+  }
+  return raw
 }
 
 // Get user groups with descriptions and ratios

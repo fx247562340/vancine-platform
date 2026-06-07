@@ -35,6 +35,8 @@ var defaultVendorRules = map[string]string{
 	"kling":    "快手",
 	"jimeng":   "即梦",
 	"vidu":     "Vidu",
+	"hitem3d":  "数美科技",
+	"hyper3d":  "影眸科技",
 }
 
 // 供应商默认图标映射
@@ -62,6 +64,9 @@ var defaultVendorIcons = map[string]string{
 	"快手":         "Kling.Color",
 	"即梦":         "Jimeng.Color",
 	"Vidu":       "Vidu",
+	"Trellis":    "Meshy",
+	"影眸科技":       "Meshy",
+	"数美科技":       "Meshy",
 	"微软":         "AzureAI",
 	"Microsoft":  "AzureAI",
 	"Azure":      "AzureAI",

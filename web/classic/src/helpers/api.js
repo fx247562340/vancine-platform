@@ -193,10 +193,15 @@ export const handleApiError = (error, response = null) => {
 
 // 处理模型数据
 export const processModelsData = (data, currentModel) => {
-  const modelOptions = data.map((model) => ({
-    label: model,
-    value: model,
-  }));
+  // 兼容新格式 [{model, endpoints}] 和旧格式 ["model1", "model2"]
+  const endpointsMap = {};
+  const modelOptions = data.map((item) => {
+    const name = typeof item === 'string' ? item : item.model;
+    if (typeof item !== 'string' && item.endpoints) {
+      endpointsMap[name] = item.endpoints;
+    }
+    return { label: name, value: name };
+  });
 
   const hasCurrentModel = modelOptions.some(
     (option) => option.value === currentModel,
@@ -206,18 +211,20 @@ export const processModelsData = (data, currentModel) => {
       ? currentModel
       : modelOptions[0]?.value;
 
-  return { modelOptions, selectedModel };
+  return { modelOptions, selectedModel, endpointsMap };
 };
 
 // 处理分组数据
 export const processGroupsData = (data, userGroup) => {
-  let groupOptions = Object.entries(data).map(([group, info]) => ({
-    label:
-      info.desc.length > 20 ? info.desc.substring(0, 20) + '...' : info.desc,
-    value: group,
-    ratio: info.ratio,
-    fullLabel: info.desc,
-  }));
+  let groupOptions = Object.entries(data).map(([group, info]) => {
+    const desc = info.desc || group;
+    return {
+      label: desc.length > 20 ? desc.substring(0, 20) + '...' : desc,
+      value: group,
+      ratio: info.ratio,
+      fullLabel: info.desc || group,
+    };
+  });
 
   if (groupOptions.length === 0) {
     groupOptions = [
@@ -394,4 +401,13 @@ export function getChannelModels(type) {
     return channelModels[type];
   }
   return [];
+}
+
+export async function uploadImage(file) {
+  const formData = new FormData();
+  formData.append('image', file);
+  const response = await API.post('/api/upload/image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
 }

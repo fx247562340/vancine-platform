@@ -927,13 +927,8 @@ export const renderGroupOption = (item) => {
     label,
     value,
     focused,
-    className,
-    style,
-    onMouseEnter,
     onClick,
-    empty,
-    emptyContent,
-    ...rest
+    onMouseEnter,
   } = item;
 
   const baseStyle = {

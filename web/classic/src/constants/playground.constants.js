@@ -73,9 +73,44 @@ export const DEBUG_TABS = {
   RESPONSE: 'response',
 };
 
+// ========== 消息发送模式 ==========
+export const SEND_MESSAGE_MODE = {
+  NORMAL: 'normal',
+  IMAGE: 'image',
+  VIDEO: 'video',
+  AUDIO_SPEECH: 'audio_speech',
+  AUDIO_TRANSLATION: 'audio_translation',
+};
+
+// ========== 模型名称列表 ==========
+export const IMAGE_GENERATION_MODELS = [
+  'dall-e-2',
+  'dall-e-3',
+  'cogview-3',
+  'cogview-3-plus',
+  'cogview-4',
+  'flux',
+  'flux-schnell',
+  'flux-pro',
+  'flux-dev',
+  'gpt-image-1',
+  'doubao-seedream',
+  'seedream',
+];
+
+export const VIDEO_GENERATIONS_MODELS = ['video-', 'sora-', 'doubao-seedance', 'seedance'];
+
+export const AUDIO_SPEECH_MODELS = ['tts-1', 'tts-1-hd', 'doubao-tts'];
+
+export const AUDIO_TRANSLATION_MODELS = ['whisper-1'];
+
 // ========== API 相关常量 ==========
 export const API_ENDPOINTS = {
   CHAT_COMPLETIONS: '/pg/chat/completions',
+  IMAGES_GENERATIONS: '/pg/images/generations',
+  VIDEO_GENERATIONS: '/pg/video/generations',
+  THREE_D_GENERATIONS: '/pg/3d/generations',
+  TASKS: '/api/task/',
   USER_MODELS: '/api/user/models',
   USER_GROUPS: '/api/user/self/groups',
 };
@@ -94,6 +129,7 @@ export const DEFAULT_CONFIG = {
     stream: true,
     imageEnabled: false,
     imageUrls: [''],
+    imageBase64: [],
   },
   parameterEnabled: {
     temperature: true,

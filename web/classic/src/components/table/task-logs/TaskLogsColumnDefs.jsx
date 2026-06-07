@@ -33,6 +33,7 @@ import {
   Hash,
   Video,
   Sparkles,
+  Box,
 } from 'lucide-react';
 import {
   TASK_ACTION_FIRST_TAIL_GENERATE,
@@ -90,7 +91,19 @@ function renderDuration(submit_time, finishTime) {
   );
 }
 
-const renderType = (type, t) => {
+const is3DModelRecord = (record) => {
+  const model = (record.properties?.origin_model_name || record.model_name || '').toLowerCase();
+  return model.includes('seed3d') || model.includes('hitem3d') || model.includes('hyper3d') || model.includes('3d-gen');
+};
+
+const renderType = (type, t, record) => {
+  if (record && is3DModelRecord(record)) {
+    return (
+      <Tag color='purple' shape='circle' prefixIcon={<Box size={14} />}>
+        {t('3D生成')}
+      </Tag>
+    );
+  }
   switch (type) {
     case 'MUSIC':
       return (
@@ -327,7 +340,7 @@ export const getTaskLogsColumns = ({
       title: t('类型'),
       dataIndex: 'action',
       render: (text, record, index) => {
-        return <div>{renderType(text, t)}</div>;
+        return <div>{renderType(text, t, record)}</div>;
       },
     },
     {
@@ -417,6 +430,20 @@ export const getTaskLogsColumns = ({
         const isSuccess = record.status === 'SUCCESS';
         const resultUrl = record.result_url;
         const hasResultUrl = typeof resultUrl === 'string' && /^https?:\/\//.test(resultUrl);
+
+        // 3D 模型：显示下载链接
+        if (isSuccess && is3DModelRecord(record) && hasResultUrl) {
+          return (
+            <a
+              href={resultUrl}
+              target='_blank'
+              rel='noopener noreferrer'
+            >
+              {t('下载3D模型')}
+            </a>
+          );
+        }
+
         if (isSuccess && isVideoTask && hasResultUrl) {
           return (
             <a

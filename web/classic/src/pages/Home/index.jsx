@@ -83,6 +83,7 @@ const Home = () => {
   const [homePageContentLoaded, setHomePageContentLoaded] = useState(false);
   const [homePageContent, setHomePageContent] = useState('');
   const [noticeVisible, setNoticeVisible] = useState(false);
+  const [modelCount, setModelCount] = useState(20);
   const isMobile = useIsMobile();
   const isDemoSiteMode = statusState?.status?.demo_site_enabled || false;
   const docsLink = statusState?.status?.docs_link || '';
@@ -117,7 +118,7 @@ const Home = () => {
   };
 
   const handleCopyBaseURL = async () => {
-    const ok = await copy(serverAddress);
+    const ok = await copy(serverAddress + '/v1');
     if (ok) {
       showSuccess(t('已复制到剪切板'));
     }
@@ -144,6 +145,18 @@ const Home = () => {
 
   useEffect(() => {
     displayHomePageContent();
+  }, []);
+
+  // 获取模型数量
+  useEffect(() => {
+    API.get('/api/pricing')
+      .then((res) => {
+        if (res.data?.success && res.data?.data) {
+          const models = Object.keys(res.data.data);
+          setModelCount(models.length);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   return (
@@ -180,7 +193,7 @@ const Home = () => {
 
               {/* Headline */}
               <h1 className='text-4xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6 tracking-tight'>
-                One API,
+                {t('One API,')}
                 <br />
                 <span
                   className='bg-clip-text text-transparent'
@@ -188,7 +201,7 @@ const Home = () => {
                     backgroundImage: 'linear-gradient(to right, #55EFC4, #FDCB6E)',
                   }}
                 >
-                  Infinite Creativity
+                  {t('Infinite Creativity')}
                 </span>
               </h1>
 
@@ -210,23 +223,25 @@ const Home = () => {
                   </Button>
                 </Link>
                 {docsLink && (
-                  <Button
-                    size={isMobile ? 'default' : 'large'}
-                    className='!rounded-xl !font-semibold !px-8 !py-3'
-                    style={{ backgroundColor: 'transparent', color: '#fff', border: '2px solid rgba(255,255,255,0.4)' }}
-                    icon={<IconFile />}
-                    onClick={() => window.open(docsLink, '_blank')}
-                  >
-                    {t('Documentation')}
-                  </Button>
+                  <Link to='/docs'>
+                    <Button
+                      size={isMobile ? 'default' : 'large'}
+                      className='!rounded-xl !font-semibold !px-8 !py-3'
+                      style={{ backgroundColor: 'transparent', color: '#fff', border: '2px solid rgba(255,255,255,0.4)' }}
+                      icon={<IconFile />}
+                    >
+                      {t('Documentation')}
+                    </Button>
+                  </Link>
                 )}
               </div>
 
               {/* Base URL */}
               <div className='max-w-lg mx-auto'>
+                <div className='mb-2 text-sm text-white/50 text-center'>API Base URL</div>
                 <Input
                   readonly
-                  value={serverAddress}
+                  value={serverAddress + '/v1'}
                   className='!rounded-xl !bg-white/15 !border-white/20 !text-white placeholder:!text-white/50'
                   size={isMobile ? 'default' : 'large'}
                   suffix={
@@ -244,7 +259,7 @@ const Home = () => {
               {/* Stats */}
               <div className='mt-12 flex flex-wrap items-center justify-center gap-8 md:gap-16 text-white/70'>
                 <div className='text-center'>
-                  <div className='text-3xl font-bold text-white'>20+</div>
+                  <div className='text-3xl font-bold text-white'>{modelCount}+</div>
                   <div className='text-sm mt-1'>{t('AI Models')}</div>
                 </div>
                 <div className='w-px h-10 bg-white/20 hidden md:block' />
@@ -269,7 +284,7 @@ const Home = () => {
             <div className='max-w-[1200px] mx-auto'>
               <div className='text-center mb-14'>
                 <span className='inline-block px-3 py-1 mb-4 text-xs font-semibold uppercase tracking-wider text-semi-color-primary bg-semi-color-primary-light-default rounded-full'>
-                  Features
+                  {t('Features')}
                 </span>
                 <h2 className='text-3xl md:text-4xl font-bold text-semi-color-text-0 mb-4'>
                   {t('Everything you need in one API')}

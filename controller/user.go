@@ -547,18 +547,41 @@ func GetUserModels(c *gin.Context) {
 		return
 	}
 	groups := service.GetUserUsableGroups(user.Group)
-	var models []string
+	var modelNames []string
 	for group := range groups {
 		for _, g := range model.GetGroupEnabledModels(group) {
-			if !common.StringsContains(models, g) {
-				models = append(models, g)
+			if !common.StringsContains(modelNames, g) {
+				modelNames = append(modelNames, g)
 			}
 		}
 	}
+
+	// 构建带 endpoint 类型信息的模型列表
+	type ModelWithEndpoints struct {
+		Model     string   `json:"model"`
+		Endpoints []string `json:"endpoints"`
+	}
+	models := make([]ModelWithEndpoints, 0, len(modelNames))
+	for _, name := range modelNames {
+		endpointTypes := model.GetModelSupportEndpointTypes(name)
+		endpoints := make([]string, 0, len(endpointTypes))
+		for _, et := range endpointTypes {
+			endpoints = append(endpoints, string(et))
+		}
+		if len(endpoints) == 0 {
+			endpoints = []string{"openai"}
+		}
+		models = append(models, ModelWithEndpoints{
+			Model:     name,
+			Endpoints: endpoints,
+		})
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "",
-		"data":    models,
+		"success":              true,
+		"message":              "",
+		"data":                 models,
+		"supported_endpoint":   model.GetSupportedEndpointMap(),
 	})
 	return
 }

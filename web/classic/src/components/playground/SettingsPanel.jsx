@@ -23,7 +23,6 @@ import { Sparkles, Users, ToggleLeft, X, Settings } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { renderGroupOption, selectFilter } from '../../helpers';
 import ParameterControl from './ParameterControl';
-import ImageUrlInput from './ImageUrlInput';
 import ConfigManager from './ConfigManager';
 import CustomRequestEditor from './CustomRequestEditor';
 
@@ -130,9 +129,7 @@ const SettingsPanel = ({
             placeholder={t('请选择分组')}
             name='group'
             required
-            selection
             filter={selectFilter}
-            autoClearSearchValue={false}
             onChange={(value) => onInputChange('group', value)}
             value={inputs.group}
             autoComplete='new-password'
@@ -176,8 +173,8 @@ const SettingsPanel = ({
           />
         </div>
 
-        {/* 图片URL输入 */}
-        <div className={customRequestMode ? 'opacity-50' : ''}>
+        {/* 图片URL输入 — 已隐藏，改用输入框粘贴上传 */}
+        {/* <div className={customRequestMode ? 'opacity-50' : ''}>
           <ImageUrlInput
             imageUrls={inputs.imageUrls}
             imageEnabled={inputs.imageEnabled}
@@ -187,7 +184,7 @@ const SettingsPanel = ({
             }
             disabled={customRequestMode}
           />
-        </div>
+        </div> */}
 
         {/* 参数控制组件 */}
         <div className={customRequestMode ? 'opacity-50' : ''}>

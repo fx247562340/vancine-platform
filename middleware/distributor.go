@@ -83,8 +83,11 @@ func Distribute() func(c *gin.Context) {
 				}
 				var selectGroup string
 				usingGroup := common.GetContextKeyString(c, constant.ContextKeyUsingGroup)
-				// check path is /pg/chat/completions
-				if strings.HasPrefix(c.Request.URL.Path, "/pg/chat/completions") {
+				// check path is /pg/chat/completions or playground image/video/3d
+				if strings.HasPrefix(c.Request.URL.Path, "/pg/chat/completions") ||
+					strings.HasPrefix(c.Request.URL.Path, "/pg/images/generations") ||
+					strings.HasPrefix(c.Request.URL.Path, "/pg/video/generations") ||
+					strings.HasPrefix(c.Request.URL.Path, "/pg/3d/generations") {
 					playgroundRequest := &dto.PlayGroundRequest{}
 					err = common.UnmarshalBodyReusable(c, playgroundRequest)
 					if err != nil {
@@ -381,6 +384,18 @@ func getModelRequest(c *gin.Context) (*ModelRequest, bool, error) {
 	}
 	if strings.HasPrefix(c.Request.URL.Path, "/pg/chat/completions") {
 		// playground chat completions
+		req, err := getModelFromRequest(c)
+		if err != nil {
+			return nil, false, err
+		}
+		modelRequest.Model = req.Model
+		modelRequest.Group = req.Group
+		common.SetContextKey(c, constant.ContextKeyTokenGroup, modelRequest.Group)
+	}
+	if strings.HasPrefix(c.Request.URL.Path, "/pg/images/generations") ||
+		strings.HasPrefix(c.Request.URL.Path, "/pg/video/generations") ||
+		strings.HasPrefix(c.Request.URL.Path, "/pg/3d/generations") {
+		// playground image/video/3d generation
 		req, err := getModelFromRequest(c)
 		if err != nil {
 			return nil, false, err

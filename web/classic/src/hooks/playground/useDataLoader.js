@@ -28,6 +28,7 @@ export const useDataLoader = (
   handleInputChange,
   setModels,
   setGroups,
+  setEndpointsMap,
 ) => {
   const { t } = useTranslation();
 
@@ -37,11 +38,14 @@ export const useDataLoader = (
       const { success, message, data } = res.data;
 
       if (success) {
-        const { modelOptions, selectedModel } = processModelsData(
+        const { modelOptions, selectedModel, endpointsMap } = processModelsData(
           data,
           inputs.model,
         );
         setModels(modelOptions);
+        if (setEndpointsMap) {
+          setEndpointsMap(endpointsMap || {});
+        }
 
         if (selectedModel !== inputs.model) {
           handleInputChange('model', selectedModel);

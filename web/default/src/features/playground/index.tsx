@@ -41,9 +41,10 @@ export function Playground() {
     updateConfig,
   } = usePlaygroundState()
 
-  const { sendChat, stopGeneration, isGenerating } = useChatHandler({
+  const { sendChat, stopGeneration, isGenerating, setPendingImages } = useChatHandler({
     config,
     parameterEnabled,
+    models,
     onMessageUpdate: updateMessages,
   })
 
@@ -114,13 +115,15 @@ export function Playground() {
     }
   }, [groupsData, setGroups, config.group, updateConfig])
 
-  const handleSendMessage = (text: string) => {
+  const handleSendMessage = (text: string, images?: string[]) => {
     const userMessage = createUserMessage(text)
     const assistantMessage = createLoadingAssistantMessage()
 
     const newMessages = [...messages, userMessage, assistantMessage]
     updateMessages(newMessages)
 
+    // Store images for task requests
+    setPendingImages(images || [])
     // Send chat request
     sendChat(newMessages)
   }
@@ -220,6 +223,7 @@ export function Playground() {
           onModelChange={(value) => updateConfig('model', value)}
           onStop={stopGeneration}
           onSubmit={handleSendMessage}
+          showImageUpload={config.model?.toLowerCase().includes('3d') || config.model?.toLowerCase().includes('hitem')}
         />
       </div>
     </div>

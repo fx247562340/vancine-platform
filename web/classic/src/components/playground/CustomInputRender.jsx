@@ -17,18 +17,22 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 
-import React, { useRef, useEffect, useCallback } from 'react';
-import { Toast } from '@douyinfe/semi-ui';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
+import { Toast, Spin } from '@douyinfe/semi-ui';
+import { IconClose } from '@douyinfe/semi-icons';
 import { useTranslation } from 'react-i18next';
 import { usePlayground } from '../../contexts/PlaygroundContext';
+import { uploadImage } from '../../helpers/api';
 
 const CustomInputRender = (props) => {
   const { t } = useTranslation();
-  const { onPasteImage, imageEnabled } = usePlayground();
+  const { onPasteImage, onRemoveImage, imageUrls, imageEnabled } =
+    usePlayground();
   const { detailProps } = props;
   const { clearContextNode, uploadNode, inputNode, sendNode, onClick } =
     detailProps;
   const containerRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
 
   const handlePaste = useCallback(
     async (e) => {
@@ -44,52 +48,44 @@ const CustomInputRender = (props) => {
 
           if (file) {
             try {
-              if (!imageEnabled) {
-                Toast.warning({
-                  content: t('请先在设置中启用图片功能'),
-                  duration: 3,
-                });
-                return;
-              }
-
+              setUploading(true);
+              // 同时读取 base64 和上传获取 HTTP URL
               const reader = new FileReader();
-              reader.onload = (event) => {
-                const base64 = event.target.result;
+              const base64Promise = new Promise((resolve, reject) => {
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+              });
+              const base64 = await base64Promise;
 
-                if (onPasteImage) {
-                  onPasteImage(base64);
-                  Toast.success({
-                    content: t('图片已添加'),
-                    duration: 2,
-                  });
-                } else {
-                  Toast.error({
-                    content: t('无法添加图片'),
-                    duration: 2,
-                  });
-                }
-              };
-              reader.onerror = () => {
-                console.error('Failed to read image file:', reader.error);
-                Toast.error({
-                  content: t('粘贴图片失败'),
+              const data = await uploadImage(file);
+              if (data && data.url) {
+                onPasteImage(data.url, base64);
+                Toast.success({
+                  content: t('图片已上传'),
                   duration: 2,
                 });
-              };
-              reader.readAsDataURL(file);
+              } else {
+                Toast.error({
+                  content: t('上传失败'),
+                  duration: 2,
+                });
+              }
             } catch (error) {
-              console.error('Failed to paste image:', error);
+              console.error('Failed to upload image:', error);
               Toast.error({
-                content: t('粘贴图片失败'),
+                content: t('图片上传失败'),
                 duration: 2,
               });
+            } finally {
+              setUploading(false);
             }
           }
           break;
         }
       }
     },
-    [onPasteImage, imageEnabled, t],
+    [onPasteImage, t],
   );
 
   useEffect(() => {
@@ -101,6 +97,11 @@ const CustomInputRender = (props) => {
       container.removeEventListener('paste', handlePaste);
     };
   }, [handlePaste]);
+
+  // 过滤出有效的图片 URL
+  const validImages = (imageUrls || []).filter(
+    (url) => url && url.trim() !== '',
+  );
 
   // 清空按钮
   const styledClearNode = clearContextNode
@@ -136,6 +137,33 @@ const CustomInputRender = (props) => {
 
   return (
     <div className='p-2 sm:p-4' ref={containerRef}>
+      {/* 图片预览区 */}
+      {(validImages.length > 0 || uploading) && (
+        <div className='flex items-center gap-2 mb-2 px-2 flex-wrap'>
+          {validImages.map((url, index) => (
+            <div key={index} className='relative group'>
+              <img
+                src={url}
+                alt={`attachment-${index}`}
+                className='w-12 h-12 object-cover rounded-lg border border-gray-200'
+              />
+              <button
+                onClick={() => onRemoveImage(index)}
+                className='absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity'
+                style={{ fontSize: '10px', lineHeight: 1 }}
+              >
+                <IconClose size='extra-small' />
+              </button>
+            </div>
+          ))}
+          {uploading && (
+            <div className='w-12 h-12 flex items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50'>
+              <Spin size='small' />
+            </div>
+          )}
+        </div>
+      )}
+
       <div
         className='flex items-center gap-2 sm:gap-3 p-2 bg-gray-50 rounded-xl sm:rounded-2xl shadow-sm hover:shadow-md transition-shadow'
         style={{ border: '1px solid var(--semi-color-border)' }}

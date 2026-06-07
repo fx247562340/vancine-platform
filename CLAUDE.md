@@ -1,7 +1,7 @@
 # CLAUDE.md — Vancine Project Guide
 
 > This file provides guidance for AI assistants working on the Vancine project.
-> Last Updated: 2026-05-29
+> Last Updated: 2026-06-05
 
 ---
 
@@ -370,6 +370,50 @@ docker compose exec db pg_dump -U user new-api > backup.sql
 
 *This file is the single source of truth for the Vancine project. Keep it updated as the project evolves.*
 
+---
+
+## 14. Production Deployment
+
+### Server Info
+
+| Item | Value |
+|------|-------|
+| IP | `64.83.35.21` |
+| SSH | `root@64.83.35.21`（密钥认证） |
+| Deploy path | `/opt/vancine-platform/` |
+| Docker image | `vancine-custom:latest` |
+| Domain | `api.vancine.ai` / `vancine.ai` |
+
+### ⚠️ 关键：部署流程（本地构建 + 上传）
+
+**服务器内存小，绝对不能在服务器上 `docker build`，会 OOM 崩溃！**
+
+```bash
+# 1. 本地构建（开发机上执行）
+cd D:\ClaudeProject\vancine-platform
+docker build -t vancine-custom:latest .
+
+# 2. 导出镜像
+docker save vancine-custom:latest | gzip > vancine-custom.tar.gz
+
+# 3. 上传到服务器
+scp vancine-custom.tar.gz root@64.83.35.21:/opt/vancine-platform/
+
+# 4. 服务器加载并重启
+ssh root@64.83.35.21 "cd /opt/vancine-platform && docker load < vancine-custom.tar.gz && docker compose up -d"
+
+# 5. 验证
+ssh root@64.83.35.21 "curl -s http://localhost:3000/api/status"
+```
+
+### 已知问题
+
+- GitHub Actions `deploy.yml` 的 self-hosted runner **从未成功安装**（35 次全部 queued）
+- 服务器 git 仓库需手动 `git pull` 同步（Dockerfile 构建上下文用）
+- `docker-compose.yml` 中镜像名为 `vancine-custom:latest`，非 Docker Hub 官方镜像
+- **⚠️ `git pull` 会覆盖服务器的 docker-compose.yml**（生产密码被覆盖为默认值），pull 前必须 `git stash`，pull 后 `git stash pop`
+- **⚠️ 前端变更部署时必须更新 `middleware/cache.go` 中的 `Cache-Version`**，否则浏览器缓存旧 HTML 引用旧 JS 文件
+
 ## Skill routing
 
 When the user's request matches an available skill, invoke it via the Skill tool. When in doubt, invoke the skill.
@@ -387,3 +431,110 @@ Key routing rules:
 - Ship/deploy/PR → invoke /ship or /land-and-deploy
 - Save progress → invoke /context-save
 - Resume context → invoke /context-restore
+
+---
+
+## Pending Tasks（待办事项）
+
+> Last Updated: 2026-06-05
+
+### 已完成
+
+| # | 任务 | 说明 |
+|---|------|------|
+| 1 | ~~**Classic 主题 playground 端点路由**~~ | ✅ 已完成（2026-06-05）。新增 `modelCapability.js`、`SEND_MESSAGE_MODE` 常量、`sendImageRequest`/`sendTaskRequest`，`onMessageSend` 根据模型类型自动路由到正确端点 |
+| 2 | ~~**模型标签分类系统**~~ | ✅ 已完成（2026-06-05）。全部 15 个模型已配置 tags（text/image/video/3d/code/reasoning 等） |
+| 3 | ~~**所有模型英文描述**~~ | ✅ 已完成（2026-06-05）。全部 15 个模型已配置英文 description |
+| 4 | ~~**Hitem3D / Hyper3D 供应商信息和图标**~~ | ✅ 已完成（2026-06-05）。新增供应商 数美科技(id=21) 和 影眸科技(id=22)，图标均使用 Meshy |
+
+### 高优先级
+
+| # | 任务 | 说明 |
+|---|------|------|
+| 1 | ~~**图片粘贴上传**~~ | ✅ 已完成（2026-06-06）。后端上传接口 + 前端粘贴上传 + 缩略图预览 + 图生图/图生视频 |
+| 2 | ~~**视频生成支持图片输入**~~ | ✅ 已完成（2026-06-06）。图生视频已验证可用，前端自动传 images 字段 |
+| 3 | **网站 UI 整体优化** | 当前网站 UI 需要整体优化，提升视觉体验和交互细节。首页 stats 区"Unified API"应展示在其他更合适的位置 |
+| 4 | **使用日志查看请求详情** | 在使用日志页面可以查看每次请求的实际请求地址、请求参数、响应内容等，便于调试和排查问题 |
+
+### 中优先级
+
+| # | 任务 | 说明 |
+|---|------|------|
+| 8 | **3D API 格式适配** | 不同 3D 模型 API 格式可能分化，需按模型分别构建请求体或创建独立 adaptor |
+
+### 低优先级
+
+| # | 任务 | 说明 |
+|---|------|------|
+| 9 | **3D 结果页面预览** | 集成 three.js / model-viewer，在任务日志页面直接预览 .glb/.obj 文件 |
+| 10 | **消息中富媒体渲染** | 在对话消息中直接渲染生成结果（图片内联预览、视频播放器、音频播放器、3D 预览），当前需去任务日志页面查看 |
+
+### 当前主题说明
+
+- **当前使用 classic 主题**（`theme.frontend = classic`）
+- PayPal 支付在 classic 主题中配置，default 主题不支持 PayPal
+- 后续开发基于 classic 主题
+
+---
+
+## 15. Karpathy Coding Guidelines
+
+> Source: [andrej-karpathy-skills](https://github.com/multica-ai/andrej-karpathy-skills)
+
+Behavioral guidelines to reduce common LLM coding mistakes.
+
+### 15.1 Think Before Coding
+
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
+
+Before implementing:
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
+
+### 15.2 Simplicity First
+
+**Minimum code that solves the problem. Nothing speculative.**
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
+
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+### 15.3 Surgical Changes
+
+**Touch only what you must. Clean up only your own mess.**
+
+When editing existing code:
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it - don't delete it.
+
+When your changes create orphans:
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+The test: Every changed line should trace directly to the user's request.
+
+### 15.4 Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform tasks into verifiable goals:
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Refactor X" → "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+```
+
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.

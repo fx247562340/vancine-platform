@@ -83,6 +83,7 @@ export const usePlaygroundState = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [models, setModels] = useState([]);
   const [groups, setGroups] = useState([]);
+  const [endpointsMap, setEndpointsMap] = useState({});
   const [status, setStatus] = useState({});
 
   // 消息相关状态 - 使用加载的消息或默认消息初始化
@@ -118,6 +119,21 @@ export const usePlaygroundState = () => {
   const chatRef = useRef(null);
   const saveConfigTimeoutRef = useRef(null);
   const saveMessagesTimeoutRef = useRef(null);
+
+  // 消息变更时自动保存到 localStorage（防抖 1 秒）
+  useEffect(() => {
+    if (saveMessagesTimeoutRef.current) {
+      clearTimeout(saveMessagesTimeoutRef.current);
+    }
+    saveMessagesTimeoutRef.current = setTimeout(() => {
+      saveMessages(message);
+    }, 1000);
+    return () => {
+      if (saveMessagesTimeoutRef.current) {
+        clearTimeout(saveMessagesTimeoutRef.current);
+      }
+    };
+  }, [message]);
 
   // 配置更新函数
   const handleInputChange = useCallback((name, value) => {
@@ -266,6 +282,7 @@ export const usePlaygroundState = () => {
     showSettings,
     models,
     groups,
+    endpointsMap,
     status,
 
     // 消息状态
@@ -294,6 +311,7 @@ export const usePlaygroundState = () => {
     setShowSettings,
     setModels,
     setGroups,
+    setEndpointsMap,
     setStatus,
     setMessage,
     setDebugData,

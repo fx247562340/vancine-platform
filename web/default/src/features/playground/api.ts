@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { api } from '@/lib/api'
-import { API_ENDPOINTS } from './constants'
+import { API_ENDPOINTS, ENDPOINT_API_PATHS } from './constants'
 import type {
   ChatCompletionRequest,
   ChatCompletionResponse,
@@ -38,7 +38,28 @@ export async function sendChatCompletion(
 }
 
 /**
- * Get user available models
+ * Get the API path for a given endpoint type
+ */
+export function getApiPathForEndpoint(endpointType: string): string {
+  return ENDPOINT_API_PATHS[endpointType] || API_ENDPOINTS.CHAT_COMPLETIONS
+}
+
+/**
+ * Send request to the appropriate endpoint based on model type
+ */
+export async function sendPlaygroundRequest(
+  endpointType: string,
+  payload: Record<string, unknown>
+): Promise<unknown> {
+  const path = getApiPathForEndpoint(endpointType)
+  const res = await api.post(path, payload, {
+    skipErrorHandler: true,
+  } as Record<string, unknown>)
+  return res.data
+}
+
+/**
+ * Get user available models with endpoint type information
  */
 export async function getUserModels(): Promise<ModelOption[]> {
   const res = await api.get(API_ENDPOINTS.USER_MODELS)
@@ -48,10 +69,18 @@ export async function getUserModels(): Promise<ModelOption[]> {
     return []
   }
 
-  return data.data.map((model: string) => ({
-    label: model,
-    value: model,
-  }))
+  // New format: [{model: string, endpoints: string[]}]
+  // Legacy format: string[]
+  return data.data.map((item: string | { model: string; endpoints: string[] }) => {
+    if (typeof item === 'string') {
+      return { label: item, value: item, endpoints: ['openai'] }
+    }
+    return {
+      label: item.model,
+      value: item.model,
+      endpoints: item.endpoints || ['openai'],
+    }
+  })
 }
 
 /**

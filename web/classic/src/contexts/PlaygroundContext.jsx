@@ -35,6 +35,7 @@ export const usePlayground = () => {
       onPasteImage: () => {
         console.warn('PlaygroundContext not provided');
       },
+      onRemoveImage: () => {},
       imageUrls: [],
       imageEnabled: false,
     };

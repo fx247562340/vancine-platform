@@ -35,9 +35,25 @@ export const MESSAGE_STATUS = {
 // API endpoints
 export const API_ENDPOINTS = {
   CHAT_COMPLETIONS: '/pg/chat/completions',
+  IMAGE_GENERATIONS: '/pg/images/generations',
+  VIDEO_GENERATIONS: '/pg/video/generations',
+  THREE_D_GENERATIONS: '/pg/3d/generations',
   USER_MODELS: '/api/user/models',
   USER_GROUPS: '/api/user/self/groups',
 } as const
+
+// Endpoint type → API path mapping
+export const ENDPOINT_API_PATHS: Record<string, string> = {
+  'openai': API_ENDPOINTS.CHAT_COMPLETIONS,
+  'openai-response': API_ENDPOINTS.CHAT_COMPLETIONS,
+  'openai-response-compact': API_ENDPOINTS.CHAT_COMPLETIONS,
+  'anthropic': API_ENDPOINTS.CHAT_COMPLETIONS,
+  'gemini': API_ENDPOINTS.CHAT_COMPLETIONS,
+  'image-generation': API_ENDPOINTS.IMAGE_GENERATIONS,
+  'openai-video': API_ENDPOINTS.VIDEO_GENERATIONS,
+  '3d-generation': API_ENDPOINTS.THREE_D_GENERATIONS,
+  'embeddings': API_ENDPOINTS.CHAT_COMPLETIONS,
+}
 
 // Default group — uses 'default' as the safe fallback; auto-group is
 // only selected when the backend confirms it is available for the user.

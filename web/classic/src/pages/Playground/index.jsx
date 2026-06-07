@@ -33,6 +33,7 @@ import { useApiRequest } from '../../hooks/playground/useApiRequest';
 import { useSyncMessageAndCustomBody } from '../../hooks/playground/useSyncMessageAndCustomBody';
 import { useMessageEdit } from '../../hooks/playground/useMessageEdit';
 import { useDataLoader } from '../../hooks/playground/useDataLoader';
+import { API_ENDPOINTS } from '../../constants/playground.constants';
 
 // Constants and utils
 import {
@@ -94,6 +95,7 @@ const Playground = () => {
     showSettings,
     models,
     groups,
+    endpointsMap,
     status,
     message,
     debugData,
@@ -110,6 +112,7 @@ const Playground = () => {
     setShowSettings,
     setModels,
     setGroups,
+    setEndpointsMap,
     setStatus,
     setMessage,
     setDebugData,
@@ -121,7 +124,7 @@ const Playground = () => {
   } = state;
 
   // API 请求相关
-  const { sendRequest, onStopGenerator } = useApiRequest(
+  const { sendRequest, sendImageRequest, sendTaskRequest, onStopGenerator } = useApiRequest(
     setMessage,
     setDebugData,
     setActiveDebugTab,
@@ -130,7 +133,17 @@ const Playground = () => {
   );
 
   // 数据加载
-  useDataLoader(userState, inputs, handleInputChange, setModels, setGroups);
+  useDataLoader(userState, inputs, handleInputChange, setModels, setGroups, setEndpointsMap);
+
+  // 自动滚动到底部（仅在流式回复时）
+  useEffect(() => {
+    if (!Array.isArray(message) || message.length === 0) return;
+    const lastMsg = message[message.length - 1];
+    const isStreaming = lastMsg.status === 'loading' || lastMsg.status === 'incomplete';
+    if (isStreaming && chatRef.current && chatRef.current.scrollToBottom) {
+      chatRef.current.scrollToBottom();
+    }
+  }, [message]);
 
   // 消息编辑
   const {
@@ -279,21 +292,66 @@ const Playground = () => {
       messageContent,
     );
 
+    // 根据 API 返回的 endpoints 字段路由（和 default 主题一致）
+    const modelEndpoints = endpointsMap[inputs.model] || [];
+    const isImageModel = modelEndpoints.some((ep) => ep === 'image-generation' || ep === 'image');
+    const isVideoModel = modelEndpoints.some((ep) => ep === 'openai-video' || ep === 'video');
+    const is3DModel = modelEndpoints.some((ep) => ep === '3d-generation');
+    const isAudioModel = modelEndpoints.some((ep) => ep === 'audio-speech' || ep === 'audio');
+
     setMessage((prevMessage) => {
       const newMessages = [...prevMessage, userMessageWithImages];
 
-      const payload = buildApiPayload(
-        newMessages,
-        null,
-        inputs,
-        parameterEnabled,
-      );
-      sendRequest(payload, inputs.stream);
+      if (isImageModel) {
+        // 图片生成：发送到 /pg/images/generations
+        const imagePayload = {
+          prompt: content,
+          model: inputs.model,
+          group: inputs.group,
+          n: 1,
+          size: '1920x1920',
+          response_format: 'url',
+        };
+        // 图片生成传 HTTP URL（图生图/图编辑）
+        // 统一用 image 字段，单张传字符串，多张传数组
+        if (inputs.imageEnabled && validImageUrls.length > 0) {
+          imagePayload.image = validImageUrls.length === 1
+            ? validImageUrls[0]
+            : validImageUrls;
+        }
+        sendImageRequest(imagePayload);
+      } else if (isVideoModel || is3DModel || isAudioModel) {
+        // 视频/3D/音频任务：发送到对应的 task 端点
+        const lastUserMsg = [...newMessages].reverse().find((m) => m.role === 'user');
+        const prompt = lastUserMsg?.content || content;
+        const taskEndpoint = is3DModel ? API_ENDPOINTS.THREE_D_GENERATIONS : API_ENDPOINTS.VIDEO_GENERATIONS;
+        const taskPayload = {
+          model: inputs.model,
+          group: inputs.group,
+          prompt,
+        };
+        // 传入 HTTP URL（图生视频等）
+        if (inputs.imageEnabled && validImageUrls.length > 0) {
+          taskPayload.images = validImageUrls;
+        }
+        sendTaskRequest(taskPayload, taskEndpoint);
+      } else {
+        // 普通文本模型
+        const payload = buildApiPayload(
+          newMessages,
+          null,
+          inputs,
+          parameterEnabled,
+        );
+        sendRequest(payload, inputs.stream);
+      }
 
-      // 禁用图片模式
+      // 禁用图片模式并清空图片列表
       if (inputs.imageEnabled) {
         setTimeout(() => {
           handleInputChange('imageEnabled', false);
+          handleInputChange('imageUrls', ['']);
+          handleInputChange('imageBase64', []);
         }, 100);
       }
 
@@ -437,22 +495,40 @@ const Playground = () => {
     setTimeout(() => saveMessagesImmediately([]), 0);
   }, [setMessage, saveMessagesImmediately]);
 
-  // 处理粘贴图片
+  // 处理粘贴图片（接收 HTTP URL 和 base64）
   const handlePasteImage = useCallback(
-    (base64Data) => {
+    (url, base64) => {
+      // 自动启用图片模式
       if (!inputs.imageEnabled) {
-        return;
+        handleInputChange('imageEnabled', true);
       }
-      // 添加图片到 imageUrls 数组
-      const newUrls = [...(inputs.imageUrls || []), base64Data];
+      const newUrls = [...(inputs.imageUrls || []).filter(u => u.trim() !== ''), url];
       handleInputChange('imageUrls', newUrls);
+      // 同时保存 base64，用于图片/视频生成 API（上游无法访问我们的 URL）
+      const newBase64 = [...(inputs.imageBase64 || []), base64];
+      handleInputChange('imageBase64', newBase64);
     },
-    [inputs.imageEnabled, inputs.imageUrls, handleInputChange],
+    [inputs.imageEnabled, inputs.imageUrls, inputs.imageBase64, handleInputChange],
+  );
+
+  // 移除单张图片
+  const handleRemoveImage = useCallback(
+    (index) => {
+      const newUrls = (inputs.imageUrls || []).filter((_, i) => i !== index);
+      handleInputChange('imageUrls', newUrls);
+      const newBase64 = (inputs.imageBase64 || []).filter((_, i) => i !== index);
+      handleInputChange('imageBase64', newBase64);
+      if (newUrls.filter(u => u.trim() !== '').length === 0) {
+        handleInputChange('imageEnabled', false);
+      }
+    },
+    [inputs.imageUrls, inputs.imageBase64, handleInputChange],
   );
 
   // Playground Context 值
   const playgroundContextValue = {
     onPasteImage: handlePasteImage,
+    onRemoveImage: handleRemoveImage,
     imageUrls: inputs.imageUrls || [],
     imageEnabled: inputs.imageEnabled || false,
   };
