@@ -43,3 +43,7 @@ frontend/.next/
 frontend/out/
 frontend/.env.local
 frontend/.env.*.local
+
+# Build artifacts
+vancine-custom.tar.gz
+*.tar.gz
