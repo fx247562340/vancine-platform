@@ -2,6 +2,7 @@ package volcengine
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -233,21 +234,53 @@ func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, info *relaycom
 	}
 
 	if info.RelayMode == constant.RelayModeAudioSpeech {
-		// HTTP Chunked response - stream audio directly
-		contentType := resp.Header.Get("Content-Type")
-		if contentType == "" {
-			contentType = "audio/mpeg"
-		}
-		c.Header("Content-Type", contentType)
-		c.Writer.WriteHeader(resp.StatusCode)
-
-		if _, copyErr := io.Copy(c.Writer, resp.Body); copyErr != nil {
+		// Volcengine returns JSON with base64-encoded audio data
+		body, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
 			return nil, types.NewErrorWithStatusCode(
-				fmt.Errorf("failed to stream audio: %w", copyErr),
-				types.ErrorCodeBadResponse,
+				fmt.Errorf("failed to read response: %w", readErr),
+				types.ErrorCodeReadResponseBodyFailed,
 				http.StatusInternalServerError,
 			)
 		}
+		defer resp.Body.Close()
+
+		var volcResp struct {
+			Code    int    `json:"code"`
+			Message string `json:"message"`
+			Data    string `json:"data"`
+		}
+		if unmarshalErr := json.Unmarshal(body, &volcResp); unmarshalErr != nil {
+			return nil, types.NewErrorWithStatusCode(
+				fmt.Errorf("failed to parse response: %w", unmarshalErr),
+				types.ErrorCodeBadResponseBody,
+				http.StatusInternalServerError,
+			)
+		}
+
+		if volcResp.Code != 0 {
+			return nil, types.NewErrorWithStatusCode(
+				fmt.Errorf("TTS error: %s", volcResp.Message),
+				types.ErrorCodeBadResponse,
+				http.StatusBadRequest,
+			)
+		}
+
+		// Decode base64 audio data
+		audioData, decodeErr := base64.StdEncoding.DecodeString(volcResp.Data)
+		if decodeErr != nil {
+			return nil, types.NewErrorWithStatusCode(
+				fmt.Errorf("failed to decode audio: %w", decodeErr),
+				types.ErrorCodeBadResponseBody,
+				http.StatusInternalServerError,
+			)
+		}
+
+		// Return raw audio
+		encoding := mapEncoding(c.GetString(contextKeyResponseFormat))
+		contentType := getContentTypeByEncoding(encoding)
+		c.Header("Content-Type", contentType)
+		c.Data(http.StatusOK, contentType, audioData)
 
 		usage = &dto.Usage{
 			PromptTokens:     info.GetEstimatePromptTokens(),
