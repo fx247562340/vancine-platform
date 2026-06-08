@@ -13,7 +13,6 @@ import (
 
 	channelconstant "github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/dto"
-	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/relay/channel"
 	"github.com/QuantumNous/new-api/relay/channel/claude"
 	"github.com/QuantumNous/new-api/relay/channel/openai"
@@ -246,15 +245,34 @@ func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, info *relaycom
 		}
 		defer resp.Body.Close()
 
-		// Log response for debugging
-		logger.LogError(c, fmt.Sprintf("TTS response length: %d, first 500 chars: %s", len(body), string(body[:min(500, len(body))])))
+		// Find the JSON object boundaries
+		jsonStart := -1
+		jsonEnd := -1
+		for i, b := range body {
+			if b == '{' && jsonStart == -1 {
+				jsonStart = i
+			}
+			if b == '}' {
+				jsonEnd = i + 1
+			}
+		}
+
+		if jsonStart == -1 || jsonEnd == -1 || jsonStart >= jsonEnd {
+			return nil, types.NewErrorWithStatusCode(
+				fmt.Errorf("invalid response format"),
+				types.ErrorCodeBadResponseBody,
+				http.StatusInternalServerError,
+			)
+		}
+
+		jsonBody := body[jsonStart:jsonEnd]
 
 		var volcResp struct {
 			Code    int    `json:"code"`
 			Message string `json:"message"`
 			Data    string `json:"data"`
 		}
-		if unmarshalErr := json.Unmarshal(body, &volcResp); unmarshalErr != nil {
+		if unmarshalErr := json.Unmarshal(jsonBody, &volcResp); unmarshalErr != nil {
 			return nil, types.NewErrorWithStatusCode(
 				fmt.Errorf("failed to parse response: %w", unmarshalErr),
 				types.ErrorCodeBadResponseBody,
