@@ -28,18 +28,18 @@ const ThemeToggle = ({ theme, onThemeToggle, t }) => {
   const themeOptions = useMemo(
     () => [
       {
-        key: 'light',
-        icon: <Sun size={18} />,
-        buttonIcon: <Sun size={18} />,
-        label: t('浅色模式'),
-        description: t('始终使用浅色主题'),
-      },
-      {
         key: 'dark',
         icon: <Moon size={18} />,
         buttonIcon: <Moon size={18} />,
         label: t('深色模式'),
         description: t('始终使用深色主题'),
+      },
+      {
+        key: 'light',
+        icon: <Sun size={18} />,
+        buttonIcon: <Sun size={18} />,
+        label: t('浅色模式'),
+        description: t('始终使用浅色主题'),
       },
       {
         key: 'auto',

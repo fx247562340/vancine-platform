@@ -5,9 +5,27 @@ import { useTranslation } from 'react-i18next';
 import ScrollReveal from './ScrollReveal';
 
 const comparisons = [
-  { provider: 'OpenAI', model: 'GPT-4o', price: '$5.00 / 1M', theirPrice: '$2.50 / 1M' },
-  { provider: 'Runway', model: 'Gen-3 Alpha', price: '$0.50 / video', theirPrice: '$0.25 / video' },
-  { provider: 'Midjourney', model: 'v6.1', price: '$0.06 / image', theirPrice: '$0.03 / image' },
+  {
+    category: 'LLM',
+    items: [
+      { ours: 'DeepSeek V4', theirs: 'GPT-4o', save: '80%' },
+      { ours: 'Qwen 3.6', theirs: 'Claude Sonnet 4', save: '75%' },
+    ],
+  },
+  {
+    category: 'Video',
+    items: [
+      { ours: 'Wan 2.2', theirs: 'Runway Gen-3', save: '60%' },
+      { ours: 'Kling', theirs: 'Sora', save: '50%' },
+    ],
+  },
+  {
+    category: 'Image',
+    items: [
+      { ours: 'FLUX Pro', theirs: 'DALL·E 3', save: '70%' },
+      { ours: 'Seedream', theirs: 'Midjourney v6', save: '65%' },
+    ],
+  },
 ];
 
 const PricingHighlight = ({ isMobile }) => {
@@ -45,7 +63,7 @@ const PricingHighlight = ({ isMobile }) => {
               >
                 3-10x
               </span>{' '}
-              {t('Cheaper')}
+              {t('Cheaper than International Alternatives')}
             </h2>
             <p
               className='max-w-2xl mx-auto'
@@ -54,46 +72,68 @@ const PricingHighlight = ({ isMobile }) => {
                 color: 'rgba(255,255,255,0.45)',
               }}
             >
-              {t('Access the same models at a fraction of the cost. No subscription, pay only for what you use.')}
+              {t('Same models, same quality, fraction of the cost.')}
             </p>
           </div>
         </ScrollReveal>
 
         {/* Comparison Cards */}
         <div className='grid grid-cols-1 md:grid-cols-3 gap-5 mb-12'>
-          {comparisons.map((c, i) => (
-            <ScrollReveal key={c.model} delay={i * 0.1}>
+          {comparisons.map((group, gi) => (
+            <ScrollReveal key={group.category} delay={gi * 0.1}>
               <div
-                className='p-6 text-center'
+                className='p-6'
                 style={{
                   background: '#141414',
                   borderRadius: '20px',
                   border: '1px solid rgba(255,255,255,0.06)',
                 }}
               >
-                <div className='text-sm font-medium mb-1' style={{ color: 'rgba(255,255,255,0.4)' }}>
-                  {c.provider}
-                </div>
-                <div className='text-lg font-semibold mb-4' style={{ color: '#fff' }}>
-                  {c.model}
-                </div>
-                <div className='mb-2'>
-                  <span className='text-sm line-through' style={{ color: 'rgba(255,255,255,0.25)' }}>
-                    {c.price}
-                  </span>
-                </div>
                 <div
-                  className='text-2xl font-bold'
-                  style={{ color: '#00b894' }}
+                  className='text-xs font-semibold uppercase tracking-widest mb-5'
+                  style={{ color: 'rgba(255,255,255,0.3)' }}
                 >
-                  {c.theirPrice}
+                  {group.category}
+                </div>
+
+                <div className='space-y-4'>
+                  {group.items.map((item) => (
+                    <div key={item.ours} className='flex items-center justify-between'>
+                      <div className='flex-1'>
+                        <div className='text-sm font-medium' style={{ color: '#fff' }}>
+                          {item.ours}
+                        </div>
+                        <div className='text-xs' style={{ color: 'rgba(255,255,255,0.3)' }}>
+                          vs {item.theirs}
+                        </div>
+                      </div>
+                      <div
+                        className='px-3 py-1 rounded-full text-sm font-bold'
+                        style={{
+                          background: 'rgba(0,184,148,0.15)',
+                          color: '#00b894',
+                        }}
+                      >
+                        -{item.save}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </ScrollReveal>
           ))}
         </div>
 
-        <ScrollReveal>
+        {/* Bottom note */}
+        <ScrollReveal delay={0.3}>
+          <div className='text-center mb-8'>
+            <p
+              className='text-sm'
+              style={{ color: 'rgba(255,255,255,0.3)' }}
+            >
+              {t('Pay-as-you-go. No subscription. Credits never expire.')}
+            </p>
+          </div>
           <div className='text-center'>
             <Link to='/pricing'>
               <Button
