@@ -1,5 +1,23 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+
+/* ──────────────────── Color constants ──────────────────── */
+
+const C = {
+  text: { h1: '#111827', body: '#374151', muted: '#6b7280', subtle: '#9ca3af', white: '#f3f4f6', whiteBody: '#d1d5db', whiteMuted: '#9ca3af' },
+  bg: { page: '#ffffff', light: '#f9fafb', card: '#ffffff', darkPage: '#0a0a0a', darkCard: '#141414', darkLight: '#1f2937', darkHover: '#1f293780', code: '#1a1a2e' },
+  border: { light: '#e5e7eb', dark: '#374151' },
+  accent: '#7c3aed', accentDark: '#6d28d9', accentLight: '#ede9fe', accentBg: '#f5f3ff',
+  badge: {
+    purple: { bg: '#ede9fe', text: '#6d28d9', darkBg: '#2e10654d', darkText: '#a78bfa' },
+    green: { bg: '#d1fae5', text: '#047857', darkBg: '#064e3b4d', darkText: '#34d399' },
+    blue: { bg: '#dbeafe', text: '#1d4ed8', darkBg: '#1e3a5f4d', darkText: '#60a5fa' },
+    orange: { bg: '#fef3c7', text: '#b45309', darkBg: '#78350f4d', darkText: '#fbbf24' },
+    red: { bg: '#fee2e2', text: '#b91c1c', darkBg: '#7f1d1d4d', darkText: '#f87171' },
+    gray: { bg: '#f3f4f6', text: '#4b5563', darkBg: '#1f2937', darkText: '#9ca3af' },
+  },
+  method: { GET: '#059669', POST: '#2563eb', PUT: '#d97706', DELETE: '#dc2626' },
+};
 
 /* ──────────────────── data ──────────────────── */
 
@@ -49,101 +67,67 @@ const L = {
 /* ──────────────────── UI atoms ──────────────────── */
 
 const Badge = ({ children, color = 'purple' }) => {
-  const cls = {
-    purple: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-    green: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-    blue: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-    orange: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
-    red: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-    gray: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
-  };
+  const b = C.badge[color] || C.badge.gray;
   return (
-    <span className={`inline-block px-2 py-0.5 text-xs font-medium rounded-md ${cls[color]}`}>
+    <span style={{ display: 'inline-block', padding: '2px 8px', fontSize: '12px', fontWeight: 500, borderRadius: '6px', background: b.bg, color: b.text }}>
       {children}
     </span>
   );
 };
 
-const MethodBadge = ({ method }) => {
-  const cls = {
-    GET: 'bg-green-500',
-    POST: 'bg-blue-500',
-    PUT: 'bg-orange-500',
-    DELETE: 'bg-red-500',
-  };
-  return (
-    <span className={`inline-block px-2 py-0.5 text-xs font-bold text-white rounded ${cls[method] || 'bg-gray-500'}`}>
-      {method}
-    </span>
-  );
-};
+const MethodBadge = ({ method }) => (
+  <span style={{ display: 'inline-block', padding: '2px 8px', fontSize: '12px', fontWeight: 700, color: '#fff', borderRadius: '4px', background: C.method[method] || '#6b7280' }}>
+    {method}
+  </span>
+);
 
 const Endpoint = ({ method, path, desc }) => (
-  <div className='flex items-start gap-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl p-4 mb-4'>
+  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', background: C.bg.light, border: `1px solid ${C.border.light}`, borderRadius: '12px', padding: '16px', marginBottom: '16px' }}>
     <MethodBadge method={method} />
     <div>
-      <code className='text-sm font-semibold text-gray-800 dark:text-gray-200'>{path}</code>
-      {desc && <p className='text-sm text-gray-500 mt-1'>{desc}</p>}
+      <code style={{ fontSize: '14px', fontWeight: 600, color: C.text.h1 }}>{path}</code>
+      {desc && <p style={{ fontSize: '14px', color: C.text.muted, marginTop: '4px' }}>{desc}</p>}
     </div>
   </div>
 );
 
 const Callout = ({ type = 'info', children }) => {
-  const cls = {
-    info: 'border-blue-400 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300',
-    warning: 'border-orange-400 bg-orange-50 dark:bg-orange-900/20 text-orange-800 dark:text-orange-300',
-    tip: 'border-green-400 bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300',
-    danger: 'border-red-400 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300',
+  const styles = {
+    info: { border: '#60a5fa', bg: '#eff6ff', text: '#1e40af' },
+    warning: { border: '#fbbf24', bg: '#fffbeb', text: '#92400e' },
+    tip: { border: '#34d399', text: '#065f46', bg: '#ecfdf5' },
+    danger: { border: '#f87171', bg: '#fef2f2', text: '#991b1b' },
   };
+  const s = styles[type] || styles.info;
   const icons = { info: 'ℹ️', warning: '⚠️', tip: '💡', danger: '🚫' };
   return (
-    <div className={`border-l-4 rounded-r-lg px-4 py-3 mb-4 text-sm ${cls[type]}`}>
-      <span className='mr-1'>{icons[type]}</span> {children}
+    <div style={{ borderLeft: `4px solid ${s.border}`, borderRadius: '0 8px 8px 0', padding: '12px 16px', marginBottom: '16px', fontSize: '14px', background: s.bg, color: s.text }}>
+      <span style={{ marginRight: '4px' }}>{icons[type]}</span> {children}
     </div>
   );
 };
 
 const ParamTable = ({ params, isZh }) => (
-  <div className='overflow-x-auto mb-6 border border-gray-200 dark:border-gray-700 rounded-xl'>
-    <table className='w-full text-sm'>
+  <div style={{ overflowX: 'auto', marginBottom: '24px', border: `1px solid ${C.border.light}`, borderRadius: '12px' }}>
+    <table style={{ width: '100%', fontSize: '14px', borderCollapse: 'collapse' }}>
       <thead>
-        <tr className='bg-gray-50 dark:bg-gray-800'>
-          <th className='text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700'>
-            {isZh ? '参数' : 'Parameter'}
-          </th>
-          <th className='text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700'>
-            {isZh ? '类型' : 'Type'}
-          </th>
-          <th className='text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700'>
-            {isZh ? '必填' : 'Required'}
-          </th>
-          <th className='text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700'>
-            {isZh ? '说明' : 'Description'}
-          </th>
+        <tr style={{ background: C.bg.light }}>
+          {[isZh ? '参数' : 'Parameter', isZh ? '类型' : 'Type', isZh ? '必填' : 'Required', isZh ? '说明' : 'Description'].map((h) => (
+            <th key={h} style={{ textAlign: 'left', padding: '12px 16px', fontWeight: 600, color: C.text.body, borderBottom: `1px solid ${C.border.light}` }}>{h}</th>
+          ))}
         </tr>
       </thead>
       <tbody>
         {params.map(([name, type, req, desc], i) => (
-          <tr
-            key={i}
-            className='border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors'
-          >
-            <td className='py-3 px-4'>
-              <code className='text-sm font-mono text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-1.5 py-0.5 rounded'>
-                {name}
-              </code>
+          <tr key={i} style={{ borderBottom: i < params.length - 1 ? `1px solid ${C.bg.light}` : 'none' }}>
+            <td style={{ padding: '12px 16px' }}>
+              <code style={{ fontSize: '13px', fontFamily: 'monospace', color: C.accent, background: C.accentBg, padding: '2px 6px', borderRadius: '4px' }}>{name}</code>
             </td>
-            <td className='py-3 px-4'>
-              <Badge color='gray'>{type}</Badge>
+            <td style={{ padding: '12px 16px' }}><Badge color="gray">{type}</Badge></td>
+            <td style={{ padding: '12px 16px' }}>
+              {req === 'Yes' || req === '是' ? <Badge color="red">{isZh ? '是' : 'Yes'}</Badge> : <Badge color="gray">{isZh ? '否' : 'No'}</Badge>}
             </td>
-            <td className='py-3 px-4'>
-              {req === 'Yes' || req === '是' ? (
-                <Badge color='red'>{isZh ? '是' : 'Yes'}</Badge>
-              ) : (
-                <Badge color='gray'>{isZh ? '否' : 'No'}</Badge>
-              )}
-            </td>
-            <td className='py-3 px-4 text-gray-600 dark:text-gray-400'>{desc}</td>
+            <td style={{ padding: '12px 16px', color: C.text.muted }}>{desc}</td>
           </tr>
         ))}
       </tbody>
@@ -151,27 +135,20 @@ const ParamTable = ({ params, isZh }) => (
   </div>
 );
 
-const CodeBlock = ({ code, lang = 'bash', title }) => {
+const CodeBlock = ({ code, title }) => {
   const [copied, setCopied] = useState(false);
-  const copy = () => {
-    navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  const copy = () => { navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 2000); };
   return (
-    <div className='mb-6 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700'>
+    <div style={{ marginBottom: '24px', borderRadius: '12px', overflow: 'hidden', border: `1px solid ${C.border.light}` }}>
       {title && (
-        <div className='flex items-center justify-between px-4 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700'>
-          <span className='text-xs font-medium text-gray-500'>{title}</span>
-          <button
-            onClick={copy}
-            className='text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors'
-          >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', background: C.bg.light, borderBottom: `1px solid ${C.border.light}` }}>
+          <span style={{ fontSize: '12px', fontWeight: 500, color: C.text.muted }}>{title}</span>
+          <button onClick={copy} style={{ fontSize: '12px', color: C.text.muted, background: 'none', border: 'none', cursor: 'pointer' }}>
             {copied ? '✓ Copied' : 'Copy'}
           </button>
         </div>
       )}
-      <pre className='bg-gray-900 text-gray-100 p-4 overflow-x-auto text-sm leading-relaxed'>
+      <pre style={{ background: C.bg.code, color: '#e2e8f0', padding: '16px', overflowX: 'auto', fontSize: '13px', lineHeight: 1.7, margin: 0 }}>
         <code>{code}</code>
       </pre>
     </div>
@@ -179,16 +156,16 @@ const CodeBlock = ({ code, lang = 'bash', title }) => {
 };
 
 const Tabs = ({ tabs, active, onChange }) => (
-  <div className='flex gap-1 border-b border-gray-200 dark:border-gray-700 mb-4'>
+  <div style={{ display: 'flex', gap: '4px', borderBottom: `1px solid ${C.border.light}`, marginBottom: '16px' }}>
     {tabs.map((tab) => (
       <button
         key={tab.key}
         onClick={() => onChange(tab.key)}
-        className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
-          active === tab.key
-            ? 'border-purple-500 text-purple-600 dark:text-purple-400'
-            : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-        }`}
+        style={{
+          padding: '8px 16px', fontSize: '14px', fontWeight: 500, border: 'none', cursor: 'pointer', background: 'none',
+          borderBottom: `2px solid ${active === tab.key ? C.accent : 'transparent'}`,
+          color: active === tab.key ? C.accent : C.text.muted, marginBottom: '-1px',
+        }}
       >
         {tab.label}
       </button>
@@ -197,25 +174,15 @@ const Tabs = ({ tabs, active, onChange }) => (
 );
 
 const H2 = ({ id, children }) => (
-  <h2 id={id} className='text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100 scroll-mt-20'>
-    {children}
-  </h2>
+  <h2 id={id} style={{ fontSize: '24px', fontWeight: 700, marginBottom: '8px', color: C.text.h1, scrollMarginTop: '80px' }}>{children}</h2>
 );
 
 const H3 = ({ children }) => (
-  <h3 className='text-lg font-semibold mb-2 mt-6 text-gray-800 dark:text-gray-200'>
-    {children}
-  </h3>
+  <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', marginTop: '24px', color: C.text.h1 }}>{children}</h3>
 );
 
 const P = ({ children }) => (
-  <p className='text-gray-600 dark:text-gray-400 mb-4 leading-relaxed'>{children}</p>
-);
-
-const Code = ({ children }) => (
-  <code className='text-sm font-mono text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-1.5 py-0.5 rounded'>
-    {children}
-  </code>
+  <p style={{ color: C.text.muted, marginBottom: '16px', lineHeight: 1.7 }}>{children}</p>
 );
 
 /* ──────────────────── Code Samples ──────────────────── */
@@ -230,14 +197,8 @@ const SAMPLES = {
   -d '{
     "model": "deepseek-v4-flash",
     "messages": [
-      {
-        "role": "system",
-        "content": "You are a helpful assistant."
-      },
-      {
-        "role": "user",
-        "content": "Explain quantum computing in simple terms."
-      }
+      { "role": "system", "content": "You are a helpful assistant." },
+      { "role": "user", "content": "Explain quantum computing in simple terms." }
     ],
     "temperature": 0.7,
     "max_tokens": 2048,
@@ -253,7 +214,6 @@ client = OpenAI(
     base_url="https://api.vancine.com/v1"
 )
 
-# Non-streaming
 response = client.chat.completions.create(
     model="deepseek-v4-flash",
     messages=[
@@ -285,7 +245,6 @@ const client = new OpenAI({
     baseURL: "https://api.vancine.com/v1",
 });
 
-// Non-streaming
 const response = await client.chat.completions.create({
     model: "deepseek-v4-flash",
     messages: [
@@ -427,7 +386,7 @@ while True:
         print(f"Error: {result.get('error')}")
         break
 
-    time.sleep(5)  # Poll every 5 seconds`,
+    time.sleep(5)`,
     },
     node: {
       title: 'Node.js',
@@ -475,10 +434,37 @@ const CodeSampleTabs = ({ section }) => {
   return (
     <div>
       <Tabs tabs={tabs} active={tab} onChange={setTab} />
-      <CodeBlock code={items[tab].code} lang={tab} />
+      <CodeBlock code={items[tab].code} />
     </div>
   );
 };
+
+/* ──────────────────── Table helpers ──────────────────── */
+
+const Table = ({ headers, rows, renderRow }) => (
+  <div style={{ border: `1px solid ${C.border.light}`, borderRadius: '12px', overflow: 'hidden', marginBottom: '16px' }}>
+    <table style={{ width: '100%', fontSize: '14px', borderCollapse: 'collapse' }}>
+      <thead>
+        <tr style={{ background: C.bg.light }}>
+          {headers.map((h) => (
+            <th key={h} style={{ textAlign: 'left', padding: '12px 16px', fontWeight: 600, color: C.text.body, borderBottom: `1px solid ${C.border.light}` }}>{h}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row, i) => renderRow(row, i, i < rows.length - 1))}
+      </tbody>
+    </table>
+  </div>
+);
+
+const Td = ({ children, style }) => (
+  <td style={{ padding: '12px 16px', ...style }}>{children}</td>
+);
+
+const Tr = ({ last, children }) => (
+  <tr style={{ borderBottom: last ? 'none' : `1px solid ${C.bg.light}` }}>{children}</tr>
+);
 
 /* ──────────────────── Main Component ──────────────────── */
 
@@ -504,160 +490,126 @@ const Docs = () => {
 
   const go = (k) => document.getElementById(k)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
+  const tableBorder = `1px solid ${C.border.light}`;
+
   return (
-    <div className='w-full min-h-screen'>
-      <div className='max-w-[1200px] mx-auto px-4 md:px-8 py-8 pt-24'>
+    <div style={{ width: '100%', minHeight: '100vh' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '96px 16px 32px' }}>
         {/* Header */}
-        <div className='mb-10'>
-          <h1 className='text-4xl font-bold text-gray-900 dark:text-gray-100 mb-3'>{d.title}</h1>
-          <p className='text-lg text-gray-500 dark:text-gray-400 mb-1'>{d.sub}</p>
-          <span className='text-xs text-gray-400'>{d.lastUpdated}</span>
+        <div style={{ marginBottom: '40px' }}>
+          <h1 style={{ fontSize: '36px', fontWeight: 700, color: C.text.h1, marginBottom: '12px' }}>{d.title}</h1>
+          <p style={{ fontSize: '18px', color: C.text.muted, marginBottom: '4px' }}>{d.sub}</p>
+          <span style={{ fontSize: '12px', color: C.text.subtle }}>{d.lastUpdated}</span>
         </div>
 
-        <div className='flex gap-10'>
+        <div style={{ display: 'flex', gap: '40px' }}>
           {/* Sidebar */}
-          <aside className='hidden lg:block w-56 flex-shrink-0'>
-            <nav className='sticky top-20 space-y-0.5'>
-              {d.nav.map((n) => (
-                <button
-                  key={n.k}
-                  onClick={() => go(n.k)}
-                  className={`block w-full text-left px-3 py-2 text-sm rounded-lg transition-all ${
-                    activeSection === n.k
-                      ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 font-semibold border-l-2 border-purple-500'
-                      : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/50'
-                  }`}
-                >
-                  {n.t}
-                </button>
-              ))}
+          <aside style={{ width: '224px', flexShrink: 0 }} className="hidden lg:block">
+            <nav style={{ position: 'sticky', top: '80px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              {d.nav.map((n) => {
+                const active = activeSection === n.k;
+                return (
+                  <button
+                    key={n.k}
+                    onClick={() => go(n.k)}
+                    style={{
+                      display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: '14px', borderRadius: '8px', cursor: 'pointer', border: 'none',
+                      background: active ? C.accentBg : 'transparent',
+                      color: active ? C.accent : C.text.muted,
+                      fontWeight: active ? 600 : 400,
+                      borderLeft: active ? `2px solid ${C.accent}` : '2px solid transparent',
+                    }}
+                  >
+                    {n.t}
+                  </button>
+                );
+              })}
             </nav>
           </aside>
 
           {/* Content */}
-          <main className='flex-1 min-w-0 max-w-3xl'>
+          <main style={{ flex: 1, minWidth: 0, maxWidth: '768px' }}>
 
             {/* ── Quick Start ── */}
-            <section id='quickstart' className='mb-16'>
+            <section id="quickstart" style={{ marginBottom: '64px' }}>
               <H2>{isZh ? '快速开始' : 'Quick Start'}</H2>
-              <P>
-                {isZh
-                  ? 'Vancine 使用 OpenAI 兼容的 API 格式。如果您使用过 OpenAI SDK，只需修改 Base URL 和 API Key 即可切换到 Vancine。'
-                  : 'Vancine uses an OpenAI-compatible API format. If you have used the OpenAI SDK, simply change the Base URL and API Key to switch to Vancine.'}
-              </P>
+              <P>{isZh ? 'Vancine 使用 OpenAI 兼容的 API 格式。如果您使用过 OpenAI SDK，只需修改 Base URL 和 API Key 即可切换到 Vancine。' : 'Vancine uses an OpenAI-compatible API format. If you have used the OpenAI SDK, simply change the Base URL and API Key to switch to Vancine.'}</P>
 
-              <div className='border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden mb-6'>
-                <table className='w-full text-sm'>
+              <div style={{ border: tableBorder, borderRadius: '12px', overflow: 'hidden', marginBottom: '24px' }}>
+                <table style={{ width: '100%', fontSize: '14px', borderCollapse: 'collapse' }}>
                   <tbody>
                     {[
-                      [isZh ? 'Base URL' : 'Base URL', 'https://api.vancine.com/v1'],
+                      ['Base URL', 'https://api.vancine.com/v1'],
                       [isZh ? 'API 格式' : 'API Format', 'OpenAI 兼容 (JSON)'],
                       [isZh ? '认证方式' : 'Authentication', 'Bearer Token'],
                       [isZh ? '流式输出' : 'Streaming', 'SSE (Server-Sent Events)'],
-                    ].map(([k, v], i) => (
-                      <tr key={i} className='border-b border-gray-100 dark:border-gray-800 last:border-0'>
-                        <td className='py-3 px-4 font-semibold text-gray-700 dark:text-gray-300 w-40 bg-gray-50 dark:bg-gray-800/50'>
-                          {k}
-                        </td>
-                        <td className='py-3 px-4 font-mono text-purple-600 dark:text-purple-400'>{v}</td>
+                    ].map(([k, v], i, arr) => (
+                      <tr key={i} style={{ borderBottom: i < arr.length - 1 ? `1px solid ${C.bg.light}` : 'none' }}>
+                        <td style={{ padding: '12px 16px', fontWeight: 600, color: C.text.body, width: '160px', background: C.bg.light }}>{k}</td>
+                        <td style={{ padding: '12px 16px', fontFamily: 'monospace', color: C.accent }}>{v}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
 
-              <Callout type='tip'>
-                {isZh
-                  ? '所有 SDK（OpenAI、Anthropic 等）只需将 base_url 改为 https://api.vancine.com/v1 即可使用。'
-                  : 'All SDKs (OpenAI, Anthropic, etc.) work by changing base_url to https://api.vancine.com/v1.'}
+              <Callout type="tip">
+                {isZh ? '所有 SDK（OpenAI、Anthropic 等）只需将 base_url 改为 https://api.vancine.com/v1 即可使用。' : 'All SDKs (OpenAI, Anthropic, etc.) work by changing base_url to https://api.vancine.com/v1.'}
               </Callout>
             </section>
 
             {/* ── Authentication ── */}
-            <section id='auth' className='mb-16'>
+            <section id="auth" style={{ marginBottom: '64px' }}>
               <H2>{isZh ? '认证方式' : 'Authentication'}</H2>
-              <P>
-                {isZh
-                  ? '所有 API 请求需要在 Authorization 请求头中携带 API Key。'
-                  : 'All API requests require an API Key in the Authorization header.'}
-              </P>
+              <P>{isZh ? '所有 API 请求需要在 Authorization 请求头中携带 API Key。' : 'All API requests require an API Key in the Authorization header.'}</P>
 
               <H3>{isZh ? '获取 API Key' : 'Getting an API Key'}</H3>
-              <ol className='list-decimal list-inside space-y-2 mb-4 text-sm text-gray-600 dark:text-gray-400'>
+              <ol style={{ listStyle: 'decimal', paddingLeft: '20px', marginBottom: '16px', fontSize: '14px', color: C.text.muted, lineHeight: 2 }}>
                 <li>{isZh ? '登录 Vancine 控制台' : 'Log in to Vancine Console'}</li>
                 <li>{isZh ? '进入 令牌管理 → 新建令牌' : 'Go to Token Management → New Token'}</li>
                 <li>{isZh ? '复制生成的 API Key（以 sk- 开头）' : 'Copy the generated API Key (starts with sk-)'}</li>
               </ol>
 
               <H3>{isZh ? '请求头格式' : 'Header Format'}</H3>
-              <CodeBlock
-                code={`Authorization: Bearer sk-your-api-key`}
-                title='HTTP Header'
-              />
+              <CodeBlock code="Authorization: Bearer sk-your-api-key" title="HTTP Header" />
 
-              <Callout type='warning'>
-                {isZh
-                  ? '请妥善保管您的 API Key，不要将其暴露在前端代码或公开仓库中。'
-                  : 'Keep your API Key secure. Never expose it in client-side code or public repositories.'}
+              <Callout type="warning">
+                {isZh ? '请妥善保管您的 API Key，不要将其暴露在前端代码或公开仓库中。' : 'Keep your API Key secure. Never expose it in client-side code or public repositories.'}
               </Callout>
             </section>
 
             {/* ── Models ── */}
-            <section id='models' className='mb-16'>
+            <section id="models" style={{ marginBottom: '64px' }}>
               <H2>{isZh ? '模型与定价' : 'Models & Pricing'}</H2>
-              <P>
-                {isZh
-                  ? '访问 /pricing 页面查看所有可用模型及其定价。也可通过 API 获取：'
-                  : 'Visit the /pricing page for all available models and pricing. Or fetch via API:'}
-              </P>
-              <CodeBlock
-                code={`curl https://api.vancine.com/api/pricing`}
-                title='Get all models'
-              />
+              <P>{isZh ? '访问 /pricing 页面查看所有可用模型及其定价。也可通过 API 获取：' : 'Visit the /pricing page for all available models and pricing. Or fetch via API:'}</P>
+              <CodeBlock code="curl https://api.vancine.com/api/pricing" title="Get all models" />
 
               <H3>{isZh ? '主要模型列表' : 'Featured Models'}</H3>
-              <div className='border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden mb-4'>
-                <table className='w-full text-sm'>
-                  <thead>
-                    <tr className='bg-gray-50 dark:bg-gray-800'>
-                      <th className='text-left py-3 px-4 font-semibold border-b border-gray-200 dark:border-gray-700'>{isZh ? '模型' : 'Model'}</th>
-                      <th className='text-left py-3 px-4 font-semibold border-b border-gray-200 dark:border-gray-700'>{isZh ? '类型' : 'Type'}</th>
-                      <th className='text-left py-3 px-4 font-semibold border-b border-gray-200 dark:border-gray-700'>{isZh ? '说明' : 'Description'}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      ['deepseek-v4-flash', 'text', isZh ? 'DeepSeek V4 快速版' : 'DeepSeek V4 Flash'],
-                      ['seedream-3.0', 'image', isZh ? '火山方舟文生图' : 'VolcEngine text-to-image'],
-                      ['wan-2.2-t2v', 'video', isZh ? '万象文生视频' : 'Wan text-to-video'],
-                      ['seedance-1.0-lite', 'video', isZh ? '火山方舟文/图生视频' : 'VolcEngine video generation'],
-                      ['hitem3d-2.0', '3d', isZh ? '数美科技 3D 生成' : 'Shumei 3D generation'],
-                      ['doubao-tts', 'audio', isZh ? '豆包语音合成' : 'Doubao text-to-speech'],
-                    ].map(([model, type, desc], i) => (
-                      <tr key={i} className='border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50/50 dark:hover:bg-gray-800/30'>
-                        <td className='py-3 px-4 font-mono text-purple-600 dark:text-purple-400 text-sm'>{model}</td>
-                        <td className='py-3 px-4'>
-                          <Badge color={type === 'text' ? 'blue' : type === 'image' ? 'green' : type === 'video' ? 'purple' : type === '3d' ? 'orange' : 'gray'}>
-                            {type}
-                          </Badge>
-                        </td>
-                        <td className='py-3 px-4 text-gray-600 dark:text-gray-400'>{desc}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <Table
+                headers={[isZh ? '模型' : 'Model', isZh ? '类型' : 'Type', isZh ? '说明' : 'Description']}
+                rows={[
+                  ['deepseek-v4-flash', 'text', isZh ? 'DeepSeek V4 快速版' : 'DeepSeek V4 Flash'],
+                  ['seedream-3.0', 'image', isZh ? '火山方舟文生图' : 'VolcEngine text-to-image'],
+                  ['wan-2.2-t2v', 'video', isZh ? '万象文生视频' : 'Wan text-to-video'],
+                  ['seedance-1.0-lite', 'video', isZh ? '火山方舟文/图生视频' : 'VolcEngine video generation'],
+                  ['hitem3d-2.0', '3d', isZh ? '数美科技 3D 生成' : 'Shumei 3D generation'],
+                  ['doubao-tts', 'audio', isZh ? '豆包语音合成' : 'Doubao text-to-speech'],
+                ]}
+                renderRow={([model, type, desc], i, last) => (
+                  <Tr key={i} last={last}>
+                    <Td style={{ fontFamily: 'monospace', color: C.accent, fontSize: '13px' }}>{model}</Td>
+                    <Td><Badge color={type === 'text' ? 'blue' : type === 'image' ? 'green' : type === 'video' ? 'purple' : type === '3d' ? 'orange' : 'gray'}>{type}</Badge></Td>
+                    <Td style={{ color: C.text.muted }}>{desc}</Td>
+                  </Tr>
+                )}
+              />
             </section>
 
             {/* ── Chat Completions ── */}
-            <section id='chat' className='mb-16'>
+            <section id="chat" style={{ marginBottom: '64px' }}>
               <H2>{isZh ? '对话补全' : 'Chat Completions'}</H2>
-              <Endpoint method='POST' path='/v1/chat/completions' />
-              <P>
-                {isZh
-                  ? '向语言模型发送消息并获取回复。支持多轮对话、流式输出和视觉输入（图片）。'
-                  : 'Send messages to language models and receive responses. Supports multi-turn conversation, streaming, and vision (image input).'}
-              </P>
+              <Endpoint method="POST" path="/v1/chat/completions" />
+              <P>{isZh ? '向语言模型发送消息并获取回复。支持多轮对话、流式输出和视觉输入（图片）。' : 'Send messages to language models and receive responses. Supports multi-turn conversation, streaming, and vision (image input).'}</P>
 
               <H3>{isZh ? '请求参数' : 'Request Parameters'}</H3>
               <ParamTable
@@ -692,22 +644,18 @@ const Docs = () => {
     }
   ]
 }`}
-                title='Message Object'
+                title="Message Object"
               />
 
               <H3>{isZh ? '示例代码' : 'Code Examples'}</H3>
-              <CodeSampleTabs section='chat' />
+              <CodeSampleTabs section="chat" />
             </section>
 
             {/* ── Image Generation ── */}
-            <section id='image' className='mb-16'>
+            <section id="image" style={{ marginBottom: '64px' }}>
               <H2>{isZh ? '图片生成' : 'Image Generation'}</H2>
-              <Endpoint method='POST' path='/v1/images/generations' />
-              <P>
-                {isZh
-                  ? '从文本提示生成图片，或使用参考图片进行图生图。支持 Seedream、FLUX 等模型。'
-                  : 'Generate images from text prompts or use reference images for image-to-image. Supports Seedream, FLUX, and more.'}
-              </P>
+              <Endpoint method="POST" path="/v1/images/generations" />
+              <P>{isZh ? '从文本提示生成图片，或使用参考图片进行图生图。支持 Seedream、FLUX 等模型。' : 'Generate images from text prompts or use reference images for image-to-image. Supports Seedream, FLUX, and more.'}</P>
 
               <H3>{isZh ? '请求参数' : 'Request Parameters'}</H3>
               <ParamTable
@@ -722,25 +670,19 @@ const Docs = () => {
                 ]}
               />
 
-              <Callout type='info'>
-                {isZh
-                  ? '图生图：传入 image 参数，可以是单张图片 URL（字符串）或多张参考图（数组）。'
-                  : 'Image-to-image: Pass the image parameter as a single URL (string) or multiple references (array).'}
+              <Callout type="info">
+                {isZh ? '图生图：传入 image 参数，可以是单张图片 URL（字符串）或多张参考图（数组）。' : 'Image-to-image: Pass the image parameter as a single URL (string) or multiple references (array).'}
               </Callout>
 
               <H3>{isZh ? '示例代码' : 'Code Examples'}</H3>
-              <CodeSampleTabs section='image' />
+              <CodeSampleTabs section="image" />
             </section>
 
             {/* ── Video Generation ── */}
-            <section id='video' className='mb-16'>
+            <section id="video" style={{ marginBottom: '64px' }}>
               <H2>{isZh ? '视频生成' : 'Video Generation'}</H2>
-              <Endpoint method='POST' path='/v1/video/generations' />
-              <P>
-                {isZh
-                  ? '从文本提示或参考图片生成视频。视频生成是异步的，提交后通过轮询获取结果。'
-                  : 'Generate videos from text prompts or reference images. Video generation is asynchronous — poll for results after submission.'}
-              </P>
+              <Endpoint method="POST" path="/v1/video/generations" />
+              <P>{isZh ? '从文本提示或参考图片生成视频。视频生成是异步的，提交后通过轮询获取结果。' : 'Generate videos from text prompts or reference images. Video generation is asynchronous — poll for results after submission.'}</P>
 
               <H3>{isZh ? '请求参数' : 'Request Parameters'}</H3>
               <ParamTable
@@ -755,52 +697,34 @@ const Docs = () => {
               />
 
               <H3>{isZh ? '任务轮询' : 'Task Polling'}</H3>
-              <Endpoint method='GET' path='/api/task/{taskId}' desc={isZh ? '查询任务状态和结果' : 'Check task status and result'} />
-              <P>
-                {isZh
-                  ? '提交后返回 task_id，轮询直到 status 为 succeeded 或 failed：'
-                  : 'After submission, a task_id is returned. Poll until status is succeeded or failed:'}
-              </P>
+              <Endpoint method="GET" path="/api/task/{taskId}" desc={isZh ? '查询任务状态和结果' : 'Check task status and result'} />
+              <P>{isZh ? '提交后返回 task_id，轮询直到 status 为 succeeded 或 failed：' : 'After submission, a task_id is returned. Poll until status is succeeded or failed:'}</P>
 
-              <div className='border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden mb-6'>
-                <table className='w-full text-sm'>
-                  <thead>
-                    <tr className='bg-gray-50 dark:bg-gray-800'>
-                      <th className='text-left py-3 px-4 font-semibold border-b border-gray-200 dark:border-gray-700'>{isZh ? '状态' : 'Status'}</th>
-                      <th className='text-left py-3 px-4 font-semibold border-b border-gray-200 dark:border-gray-700'>{isZh ? '说明' : 'Description'}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      ['pending', isZh ? '任务排队中' : 'Task is queued'],
-                      ['processing', isZh ? '正在生成' : 'Generating'],
-                      ['succeeded', isZh ? '生成完成' : 'Completed'],
-                      ['failed', isZh ? '生成失败' : 'Failed'],
-                    ].map(([s, d], i) => (
-                      <tr key={i} className='border-b border-gray-100 dark:border-gray-800 last:border-0'>
-                        <td className='py-3 px-4'>
-                          <Badge color={s === 'succeeded' ? 'green' : s === 'failed' ? 'red' : 'blue'}>{s}</Badge>
-                        </td>
-                        <td className='py-3 px-4 text-gray-600 dark:text-gray-400'>{d}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <Table
+                headers={[isZh ? '状态' : 'Status', isZh ? '说明' : 'Description']}
+                rows={[
+                  ['pending', isZh ? '任务排队中' : 'Task is queued'],
+                  ['processing', isZh ? '正在生成' : 'Generating'],
+                  ['succeeded', isZh ? '生成完成' : 'Completed'],
+                  ['failed', isZh ? '生成失败' : 'Failed'],
+                ]}
+                renderRow={([s, desc], i, last) => (
+                  <Tr key={i} last={last}>
+                    <Td><Badge color={s === 'succeeded' ? 'green' : s === 'failed' ? 'red' : 'blue'}>{s}</Badge></Td>
+                    <Td style={{ color: C.text.muted }}>{desc}</Td>
+                  </Tr>
+                )}
+              />
 
               <H3>{isZh ? '示例代码' : 'Code Examples'}</H3>
-              <CodeSampleTabs section='video' />
+              <CodeSampleTabs section="video" />
             </section>
 
             {/* ── 3D Generation ── */}
-            <section id='td' className='mb-16'>
+            <section id="td" style={{ marginBottom: '64px' }}>
               <H2>{isZh ? '3D 模型生成' : '3D Generation'}</H2>
-              <Endpoint method='POST' path='/v1/3d/generations' />
-              <P>
-                {isZh
-                  ? '从文本提示或参考图片生成 3D 模型（GLB/OBJ 格式）。支持 Hitem3D、Hyper3D 等模型。'
-                  : 'Generate 3D models (GLB/OBJ) from text prompts or reference images. Supports Hitem3D, Hyper3D, and more.'}
-              </P>
+              <Endpoint method="POST" path="/v1/3d/generations" />
+              <P>{isZh ? '从文本提示或参考图片生成 3D 模型（GLB/OBJ 格式）。支持 Hitem3D、Hyper3D 等模型。' : 'Generate 3D models (GLB/OBJ) from text prompts or reference images. Supports Hitem3D, Hyper3D, and more.'}</P>
 
               <ParamTable
                 isZh={isZh}
@@ -811,24 +735,18 @@ const Docs = () => {
                 ]}
               />
 
-              <Callout type='info'>
-                {isZh
-                  ? '3D 生成同样使用异步任务机制，提交后通过 /api/task/{taskId} 轮询。'
-                  : '3D generation uses the same async task mechanism. Poll via /api/task/{taskId} after submission.'}
+              <Callout type="info">
+                {isZh ? '3D 生成同样使用异步任务机制，提交后通过 /api/task/{taskId} 轮询。' : '3D generation uses the same async task mechanism. Poll via /api/task/{taskId} after submission.'}
               </Callout>
             </section>
 
             {/* ── Audio ── */}
-            <section id='audio' className='mb-16'>
+            <section id="audio" style={{ marginBottom: '64px' }}>
               <H2>{isZh ? '音频' : 'Audio'}</H2>
-              <P>
-                {isZh
-                  ? '支持文本转语音（TTS）和语音转文本（STT）。'
-                  : 'Supports Text-to-Speech (TTS) and Speech-to-Text (STT).'}
-              </P>
+              <P>{isZh ? '支持文本转语音（TTS）和语音转文本（STT）。' : 'Supports Text-to-Speech (TTS) and Speech-to-Text (STT).'}</P>
 
               <H3>{isZh ? '文本转语音' : 'Text to Speech'}</H3>
-              <Endpoint method='POST' path='/v1/audio/speech' />
+              <Endpoint method="POST" path="/v1/audio/speech" />
               <ParamTable
                 isZh={isZh}
                 params={[
@@ -839,22 +757,14 @@ const Docs = () => {
               />
 
               <H3>{isZh ? '语音转文本' : 'Speech to Text'}</H3>
-              <Endpoint method='POST' path='/v1/audio/transcriptions' />
-              <P>
-                {isZh
-                  ? '上传音频文件，返回转录文本（Whisper 兼容格式）。'
-                  : 'Upload an audio file and get transcribed text (Whisper-compatible).'}
-              </P>
+              <Endpoint method="POST" path="/v1/audio/transcriptions" />
+              <P>{isZh ? '上传音频文件，返回转录文本（Whisper 兼容格式）。' : 'Upload an audio file and get transcribed text (Whisper-compatible).'}</P>
             </section>
 
             {/* ── Streaming ── */}
-            <section id='streaming' className='mb-16'>
+            <section id="streaming" style={{ marginBottom: '64px' }}>
               <H2>{isZh ? '流式输出' : 'Streaming'}</H2>
-              <P>
-                {isZh
-                  ? '设置 stream: true 启用 SSE 流式输出，实时接收生成内容。'
-                  : 'Set stream: true to enable SSE streaming and receive content in real-time.'}
-              </P>
+              <P>{isZh ? '设置 stream: true 启用 SSE 流式输出，实时接收生成内容。' : 'Set stream: true to enable SSE streaming and receive content in real-time.'}</P>
 
               <H3>{isZh ? '流式响应格式' : 'Stream Response Format'}</H3>
               <CodeBlock
@@ -865,55 +775,36 @@ data: {"id":"chatcmpl-xxx","choices":[{"delta":{"content":" world"}}]}
 data: {"id":"chatcmpl-xxx","choices":[{"delta":{},"finish_reason":"stop"}]}
 
 data: [DONE]`}
-                title='SSE Format'
+                title="SSE Format"
               />
 
-              <Callout type='tip'>
-                {isZh
-                  ? '使用 OpenAI SDK 时，设置 stream=True 即可自动处理 SSE 格式，无需手动解析。'
-                  : 'With the OpenAI SDK, set stream=True to automatically handle SSE parsing.'}
+              <Callout type="tip">
+                {isZh ? '使用 OpenAI SDK 时，设置 stream=True 即可自动处理 SSE 格式，无需手动解析。' : 'With the OpenAI SDK, set stream=True to automatically handle SSE parsing.'}
               </Callout>
             </section>
 
             {/* ── Error Codes ── */}
-            <section id='errors' className='mb-16'>
+            <section id="errors" style={{ marginBottom: '64px' }}>
               <H2>{isZh ? '错误码' : 'Error Codes'}</H2>
-              <div className='border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden mb-4'>
-                <table className='w-full text-sm'>
-                  <thead>
-                    <tr className='bg-gray-50 dark:bg-gray-800'>
-                      <th className='text-left py-3 px-4 font-semibold border-b border-gray-200 dark:border-gray-700 w-20'>
-                        {isZh ? '状态码' : 'Code'}
-                      </th>
-                      <th className='text-left py-3 px-4 font-semibold border-b border-gray-200 dark:border-gray-700'>
-                        {isZh ? '说明' : 'Description'}
-                      </th>
-                      <th className='text-left py-3 px-4 font-semibold border-b border-gray-200 dark:border-gray-700'>
-                        {isZh ? '处理方式' : 'Action'}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      ['400', isZh ? '请求参数错误' : 'Bad Request', isZh ? '检查请求参数格式' : 'Check request parameters'],
-                      ['401', isZh ? 'API Key 无效' : 'Unauthorized', isZh ? '检查 API Key 是否正确' : 'Verify your API Key'],
-                      ['403', isZh ? '配额不足或权限不够' : 'Forbidden', isZh ? '检查余额或联系管理员' : 'Check quota or contact support'],
-                      ['404', isZh ? '模型或端点不存在' : 'Not Found', isZh ? '检查模型名称和端点路径' : 'Check model name and endpoint'],
-                      ['429', isZh ? '请求频率超限' : 'Rate Limited', isZh ? '降低请求频率后重试' : 'Reduce request rate and retry'],
-                      ['500', isZh ? '服务器内部错误' : 'Internal Error', isZh ? '稍后重试或联系支持' : 'Retry later or contact support'],
-                      ['503', isZh ? '上游服务不可用' : 'Service Unavailable', isZh ? '稍后重试' : 'Retry later'],
-                    ].map(([code, desc, action], i) => (
-                      <tr key={i} className='border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50/50 dark:hover:bg-gray-800/30'>
-                        <td className='py-3 px-4'>
-                          <Badge color={code.startsWith('4') ? 'orange' : 'red'}>{code}</Badge>
-                        </td>
-                        <td className='py-3 px-4 text-gray-600 dark:text-gray-400'>{desc}</td>
-                        <td className='py-3 px-4 text-gray-500 text-xs'>{action}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <Table
+                headers={[isZh ? '状态码' : 'Code', isZh ? '说明' : 'Description', isZh ? '处理方式' : 'Action']}
+                rows={[
+                  ['400', isZh ? '请求参数错误' : 'Bad Request', isZh ? '检查请求参数格式' : 'Check request parameters'],
+                  ['401', isZh ? 'API Key 无效' : 'Unauthorized', isZh ? '检查 API Key 是否正确' : 'Verify your API Key'],
+                  ['403', isZh ? '配额不足或权限不够' : 'Forbidden', isZh ? '检查余额或联系管理员' : 'Check quota or contact support'],
+                  ['404', isZh ? '模型或端点不存在' : 'Not Found', isZh ? '检查模型名称和端点路径' : 'Check model name and endpoint'],
+                  ['429', isZh ? '请求频率超限' : 'Rate Limited', isZh ? '降低请求频率后重试' : 'Reduce request rate and retry'],
+                  ['500', isZh ? '服务器内部错误' : 'Internal Error', isZh ? '稍后重试或联系支持' : 'Retry later or contact support'],
+                  ['503', isZh ? '上游服务不可用' : 'Service Unavailable', isZh ? '稍后重试' : 'Retry later'],
+                ]}
+                renderRow={([code, desc, action], i, last) => (
+                  <Tr key={i} last={last}>
+                    <Td><Badge color={code.startsWith('4') ? 'orange' : 'red'}>{code}</Badge></Td>
+                    <Td style={{ color: C.text.muted }}>{desc}</Td>
+                    <Td style={{ color: C.text.subtle, fontSize: '13px' }}>{action}</Td>
+                  </Tr>
+                )}
+              />
 
               <H3>{isZh ? '错误响应格式' : 'Error Response Format'}</H3>
               <CodeBlock
@@ -924,42 +815,34 @@ data: [DONE]`}
     "code": "invalid_api_key"
   }
 }`}
-                title='JSON'
+                title="JSON"
               />
             </section>
 
             {/* ── SDKs ── */}
-            <section id='sdks' className='mb-16'>
+            <section id="sdks" style={{ marginBottom: '64px' }}>
               <H2>{isZh ? 'SDK 与工具' : 'SDKs & Tools'}</H2>
-              <P>
-                {isZh
-                  ? '由于 Vancine API 兼容 OpenAI 格式，以下 SDK 和工具可直接使用：'
-                  : 'Since Vancine is OpenAI-compatible, the following SDKs and tools work directly:'}
-              </P>
+              <P>{isZh ? '由于 Vancine API 兼容 OpenAI 格式，以下 SDK 和工具可直接使用：' : 'Since Vancine is OpenAI-compatible, the following SDKs and tools work directly:'}</P>
 
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-6'>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', marginBottom: '24px' }}>
                 {[
-                  { name: 'OpenAI Python SDK', install: 'pip install openai', url: 'https://pypi.org/project/openai/' },
-                  { name: 'OpenAI Node.js SDK', install: 'npm install openai', url: 'https://www.npmjs.com/package/openai' },
-                  { name: 'Anthropic SDK', install: 'pip install anthropic', url: 'https://pypi.org/project/anthropic/' },
-                  { name: 'cURL', install: 'Built-in', url: null },
+                  { name: 'OpenAI Python SDK', install: 'pip install openai' },
+                  { name: 'OpenAI Node.js SDK', install: 'npm install openai' },
+                  { name: 'Anthropic SDK', install: 'pip install anthropic' },
+                  { name: 'cURL', install: 'Built-in' },
                 ].map((sdk) => (
-                  <div key={sdk.name} className='border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-purple-300 dark:hover:border-purple-700 transition-colors'>
-                    <h4 className='font-semibold text-gray-800 dark:text-gray-200 mb-1'>{sdk.name}</h4>
-                    <code className='text-xs text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded'>{sdk.install}</code>
+                  <div key={sdk.name} style={{ border: `1px solid ${C.border.light}`, borderRadius: '12px', padding: '16px' }}>
+                    <h4 style={{ fontWeight: 600, color: C.text.h1, marginBottom: '4px' }}>{sdk.name}</h4>
+                    <code style={{ fontSize: '12px', color: C.text.muted, background: C.bg.light, padding: '2px 8px', borderRadius: '4px' }}>{sdk.install}</code>
                   </div>
                 ))}
               </div>
             </section>
 
             {/* ── Agent Integration ── */}
-            <section id='agents' className='mb-16'>
+            <section id="agents" style={{ marginBottom: '64px' }}>
               <H2>{isZh ? 'Agent 接入指南' : 'Agent Integration'}</H2>
-              <P>
-                {isZh
-                  ? '将 Vancine 作为 AI 编程 Agent 的后端，享受更低成本的 AI 辅助编程。'
-                  : 'Use Vancine as the backend for AI coding agents to enjoy lower-cost AI-assisted programming.'}
-              </P>
+              <P>{isZh ? '将 Vancine 作为 AI 编程 Agent 的后端，享受更低成本的 AI 辅助编程。' : 'Use Vancine as the backend for AI coding agents to enjoy lower-cost AI-assisted programming.'}</P>
 
               {[
                 {
@@ -987,42 +870,27 @@ data: [DONE]`}
                     : ['Open Settings → Providers', 'Add Custom Provider', 'Set Base URL', 'Enter API Key', 'Select model'],
                 },
               ].map((agent) => (
-                <div key={agent.h} className='mb-6 border border-gray-200 dark:border-gray-700 rounded-xl p-5'>
-                  <h3 className='text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200'>{agent.h}</h3>
-                  <ol className='list-decimal list-inside space-y-1.5 text-sm text-gray-600 dark:text-gray-400'>
-                    {agent.steps.map((s, i) => (
-                      <li key={i}>{s}</li>
-                    ))}
+                <div key={agent.h} style={{ marginBottom: '24px', border: `1px solid ${C.border.light}`, borderRadius: '12px', padding: '20px' }}>
+                  <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '12px', color: C.text.h1 }}>{agent.h}</h3>
+                  <ol style={{ listStyle: 'decimal', paddingLeft: '20px', lineHeight: 2, fontSize: '14px', color: C.text.muted }}>
+                    {agent.steps.map((s, i) => <li key={i}>{s}</li>)}
                   </ol>
                 </div>
               ))}
             </section>
 
             {/* ── FAQ ── */}
-            <section id='faq' className='mb-16'>
+            <section id="faq" style={{ marginBottom: '64px' }}>
               <H2>{isZh ? '常见问题' : 'FAQ'}</H2>
-
               {[
-                {
-                  q: isZh ? '如何获取 API Key？' : 'How to get an API Key?',
-                  a: isZh ? '注册账号后，在控制台 → 令牌管理中创建。' : 'After registration, create one in Console → Token Management.',
-                },
-                {
-                  q: isZh ? '支持哪些模型？' : 'Which models are supported?',
-                  a: isZh ? '访问 /pricing 页面查看完整模型列表，或调用 GET /api/pricing 接口。' : 'Visit /pricing for the full list, or call GET /api/pricing.',
-                },
-                {
-                  q: isZh ? '如何切换到 Vancine？' : 'How to switch to Vancine?',
-                  a: isZh ? '将 SDK 的 base_url 改为 https://api.vancine.com/v1，替换 API Key 即可。' : 'Change your SDK base_url to https://api.vancine.com/v1 and replace the API Key.',
-                },
-                {
-                  q: isZh ? '视频生成为什么没有直接返回结果？' : 'Why doesn\'t video generation return results immediately?',
-                  a: isZh ? '视频生成是异步任务，提交后返回 task_id，需要轮询 /api/task/{taskId} 获取结果。' : 'Video generation is async. A task_id is returned after submission — poll /api/task/{taskId} for results.',
-                },
+                { q: isZh ? '如何获取 API Key？' : 'How to get an API Key?', a: isZh ? '注册账号后，在控制台 → 令牌管理中创建。' : 'After registration, create one in Console → Token Management.' },
+                { q: isZh ? '支持哪些模型？' : 'Which models are supported?', a: isZh ? '访问 /pricing 页面查看完整模型列表，或调用 GET /api/pricing 接口。' : 'Visit /pricing for the full list, or call GET /api/pricing.' },
+                { q: isZh ? '如何切换到 Vancine？' : 'How to switch to Vancine?', a: isZh ? '将 SDK 的 base_url 改为 https://api.vancine.com/v1，替换 API Key 即可。' : 'Change your SDK base_url to https://api.vancine.com/v1 and replace the API Key.' },
+                { q: isZh ? '视频生成为什么没有直接返回结果？' : "Why doesn't video generation return results immediately?", a: isZh ? '视频生成是异步任务，提交后返回 task_id，需要轮询 /api/task/{taskId} 获取结果。' : 'Video generation is async. A task_id is returned after submission — poll /api/task/{taskId} for results.' },
               ].map((item, i) => (
-                <div key={i} className='mb-4 border border-gray-200 dark:border-gray-700 rounded-xl p-5'>
-                  <h4 className='font-semibold text-gray-800 dark:text-gray-200 mb-2'>{item.q}</h4>
-                  <p className='text-sm text-gray-600 dark:text-gray-400'>{item.a}</p>
+                <div key={i} style={{ marginBottom: '16px', border: `1px solid ${C.border.light}`, borderRadius: '12px', padding: '20px' }}>
+                  <h4 style={{ fontWeight: 600, color: C.text.h1, marginBottom: '8px' }}>{item.q}</h4>
+                  <p style={{ fontSize: '14px', color: C.text.muted }}>{item.a}</p>
                 </div>
               ))}
             </section>
