@@ -209,6 +209,20 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		}
 		c.Request.Body = io.NopCloser(bodyStorage)
 
+		// Capture request body snapshot for debug logging (max 10KB)
+		if bodyStorage.Size() > 0 {
+			if rawBody, readErr := bodyStorage.Bytes(); readErr == nil {
+				const maxSnapshotSize = 10 * 1024
+				if len(rawBody) > maxSnapshotSize {
+					relayInfo.RequestBodySnapshot = rawBody[:maxSnapshotSize]
+				} else {
+					relayInfo.RequestBodySnapshot = rawBody
+				}
+				// Reset reader position for downstream consumption
+				_, _ = bodyStorage.Seek(0, io.SeekStart)
+			}
+		}
+
 		switch relayFormat {
 		case types.RelayFormatOpenAIRealtime:
 			newAPIError = relay.WssHelper(c, relayInfo)

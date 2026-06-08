@@ -179,6 +179,11 @@ type RelayInfo struct {
 
 	StreamStatus *StreamStatus
 
+	// RequestBodySnapshot holds a truncated copy of the raw request body
+	// captured before relay processing, for debug logging purposes.
+	// Max 10KB; nil means not captured.
+	RequestBodySnapshot []byte
+
 	ThinkingContentInfo
 	TokenCountMeta
 	*ClaudeConvertInfo

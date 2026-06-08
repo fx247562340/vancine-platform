@@ -738,6 +738,73 @@ html.dark .sbg-variant-green {
   animation: sweep-shine 4s linear infinite;
 }
 
+/* ==================== 首页 Logo 滚动动画 ==================== */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+  width: max-content;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* ==================== 首页透明导航栏 ==================== */
+.header-transparent {
+  color: #fff !important;
+}
+
+.header-transparent .semi-typography,
+.header-transparent .semi-typography-heading {
+  color: #fff !important;
+}
+
+.header-transparent a {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.header-transparent a:hover {
+  color: #fff !important;
+}
+
+.header-transparent .semi-tag {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: #fff !important;
+  border: none !important;
+}
+
+/* ==================== 首页暗色 Footer ==================== */
+.footer-dark {
+  background: #090909;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.footer-dark .semi-typography,
+.footer-dark span,
+.footer-dark p {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.footer-dark a {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.footer-dark a:hover {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.footer-dark .bg-\\[\\#FFD166\\] {
+  display: none !important;
+}
+
 .dark .shine-text {
   background: linear-gradient(
     90deg,

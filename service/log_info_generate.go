@@ -79,6 +79,8 @@ func GenerateTextOtherInfo(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, m
 	appendBillingInfo(relayInfo, other)
 	appendParamOverrideInfo(relayInfo, other)
 	appendStreamStatus(relayInfo, other)
+	appendRequestBodySnapshot(relayInfo, other)
+	appendResponseBody(ctx, other)
 	return other
 }
 
@@ -114,6 +116,39 @@ func appendStreamStatus(relayInfo *relaycommon.RelayInfo, other map[string]inter
 		streamInfo["errors"] = messages
 	}
 	other["stream_status"] = streamInfo
+}
+
+const maxLogBodySize = 10 * 1024 // 10KB
+
+func appendRequestBodySnapshot(relayInfo *relaycommon.RelayInfo, other map[string]interface{}) {
+	if relayInfo == nil || other == nil || len(relayInfo.RequestBodySnapshot) == 0 {
+		return
+	}
+	body := string(relayInfo.RequestBodySnapshot)
+	if len(body) > maxLogBodySize {
+		body = body[:maxLogBodySize]
+		other["request_body_truncated"] = true
+	}
+	other["request_body"] = body
+}
+
+func appendResponseBody(ctx *gin.Context, other map[string]interface{}) {
+	if ctx == nil || other == nil {
+		return
+	}
+	respBody, exists := ctx.Get("captured_response_body")
+	if !exists || respBody == nil {
+		return
+	}
+	body, ok := respBody.(string)
+	if !ok || body == "" {
+		return
+	}
+	if len(body) > maxLogBodySize {
+		body = body[:maxLogBodySize]
+		other["response_body_truncated"] = true
+	}
+	other["response_body"] = body
 }
 
 func appendBillingInfo(relayInfo *relaycommon.RelayInfo, other map[string]interface{}) {

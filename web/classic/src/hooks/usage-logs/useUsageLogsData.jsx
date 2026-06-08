@@ -186,6 +186,8 @@ export const useLogsData = () => {
     useState(null);
   const [showParamOverrideModal, setShowParamOverrideModal] = useState(false);
   const [paramOverrideTarget, setParamOverrideTarget] = useState(null);
+  const [showLogDetailModal, setShowLogDetailModal] = useState(false);
+  const [logDetailTarget, setLogDetailTarget] = useState(null);
 
   // Initialize default column visibility
   const initDefaultColumns = () => {
@@ -881,6 +883,12 @@ export const useLogsData = () => {
     showParamOverrideModal,
     setShowParamOverrideModal,
     paramOverrideTarget,
+
+    // Log detail modal
+    showLogDetailModal,
+    setShowLogDetailModal,
+    logDetailTarget,
+    setLogDetailTarget,
 
     // Functions
     loadLogs,

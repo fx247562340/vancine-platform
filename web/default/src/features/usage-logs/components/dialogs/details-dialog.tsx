@@ -29,7 +29,11 @@ import {
   ShieldCheck,
   UserCog,
   Info,
+  ChevronRight,
+  ChevronDown,
+  Terminal,
 } from 'lucide-react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { formatBillingCurrencyFromUSD } from '@/lib/currency'
 import { formatLogQuota, formatTokens, formatUseTime } from '@/lib/format'
@@ -133,6 +137,71 @@ function DetailSection(props: {
 function formatRatio(ratio: number | undefined): string {
   if (ratio == null) return '-'
   return ratio.toFixed(4)
+}
+
+function CollapsibleJsonBlock(props: {
+  icon?: React.ReactNode
+  label: string
+  content: string
+  truncated?: boolean
+  copyToClipboard: (text: string) => void
+  copiedText: string | null
+}) {
+  const { t } = useTranslation()
+  const [expanded, setExpanded] = useState(false)
+
+  // Try to pretty-print JSON
+  const formattedContent = (() => {
+    try {
+      return JSON.stringify(JSON.parse(props.content), null, 2)
+    } catch {
+      return props.content
+    }
+  })()
+
+  return (
+    <div className='min-w-0 space-y-1.5'>
+      <button
+        type='button'
+        className='flex w-full items-center gap-1.5 text-xs font-semibold hover:opacity-80'
+        onClick={() => setExpanded(!expanded)}
+      >
+        {expanded ? (
+          <ChevronDown className='size-3' aria-hidden='true' />
+        ) : (
+          <ChevronRight className='size-3' aria-hidden='true' />
+        )}
+        {props.icon}
+        {props.label}
+        {props.truncated && (
+          <span className='text-muted-foreground font-normal'>
+            ({t('Truncated')})
+          </span>
+        )}
+      </button>
+      {expanded && (
+        <div className='bg-muted/30 relative min-w-0 overflow-hidden rounded-md border p-2.5'>
+          <Button
+            variant='ghost'
+            size='sm'
+            className='absolute top-1.5 right-1.5 h-5 w-5 p-0'
+            onClick={() => props.copyToClipboard(formattedContent)}
+            title={t('Copy to clipboard')}
+            aria-label={t('Copy to clipboard')}
+          >
+            {props.copiedText === formattedContent ? (
+              <Check className='size-3 text-green-600' />
+            ) : (
+              <Copy className='size-3' />
+            )}
+          </Button>
+          <pre className='max-h-64 min-w-0 overflow-auto pr-6 font-mono text-[11px] leading-relaxed break-all whitespace-pre-wrap sm:break-words'>
+            {formattedContent}
+          </pre>
+        </div>
+      )}
+    </div>
+  )
 }
 
 function BillingBreakdown(props: {
@@ -1038,6 +1107,30 @@ export function DetailsDialog(props: DetailsDialogProps) {
                   </p>
                 </div>
               </div>
+            )}
+
+            {/* Request Body */}
+            {isConsume && other?.request_body && (
+              <CollapsibleJsonBlock
+                icon={<Terminal className='size-3.5' aria-hidden='true' />}
+                label={t('Request Body')}
+                content={other.request_body}
+                truncated={other.request_body_truncated}
+                copyToClipboard={copyToClipboard}
+                copiedText={copiedText}
+              />
+            )}
+
+            {/* Response Body */}
+            {isConsume && other?.response_body && (
+              <CollapsibleJsonBlock
+                icon={<Terminal className='size-3.5' aria-hidden='true' />}
+                label={t('Response Body')}
+                content={other.response_body}
+                truncated={other.response_body_truncated}
+                copyToClipboard={copyToClipboard}
+                copiedText={copiedText}
+              />
             )}
           </div>
         </ScrollArea>

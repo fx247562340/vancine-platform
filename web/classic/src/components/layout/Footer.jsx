@@ -22,9 +22,12 @@ import { useTranslation } from 'react-i18next';
 import { Typography } from '@douyinfe/semi-ui';
 import { getFooterHTML, getLogo, getSystemName } from '../../helpers';
 import { StatusContext } from '../../context/Status';
+import { useLocation } from 'react-router-dom';
 
 const FooterBar = () => {
   const { t } = useTranslation();
+  const location = useLocation();
+  const isHomePage = location.pathname === '/';
   const [footer, setFooter] = useState(getFooterHTML());
   const systemName = getSystemName();
   const logo = getLogo();
@@ -218,8 +221,10 @@ const FooterBar = () => {
     loadFooter();
   }, []);
 
+  const darkFooterClass = isHomePage ? 'footer-dark' : '';
+
   return (
-    <div className='w-full'>
+    <div className={`w-full ${darkFooterClass}`}>
       {footer ? (
         <footer className='relative h-auto py-4 px-6 md:px-24 w-full flex items-center justify-center overflow-hidden'>
           <div className='flex flex-col md:flex-row items-center justify-between w-full max-w-[1110px] gap-4'>

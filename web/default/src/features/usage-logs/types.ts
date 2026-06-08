@@ -189,6 +189,11 @@ export interface LogOtherData {
   subscription_consumed?: number
   subscription_remain?: number
   subscription_total?: number
+  // Request/response body snapshots (for debug logging)
+  request_body?: string
+  response_body?: string
+  request_body_truncated?: boolean
+  response_body_truncated?: boolean
 }
 
 /**

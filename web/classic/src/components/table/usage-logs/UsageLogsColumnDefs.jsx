@@ -482,6 +482,7 @@ export const getLogsColumns = ({
   openChannelAffinityUsageCacheModal,
   isAdminUser,
   billingDisplayMode = 'price',
+  openLogDetailModal,
 }) => {
   return [
     {
@@ -912,24 +913,61 @@ export const getLogsColumns = ({
           t,
         );
 
+        // Check if request/response body exists
+        let other = {};
+        try {
+          other = typeof record.other === 'string' ? JSON.parse(record.other) : record.other || {};
+        } catch {
+          other = {};
+        }
+        const hasDebugData = !!other.request_body || !!other.response_body;
+
+        const handleClick = () => {
+          if (openLogDetailModal) {
+            openLogDetailModal(record);
+          }
+        };
+
         if (!detailSummary) {
           return (
-            <Typography.Paragraph
-              ellipsis={{
-                rows: 2,
-                showTooltip: {
-                  type: 'popover',
-                  opts: { style: { width: 240 } },
-                },
-              }}
-              style={{ maxWidth: 200, marginBottom: 0 }}
+            <div
+              onClick={handleClick}
+              style={{ cursor: hasDebugData ? 'pointer' : 'default' }}
             >
-              {text}
-            </Typography.Paragraph>
+              <Typography.Paragraph
+                ellipsis={{
+                  rows: 2,
+                  showTooltip: {
+                    type: 'popover',
+                    opts: { style: { width: 240 } },
+                  },
+                }}
+                style={{ maxWidth: 200, marginBottom: 0 }}
+              >
+                {text}
+              </Typography.Paragraph>
+              {hasDebugData && (
+                <Tag size='small' color='blue' style={{ marginTop: 4 }}>
+                  {t('查看详情')}
+                </Tag>
+              )}
+            </div>
           );
         }
 
-        return renderCompactDetailSummary(detailSummary.segments);
+        return (
+          <div
+            onClick={handleClick}
+            style={{ cursor: hasDebugData ? 'pointer' : 'default' }}
+          >
+            {renderCompactDetailSummary(detailSummary.segments)}
+            {hasDebugData && (
+              <Tag size='small' color='blue' style={{ marginTop: 4 }}>
+                {t('查看详情')}
+              </Tag>
+            )}
+          </div>
+        );
       },
     },
   ];

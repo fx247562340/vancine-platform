@@ -46,7 +46,14 @@ const LogsTable = (logsData) => {
     billingDisplayMode,
     t,
     COLUMN_KEYS,
+    setShowLogDetailModal,
+    setLogDetailTarget,
   } = logsData;
+
+  const openLogDetailModal = (record) => {
+    setLogDetailTarget(record);
+    setShowLogDetailModal(true);
+  };
 
   // Get all columns
   const allColumns = useMemo(() => {
@@ -58,6 +65,7 @@ const LogsTable = (logsData) => {
       openChannelAffinityUsageCacheModal,
       isAdminUser,
       billingDisplayMode,
+      openLogDetailModal,
     });
   }, [
     t,
