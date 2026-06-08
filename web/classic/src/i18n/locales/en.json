@@ -3854,6 +3854,11 @@
     "国产模型": "Domestic",
     "省": "Save",
     "按量付费，无订阅费用，永不过期": "Pay-as-you-go, no subscription, never expires",
-    "价格仅供参考，以实际模型定价为准": "Prices are for reference only, subject to actual model pricing"
+    "价格仅供参考，以实际模型定价为准": "Prices are for reference only, subject to actual model pricing",
+    "今天": "Today",
+    "近 7 天": "Last 7 days",
+    "本周": "This week",
+    "近 30 天": "Last 30 days",
+    "本月": "This month"
   }
 }
