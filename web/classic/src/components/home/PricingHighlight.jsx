@@ -1,157 +1,155 @@
 import React from 'react';
-import { Button } from '@douyinfe/semi-ui';
-import { Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import ScrollReveal from './ScrollReveal';
 
-const comparisons = [
-  {
-    category: 'LLM',
-    items: [
-      { ours: 'DeepSeek V4', theirs: 'GPT-4o', save: '80%' },
-      { ours: 'Qwen 3.6', theirs: 'Claude Sonnet 4', save: '75%' },
-    ],
-  },
-  {
-    category: 'Video',
-    items: [
-      { ours: 'Wan 2.2', theirs: 'Runway Gen-3', save: '60%' },
-      { ours: 'Kling', theirs: 'Sora', save: '50%' },
-    ],
-  },
-  {
-    category: 'Image',
-    items: [
-      { ours: 'FLUX Pro', theirs: 'DALL·E 3', save: '70%' },
-      { ours: 'Seedream', theirs: 'Midjourney v6', save: '65%' },
-    ],
-  },
-];
-
-const PricingHighlight = ({ isMobile }) => {
-  const { t } = useTranslation();
+const PricingHighlight = () => {
+  const pricingData = [
+    {
+      category: 'LLM',
+      title: '文本生成',
+      icon: (
+        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+            d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
+        </svg>
+      ),
+      items: [
+        { foreign: { name: 'GPT-4o', price: '¥17.5', unit: '/M tokens' }, domestic: { name: 'DeepSeek V4', price: '¥3.5', unit: '/M tokens' }, saving: '80%' },
+        { foreign: { name: 'Claude Sonnet 4', price: '¥22', unit: '/M tokens' }, domestic: { name: 'Qwen 3.6', price: '¥5.5', unit: '/M tokens' }, saving: '75%' },
+      ],
+    },
+    {
+      category: 'Video',
+      title: '视频生成',
+      icon: (
+        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+            d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h1.5C5.496 19.5 6 18.996 6 18.375m-3.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-1.5A1.125 1.125 0 0118 18.375M20.625 4.5H3.375m17.25 0c.621 0 1.125.504 1.125 1.125M20.625 4.5h-1.5C18.504 4.5 18 5.004 18 5.625m3.75 0v1.5c0 .621-.504 1.125-1.125 1.125M3.375 4.5c-.621 0-1.125.504-1.125 1.125M3.375 4.5h1.5C5.496 4.5 6 5.004 6 5.625m-3.75 0v1.5c0 .621.504 1.125 1.125 1.125m0 0h1.5m-1.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m1.5-3.75C5.496 8.25 6 7.746 6 7.125v-1.5M4.875 8.25C5.496 8.25 6 8.754 6 9.375v1.5m0-5.25v5.25m0-5.25C6 5.004 6.504 4.5 7.125 4.5h9.75c.621 0 1.125.504 1.125 1.125m1.125 2.625h1.5m-1.5 0A1.125 1.125 0 0118 7.125v-1.5m1.125 2.625c-.621 0-1.125.504-1.125 1.125v1.5m2.625-2.625c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125M18 5.625v5.25M7.125 12h9.75m-9.75 0A1.125 1.125 0 016 10.875M7.125 12C6.504 12 6 12.504 6 13.125m0-2.25C6 11.496 5.496 12 4.875 12M18 10.875c0 .621-.504 1.125-1.125 1.125M18 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125m-12 5.25v-5.25m0 5.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125m-12 0v-1.5c0-.621-.504-1.125-1.125-1.125M18 18.375v-5.25m0 5.25v-1.5c0-.621.504-1.125 1.125-1.125M18 13.125v1.5c0 .621.504 1.125 1.125 1.125M18 13.125c0-.621.504-1.125 1.125-1.125M6 13.125v1.5c0 .621-.504 1.125-1.125 1.125M6 13.125C6 12.504 5.496 12 4.875 12m-1.5 0h1.5m-1.5 0c-.621 0-1.125-.504-1.125-1.125v-1.5c0-.621.504-1.125 1.125-1.125M19.125 12h1.5m0 0c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h1.5m14.25 0h1.5" />
+        </svg>
+      ),
+      items: [
+        { foreign: { name: 'Runway Gen-3', price: '¥0.8', unit: '/秒' }, domestic: { name: 'Wan 2.2', price: '¥0.32', unit: '/秒' }, saving: '60%' },
+        { foreign: { name: 'Sora', price: '¥0.6', unit: '/秒' }, domestic: { name: 'Kling', price: '¥0.3', unit: '/秒' }, saving: '50%' },
+      ],
+    },
+    {
+      category: 'Image',
+      title: '图片生成',
+      icon: (
+        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+            d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v13.5A1.5 1.5 0 003.75 21z" />
+        </svg>
+      ),
+      items: [
+        { foreign: { name: 'DALL·E 3', price: '¥0.28', unit: '/张' }, domestic: { name: 'FLUX Pro', price: '¥0.08', unit: '/张' }, saving: '70%' },
+        { foreign: { name: 'Midjourney v6', price: '¥0.2', unit: '/张' }, domestic: { name: 'Seedream', price: '¥0.07', unit: '/张' }, saving: '65%' },
+      ],
+    },
+  ];
 
   return (
-    <section className='py-24 px-6' style={{ background: '#090909' }}>
-      <div className='max-w-[1200px] mx-auto'>
-        <ScrollReveal>
-          <div className='text-center mb-16'>
-            <span
-              className='inline-block px-3 py-1 mb-6 text-xs font-semibold uppercase tracking-widest rounded-full'
-              style={{
-                color: 'rgba(255,255,255,0.5)',
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.08)',
-              }}
-            >
-              {t('Pricing')}
-            </span>
-            <h2
-              className='font-bold mb-4'
-              style={{
-                fontSize: isMobile ? '28px' : '40px',
-                color: '#fff',
-                letterSpacing: '-0.03em',
-              }}
-            >
-              <span
-                style={{
-                  background: 'linear-gradient(135deg, #6a4cf5, #00b894)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                }}
-              >
-                3-10x
-              </span>{' '}
-              {t('Cheaper than International Alternatives')}
-            </h2>
-            <p
-              className='max-w-2xl mx-auto'
-              style={{
-                fontSize: '18px',
-                color: 'rgba(255,255,255,0.45)',
-              }}
-            >
-              {t('Same models, same quality, fraction of the cost.')}
-            </p>
-          </div>
-        </ScrollReveal>
-
-        {/* Comparison Cards */}
-        <div className='grid grid-cols-1 md:grid-cols-3 gap-5 mb-12'>
-          {comparisons.map((group, gi) => (
-            <ScrollReveal key={group.category} delay={gi * 0.1}>
-              <div
-                className='p-6'
-                style={{
-                  background: '#141414',
-                  borderRadius: '20px',
-                  border: '1px solid rgba(255,255,255,0.06)',
-                }}
-              >
-                <div
-                  className='text-xs font-semibold uppercase tracking-widest mb-5'
-                  style={{ color: 'rgba(255,255,255,0.3)' }}
-                >
-                  {group.category}
-                </div>
-
-                <div className='space-y-4'>
-                  {group.items.map((item) => (
-                    <div key={item.ours} className='flex items-center justify-between'>
-                      <div className='flex-1'>
-                        <div className='text-sm font-medium' style={{ color: '#fff' }}>
-                          {item.ours}
-                        </div>
-                        <div className='text-xs' style={{ color: 'rgba(255,255,255,0.3)' }}>
-                          vs {item.theirs}
-                        </div>
-                      </div>
-                      <div
-                        className='px-3 py-1 rounded-full text-sm font-bold'
-                        style={{
-                          background: 'rgba(0,184,148,0.15)',
-                          color: '#00b894',
-                        }}
-                      >
-                        -{item.save}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </ScrollReveal>
-          ))}
+    <section style={{ padding: '96px 24px' }}>
+      <ScrollReveal>
+        <div style={{ textAlign: 'center', marginBottom: '64px' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '16px', color: '#00b894' }}>
+            Pricing
+          </p>
+          <h2 style={{ fontSize: 'clamp(28px, 4vw, 40px)', fontWeight: 700, color: '#fff', marginBottom: '16px', lineHeight: 1.2 }}>
+            国产模型，全球性价比
+          </h2>
+          <p style={{ color: 'rgba(255,255,255,0.45)', maxWidth: '560px', margin: '0 auto', fontSize: '15px', lineHeight: 1.7 }}>
+            同等能力，价格仅为国际模型的 20-50%
+          </p>
         </div>
+      </ScrollReveal>
 
-        {/* Bottom note */}
-        <ScrollReveal delay={0.3}>
-          <div className='text-center mb-8'>
-            <p
-              className='text-sm'
-              style={{ color: 'rgba(255,255,255,0.3)' }}
-            >
-              {t('Pay-as-you-go. No subscription. Credits never expire.')}
-            </p>
-          </div>
-          <div className='text-center'>
-            <Link to='/pricing'>
-              <Button
-                size={isMobile ? 'default' : 'large'}
-                className='!font-semibold !px-8 !py-3'
-                style={{
-                  backgroundColor: 'transparent',
-                  color: '#fff',
-                  border: '1px solid rgba(255,255,255,0.2)',
-                  borderRadius: '9999px',
-                }}
-              >
-                {t('View Full Pricing')}
-              </Button>
-            </Link>
-          </div>
-        </ScrollReveal>
+      <div style={{ maxWidth: '860px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+        {pricingData.map((group, idx) => (
+          <ScrollReveal key={group.category} delay={idx * 0.15}>
+            <div style={{
+              borderRadius: '16px',
+              overflow: 'hidden',
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.06)',
+            }}>
+              {/* Category Header */}
+              <div style={{
+                padding: '14px 24px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                borderBottom: '1px solid rgba(255,255,255,0.06)',
+              }}>
+                {group.icon}
+                <span style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)' }}>
+                  {group.category}
+                </span>
+                <span style={{ color: '#fff', fontWeight: 500, marginLeft: '4px' }}>{group.title}</span>
+              </div>
+
+              {/* Comparison Rows */}
+              {group.items.map((item, i) => (
+                <div key={i} style={{
+                  padding: '20px 24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '20px',
+                  flexWrap: 'wrap',
+                  borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                }}>
+                  {/* Foreign Model */}
+                  <div style={{ flex: '1 1 160px' }}>
+                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)', marginBottom: '4px' }}>国际模型</div>
+                    <div style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 500, fontSize: '15px' }}>{item.foreign.name}</div>
+                    <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '14px', marginTop: '4px' }}>
+                      {item.foreign.price}
+                      <span style={{ fontSize: '12px' }}>{item.foreign.unit}</span>
+                    </div>
+                  </div>
+
+                  {/* Arrow */}
+                  <div style={{ color: 'rgba(255,255,255,0.2)', display: 'flex', flexShrink: 0 }}>
+                    <svg style={{ width: '20px', height: '20px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
+                  </div>
+
+                  {/* Domestic Model */}
+                  <div style={{ flex: '1 1 160px' }}>
+                    <div style={{ fontSize: '12px', color: '#00b894', marginBottom: '4px' }}>国产模型</div>
+                    <div style={{ color: '#fff', fontWeight: 600, fontSize: '15px' }}>{item.domestic.name}</div>
+                    <div style={{ fontSize: '14px', marginTop: '4px' }}>
+                      <span style={{ color: '#fff' }}>{item.domestic.price}</span>
+                      <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '12px' }}>{item.domestic.unit}</span>
+                    </div>
+                  </div>
+
+                  {/* Saving Badge */}
+                  <div style={{ marginLeft: 'auto', flexShrink: 0 }}>
+                    <div style={{
+                      padding: '8px 18px',
+                      borderRadius: '100px',
+                      fontSize: '14px',
+                      fontWeight: 700,
+                      background: 'rgba(0, 184, 148, 0.12)',
+                      color: '#00b894',
+                      border: '1px solid rgba(0, 184, 148, 0.2)',
+                    }}>
+                      省 {item.saving}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ScrollReveal>
+        ))}
       </div>
+
+      <ScrollReveal delay={0.5}>
+        <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '13px', marginTop: '32px' }}>
+          按量付费，无订阅费用，永不过期 · 价格仅供参考，以实际模型定价为准
+        </p>
+      </ScrollReveal>
     </section>
   );
 };
