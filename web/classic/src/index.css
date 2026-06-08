@@ -41,6 +41,9 @@ body.semi-always-light {
 body[theme-mode="dark"],
 html.dark body,
 body.semi-always-dark {
+  --semi-color-bg-0: #090909;
+  --semi-color-bg-1: #141414;
+  --semi-color-bg-2: #1f1f1f;
   --semi-blue-0: 52, 44, 128;
   --semi-blue-1: 74, 64, 170;
   --semi-blue-2: 100, 90, 210;
