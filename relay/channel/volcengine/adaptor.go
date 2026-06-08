@@ -246,8 +246,8 @@ func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, info *relaycom
 		}
 		defer resp.Body.Close()
 
-		// Debug: log first 200 bytes of response
-		logger.LogDebug(c, "TTS response body (first 200 bytes): %s", string(body[:min(200, len(body))]))
+		// Log response for debugging
+		logger.LogError(c, fmt.Sprintf("TTS response length: %d, first 500 chars: %s", len(body), string(body[:min(500, len(body))])))
 
 		var volcResp struct {
 			Code    int    `json:"code"`
