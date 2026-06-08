@@ -245,51 +245,49 @@ func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, info *relaycom
 		}
 		defer resp.Body.Close()
 
-		// Find the JSON object boundaries
-		jsonStart := -1
-		jsonEnd := -1
-		for i, b := range body {
-			if b == '{' && jsonStart == -1 {
-				jsonStart = i
-			}
-			if b == '}' {
-				jsonEnd = i + 1
+		// Find the "data" field and extract base64 value directly
+		// Response format: {"code":0,"message":"","data":"base64..."}
+		bodyStr := string(body)
+
+		// Find "data":"
+		dataPrefix := `"data":"`
+		dataIdx := -1
+		for i := 0; i < len(bodyStr)-len(dataPrefix); i++ {
+			if bodyStr[i:i+len(dataPrefix)] == dataPrefix {
+				dataIdx = i + len(dataPrefix)
+				break
 			}
 		}
 
-		if jsonStart == -1 || jsonEnd == -1 || jsonStart >= jsonEnd {
+		if dataIdx == -1 {
 			return nil, types.NewErrorWithStatusCode(
-				fmt.Errorf("invalid response format"),
+				fmt.Errorf("data field not found in response"),
 				types.ErrorCodeBadResponseBody,
 				http.StatusInternalServerError,
 			)
 		}
 
-		jsonBody := body[jsonStart:jsonEnd]
-
-		var volcResp struct {
-			Code    int    `json:"code"`
-			Message string `json:"message"`
-			Data    string `json:"data"`
+		// Find the closing quote
+		endIdx := -1
+		for i := dataIdx; i < len(bodyStr); i++ {
+			if bodyStr[i] == '"' && bodyStr[i-1] != '\\' {
+				endIdx = i
+				break
+			}
 		}
-		if unmarshalErr := json.Unmarshal(jsonBody, &volcResp); unmarshalErr != nil {
+
+		if endIdx == -1 {
 			return nil, types.NewErrorWithStatusCode(
-				fmt.Errorf("failed to parse response: %w", unmarshalErr),
+				fmt.Errorf("invalid data field format"),
 				types.ErrorCodeBadResponseBody,
 				http.StatusInternalServerError,
 			)
 		}
 
-		if volcResp.Code != 0 {
-			return nil, types.NewErrorWithStatusCode(
-				fmt.Errorf("TTS error: %s", volcResp.Message),
-				types.ErrorCodeBadResponse,
-				http.StatusBadRequest,
-			)
-		}
+		base64Data := bodyStr[dataIdx:endIdx]
 
 		// Decode base64 audio data
-		audioData, decodeErr := base64.StdEncoding.DecodeString(volcResp.Data)
+		audioData, decodeErr := base64.StdEncoding.DecodeString(base64Data)
 		if decodeErr != nil {
 			return nil, types.NewErrorWithStatusCode(
 				fmt.Errorf("failed to decode audio: %w", decodeErr),
