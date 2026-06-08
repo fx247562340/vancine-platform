@@ -234,7 +234,8 @@ func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, info *relaycom
 	}
 
 	if info.RelayMode == constant.RelayModeAudioSpeech {
-		// Volcengine returns JSON with base64-encoded audio data
+		// Volcengine returns multiple JSON objects with base64-encoded audio chunks
+		// Format: {"code":0,"data":"base64..."}{"code":0,"data":"base64..."}...{"code":20000000,"message":"OK","data":null}
 		body, readErr := io.ReadAll(resp.Body)
 		if readErr != nil {
 			return nil, types.NewErrorWithStatusCode(
@@ -245,52 +246,61 @@ func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, info *relaycom
 		}
 		defer resp.Body.Close()
 
-		// Find the "data" field and extract base64 value directly
-		// Response format: {"code":0,"message":"","data":"base64..."}
 		bodyStr := string(body)
+		var allAudioData []byte
 
-		// Find "data":"
-		dataPrefix := `"data":"`
-		dataIdx := -1
-		for i := 0; i < len(bodyStr)-len(dataPrefix); i++ {
-			if bodyStr[i:i+len(dataPrefix)] == dataPrefix {
-				dataIdx = i + len(dataPrefix)
+		// Parse all JSON objects in the response
+		pos := 0
+		for pos < len(bodyStr) {
+			// Find next "data":"
+			dataPrefix := `"data":"`
+			dataIdx := -1
+			for i := pos; i < len(bodyStr)-len(dataPrefix); i++ {
+				if bodyStr[i:i+len(dataPrefix)] == dataPrefix {
+					dataIdx = i + len(dataPrefix)
+					break
+				}
+			}
+
+			if dataIdx == -1 {
 				break
 			}
-		}
 
-		if dataIdx == -1 {
-			return nil, types.NewErrorWithStatusCode(
-				fmt.Errorf("data field not found in response"),
-				types.ErrorCodeBadResponseBody,
-				http.StatusInternalServerError,
-			)
-		}
+			// Find the closing quote (handle escaped quotes)
+			endIdx := -1
+			for i := dataIdx; i < len(bodyStr); i++ {
+				if bodyStr[i] == '"' && (i == 0 || bodyStr[i-1] != '\\') {
+					endIdx = i
+					break
+				}
+			}
 
-		// Find the closing quote
-		endIdx := -1
-		for i := dataIdx; i < len(bodyStr); i++ {
-			if bodyStr[i] == '"' && bodyStr[i-1] != '\\' {
-				endIdx = i
+			if endIdx == -1 {
 				break
 			}
+
+			base64Chunk := bodyStr[dataIdx:endIdx]
+
+			// Skip null data (completion marker)
+			if base64Chunk == "null" {
+				pos = endIdx + 1
+				continue
+			}
+
+			// Decode base64 chunk
+			chunkData, decodeErr := base64.StdEncoding.DecodeString(base64Chunk)
+			if decodeErr != nil {
+				pos = endIdx + 1
+				continue
+			}
+
+			allAudioData = append(allAudioData, chunkData...)
+			pos = endIdx + 1
 		}
 
-		if endIdx == -1 {
+		if len(allAudioData) == 0 {
 			return nil, types.NewErrorWithStatusCode(
-				fmt.Errorf("invalid data field format"),
-				types.ErrorCodeBadResponseBody,
-				http.StatusInternalServerError,
-			)
-		}
-
-		base64Data := bodyStr[dataIdx:endIdx]
-
-		// Decode base64 audio data
-		audioData, decodeErr := base64.StdEncoding.DecodeString(base64Data)
-		if decodeErr != nil {
-			return nil, types.NewErrorWithStatusCode(
-				fmt.Errorf("failed to decode audio: %w", decodeErr),
+				fmt.Errorf("no audio data in response"),
 				types.ErrorCodeBadResponseBody,
 				http.StatusInternalServerError,
 			)
@@ -300,7 +310,7 @@ func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, info *relaycom
 		encoding := mapEncoding(c.GetString(contextKeyResponseFormat))
 		contentType := getContentTypeByEncoding(encoding)
 		c.Header("Content-Type", contentType)
-		c.Data(http.StatusOK, contentType, audioData)
+		c.Data(http.StatusOK, contentType, allAudioData)
 
 		usage = &dto.Usage{
 			PromptTokens:     info.GetEstimatePromptTokens(),
