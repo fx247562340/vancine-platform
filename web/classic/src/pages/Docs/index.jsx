@@ -4,19 +4,19 @@ import { useTranslation } from 'react-i18next';
 /* ──────────────────── Color constants ──────────────────── */
 
 const C = {
-  text: { h1: '#111827', body: '#374151', muted: '#6b7280', subtle: '#9ca3af', white: '#f3f4f6', whiteBody: '#d1d5db', whiteMuted: '#9ca3af' },
-  bg: { page: '#ffffff', light: '#f9fafb', card: '#ffffff', darkPage: '#0a0a0a', darkCard: '#141414', darkLight: '#1f2937', darkHover: '#1f293780', code: '#1a1a2e' },
-  border: { light: '#e5e7eb', dark: '#374151' },
-  accent: '#7c3aed', accentDark: '#6d28d9', accentLight: '#ede9fe', accentBg: '#f5f3ff',
+  text: { h1: '#f0f0f0', body: '#d1d5db', muted: '#9ca3af', subtle: '#6b7280' },
+  bg: { light: '#1a1a1a', card: '#141414', code: '#0d0d1a' },
+  border: '#2a2a2a',
+  accent: '#a78bfa', accentBg: 'rgba(167,139,250,0.1)',
   badge: {
-    purple: { bg: '#ede9fe', text: '#6d28d9', darkBg: '#2e10654d', darkText: '#a78bfa' },
-    green: { bg: '#d1fae5', text: '#047857', darkBg: '#064e3b4d', darkText: '#34d399' },
-    blue: { bg: '#dbeafe', text: '#1d4ed8', darkBg: '#1e3a5f4d', darkText: '#60a5fa' },
-    orange: { bg: '#fef3c7', text: '#b45309', darkBg: '#78350f4d', darkText: '#fbbf24' },
-    red: { bg: '#fee2e2', text: '#b91c1c', darkBg: '#7f1d1d4d', darkText: '#f87171' },
-    gray: { bg: '#f3f4f6', text: '#4b5563', darkBg: '#1f2937', darkText: '#9ca3af' },
+    purple: { bg: 'rgba(167,139,250,0.15)', text: '#a78bfa' },
+    green: { bg: 'rgba(52,211,153,0.15)', text: '#34d399' },
+    blue: { bg: 'rgba(96,165,250,0.15)', text: '#60a5fa' },
+    orange: { bg: 'rgba(251,191,36,0.15)', text: '#fbbf24' },
+    red: { bg: 'rgba(248,113,113,0.15)', text: '#f87171' },
+    gray: { bg: 'rgba(156,163,175,0.12)', text: '#9ca3af' },
   },
-  method: { GET: '#059669', POST: '#2563eb', PUT: '#d97706', DELETE: '#dc2626' },
+  method: { GET: '#34d399', POST: '#60a5fa', PUT: '#fbbf24', DELETE: '#f87171' },
 };
 
 /* ──────────────────── data ──────────────────── */
@@ -82,7 +82,7 @@ const MethodBadge = ({ method }) => (
 );
 
 const Endpoint = ({ method, path, desc }) => (
-  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', background: C.bg.light, border: `1px solid ${C.border.light}`, borderRadius: '12px', padding: '16px', marginBottom: '16px' }}>
+  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', background: C.bg.light, border: `1px solid ${C.border}`, borderRadius: '12px', padding: '16px', marginBottom: '16px' }}>
     <MethodBadge method={method} />
     <div>
       <code style={{ fontSize: '14px', fontWeight: 600, color: C.text.h1 }}>{path}</code>
@@ -93,10 +93,10 @@ const Endpoint = ({ method, path, desc }) => (
 
 const Callout = ({ type = 'info', children }) => {
   const styles = {
-    info: { border: '#60a5fa', bg: '#eff6ff', text: '#1e40af' },
-    warning: { border: '#fbbf24', bg: '#fffbeb', text: '#92400e' },
-    tip: { border: '#34d399', text: '#065f46', bg: '#ecfdf5' },
-    danger: { border: '#f87171', bg: '#fef2f2', text: '#991b1b' },
+    info: { border: '#60a5fa', bg: 'rgba(96,165,250,0.08)', text: '#93c5fd' },
+    warning: { border: '#fbbf24', bg: 'rgba(251,191,36,0.08)', text: '#fcd34d' },
+    tip: { border: '#34d399', bg: 'rgba(52,211,153,0.08)', text: '#6ee7b7' },
+    danger: { border: '#f87171', bg: 'rgba(248,113,113,0.08)', text: '#fca5a5' },
   };
   const s = styles[type] || styles.info;
   const icons = { info: 'ℹ️', warning: '⚠️', tip: '💡', danger: '🚫' };
@@ -108,12 +108,12 @@ const Callout = ({ type = 'info', children }) => {
 };
 
 const ParamTable = ({ params, isZh }) => (
-  <div style={{ overflowX: 'auto', marginBottom: '24px', border: `1px solid ${C.border.light}`, borderRadius: '12px' }}>
+  <div style={{ overflowX: 'auto', marginBottom: '24px', border: `1px solid ${C.border}`, borderRadius: '12px' }}>
     <table style={{ width: '100%', fontSize: '14px', borderCollapse: 'collapse' }}>
       <thead>
         <tr style={{ background: C.bg.light }}>
           {[isZh ? '参数' : 'Parameter', isZh ? '类型' : 'Type', isZh ? '必填' : 'Required', isZh ? '说明' : 'Description'].map((h) => (
-            <th key={h} style={{ textAlign: 'left', padding: '12px 16px', fontWeight: 600, color: C.text.body, borderBottom: `1px solid ${C.border.light}` }}>{h}</th>
+            <th key={h} style={{ textAlign: 'left', padding: '12px 16px', fontWeight: 600, color: C.text.body, borderBottom: `1px solid ${C.border}` }}>{h}</th>
           ))}
         </tr>
       </thead>
@@ -139,9 +139,9 @@ const CodeBlock = ({ code, title }) => {
   const [copied, setCopied] = useState(false);
   const copy = () => { navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 2000); };
   return (
-    <div style={{ marginBottom: '24px', borderRadius: '12px', overflow: 'hidden', border: `1px solid ${C.border.light}` }}>
+    <div style={{ marginBottom: '24px', borderRadius: '12px', overflow: 'hidden', border: `1px solid ${C.border}` }}>
       {title && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', background: C.bg.light, borderBottom: `1px solid ${C.border.light}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', background: C.bg.light, borderBottom: `1px solid ${C.border}` }}>
           <span style={{ fontSize: '12px', fontWeight: 500, color: C.text.muted }}>{title}</span>
           <button onClick={copy} style={{ fontSize: '12px', color: C.text.muted, background: 'none', border: 'none', cursor: 'pointer' }}>
             {copied ? '✓ Copied' : 'Copy'}
@@ -156,7 +156,7 @@ const CodeBlock = ({ code, title }) => {
 };
 
 const Tabs = ({ tabs, active, onChange }) => (
-  <div style={{ display: 'flex', gap: '4px', borderBottom: `1px solid ${C.border.light}`, marginBottom: '16px' }}>
+  <div style={{ display: 'flex', gap: '4px', borderBottom: `1px solid ${C.border}`, marginBottom: '16px' }}>
     {tabs.map((tab) => (
       <button
         key={tab.key}
@@ -442,12 +442,12 @@ const CodeSampleTabs = ({ section }) => {
 /* ──────────────────── Table helpers ──────────────────── */
 
 const Table = ({ headers, rows, renderRow }) => (
-  <div style={{ border: `1px solid ${C.border.light}`, borderRadius: '12px', overflow: 'hidden', marginBottom: '16px' }}>
+  <div style={{ border: `1px solid ${C.border}`, borderRadius: '12px', overflow: 'hidden', marginBottom: '16px' }}>
     <table style={{ width: '100%', fontSize: '14px', borderCollapse: 'collapse' }}>
       <thead>
         <tr style={{ background: C.bg.light }}>
           {headers.map((h) => (
-            <th key={h} style={{ textAlign: 'left', padding: '12px 16px', fontWeight: 600, color: C.text.body, borderBottom: `1px solid ${C.border.light}` }}>{h}</th>
+            <th key={h} style={{ textAlign: 'left', padding: '12px 16px', fontWeight: 600, color: C.text.body, borderBottom: `1px solid ${C.border}` }}>{h}</th>
           ))}
         </tr>
       </thead>
@@ -490,7 +490,7 @@ const Docs = () => {
 
   const go = (k) => document.getElementById(k)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-  const tableBorder = `1px solid ${C.border.light}`;
+  const tableBorder = `1px solid ${C.border}`;
 
   return (
     <div style={{ width: '100%', minHeight: '100vh' }}>
@@ -831,7 +831,7 @@ data: [DONE]`}
                   { name: 'Anthropic SDK', install: 'pip install anthropic' },
                   { name: 'cURL', install: 'Built-in' },
                 ].map((sdk) => (
-                  <div key={sdk.name} style={{ border: `1px solid ${C.border.light}`, borderRadius: '12px', padding: '16px' }}>
+                  <div key={sdk.name} style={{ border: `1px solid ${C.border}`, borderRadius: '12px', padding: '16px' }}>
                     <h4 style={{ fontWeight: 600, color: C.text.h1, marginBottom: '4px' }}>{sdk.name}</h4>
                     <code style={{ fontSize: '12px', color: C.text.muted, background: C.bg.light, padding: '2px 8px', borderRadius: '4px' }}>{sdk.install}</code>
                   </div>
@@ -870,7 +870,7 @@ data: [DONE]`}
                     : ['Open Settings → Providers', 'Add Custom Provider', 'Set Base URL', 'Enter API Key', 'Select model'],
                 },
               ].map((agent) => (
-                <div key={agent.h} style={{ marginBottom: '24px', border: `1px solid ${C.border.light}`, borderRadius: '12px', padding: '20px' }}>
+                <div key={agent.h} style={{ marginBottom: '24px', border: `1px solid ${C.border}`, borderRadius: '12px', padding: '20px' }}>
                   <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '12px', color: C.text.h1 }}>{agent.h}</h3>
                   <ol style={{ listStyle: 'decimal', paddingLeft: '20px', lineHeight: 2, fontSize: '14px', color: C.text.muted }}>
                     {agent.steps.map((s, i) => <li key={i}>{s}</li>)}
@@ -888,7 +888,7 @@ data: [DONE]`}
                 { q: isZh ? '如何切换到 Vancine？' : 'How to switch to Vancine?', a: isZh ? '将 SDK 的 base_url 改为 https://api.vancine.com/v1，替换 API Key 即可。' : 'Change your SDK base_url to https://api.vancine.com/v1 and replace the API Key.' },
                 { q: isZh ? '视频生成为什么没有直接返回结果？' : "Why doesn't video generation return results immediately?", a: isZh ? '视频生成是异步任务，提交后返回 task_id，需要轮询 /api/task/{taskId} 获取结果。' : 'Video generation is async. A task_id is returned after submission — poll /api/task/{taskId} for results.' },
               ].map((item, i) => (
-                <div key={i} style={{ marginBottom: '16px', border: `1px solid ${C.border.light}`, borderRadius: '12px', padding: '20px' }}>
+                <div key={i} style={{ marginBottom: '16px', border: `1px solid ${C.border}`, borderRadius: '12px', padding: '20px' }}>
                   <h4 style={{ fontWeight: 600, color: C.text.h1, marginBottom: '8px' }}>{item.q}</h4>
                   <p style={{ fontSize: '14px', color: C.text.muted }}>{item.a}</p>
                 </div>
