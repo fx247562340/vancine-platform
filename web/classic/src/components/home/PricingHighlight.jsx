@@ -1,11 +1,14 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import ScrollReveal from './ScrollReveal';
 
 const PricingHighlight = () => {
+  const { t } = useTranslation();
+
   const pricingData = [
     {
       category: 'LLM',
-      title: '文本生成',
+      title: t('文本生成'),
       icon: (
         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'rgba(255,255,255,0.4)' }}>
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
@@ -13,13 +16,13 @@ const PricingHighlight = () => {
         </svg>
       ),
       items: [
-        { foreign: { name: 'GPT-4o', price: '¥17.5', unit: '/M tokens' }, domestic: { name: 'DeepSeek V4', price: '¥3.5', unit: '/M tokens' }, saving: '80%' },
-        { foreign: { name: 'Claude Sonnet 4', price: '¥22', unit: '/M tokens' }, domestic: { name: 'Qwen 3.6', price: '¥5.5', unit: '/M tokens' }, saving: '75%' },
+        { foreign: { name: 'GPT-4o', price: '¥17.5', unit: t('/M tokens') }, domestic: { name: 'DeepSeek V4', price: '¥3.5', unit: t('/M tokens') }, saving: '80%' },
+        { foreign: { name: 'Claude Sonnet 4', price: '¥22', unit: t('/M tokens') }, domestic: { name: 'Qwen 3.6', price: '¥5.5', unit: t('/M tokens') }, saving: '75%' },
       ],
     },
     {
       category: 'Video',
-      title: '视频生成',
+      title: t('视频生成'),
       icon: (
         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'rgba(255,255,255,0.4)' }}>
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
@@ -27,13 +30,13 @@ const PricingHighlight = () => {
         </svg>
       ),
       items: [
-        { foreign: { name: 'Runway Gen-3', price: '¥0.8', unit: '/秒' }, domestic: { name: 'Wan 2.2', price: '¥0.32', unit: '/秒' }, saving: '60%' },
-        { foreign: { name: 'Sora', price: '¥0.6', unit: '/秒' }, domestic: { name: 'Kling', price: '¥0.3', unit: '/秒' }, saving: '50%' },
+        { foreign: { name: 'Runway Gen-3', price: '¥0.8', unit: t('秒') }, domestic: { name: 'Wan 2.2', price: '¥0.32', unit: t('秒') }, saving: '60%' },
+        { foreign: { name: 'Sora', price: '¥0.6', unit: t('秒') }, domestic: { name: 'Kling', price: '¥0.3', unit: t('秒') }, saving: '50%' },
       ],
     },
     {
       category: 'Image',
-      title: '图片生成',
+      title: t('图片生成'),
       icon: (
         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'rgba(255,255,255,0.4)' }}>
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
@@ -41,8 +44,8 @@ const PricingHighlight = () => {
         </svg>
       ),
       items: [
-        { foreign: { name: 'DALL·E 3', price: '¥0.28', unit: '/张' }, domestic: { name: 'FLUX Pro', price: '¥0.08', unit: '/张' }, saving: '70%' },
-        { foreign: { name: 'Midjourney v6', price: '¥0.2', unit: '/张' }, domestic: { name: 'Seedream', price: '¥0.07', unit: '/张' }, saving: '65%' },
+        { foreign: { name: 'DALL·E 3', price: '¥0.28', unit: t('张') }, domestic: { name: 'FLUX Pro', price: '¥0.08', unit: t('张') }, saving: '70%' },
+        { foreign: { name: 'Midjourney v6', price: '¥0.2', unit: t('张') }, domestic: { name: 'Seedream', price: '¥0.07', unit: t('张') }, saving: '65%' },
       ],
     },
   ];
@@ -55,10 +58,10 @@ const PricingHighlight = () => {
             Pricing
           </p>
           <h2 style={{ fontSize: 'clamp(28px, 4vw, 40px)', fontWeight: 700, color: '#fff', marginBottom: '16px', lineHeight: 1.2 }}>
-            国产模型，全球性价比
+            {t('国产模型，全球性价比')}
           </h2>
           <p style={{ color: 'rgba(255,255,255,0.45)', maxWidth: '560px', margin: '0 auto', fontSize: '15px', lineHeight: 1.7 }}>
-            同等能力，价格仅为国际模型的 20-50%
+            {t('同等能力，价格仅为国际模型的 20-50%')}
           </p>
         </div>
       </ScrollReveal>
@@ -99,7 +102,7 @@ const PricingHighlight = () => {
                 }}>
                   {/* Foreign Model */}
                   <div style={{ flex: '1 1 160px' }}>
-                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)', marginBottom: '4px' }}>国际模型</div>
+                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)', marginBottom: '4px' }}>{t('国际模型')}</div>
                     <div style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 500, fontSize: '15px' }}>{item.foreign.name}</div>
                     <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '14px', marginTop: '4px' }}>
                       {item.foreign.price}
@@ -116,7 +119,7 @@ const PricingHighlight = () => {
 
                   {/* Domestic Model */}
                   <div style={{ flex: '1 1 160px' }}>
-                    <div style={{ fontSize: '12px', color: '#00b894', marginBottom: '4px' }}>国产模型</div>
+                    <div style={{ fontSize: '12px', color: '#00b894', marginBottom: '4px' }}>{t('国产模型')}</div>
                     <div style={{ color: '#fff', fontWeight: 600, fontSize: '15px' }}>{item.domestic.name}</div>
                     <div style={{ fontSize: '14px', marginTop: '4px' }}>
                       <span style={{ color: '#fff' }}>{item.domestic.price}</span>
@@ -135,7 +138,7 @@ const PricingHighlight = () => {
                       color: '#00b894',
                       border: '1px solid rgba(0, 184, 148, 0.2)',
                     }}>
-                      省 {item.saving}
+                      {t('省')} {item.saving}
                     </div>
                   </div>
                 </div>
@@ -147,7 +150,7 @@ const PricingHighlight = () => {
 
       <ScrollReveal delay={0.5}>
         <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '13px', marginTop: '32px' }}>
-          按量付费，无订阅费用，永不过期 · 价格仅供参考，以实际模型定价为准
+          {t('按量付费，无订阅费用，永不过期')} · {t('价格仅供参考，以实际模型定价为准')}
         </p>
       </ScrollReveal>
     </section>
