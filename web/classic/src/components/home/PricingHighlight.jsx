@@ -16,8 +16,8 @@ const PricingHighlight = () => {
         </svg>
       ),
       items: [
-        { foreign: { name: 'GPT-4o', price: '¥17.5', unit: t('/M tokens') }, domestic: { name: 'DeepSeek V4', price: '¥3.5', unit: t('/M tokens') }, saving: '80%' },
-        { foreign: { name: 'Claude Sonnet 4', price: '¥22', unit: t('/M tokens') }, domestic: { name: 'Qwen 3.6', price: '¥5.5', unit: t('/M tokens') }, saving: '75%' },
+        { foreign: { name: 'GPT-4o', price: '$2.50', unit: '/M tokens' }, domestic: { name: 'DeepSeek V4', price: '$0.50', unit: '/M tokens' }, saving: '80%' },
+        { foreign: { name: 'Claude Sonnet 4', price: '$3.00', unit: '/M tokens' }, domestic: { name: 'Qwen 3.6', price: '$0.75', unit: '/M tokens' }, saving: '75%' },
       ],
     },
     {
@@ -30,8 +30,8 @@ const PricingHighlight = () => {
         </svg>
       ),
       items: [
-        { foreign: { name: 'Runway Gen-3', price: '¥0.8', unit: t('秒') }, domestic: { name: 'Wan 2.2', price: '¥0.32', unit: t('秒') }, saving: '60%' },
-        { foreign: { name: 'Sora', price: '¥0.6', unit: t('秒') }, domestic: { name: 'Kling', price: '¥0.3', unit: t('秒') }, saving: '50%' },
+        { foreign: { name: 'Runway Gen-3', price: '$0.10', unit: '/sec' }, domestic: { name: 'Wan 2.2', price: '$0.04', unit: '/sec' }, saving: '60%' },
+        { foreign: { name: 'Sora', price: '$0.08', unit: '/sec' }, domestic: { name: 'Kling', price: '$0.04', unit: '/sec' }, saving: '50%' },
       ],
     },
     {
@@ -44,8 +44,8 @@ const PricingHighlight = () => {
         </svg>
       ),
       items: [
-        { foreign: { name: 'DALL·E 3', price: '¥0.28', unit: t('张') }, domestic: { name: 'FLUX Pro', price: '¥0.08', unit: t('张') }, saving: '70%' },
-        { foreign: { name: 'Midjourney v6', price: '¥0.2', unit: t('张') }, domestic: { name: 'Seedream', price: '¥0.07', unit: t('张') }, saving: '65%' },
+        { foreign: { name: 'DALL·E 3', price: '$0.040', unit: '/image' }, domestic: { name: 'FLUX Pro', price: '$0.012', unit: '/image' }, saving: '70%' },
+        { foreign: { name: 'Midjourney v6', price: '$0.030', unit: '/image' }, domestic: { name: 'Seedream', price: '$0.010', unit: '/image' }, saving: '65%' },
       ],
     },
   ];
