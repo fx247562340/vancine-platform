@@ -21,12 +21,6 @@ import (
 	"github.com/QuantumNous/new-api/types"
 
 	"github.com/gin-gonic/gin"
-	"github.com/samber/lo"
-)
-
-const (
-	contextKeyTTSRequest     = "volcengine_tts_request"
-	contextKeyResponseFormat = "response_format"
 )
 
 type Adaptor struct {
@@ -51,55 +45,22 @@ func (a *Adaptor) ConvertAudioRequest(c *gin.Context, info *relaycommon.RelayInf
 		return nil, errors.New("unsupported audio relay mode")
 	}
 
-	appID, token, err := parseVolcengineAuth(info.ApiKey)
+	// Use OpenAI-compatible format directly — no conversion to Volcengine WebSocket format
+	openAIRequest := map[string]interface{}{
+		"model": info.UpstreamModelName,
+		"input": request.Input,
+		"voice": request.Voice,
+	}
+	if request.ResponseFormat != "" {
+		openAIRequest["response_format"] = request.ResponseFormat
+	}
+	if request.Speed != nil {
+		openAIRequest["speed"] = *request.Speed
+	}
+
+	jsonData, err := json.Marshal(openAIRequest)
 	if err != nil {
-		return nil, err
-	}
-
-	voiceType := mapVoiceType(request.Voice)
-	speedRatio := lo.FromPtrOr(request.Speed, 0.0)
-	encoding := mapEncoding(request.ResponseFormat)
-
-	c.Set(contextKeyResponseFormat, encoding)
-
-	volcRequest := VolcengineTTSRequest{
-		App: VolcengineTTSApp{
-			AppID:   appID,
-			Token:   token,
-			Cluster: "volcano_tts",
-		},
-		User: VolcengineTTSUser{
-			UID: "openai_relay_user",
-		},
-		Audio: VolcengineTTSAudio{
-			VoiceType:  voiceType,
-			Encoding:   encoding,
-			SpeedRatio: speedRatio,
-			Rate:       24000,
-		},
-		Request: VolcengineTTSReqInfo{
-			ReqID:     generateRequestID(),
-			Text:      request.Input,
-			Operation: "submit",
-			Model:     info.OriginModelName,
-		},
-	}
-
-	if len(request.Metadata) > 0 {
-		if err = json.Unmarshal(request.Metadata, &volcRequest); err != nil {
-			return nil, fmt.Errorf("error unmarshalling metadata to volcengine request: %w", err)
-		}
-	}
-
-	c.Set(contextKeyTTSRequest, volcRequest)
-
-	if volcRequest.Request.Operation == "submit" {
-		info.IsStream = true
-	}
-
-	jsonData, err := json.Marshal(volcRequest)
-	if err != nil {
-		return nil, fmt.Errorf("error marshalling volcengine request: %w", err)
+		return nil, fmt.Errorf("error marshalling audio request: %w", err)
 	}
 
 	return bytes.NewReader(jsonData), nil
@@ -274,10 +235,8 @@ func (a *Adaptor) GetRequestURL(info *relaycommon.RelayInfo) (string, error) {
 		case constant.RelayModeResponses:
 			return fmt.Sprintf("%s/api/v3/responses", baseUrl), nil
 		case constant.RelayModeAudioSpeech:
-			if baseUrl == channelconstant.ChannelBaseURLs[channelconstant.ChannelTypeVolcEngine] {
-				return "wss://openspeech.bytedance.com/api/v1/tts/ws_binary", nil
-			}
-			return fmt.Sprintf("%s/v1/audio/speech", baseUrl), nil
+			// Use OpenAI-compatible HTTP endpoint instead of WebSocket
+			return fmt.Sprintf("%s/api/v3/audio/speech", baseUrl), nil
 		default:
 		}
 	}
@@ -288,10 +247,8 @@ func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Header, info *rel
 	channel.SetupApiRequestHeader(info, c, req)
 
 	if info.RelayMode == constant.RelayModeAudioSpeech {
-		parts := strings.Split(info.ApiKey, "|")
-		if len(parts) == 2 {
-			req.Set("Authorization", "Bearer;"+parts[1])
-		}
+		// Standard Bearer Token auth for OpenAI-compatible endpoint
+		req.Set("Authorization", "Bearer "+info.ApiKey)
 		req.Set("Content-Type", "application/json")
 		return nil
 	} else if info.RelayMode == constant.RelayModeImagesEdits {
@@ -330,18 +287,6 @@ func (a *Adaptor) ConvertOpenAIResponsesRequest(c *gin.Context, info *relaycommo
 }
 
 func (a *Adaptor) DoRequest(c *gin.Context, info *relaycommon.RelayInfo, requestBody io.Reader) (any, error) {
-	if info.RelayMode == constant.RelayModeAudioSpeech {
-		baseUrl := info.ChannelBaseUrl
-		if baseUrl == "" {
-			baseUrl = channelconstant.ChannelBaseURLs[channelconstant.ChannelTypeVolcEngine]
-		}
-
-		if baseUrl == channelconstant.ChannelBaseURLs[channelconstant.ChannelTypeVolcEngine] {
-			if info.IsStream {
-				return nil, nil
-			}
-		}
-	}
 	return channel.DoApiRequest(a, c, info, requestBody)
 }
 
@@ -354,38 +299,9 @@ func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, info *relaycom
 	}
 
 	if info.RelayMode == constant.RelayModeAudioSpeech {
-		encoding := mapEncoding(c.GetString(contextKeyResponseFormat))
-		if info.IsStream {
-			volcRequestInterface, exists := c.Get(contextKeyTTSRequest)
-			if !exists {
-				return nil, types.NewErrorWithStatusCode(
-					errors.New("volcengine TTS request not found in context"),
-					types.ErrorCodeBadRequestBody,
-					http.StatusInternalServerError,
-				)
-			}
-
-			volcRequest, ok := volcRequestInterface.(VolcengineTTSRequest)
-			if !ok {
-				return nil, types.NewErrorWithStatusCode(
-					errors.New("invalid volcengine TTS request type"),
-					types.ErrorCodeBadRequestBody,
-					http.StatusInternalServerError,
-				)
-			}
-
-			// Get the WebSocket URL
-			requestURL, urlErr := a.GetRequestURL(info)
-			if urlErr != nil {
-				return nil, types.NewErrorWithStatusCode(
-					urlErr,
-					types.ErrorCodeBadRequestBody,
-					http.StatusInternalServerError,
-				)
-			}
-			return handleTTSWebSocketResponse(c, requestURL, volcRequest, info, encoding)
-		}
-		return handleTTSResponse(c, resp, info, encoding)
+		// Delegate to OpenAI-compatible TTS handler (HTTP response, no WebSocket)
+		usageResult := openai.OpenaiTTSHandler(c, resp, info)
+		return usageResult, nil
 	}
 
 	adaptor := openai.Adaptor{}

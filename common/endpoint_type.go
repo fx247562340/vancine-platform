@@ -58,6 +58,8 @@ func getVolcEngineEndpointTypes(modelName string) []constant.EndpointType {
 		return []constant.EndpointType{constant.EndpointTypeOpenAIVideo}
 	case strings.Contains(lower, "seed3d") || strings.Contains(lower, "hyper3d") || strings.Contains(lower, "hitem3d"):
 		return []constant.EndpointType{constant.EndpointType3DGeneration}
+	case strings.Contains(lower, "tts") || strings.Contains(lower, "speech") || strings.Contains(lower, "audio"):
+		return []constant.EndpointType{constant.EndpointTypeOpenAI}
 	default:
 		return []constant.EndpointType{constant.EndpointTypeOpenAI}
 	}
