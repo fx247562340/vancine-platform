@@ -51,50 +51,40 @@ func (a *Adaptor) ConvertAudioRequest(c *gin.Context, info *relaycommon.RelayInf
 		return nil, errors.New("unsupported audio relay mode")
 	}
 
-	appID, token, err := parseVolcengineAuth(info.ApiKey)
-	if err != nil {
-		return nil, err
-	}
-
 	voiceType := mapVoiceType(request.Voice)
-	speedRatio := lo.FromPtrOr(request.Speed, 0.0)
 	encoding := mapEncoding(request.ResponseFormat)
+	speedRatio := lo.FromPtrOr(request.Speed, 0.0)
 
 	c.Set(contextKeyResponseFormat, encoding)
 
-	volcRequest := VolcengineTTSRequest{
-		App: VolcengineTTSApp{
-			AppID:   appID,
-			Token:   token,
-			Cluster: "volcano_tts",
+	// New v3 request format for HTTP Chunked endpoint
+	volcRequest := map[string]interface{}{
+		"user": map[string]string{
+			"uid": "openai_relay_user",
 		},
-		User: VolcengineTTSUser{
-			UID: "openai_relay_user",
-		},
-		Audio: VolcengineTTSAudio{
-			VoiceType:  voiceType,
-			Encoding:   encoding,
-			SpeedRatio: speedRatio,
-			Rate:       24000,
-		},
-		Request: VolcengineTTSReqInfo{
-			ReqID:     generateRequestID(),
-			Text:      request.Input,
-			Operation: "submit",
-			Model:     info.OriginModelName,
+		"req_params": map[string]interface{}{
+			"text":    request.Input,
+			"speaker": voiceType,
+			"audio_params": map[string]interface{}{
+				"format":      encoding,
+				"sample_rate": 24000,
+			},
 		},
 	}
 
-	if len(request.Metadata) > 0 {
-		if err = json.Unmarshal(request.Metadata, &volcRequest); err != nil {
-			return nil, fmt.Errorf("error unmarshalling metadata to volcengine request: %w", err)
+	// Add speed if specified
+	if speedRatio > 0 {
+		reqParams := volcRequest["req_params"].(map[string]interface{})
+		audioParams := reqParams["audio_params"].(map[string]interface{})
+		// Convert speed ratio to speech_rate: 1.0 = 0, 2.0 = 100, 0.5 = -50
+		speechRate := int((speedRatio - 1.0) * 100)
+		if speechRate < -50 {
+			speechRate = -50
 		}
-	}
-
-	c.Set(contextKeyTTSRequest, volcRequest)
-
-	if volcRequest.Request.Operation == "submit" {
-		info.IsStream = true
+		if speechRate > 100 {
+			speechRate = 100
+		}
+		audioParams["speech_rate"] = speechRate
 	}
 
 	jsonData, err := json.Marshal(volcRequest)
@@ -169,8 +159,8 @@ func (a *Adaptor) GetRequestURL(info *relaycommon.RelayInfo) (string, error) {
 		case constant.RelayModeResponses:
 			return fmt.Sprintf("%s/api/v3/responses", baseUrl), nil
 		case constant.RelayModeAudioSpeech:
-			// Use Volcengine's dedicated TTS API (not OpenAI-compatible)
-			return "https://openspeech.bytedance.com/api/v3/tts/submit", nil
+			// Use Volcengine's HTTP Chunked TTS API
+			return "https://openspeech.bytedance.com/api/v3/tts/unidirectional", nil
 		default:
 		}
 	}
@@ -231,10 +221,6 @@ func (a *Adaptor) ConvertOpenAIResponsesRequest(c *gin.Context, info *relaycommo
 }
 
 func (a *Adaptor) DoRequest(c *gin.Context, info *relaycommon.RelayInfo, requestBody io.Reader) (any, error) {
-	// For TTS, we handle the request in DoResponse (submit/query pattern)
-	if info.RelayMode == constant.RelayModeAudioSpeech {
-		return nil, nil
-	}
 	return channel.DoApiRequest(a, c, info, requestBody)
 }
 
@@ -247,28 +233,28 @@ func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, info *relaycom
 	}
 
 	if info.RelayMode == constant.RelayModeAudioSpeech {
-		encoding := mapEncoding(c.GetString(contextKeyResponseFormat))
+		// HTTP Chunked response - stream audio directly
+		contentType := resp.Header.Get("Content-Type")
+		if contentType == "" {
+			contentType = "audio/mpeg"
+		}
+		c.Header("Content-Type", contentType)
+		c.Writer.WriteHeader(resp.StatusCode)
 
-		volcRequestInterface, exists := c.Get(contextKeyTTSRequest)
-		if !exists {
+		if _, copyErr := io.Copy(c.Writer, resp.Body); copyErr != nil {
 			return nil, types.NewErrorWithStatusCode(
-				errors.New("volcengine TTS request not found in context"),
-				types.ErrorCodeBadRequestBody,
+				fmt.Errorf("failed to stream audio: %w", copyErr),
+				types.ErrorCodeBadResponse,
 				http.StatusInternalServerError,
 			)
 		}
 
-		volcRequest, ok := volcRequestInterface.(VolcengineTTSRequest)
-		if !ok {
-			return nil, types.NewErrorWithStatusCode(
-				errors.New("invalid volcengine TTS request type"),
-				types.ErrorCodeBadRequestBody,
-				http.StatusInternalServerError,
-			)
+		usage = &dto.Usage{
+			PromptTokens:     info.GetEstimatePromptTokens(),
+			CompletionTokens: 0,
+			TotalTokens:      info.GetEstimatePromptTokens(),
 		}
-
-		// Use new API v3 submit/query pattern
-		return handleTTSV3SubmitQuery(c, volcRequest, info, encoding)
+		return usage, nil
 	}
 
 	adaptor := openai.Adaptor{}
