@@ -13,6 +13,7 @@ import (
 
 	channelconstant "github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/dto"
+	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/relay/channel"
 	"github.com/QuantumNous/new-api/relay/channel/claude"
 	"github.com/QuantumNous/new-api/relay/channel/openai"
@@ -244,6 +245,9 @@ func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, info *relaycom
 			)
 		}
 		defer resp.Body.Close()
+
+		// Debug: log first 200 bytes of response
+		logger.LogDebug(c, "TTS response body (first 200 bytes): %s", string(body[:min(200, len(body))]))
 
 		var volcResp struct {
 			Code    int    `json:"code"`
