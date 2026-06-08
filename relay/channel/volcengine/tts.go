@@ -1,14 +1,15 @@
 package volcengine
 
 import (
+	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/QuantumNous/new-api/dto"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
@@ -18,6 +19,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// VolcengineTTSRequest is the legacy WebSocket format (kept for backward compat)
 type VolcengineTTSRequest struct {
 	App     VolcengineTTSApp     `json:"app"`
 	User    VolcengineTTSUser    `json:"user"`
@@ -76,6 +78,7 @@ type VolcengineTTSCacheConfig struct {
 	UseCache bool `json:"use_cache,omitempty"`
 }
 
+// VolcengineTTSResponse is the legacy WebSocket response format
 type VolcengineTTSResponse struct {
 	ReqID    string                     `json:"reqid"`
 	Code     int                        `json:"code"`
@@ -87,6 +90,51 @@ type VolcengineTTSResponse struct {
 
 type VolcengineTTSAdditionInfo struct {
 	Duration string `json:"duration"`
+}
+
+// New API v3 request/response structures
+type VolcengineTTSV3Request struct {
+	User     VolcengineTTSV3User     `json:"user"`
+	UniqueID string                  `json:"unique_id"`
+	ReqParams VolcengineTTSV3ReqParams `json:"req_params"`
+}
+
+type VolcengineTTSV3User struct {
+	UID string `json:"uid"`
+}
+
+type VolcengineTTSV3ReqParams struct {
+	Text       string                    `json:"text"`
+	Speaker    string                    `json:"speaker"`
+	AudioParams VolcengineTTSV3AudioParams `json:"audio_params"`
+}
+
+type VolcengineTTSV3AudioParams struct {
+	Format     string `json:"format"`
+	SampleRate int    `json:"sample_rate"`
+}
+
+type VolcengineTTSV3SubmitResponse struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    struct {
+		TaskID       string `json:"task_id"`
+		ReqTextLength int   `json:"req_text_length"`
+		TaskStatus   int    `json:"task_status"`
+	} `json:"data"`
+}
+
+type VolcengineTTSV3QueryResponse struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    struct {
+		TaskID               string `json:"task_id"`
+		TaskStatus           int    `json:"task_status"`
+		AudioURL             string `json:"audio_url"`
+		ReqTextLength        int    `json:"req_text_length"`
+		SynthesizeTextLength int    `json:"synthesize_text_length"`
+		URLExpireTime        int    `json:"url_expire_time"`
+	} `json:"data"`
 }
 
 var openAIToVolcengineVoiceMap = map[string]string{
@@ -170,18 +218,12 @@ func handleTTSResponse(c *gin.Context, resp *http.Response, info *relaycommon.Re
 		)
 	}
 
-	audioData, decodeErr := base64.StdEncoding.DecodeString(volcResp.Data)
-	if decodeErr != nil {
-		return nil, types.NewErrorWithStatusCode(
-			errors.New("failed to decode audio data"),
-			types.ErrorCodeBadResponseBody,
-			http.StatusInternalServerError,
-		)
-	}
-
+	// For legacy API, audio data is base64 encoded
+	// For new API v3, we need to handle differently
+	// This function handles the legacy format
 	contentType := getContentTypeByEncoding(encoding)
 	c.Header("Content-Type", contentType)
-	c.Data(http.StatusOK, contentType, audioData)
+	c.Data(http.StatusOK, contentType, body)
 
 	usage = &dto.Usage{
 		PromptTokens:     info.GetEstimatePromptTokens(),
@@ -302,4 +344,178 @@ func handleTTSWebSocketResponse(c *gin.Context, requestURL string, volcRequest V
 		TotalTokens:      info.GetEstimatePromptTokens(),
 	}
 	return usage, nil
+}
+
+// handleTTSV3SubmitQuery handles the new API v3 submit/query pattern
+func handleTTSV3SubmitQuery(c *gin.Context, volcRequest VolcengineTTSRequest, info *relaycommon.RelayInfo, encoding string) (usage any, err *types.NewAPIError) {
+	// Convert legacy request to v3 format
+	v3Request := VolcengineTTSV3Request{
+		User: VolcengineTTSV3User{
+			UID: volcRequest.User.UID,
+		},
+		UniqueID: generateRequestID(),
+		ReqParams: VolcengineTTSV3ReqParams{
+			Text:    volcRequest.Request.Text,
+			Speaker: volcRequest.Audio.VoiceType,
+			AudioParams: VolcengineTTSV3AudioParams{
+				Format:     encoding,
+				SampleRate: volcRequest.Audio.Rate,
+			},
+		},
+	}
+
+	// Submit task
+	submitBody, marshalErr := json.Marshal(v3Request)
+	if marshalErr != nil {
+		return nil, types.NewErrorWithStatusCode(
+			fmt.Errorf("failed to marshal v3 request: %w", marshalErr),
+			types.ErrorCodeBadRequestBody,
+			http.StatusInternalServerError,
+		)
+	}
+
+	// Make HTTP request to submit endpoint
+	req, reqErr := http.NewRequest("POST", "https://openspeech.bytedance.com/api/v3/tts/submit", bytes.NewReader(submitBody))
+	if reqErr != nil {
+		return nil, types.NewErrorWithStatusCode(
+			fmt.Errorf("failed to create request: %w", reqErr),
+			types.ErrorCodeBadRequestBody,
+			http.StatusInternalServerError,
+		)
+	}
+
+	// Set headers
+	parts := strings.Split(info.ApiKey, "|")
+	if len(parts) == 2 {
+		req.Header.Set("X-Api-App-Id", parts[0])
+		req.Header.Set("X-Api-Access-Key", parts[1])
+	}
+	req.Header.Set("X-Api-Resource-Id", info.UpstreamModelName)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, respErr := client.Do(req)
+	if respErr != nil {
+		return nil, types.NewErrorWithStatusCode(
+			fmt.Errorf("failed to submit TTS task: %w", respErr),
+			types.ErrorCodeBadResponseStatusCode,
+			http.StatusBadGateway,
+		)
+	}
+	defer resp.Body.Close()
+
+	respBody, readErr := io.ReadAll(resp.Body)
+	if readErr != nil {
+		return nil, types.NewErrorWithStatusCode(
+			fmt.Errorf("failed to read submit response: %w", readErr),
+			types.ErrorCodeReadResponseBodyFailed,
+			http.StatusInternalServerError,
+		)
+	}
+
+	var submitResp VolcengineTTSV3SubmitResponse
+	if unmarshalErr := json.Unmarshal(respBody, &submitResp); unmarshalErr != nil {
+		return nil, types.NewErrorWithStatusCode(
+			fmt.Errorf("failed to parse submit response: %w", unmarshalErr),
+			types.ErrorCodeBadResponseBody,
+			http.StatusInternalServerError,
+		)
+	}
+
+	if submitResp.Code != 20000000 {
+		return nil, types.NewErrorWithStatusCode(
+			fmt.Errorf("TTS submit failed: %s", submitResp.Message),
+			types.ErrorCodeBadResponse,
+			http.StatusBadRequest,
+		)
+	}
+
+	taskID := submitResp.Data.TaskID
+
+	// Poll for results
+	for i := 0; i < 60; i++ { // Max 60 retries (5 minutes)
+		time.Sleep(5 * time.Second)
+
+		queryReq := map[string]string{"task_id": taskID}
+		queryBody, _ := json.Marshal(queryReq)
+
+		req, _ := http.NewRequest("POST", "https://openspeech.bytedance.com/api/v3/tts/query", bytes.NewReader(queryBody))
+		parts := strings.Split(info.ApiKey, "|")
+		if len(parts) == 2 {
+			req.Header.Set("X-Api-App-Id", parts[0])
+			req.Header.Set("X-Api-Access-Key", parts[1])
+		}
+		req.Header.Set("X-Api-Resource-Id", info.UpstreamModelName)
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, respErr := client.Do(req)
+		if respErr != nil {
+			continue
+		}
+
+		respBody, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+
+		var queryResp VolcengineTTSV3QueryResponse
+		if unmarshalErr := json.Unmarshal(respBody, &queryResp); unmarshalErr != nil {
+			continue
+		}
+
+		if queryResp.Code != 20000000 {
+			return nil, types.NewErrorWithStatusCode(
+				fmt.Errorf("TTS query failed: %s", queryResp.Message),
+				types.ErrorCodeBadResponse,
+				http.StatusBadRequest,
+			)
+		}
+
+		switch queryResp.Data.TaskStatus {
+		case 2: // Success
+			// Download audio from URL
+			audioResp, audioErr := http.Get(queryResp.Data.AudioURL)
+			if audioErr != nil {
+				return nil, types.NewErrorWithStatusCode(
+					fmt.Errorf("failed to download audio: %w", audioErr),
+					types.ErrorCodeBadResponse,
+					http.StatusBadGateway,
+				)
+			}
+			defer audioResp.Body.Close()
+
+			contentType := getContentTypeByEncoding(encoding)
+			c.Header("Content-Type", contentType)
+			c.Writer.WriteHeader(http.StatusOK)
+
+			if _, copyErr := io.Copy(c.Writer, audioResp.Body); copyErr != nil {
+				return nil, types.NewErrorWithStatusCode(
+					fmt.Errorf("failed to stream audio: %w", copyErr),
+					types.ErrorCodeBadResponse,
+					http.StatusInternalServerError,
+				)
+			}
+
+			usage = &dto.Usage{
+				PromptTokens:     info.GetEstimatePromptTokens(),
+				CompletionTokens: 0,
+				TotalTokens:      info.GetEstimatePromptTokens(),
+			}
+			return usage, nil
+
+		case 3: // Failure
+			return nil, types.NewErrorWithStatusCode(
+				fmt.Errorf("TTS task failed"),
+				types.ErrorCodeBadResponse,
+				http.StatusInternalServerError,
+			)
+
+		default: // Still running
+			continue
+		}
+	}
+
+	return nil, types.NewErrorWithStatusCode(
+		fmt.Errorf("TTS task timeout"),
+		types.ErrorCodeBadResponse,
+		http.StatusGatewayTimeout,
+	)
 }

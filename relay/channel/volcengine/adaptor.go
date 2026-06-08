@@ -21,6 +21,12 @@ import (
 	"github.com/QuantumNous/new-api/types"
 
 	"github.com/gin-gonic/gin"
+	"github.com/samber/lo"
+)
+
+const (
+	contextKeyTTSRequest     = "volcengine_tts_request"
+	contextKeyResponseFormat = "response_format"
 )
 
 type Adaptor struct {
@@ -45,22 +51,55 @@ func (a *Adaptor) ConvertAudioRequest(c *gin.Context, info *relaycommon.RelayInf
 		return nil, errors.New("unsupported audio relay mode")
 	}
 
-	// Use OpenAI-compatible format directly — no conversion to Volcengine WebSocket format
-	openAIRequest := map[string]interface{}{
-		"model": info.UpstreamModelName,
-		"input": request.Input,
-		"voice": request.Voice,
-	}
-	if request.ResponseFormat != "" {
-		openAIRequest["response_format"] = request.ResponseFormat
-	}
-	if request.Speed != nil {
-		openAIRequest["speed"] = *request.Speed
+	appID, token, err := parseVolcengineAuth(info.ApiKey)
+	if err != nil {
+		return nil, err
 	}
 
-	jsonData, err := json.Marshal(openAIRequest)
+	voiceType := mapVoiceType(request.Voice)
+	speedRatio := lo.FromPtrOr(request.Speed, 0.0)
+	encoding := mapEncoding(request.ResponseFormat)
+
+	c.Set(contextKeyResponseFormat, encoding)
+
+	volcRequest := VolcengineTTSRequest{
+		App: VolcengineTTSApp{
+			AppID:   appID,
+			Token:   token,
+			Cluster: "volcano_tts",
+		},
+		User: VolcengineTTSUser{
+			UID: "openai_relay_user",
+		},
+		Audio: VolcengineTTSAudio{
+			VoiceType:  voiceType,
+			Encoding:   encoding,
+			SpeedRatio: speedRatio,
+			Rate:       24000,
+		},
+		Request: VolcengineTTSReqInfo{
+			ReqID:     generateRequestID(),
+			Text:      request.Input,
+			Operation: "submit",
+			Model:     info.OriginModelName,
+		},
+	}
+
+	if len(request.Metadata) > 0 {
+		if err = json.Unmarshal(request.Metadata, &volcRequest); err != nil {
+			return nil, fmt.Errorf("error unmarshalling metadata to volcengine request: %w", err)
+		}
+	}
+
+	c.Set(contextKeyTTSRequest, volcRequest)
+
+	if volcRequest.Request.Operation == "submit" {
+		info.IsStream = true
+	}
+
+	jsonData, err := json.Marshal(volcRequest)
 	if err != nil {
-		return nil, fmt.Errorf("error marshalling audio request: %w", err)
+		return nil, fmt.Errorf("error marshalling volcengine request: %w", err)
 	}
 
 	return bytes.NewReader(jsonData), nil
@@ -70,108 +109,6 @@ func (a *Adaptor) ConvertImageRequest(c *gin.Context, info *relaycommon.RelayInf
 	switch info.RelayMode {
 	case constant.RelayModeImagesGenerations:
 		return request, nil
-	// 根据官方文档,并没有发现豆包生图支持表单请求:https://www.volcengine.com/docs/82379/1824121
-	//case constant.RelayModeImagesEdits:
-	//
-	//	var requestBody bytes.Buffer
-	//	writer := multipart.NewWriter(&requestBody)
-	//
-	//	writer.WriteField("model", request.Model)
-	//
-	//	formData := c.Request.PostForm
-	//	for key, values := range formData {
-	//		if key == "model" {
-	//			continue
-	//		}
-	//		for _, value := range values {
-	//			writer.WriteField(key, value)
-	//		}
-	//	}
-	//
-	//	if err := c.Request.ParseMultipartForm(32 << 20); err != nil {
-	//		return nil, errors.New("failed to parse multipart form")
-	//	}
-	//
-	//	if c.Request.MultipartForm != nil && c.Request.MultipartForm.File != nil {
-	//		var imageFiles []*multipart.FileHeader
-	//		var exists bool
-	//
-	//		if imageFiles, exists = c.Request.MultipartForm.File["image"]; !exists || len(imageFiles) == 0 {
-	//			if imageFiles, exists = c.Request.MultipartForm.File["image[]"]; !exists || len(imageFiles) == 0 {
-	//				foundArrayImages := false
-	//				for fieldName, files := range c.Request.MultipartForm.File {
-	//					if strings.HasPrefix(fieldName, "image[") && len(files) > 0 {
-	//						foundArrayImages = true
-	//						for _, file := range files {
-	//							imageFiles = append(imageFiles, file)
-	//						}
-	//					}
-	//				}
-	//
-	//				if !foundArrayImages && (len(imageFiles) == 0) {
-	//					return nil, errors.New("image is required")
-	//				}
-	//			}
-	//		}
-	//
-	//		for i, fileHeader := range imageFiles {
-	//			file, err := fileHeader.Open()
-	//			if err != nil {
-	//				return nil, fmt.Errorf("failed to open image file %d: %w", i, err)
-	//			}
-	//			defer file.Close()
-	//
-	//			fieldName := "image"
-	//			if len(imageFiles) > 1 {
-	//				fieldName = "image[]"
-	//			}
-	//
-	//			mimeType := detectImageMimeType(fileHeader.Filename)
-	//
-	//			h := make(textproto.MIMEHeader)
-	//			h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="%s"; filename="%s"`, fieldName, fileHeader.Filename))
-	//			h.Set("Content-Type", mimeType)
-	//
-	//			part, err := writer.CreatePart(h)
-	//			if err != nil {
-	//				return nil, fmt.Errorf("create form part failed for image %d: %w", i, err)
-	//			}
-	//
-	//			if _, err := io.Copy(part, file); err != nil {
-	//				return nil, fmt.Errorf("copy file failed for image %d: %w", i, err)
-	//			}
-	//		}
-	//
-	//		if maskFiles, exists := c.Request.MultipartForm.File["mask"]; exists && len(maskFiles) > 0 {
-	//			maskFile, err := maskFiles[0].Open()
-	//			if err != nil {
-	//				return nil, errors.New("failed to open mask file")
-	//			}
-	//			defer maskFile.Close()
-	//
-	//			mimeType := detectImageMimeType(maskFiles[0].Filename)
-	//
-	//			h := make(textproto.MIMEHeader)
-	//			h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="mask"; filename="%s"`, maskFiles[0].Filename))
-	//			h.Set("Content-Type", mimeType)
-	//
-	//			maskPart, err := writer.CreatePart(h)
-	//			if err != nil {
-	//				return nil, errors.New("create form file failed for mask")
-	//			}
-	//
-	//			if _, err := io.Copy(maskPart, maskFile); err != nil {
-	//				return nil, errors.New("copy mask file failed")
-	//			}
-	//		}
-	//	} else {
-	//		return nil, errors.New("no multipart form data found")
-	//	}
-	//
-	//	writer.Close()
-	//	c.Request.Header.Set("Content-Type", writer.FormDataContentType())
-	//	return bytes.NewReader(requestBody.Bytes()), nil
-
 	default:
 		return request, nil
 	}
@@ -225,18 +162,15 @@ func (a *Adaptor) GetRequestURL(info *relaycommon.RelayInfo) (string, error) {
 			return fmt.Sprintf("%s/api/v3/chat/completions", baseUrl), nil
 		case constant.RelayModeEmbeddings:
 			return fmt.Sprintf("%s/api/v3/embeddings", baseUrl), nil
-		//豆包的图生图也走generations接口: https://www.volcengine.com/docs/82379/1824121
 		case constant.RelayModeImagesGenerations, constant.RelayModeImagesEdits:
 			return fmt.Sprintf("%s/api/v3/images/generations", baseUrl), nil
-		//case constant.RelayModeImagesEdits:
-		//	return fmt.Sprintf("%s/api/v3/images/edits", baseUrl), nil
 		case constant.RelayModeRerank:
 			return fmt.Sprintf("%s/api/v3/rerank", baseUrl), nil
 		case constant.RelayModeResponses:
 			return fmt.Sprintf("%s/api/v3/responses", baseUrl), nil
 		case constant.RelayModeAudioSpeech:
-			// Use OpenAI-compatible HTTP endpoint instead of WebSocket
-			return fmt.Sprintf("%s/api/v3/audio/speech", baseUrl), nil
+			// Use Volcengine's dedicated TTS API (not OpenAI-compatible)
+			return "https://openspeech.bytedance.com/api/v3/tts/submit", nil
 		default:
 		}
 	}
@@ -247,8 +181,14 @@ func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Header, info *rel
 	channel.SetupApiRequestHeader(info, c, req)
 
 	if info.RelayMode == constant.RelayModeAudioSpeech {
-		// Standard Bearer Token auth for OpenAI-compatible endpoint
-		req.Set("Authorization", "Bearer "+info.ApiKey)
+		// Volcengine TTS uses appid|access_token format
+		parts := strings.Split(info.ApiKey, "|")
+		if len(parts) == 2 {
+			req.Set("X-Api-App-Id", parts[0])
+			req.Set("X-Api-Access-Key", parts[1])
+		}
+		// Use upstream model name as resource ID (e.g. seed-tts-1.0, seed-tts-2.0)
+		req.Set("X-Api-Resource-Id", info.UpstreamModelName)
 		req.Set("Content-Type", "application/json")
 		return nil
 	} else if info.RelayMode == constant.RelayModeImagesEdits {
@@ -287,6 +227,10 @@ func (a *Adaptor) ConvertOpenAIResponsesRequest(c *gin.Context, info *relaycommo
 }
 
 func (a *Adaptor) DoRequest(c *gin.Context, info *relaycommon.RelayInfo, requestBody io.Reader) (any, error) {
+	// For TTS, we handle the request in DoResponse (submit/query pattern)
+	if info.RelayMode == constant.RelayModeAudioSpeech {
+		return nil, nil
+	}
 	return channel.DoApiRequest(a, c, info, requestBody)
 }
 
@@ -299,9 +243,28 @@ func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, info *relaycom
 	}
 
 	if info.RelayMode == constant.RelayModeAudioSpeech {
-		// Delegate to OpenAI-compatible TTS handler (HTTP response, no WebSocket)
-		usageResult := openai.OpenaiTTSHandler(c, resp, info)
-		return usageResult, nil
+		encoding := mapEncoding(c.GetString(contextKeyResponseFormat))
+
+		volcRequestInterface, exists := c.Get(contextKeyTTSRequest)
+		if !exists {
+			return nil, types.NewErrorWithStatusCode(
+				errors.New("volcengine TTS request not found in context"),
+				types.ErrorCodeBadRequestBody,
+				http.StatusInternalServerError,
+			)
+		}
+
+		volcRequest, ok := volcRequestInterface.(VolcengineTTSRequest)
+		if !ok {
+			return nil, types.NewErrorWithStatusCode(
+				errors.New("invalid volcengine TTS request type"),
+				types.ErrorCodeBadRequestBody,
+				http.StatusInternalServerError,
+			)
+		}
+
+		// Use new API v3 submit/query pattern
+		return handleTTSV3SubmitQuery(c, volcRequest, info, encoding)
 	}
 
 	adaptor := openai.Adaptor{}

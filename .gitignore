@@ -47,3 +47,4 @@ frontend/.env.*.local
 # Build artifacts
 vancine-custom.tar.gz
 *.tar.gz
+.gstack/

@@ -30,7 +30,7 @@ Do NOT use the `Read` tool, `cat`, or any file-reading command to open binary im
 ## Pending Tasks (2026-06-05)
 
 1. ~~**BUG: 操练场分组不可选择**~~ — group 下拉框无法选择/切换分组 ✅
-2. **BUG: 音频模型路由错误** — isAudioModel 被归入视频/3D 分支，需接入音频端点后修复
+2. ~~**BUG: 音频模型路由错误**~~ — isAudioModel 被归入视频/3D 分支，需接入音频端点后修复 ✅
 3. ~~**BUG: 操练场 Doubao 文本模型调用失败**~~ — 火山方舟文本模型（Doubao-pro/lite 系列）请求报错，需排查路由或参数格式 ✅
 4. 3D 模型浏览器内预览（model-viewer / three.js）
 5. 消息中视频/图片的富媒体渲染
