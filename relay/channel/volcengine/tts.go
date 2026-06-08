@@ -384,11 +384,13 @@ func handleTTSV3SubmitQuery(c *gin.Context, volcRequest VolcengineTTSRequest, in
 		)
 	}
 
-	// Set headers
+	// Set auth headers (support both new and old formats)
 	parts := strings.Split(info.ApiKey, "|")
 	if len(parts) == 2 {
 		req.Header.Set("X-Api-App-Id", parts[0])
 		req.Header.Set("X-Api-Access-Key", parts[1])
+	} else {
+		req.Header.Set("X-Api-Key", info.ApiKey)
 	}
 	req.Header.Set("X-Api-Resource-Id", info.UpstreamModelName)
 	req.Header.Set("Content-Type", "application/json")
@@ -440,10 +442,11 @@ func handleTTSV3SubmitQuery(c *gin.Context, volcRequest VolcengineTTSRequest, in
 		queryBody, _ := json.Marshal(queryReq)
 
 		req, _ := http.NewRequest("POST", "https://openspeech.bytedance.com/api/v3/tts/query", bytes.NewReader(queryBody))
-		parts := strings.Split(info.ApiKey, "|")
 		if len(parts) == 2 {
 			req.Header.Set("X-Api-App-Id", parts[0])
 			req.Header.Set("X-Api-Access-Key", parts[1])
+		} else {
+			req.Header.Set("X-Api-Key", info.ApiKey)
 		}
 		req.Header.Set("X-Api-Resource-Id", info.UpstreamModelName)
 		req.Header.Set("Content-Type", "application/json")

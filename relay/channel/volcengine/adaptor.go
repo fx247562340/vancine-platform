@@ -181,11 +181,15 @@ func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Header, info *rel
 	channel.SetupApiRequestHeader(info, c, req)
 
 	if info.RelayMode == constant.RelayModeAudioSpeech {
-		// Volcengine TTS uses appid|access_token format
+		// Support both new (X-Api-Key) and old (appid|access_token) auth formats
 		parts := strings.Split(info.ApiKey, "|")
 		if len(parts) == 2 {
+			// Old format: appid|access_token
 			req.Set("X-Api-App-Id", parts[0])
 			req.Set("X-Api-Access-Key", parts[1])
+		} else {
+			// New format: single API key
+			req.Set("X-Api-Key", info.ApiKey)
 		}
 		// Use upstream model name as resource ID (e.g. seed-tts-1.0, seed-tts-2.0)
 		req.Set("X-Api-Resource-Id", info.UpstreamModelName)
