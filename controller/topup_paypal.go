@@ -364,7 +364,7 @@ func verifyPayPalSignature(payload []byte, headers map[string]string) bool {
 
 	if certUrl == "" || transmissionId == "" || sig == "" || timestamp == "" {
 		logger.LogWarn(nil, fmt.Sprintf("PayPal webhook 验签失败: 缺少必要请求头 cert_url=%q transmission_id=%q sig=%q timestamp=%q",
-			certUrl, transmissionId, sig != "", timestamp))
+			certUrl, transmissionId, sig, timestamp))
 		return false
 	}
 
@@ -467,6 +467,13 @@ func PayPalWebhook(c *gin.Context) {
 	headers := make(map[string]string)
 	for _, h := range []string{paypalSignatureHeader, paypalSignatureSigHeader, paypalSignatureCertUrlHeader, paypalSignatureTimestampHeader, "paypal-auth-algo"} {
 		headers[h] = c.GetHeader(h)
+	}
+
+	// Debug: log all incoming PayPal headers
+	for k, v := range c.Request.Header {
+		if strings.HasPrefix(strings.ToLower(k), "paypal-") {
+			logger.LogInfo(ctx, fmt.Sprintf("PayPal webhook 请求头 %s=%s", k, v))
+		}
 	}
 
 	if !verifyPayPalSignature(payload, headers) {
