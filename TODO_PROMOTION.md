@@ -64,7 +64,7 @@
 
 ### 3. 域名职责明确
 - [ ] `vancine.com` — 主站/控制台
-- [ ] `api.vancine.com` — API 端点
+- [ ] `vancine.com` — API 端点
 - [ ] 设置 canonical，避免重复内容
 
 ### 4. CTA 调整

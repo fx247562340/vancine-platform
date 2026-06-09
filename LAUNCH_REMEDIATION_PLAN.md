@@ -235,7 +235,7 @@ ports:
 nc -vz <production-host> 3000
 ```
 
-预期结果为连接失败；`https://vancine.com` 和 `https://api.vancine.com` 仍应正常。
+预期结果为连接失败；`https://vancine.com` 和 `https://vancine.com` 仍应正常。
 
 ### 4.4 启用防火墙并加固 SSH
 
@@ -478,7 +478,7 @@ services:
 
 ```bash
 curl -fsS https://vancine.com/api/status
-curl -fsS https://api.vancine.com/api/status
+curl -fsS https://vancine.com/api/status
 curl -fsS https://vancine.com/docs >/dev/null
 ```
 

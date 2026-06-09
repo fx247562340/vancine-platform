@@ -31,7 +31,7 @@
 **文本对话**：
 
 ```bash
-curl -X POST "https://api.vancine.com/v1/chat/completions" \
+curl -X POST "https://vancine.com/v1/chat/completions" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d '{
@@ -44,7 +44,7 @@ curl -X POST "https://api.vancine.com/v1/chat/completions" \
 **图片生成**：
 
 ```bash
-curl -X POST "https://api.vancine.com/v1/images/generations" \
+curl -X POST "https://vancine.com/v1/images/generations" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d '{
@@ -61,7 +61,7 @@ curl -X POST "https://api.vancine.com/v1/images/generations" \
 import requests
 
 API_KEY = "YOUR_API_KEY"
-BASE_URL = "https://api.vancine.com/v1"
+BASE_URL = "https://vancine.com/v1"
 
 # 文本对话
 response = requests.post(
@@ -83,7 +83,7 @@ print(response.json()["choices"][0]["message"]["content"])
 ### 方式三：Node.js
 
 ```javascript
-const response = await fetch('https://api.vancine.com/v1/chat/completions', {
+const response = await fetch('https://vancine.com/v1/chat/completions', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer YOUR_API_KEY',
@@ -109,7 +109,7 @@ from openai import OpenAI
 
 client = OpenAI(
     api_key="YOUR_API_KEY",
-    base_url="https://api.vancine.com/v1"
+    base_url="https://vancine.com/v1"
 )
 
 response = client.chat.completions.create(
@@ -126,7 +126,7 @@ import OpenAI from 'openai';
 
 const client = new OpenAI({
   apiKey: 'YOUR_API_KEY',
-  baseURL: 'https://api.vancine.com/v1',
+  baseURL: 'https://vancine.com/v1',
 });
 
 const response = await client.chat.completions.create({

@@ -1,7 +1,7 @@
 # Vancine 模型可用性测试报告
 
 > 测试时间：2026-06-09
-> 测试环境：https://api.vancine.com
+> 测试环境：https://vancine.com
 
 ## 测试结果汇总
 
@@ -58,7 +58,7 @@
 ### 文本生成
 
 ```bash
-curl -X POST "https://api.vancine.com/v1/chat/completions" \
+curl -X POST "https://vancine.com/v1/chat/completions" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d '{
@@ -71,7 +71,7 @@ curl -X POST "https://api.vancine.com/v1/chat/completions" \
 ### 图片生成
 
 ```bash
-curl -X POST "https://api.vancine.com/v1/images/generations" \
+curl -X POST "https://vancine.com/v1/images/generations" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d '{
@@ -85,7 +85,7 @@ curl -X POST "https://api.vancine.com/v1/images/generations" \
 ### 视频生成
 
 ```bash
-curl -X POST "https://api.vancine.com/v1/videos" \
+curl -X POST "https://vancine.com/v1/videos" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d '{
@@ -97,7 +97,7 @@ curl -X POST "https://api.vancine.com/v1/videos" \
 ### 语音合成
 
 ```bash
-curl -X POST "https://api.vancine.com/v1/audio/speech" \
+curl -X POST "https://vancine.com/v1/audio/speech" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d '{

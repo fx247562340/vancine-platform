@@ -191,7 +191,7 @@ const SAMPLES = {
   chat: {
     curl: {
       title: 'cURL',
-      code: `curl -X POST https://api.vancine.com/v1/chat/completions \\
+      code: `curl -X POST https://vancine.com/v1/chat/completions \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer sk-your-api-key" \\
   -d '{
@@ -211,7 +211,7 @@ const SAMPLES = {
 
 client = OpenAI(
     api_key="sk-your-api-key",
-    base_url="https://api.vancine.com/v1"
+    base_url="https://vancine.com/v1"
 )
 
 response = client.chat.completions.create(
@@ -242,7 +242,7 @@ for chunk in stream:
 
 const client = new OpenAI({
     apiKey: "sk-your-api-key",
-    baseURL: "https://api.vancine.com/v1",
+    baseURL: "https://vancine.com/v1",
 });
 
 const response = await client.chat.completions.create({
@@ -270,7 +270,7 @@ for await (const chunk of stream) {
   image: {
     curl: {
       title: 'cURL',
-      code: `curl -X POST https://api.vancine.com/v1/images/generations \\
+      code: `curl -X POST https://vancine.com/v1/images/generations \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer sk-your-api-key" \\
   -d '{
@@ -286,7 +286,7 @@ for await (const chunk of stream) {
       code: `import requests
 
 response = requests.post(
-    "https://api.vancine.com/v1/images/generations",
+    "https://vancine.com/v1/images/generations",
     headers={
         "Authorization": "Bearer sk-your-api-key",
         "Content-Type": "application/json"
@@ -307,7 +307,7 @@ for img in data["data"]:
     node: {
       title: 'Node.js',
       code: `const response = await fetch(
-    "https://api.vancine.com/v1/images/generations",
+    "https://vancine.com/v1/images/generations",
     {
         method: "POST",
         headers: {
@@ -332,7 +332,7 @@ console.log(data.data[0].url);`,
     curl: {
       title: 'cURL',
       code: `# Step 1: Submit generation task
-curl -X POST https://api.vancine.com/v1/video/generations \\
+curl -X POST https://vancine.com/v1/video/generations \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer sk-your-api-key" \\
   -d '{
@@ -344,7 +344,7 @@ curl -X POST https://api.vancine.com/v1/video/generations \\
 # Response: {"task_id": "task-abc123", "status": "pending"}
 
 # Step 2: Poll task status
-curl https://api.vancine.com/api/task/task-abc123 \\
+curl https://vancine.com/api/task/task-abc123 \\
   -H "Authorization: Bearer sk-your-api-key"
 
 # Response when done:
@@ -355,7 +355,7 @@ curl https://api.vancine.com/api/task/task-abc123 \\
       code: `import requests, time
 
 API_KEY = "sk-your-api-key"
-BASE = "https://api.vancine.com/v1"
+BASE = "https://vancine.com/v1"
 
 # Submit task
 resp = requests.post(
@@ -372,7 +372,7 @@ print(f"Task submitted: {task_id}")
 # Poll until complete
 while True:
     result = requests.get(
-        f"https://api.vancine.com/api/task/{task_id}",
+        f"https://vancine.com/api/task/{task_id}",
         headers={"Authorization": f"Bearer {API_KEY}"}
     ).json()
 
@@ -391,7 +391,7 @@ while True:
     node: {
       title: 'Node.js',
       code: `const API_KEY = "sk-your-api-key";
-const BASE = "https://api.vancine.com/v1";
+const BASE = "https://vancine.com/v1";
 
 // Submit task
 const resp = await fetch(\`\${BASE}/video/generations\`, {
@@ -413,7 +413,7 @@ let result;
 do {
     await new Promise((r) => setTimeout(r, 5000));
     const res = await fetch(
-        \`https://api.vancine.com/api/task/\${task_id}\`,
+        \`https://vancine.com/api/task/\${task_id}\`,
         { headers: { Authorization: \`Bearer \${API_KEY}\` } }
     );
     result = await res.json();
@@ -539,7 +539,7 @@ const Docs = () => {
                 <table style={{ width: '100%', fontSize: '14px', borderCollapse: 'collapse' }}>
                   <tbody>
                     {[
-                      ['Base URL', 'https://api.vancine.com/v1'],
+                      ['Base URL', 'https://vancine.com/v1'],
                       [isZh ? 'API 格式' : 'API Format', 'OpenAI 兼容 (JSON)'],
                       [isZh ? '认证方式' : 'Authentication', 'Bearer Token'],
                       [isZh ? '流式输出' : 'Streaming', 'SSE (Server-Sent Events)'],
@@ -554,7 +554,7 @@ const Docs = () => {
               </div>
 
               <Callout type="tip">
-                {isZh ? '所有 SDK（OpenAI、Anthropic 等）只需将 base_url 改为 https://api.vancine.com/v1 即可使用。' : 'All SDKs (OpenAI, Anthropic, etc.) work by changing base_url to https://api.vancine.com/v1.'}
+                {isZh ? '所有 SDK（OpenAI、Anthropic 等）只需将 base_url 改为 https://vancine.com/v1 即可使用。' : 'All SDKs (OpenAI, Anthropic, etc.) work by changing base_url to https://vancine.com/v1.'}
               </Callout>
             </section>
 
@@ -582,7 +582,7 @@ const Docs = () => {
             <section id="models" style={{ marginBottom: '64px' }}>
               <H2>{isZh ? '模型与定价' : 'Models & Pricing'}</H2>
               <P>{isZh ? '访问 /pricing 页面查看所有可用模型及其定价。也可通过 API 获取：' : 'Visit the /pricing page for all available models and pricing. Or fetch via API:'}</P>
-              <CodeBlock code="curl https://api.vancine.com/api/pricing" title="Get all models" />
+              <CodeBlock code="curl https://vancine.com/api/pricing" title="Get all models" />
 
               <H3>{isZh ? '主要模型列表' : 'Featured Models'}</H3>
               <Table
@@ -848,8 +848,8 @@ data: [DONE]`}
                 {
                   h: 'Cursor',
                   steps: isZh
-                    ? ['打开 Cursor → Settings → Models', '点击 "OpenAI API Key"', '输入 Vancine API Key', '设置 Base URL 为 https://api.vancine.com/v1', '选择模型（如 deepseek-v4-flash）']
-                    : ['Open Cursor → Settings → Models', 'Click "OpenAI API Key"', 'Enter your Vancine API Key', 'Set Base URL to https://api.vancine.com/v1', 'Select model (e.g. deepseek-v4-flash)'],
+                    ? ['打开 Cursor → Settings → Models', '点击 "OpenAI API Key"', '输入 Vancine API Key', '设置 Base URL 为 https://vancine.com/v1', '选择模型（如 deepseek-v4-flash）']
+                    : ['Open Cursor → Settings → Models', 'Click "OpenAI API Key"', 'Enter your Vancine API Key', 'Set Base URL to https://vancine.com/v1', 'Select model (e.g. deepseek-v4-flash)'],
                 },
                 {
                   h: 'Windsurf',
@@ -860,8 +860,8 @@ data: [DONE]`}
                 {
                   h: 'Cline (VS Code)',
                   steps: isZh
-                    ? ['安装 Cline 扩展', '打开 Cline 设置', '选择 Provider: OpenAI Compatible', '输入 Base URL: https://api.vancine.com/v1', '输入 API Key', '选择模型']
-                    : ['Install Cline extension', 'Open Cline settings', 'Select Provider: OpenAI Compatible', 'Enter Base URL: https://api.vancine.com/v1', 'Enter API Key', 'Select model'],
+                    ? ['安装 Cline 扩展', '打开 Cline 设置', '选择 Provider: OpenAI Compatible', '输入 Base URL: https://vancine.com/v1', '输入 API Key', '选择模型']
+                    : ['Install Cline extension', 'Open Cline settings', 'Select Provider: OpenAI Compatible', 'Enter Base URL: https://vancine.com/v1', 'Enter API Key', 'Select model'],
                 },
                 {
                   h: 'Cherry Studio',
@@ -885,7 +885,7 @@ data: [DONE]`}
               {[
                 { q: isZh ? '如何获取 API Key？' : 'How to get an API Key?', a: isZh ? '注册账号后，在控制台 → 令牌管理中创建。' : 'After registration, create one in Console → Token Management.' },
                 { q: isZh ? '支持哪些模型？' : 'Which models are supported?', a: isZh ? '访问 /pricing 页面查看完整模型列表，或调用 GET /api/pricing 接口。' : 'Visit /pricing for the full list, or call GET /api/pricing.' },
-                { q: isZh ? '如何切换到 Vancine？' : 'How to switch to Vancine?', a: isZh ? '将 SDK 的 base_url 改为 https://api.vancine.com/v1，替换 API Key 即可。' : 'Change your SDK base_url to https://api.vancine.com/v1 and replace the API Key.' },
+                { q: isZh ? '如何切换到 Vancine？' : 'How to switch to Vancine?', a: isZh ? '将 SDK 的 base_url 改为 https://vancine.com/v1，替换 API Key 即可。' : 'Change your SDK base_url to https://vancine.com/v1 and replace the API Key.' },
                 { q: isZh ? '视频生成为什么没有直接返回结果？' : "Why doesn't video generation return results immediately?", a: isZh ? '视频生成是异步任务，提交后返回 task_id，需要轮询 /api/task/{taskId} 获取结果。' : 'Video generation is async. A task_id is returned after submission — poll /api/task/{taskId} for results.' },
               ].map((item, i) => (
                 <div key={i} style={{ marginBottom: '16px', border: `1px solid ${C.border}`, borderRadius: '12px', padding: '20px' }}>

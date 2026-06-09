@@ -281,7 +281,7 @@ export default function SettingsPaymentGatewayPayPal(props) {
                 <Text strong>{t('Webhook URL')}</Text>
                 <br />
                 <Text code>
-                  {props.options?.ServerAddress || 'https://api.vancine.com'}
+                  {props.options?.ServerAddress || 'https://vancine.com'}
                   /api/paypal/webhook
                 </Text>
                 <br />

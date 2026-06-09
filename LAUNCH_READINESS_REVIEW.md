@@ -170,7 +170,7 @@
 
 ## 已通过项目
 
-- `vancine.com` 与 `api.vancine.com` 可通过 HTTPS 访问。
+- `vancine.com` 与 `vancine.com` 可通过 HTTPS 访问。
 - TLS 1.0 和 1.1 已禁用，TLS 1.2 和 1.3 可用。
 - Nginx 配置检查通过。
 - 生产主容器当前为 Healthy。

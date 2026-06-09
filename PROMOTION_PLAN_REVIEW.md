@@ -42,7 +42,7 @@
 |---|---|---|
 | 没有完整转化漏斗 | Waitlist 会记录来源，但注册、首次调用、充值未形成统一来源分析 | 为每个渠道使用独立来源参数，至少记录访问、注册、首次调用、充值 |
 | GitHub 定位混乱 | 仓库是 `QuantumNous/new-api` 的 fork，当前 0 Star，README 主要介绍上游项目 | 不要把 GitHub Star 当核心指标；先制作 Vancine 专属 README 和 3 分钟接入示例 |
-| 两个域名内容重复 | `vancine.com` 与 `api.vancine.com` 当前均展示同一页面 | 明确主站、控制台和 API 的职责，设置 canonical，避免用户困惑 |
+| 两个域名内容重复 | `vancine.com` 与 `vancine.com` 当前均展示同一页面 | 明确主站、控制台和 API 的职责，设置 canonical，避免用户困惑 |
 | Waitlist 与已上线产品冲突 | 产品似乎已可注册使用，但仍有 Early Access waitlist | 若已开放，CTA 应改成“免费试用”；若未开放，则所有推广统一指向 waitlist |
 | 价格比较缺少证据 | 页面展示百分比节省和访问门槛 | 为每一项比较标注日期、规格和官方价格来源，并定期复核 |
 
