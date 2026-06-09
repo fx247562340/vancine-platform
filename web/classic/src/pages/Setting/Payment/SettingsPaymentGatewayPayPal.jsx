@@ -107,6 +107,8 @@ export default function SettingsPaymentGatewayPayPal(props) {
     />
   );
 
+  const isMasked = (val) => val && val.includes('***');
+
   const submitPayPalSetting = async () => {
     setLoading(true);
     try {
@@ -115,22 +117,22 @@ export default function SettingsPaymentGatewayPayPal(props) {
       options.push({ key: 'PayPalEnabled', value: payPalEnabled ? 'true' : 'false' });
       options.push({ key: 'PayPalTestMode', value: testMode ? 'true' : 'false' });
 
-      if (inputs.PayPalClientId) {
+      if (inputs.PayPalClientId && !isMasked(inputs.PayPalClientId)) {
         options.push({ key: 'PayPalClientId', value: inputs.PayPalClientId });
       }
-      if (inputs.PayPalClientSecret) {
+      if (inputs.PayPalClientSecret && !isMasked(inputs.PayPalClientSecret)) {
         options.push({ key: 'PayPalClientSecret', value: inputs.PayPalClientSecret });
       }
-      if (inputs.PayPalWebhookId) {
+      if (inputs.PayPalWebhookId && !isMasked(inputs.PayPalWebhookId)) {
         options.push({ key: 'PayPalWebhookId', value: inputs.PayPalWebhookId });
       }
-      if (inputs.PayPalSandboxClientId) {
+      if (inputs.PayPalSandboxClientId && !isMasked(inputs.PayPalSandboxClientId)) {
         options.push({ key: 'PayPalSandboxClientId', value: inputs.PayPalSandboxClientId });
       }
-      if (inputs.PayPalSandboxClientSecret) {
+      if (inputs.PayPalSandboxClientSecret && !isMasked(inputs.PayPalSandboxClientSecret)) {
         options.push({ key: 'PayPalSandboxClientSecret', value: inputs.PayPalSandboxClientSecret });
       }
-      if (inputs.PayPalSandboxWebhookId) {
+      if (inputs.PayPalSandboxWebhookId && !isMasked(inputs.PayPalSandboxWebhookId)) {
         options.push({ key: 'PayPalSandboxWebhookId', value: inputs.PayPalSandboxWebhookId });
       }
 

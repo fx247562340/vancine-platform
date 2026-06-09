@@ -75,6 +75,15 @@ func buildCompletionRatioMetaValue(optionValues map[string]string) string {
 	return string(jsonBytes)
 }
 
+// maskSecret returns a partially masked version of a secret value.
+// e.g. "sk-abc123456789xyz" -> "sk-abc***xyz"
+func maskSecret(value string) string {
+	if len(value) <= 8 {
+		return "***"
+	}
+	return value[:4] + "***" + value[len(value)-3:]
+}
+
 func GetOptions(c *gin.Context) {
 	var options []*model.Option
 	optionValues := make(map[string]string)
@@ -87,6 +96,13 @@ func GetOptions(c *gin.Context) {
 			strings.HasSuffix(k, "secret") ||
 			strings.HasSuffix(k, "api_key")
 		if isSensitiveKey {
+			if value != "" {
+				masked := maskSecret(value)
+				options = append(options, &model.Option{
+					Key:   k,
+					Value: masked,
+				})
+			}
 			continue
 		}
 		options = append(options, &model.Option{
