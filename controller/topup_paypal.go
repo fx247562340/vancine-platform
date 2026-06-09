@@ -3,13 +3,7 @@ package controller
 import (
 	"bytes"
 	"context"
-	"crypto"
-	"crypto/rsa"
-	"crypto/sha256"
-	"crypto/x509"
-	"encoding/base64"
 	"encoding/json"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
@@ -357,53 +351,101 @@ type PayPalWebhookEvent struct {
 }
 
 func verifyPayPalSignature(payload []byte, headers map[string]string) bool {
-	if setting.GetPayPalWebhookId() == "" {
-		return false
-	}
-
-	certURL := headers[paypalSignatureCertUrlHeader]
-	if certURL == "" {
-		return false
-	}
-
-	// Fetch the certificate
-	client := &http.Client{Timeout: 10 * time.Second}
-	certResp, err := client.Get(certURL)
-	if err != nil {
-		logger.LogError(nil, fmt.Sprintf("PayPal 获取签名证书失败 error=%q", err.Error()))
-		return false
-	}
-	defer certResp.Body.Close()
-
-	certBody, err := io.ReadAll(certResp.Body)
-	if err != nil {
-		return false
-	}
-
-	// Parse the PEM certificate
-	block, _ := pem.Decode(certBody)
-	if block == nil {
-		return false
-	}
-	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		return false
-	}
-
-	// Verify the signature
-	transmissionId := headers[paypalSignatureHeader]
-	timestamp := headers[paypalSignatureTimestampHeader]
 	webhookId := setting.GetPayPalWebhookId()
-
-	signedData := fmt.Sprintf("%s|%s|%s|%s", transmissionId, timestamp, webhookId, string(payload))
-	sigBytes, err := base64.StdEncoding.DecodeString(headers[paypalSignatureSigHeader])
-	if err != nil {
+	if webhookId == "" {
+		logger.LogError(nil, "PayPal webhook 验签失败: WebhookId 未配置")
 		return false
 	}
 
-	hash := sha256.Sum256([]byte(signedData))
-	err = rsa.VerifyPKCS1v15(cert.PublicKey.(*rsa.PublicKey), crypto.SHA256, hash[:], sigBytes)
-	return err == nil
+	certUrl := headers[paypalSignatureCertUrlHeader]
+	transmissionId := headers[paypalSignatureHeader]
+	sig := headers[paypalSignatureSigHeader]
+	timestamp := headers[paypalSignatureTimestampHeader]
+
+	if certUrl == "" || transmissionId == "" || sig == "" || timestamp == "" {
+		logger.LogWarn(nil, fmt.Sprintf("PayPal webhook 验签失败: 缺少必要请求头 cert_url=%q transmission_id=%q sig=%q timestamp=%q",
+			certUrl, transmissionId, sig != "", timestamp))
+		return false
+	}
+
+	// Build verify request per PayPal official API
+	// https://developer.paypal.com/api/rest/webhooks/
+	verifyReq := struct {
+		AuthAlgo        string          `json:"auth_algo"`
+		CertUrl         string          `json:"cert_url"`
+		TransmissionId  string          `json:"transmission_id"`
+		TransmissionSig string          `json:"transmission_sig"`
+		TransmissionTime string         `json:"transmission_time"`
+		WebhookId       string          `json:"webhook_id"`
+		WebhookEvent    json.RawMessage `json:"webhook_event"`
+	}{
+		AuthAlgo:        headers["paypal-auth-algo"],
+		CertUrl:         certUrl,
+		TransmissionId:  transmissionId,
+		TransmissionSig: sig,
+		TransmissionTime: timestamp,
+		WebhookId:       webhookId,
+		WebhookEvent:    payload,
+	}
+
+	body, err := json.Marshal(verifyReq)
+	if err != nil {
+		logger.LogError(nil, fmt.Sprintf("PayPal webhook 验签构建请求失败 error=%q", err.Error()))
+		return false
+	}
+
+	apiBase := setting.GetPayPalAPIBase()
+	url := apiBase + "/v1/notifications/verify-webhook-signature"
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	req, err := http.NewRequest("POST", url, bytes.NewReader(body))
+	if err != nil {
+		logger.LogError(nil, fmt.Sprintf("PayPal webhook 验签创建请求失败 error=%q", err.Error()))
+		return false
+	}
+
+	token, err := getPayPalToken()
+	if err != nil {
+		logger.LogError(nil, fmt.Sprintf("PayPal webhook 验签获取 token 失败 error=%q", err.Error()))
+		return false
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		logger.LogError(nil, fmt.Sprintf("PayPal webhook 验签请求失败 error=%q", err.Error()))
+		return false
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logger.LogError(nil, fmt.Sprintf("PayPal webhook 验签读取响应失败 error=%q", err.Error()))
+		return false
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		logger.LogError(nil, fmt.Sprintf("PayPal webhook 验签请求异常 status=%d body=%s", resp.StatusCode, string(respBody)))
+		return false
+	}
+
+	var verifyResp struct {
+		VerificationStatus string `json:"verification_status"`
+	}
+	if err := json.Unmarshal(respBody, &verifyResp); err != nil {
+		logger.LogError(nil, fmt.Sprintf("PayPal webhook 验签解析响应失败 body=%s", string(respBody)))
+		return false
+	}
+
+	if verifyResp.VerificationStatus != "SUCCESS" {
+		logger.LogWarn(nil, fmt.Sprintf("PayPal webhook 验签未通过 status=%s transmission_id=%s",
+			verifyResp.VerificationStatus, transmissionId))
+		return false
+	}
+
+	return true
 }
 
 func PayPalWebhook(c *gin.Context) {
@@ -423,17 +465,14 @@ func PayPalWebhook(c *gin.Context) {
 
 	// Verify signature
 	headers := make(map[string]string)
-	for _, h := range []string{paypalSignatureHeader, paypalSignatureSigHeader, paypalSignatureCertUrlHeader, paypalSignatureTimestampHeader} {
+	for _, h := range []string{paypalSignatureHeader, paypalSignatureSigHeader, paypalSignatureCertUrlHeader, paypalSignatureTimestampHeader, "paypal-auth-algo"} {
 		headers[h] = c.GetHeader(h)
 	}
 
 	if !verifyPayPalSignature(payload, headers) {
 		logger.LogWarn(ctx, fmt.Sprintf("PayPal webhook 签名验证失败 path=%q client_ip=%s", c.Request.RequestURI, c.ClientIP()))
-		// In test mode, skip signature verification
-		if !setting.PayPalTestMode {
-			c.AbortWithStatus(http.StatusForbidden)
-			return
-		}
+		c.AbortWithStatus(http.StatusForbidden)
+		return
 	}
 
 	var event PayPalWebhookEvent

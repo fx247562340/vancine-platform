@@ -34,7 +34,7 @@ const L = {
         { icon: '🔌', title: 'Unified API', desc: 'One endpoint for text, image, video, audio, and 3D generation. OpenAI-compatible format — switch in minutes.' },
         { icon: '💰', title: 'Best Pricing', desc: 'Access Chinese AI models at 20-50% the cost of international alternatives. Pay-as-you-go, no subscriptions.' },
         { icon: '⚡', title: 'Low Latency', desc: 'Optimized routing and edge infrastructure for fast response times across Asia, North America, and Europe.' },
-        { icon: '🔒', title: 'Enterprise Ready', desc: 'SOC2-aligned practices, encrypted API keys, usage analytics, and team management built in.' },
+        { icon: '🔒', title: 'Secure & Private', desc: 'Encrypted API keys, usage analytics, and team management built in. Your data stays yours.' },
       ],
     },
     models: {
@@ -50,9 +50,9 @@ const L = {
     story: {
       title: 'Our Story',
       paragraphs: [
-        'Vancine was founded in 2025 by a team of engineers who saw a simple problem: Chinese AI models were world-class, but nearly impossible for international developers to access.',
+        'Vancine was founded in 2025 by a solo developer who saw a simple problem: Chinese AI models were world-class, but nearly impossible for international developers to access.',
         'We built a unified API gateway that normalizes dozens of different model APIs into a single, OpenAI-compatible interface. No more juggling multiple providers, managing separate billing, or dealing with language barriers.',
-        'Today, Vancine serves thousands of developers across 50+ countries, processing millions of API requests daily. We are backed by leading investors and partnered with China\'s top AI labs.',
+        'Vancine is still in its early stages. We are actively building and improving based on real user feedback. If you encounter any issues, please reach out — we respond to every message.',
       ],
     },
     contact: {
@@ -81,7 +81,7 @@ const L = {
         { icon: '🔌', title: '统一 API', desc: '一个端点覆盖文本、图片、视频、音频和 3D 生成。OpenAI 兼容格式，分钟级切换。' },
         { icon: '💰', title: '最优价格', desc: '以国际模型 20-50% 的价格使用中国 AI 模型。按量付费，无订阅。' },
         { icon: '⚡', title: '低延迟', desc: '优化路由和边缘基础设施，覆盖亚洲、北美和欧洲的快速响应。' },
-        { icon: '🔒', title: '企业就绪', desc: 'SOC2 对齐实践、加密 API Key、用量分析和团队管理。' },
+        { icon: '🔒', title: '安全私密', desc: '加密 API Key、用量分析和团队管理。您的数据始终属于您。' },
       ],
     },
     models: {
@@ -97,9 +97,9 @@ const L = {
     story: {
       title: '我们的故事',
       paragraphs: [
-        'Vancine 创立于 2025 年，创始团队发现一个简单的问题：中国的 AI 模型已达世界水平，但国际开发者几乎无法使用。',
+        'Vancine 创立于 2025 年，由一位独立开发者发起。我们发现一个简单的问题：中国的 AI 模型已达世界水平，但国际开发者几乎无法使用。',
         '我们构建了一个统一的 API 网关，将数十种不同的模型 API 标准化为一个 OpenAI 兼容的接口。不再需要对接多个供应商、管理多个账单或克服语言障碍。',
-        '如今，Vancine 为全球 50 多个国家的数千名开发者提供服务，每日处理数百万次 API 请求。我们获得了顶级投资机构的支持，并与中国头部 AI 实验室建立了合作关系。',
+        'Vancine 仍处于早期阶段。我们正在根据真实用户反馈持续改进。如果您遇到任何问题，请联系我们 — 我们会回复每一条消息。',
       ],
     },
     contact: {

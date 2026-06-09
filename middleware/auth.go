@@ -92,8 +92,11 @@ func authHelper(c *gin.Context, minRole int) {
 			return
 		}
 	}
-	// get header New-Api-User
-	apiUserIdStr := c.Request.Header.Get("New-Api-User")
+	// get header Vancine-User (or New-Api-User for backward compatibility)
+	apiUserIdStr := c.Request.Header.Get("Vancine-User")
+	if apiUserIdStr == "" {
+		apiUserIdStr = c.Request.Header.Get("New-Api-User")
+	}
 	if apiUserIdStr == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"success": false,
