@@ -32,6 +32,7 @@ const { Text } = Typography;
 import { API, showError, showSuccess } from '../../../helpers';
 import { useTranslation } from 'react-i18next';
 import { BookOpen } from 'lucide-react';
+import { IconEyeOpened, IconEyeClosed } from '@douyinfe/semi-icons';
 
 export default function SettingsPaymentGatewayPayPal(props) {
   const { t } = useTranslation();
@@ -41,6 +42,7 @@ export default function SettingsPaymentGatewayPayPal(props) {
   // Use independent state for switches to avoid Form sync issues
   const [payPalEnabled, setPayPalEnabled] = useState(false);
   const [testMode, setTestMode] = useState(false);
+  const [showSecrets, setShowSecrets] = useState({});
 
   const [inputs, setInputs] = useState({
     PayPalClientId: '',
@@ -83,6 +85,27 @@ export default function SettingsPaymentGatewayPayPal(props) {
   const handleFormChange = (values) => {
     setInputs((prev) => ({ ...prev, ...values }));
   };
+
+  const toggleSecret = (field) => {
+    setShowSecrets((prev) => ({ ...prev, [field]: !prev[field] }));
+  };
+
+  const renderSecretField = (field, label, placeholder) => (
+    <Form.Input
+      field={field}
+      label={label}
+      placeholder={placeholder}
+      type={showSecrets[field] ? 'text' : 'password'}
+      suffix={
+        <span
+          style={{ cursor: 'pointer', color: 'var(--semi-color-text-2)' }}
+          onClick={() => toggleSecret(field)}
+        >
+          {showSecrets[field] ? <IconEyeOpened /> : <IconEyeClosed />}
+        </span>
+      }
+    />
+  );
 
   const submitPayPalSetting = async () => {
     setLoading(true);
@@ -203,28 +226,13 @@ export default function SettingsPaymentGatewayPayPal(props) {
               />
               <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 24, xl: 24, xxl: 24 }}>
                 <Col xs={24} sm={24} md={8} lg={8} xl={8}>
-                  <Form.Input
-                    field='PayPalSandboxClientId'
-                    label={t('Sandbox Client ID')}
-                    placeholder={t('PayPal Sandbox Client ID')}
-                    type='password'
-                  />
+                  {renderSecretField('PayPalSandboxClientId', t('Sandbox Client ID'), t('PayPal Sandbox Client ID'))}
                 </Col>
                 <Col xs={24} sm={24} md={8} lg={8} xl={8}>
-                  <Form.Input
-                    field='PayPalSandboxClientSecret'
-                    label={t('Sandbox Client Secret')}
-                    placeholder={t('PayPal Sandbox Client Secret')}
-                    type='password'
-                  />
+                  {renderSecretField('PayPalSandboxClientSecret', t('Sandbox Client Secret'), t('PayPal Sandbox Client Secret'))}
                 </Col>
                 <Col xs={24} sm={24} md={8} lg={8} xl={8}>
-                  <Form.Input
-                    field='PayPalSandboxWebhookId'
-                    label={t('Sandbox Webhook ID')}
-                    placeholder={t('PayPal Sandbox Webhook ID')}
-                    type='password'
-                  />
+                  {renderSecretField('PayPalSandboxWebhookId', t('Sandbox Webhook ID'), t('PayPal Sandbox Webhook ID'))}
                 </Col>
               </Row>
             </>
@@ -237,28 +245,13 @@ export default function SettingsPaymentGatewayPayPal(props) {
               />
               <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 24, xl: 24, xxl: 24 }}>
                 <Col xs={24} sm={24} md={8} lg={8} xl={8}>
-                  <Form.Input
-                    field='PayPalClientId'
-                    label={t('Production Client ID')}
-                    placeholder={t('PayPal Client ID')}
-                    type='password'
-                  />
+                  {renderSecretField('PayPalClientId', t('Production Client ID'), t('PayPal Client ID'))}
                 </Col>
                 <Col xs={24} sm={24} md={8} lg={8} xl={8}>
-                  <Form.Input
-                    field='PayPalClientSecret'
-                    label={t('Production Client Secret')}
-                    placeholder={t('PayPal Client Secret')}
-                    type='password'
-                  />
+                  {renderSecretField('PayPalClientSecret', t('Production Client Secret'), t('PayPal Client Secret'))}
                 </Col>
                 <Col xs={24} sm={24} md={8} lg={8} xl={8}>
-                  <Form.Input
-                    field='PayPalWebhookId'
-                    label={t('Production Webhook ID')}
-                    placeholder={t('PayPal Webhook ID')}
-                    type='password'
-                  />
+                  {renderSecretField('PayPalWebhookId', t('Production Webhook ID'), t('PayPal Webhook ID'))}
                 </Col>
               </Row>
             </>
@@ -293,6 +286,9 @@ export default function SettingsPaymentGatewayPayPal(props) {
             style={{ marginBottom: 16, marginTop: 16 }}
           />
 
+          <Text type='tertiary' style={{ display: 'block', marginTop: 12, fontSize: 12 }}>
+            {t('出于安全考虑，已保存的密钥不会显示。留空的字段不会覆盖已有值。')}
+          </Text>
           <Button onClick={submitPayPalSetting} style={{ marginTop: 16 }}>
             {t('更新 PayPal 设置')}
           </Button>
