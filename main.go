@@ -183,7 +183,6 @@ func main() {
 		HttpOnly: true,
 		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
-		Domain:   ".vancine.com",
 	})
 	server.Use(sessions.Sessions("session", store))
 
