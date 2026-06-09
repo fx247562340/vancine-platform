@@ -39,7 +39,7 @@ import 'dayjs/locale/zh-cn';
 // Welcome message (Do not remove this without permission from the original developer)
 if (typeof window !== 'undefined') {
   console.log(
-    '%cWE ❤ NEWAPI%c Github: https://github.com/QuantumNous/new-api',
+    '%cWE ❤ VANCINE%c Github: https://github.com/QuantumNous/new-api',
     'color: #10b981; font-weight: bold; font-size: 24px;',
     'color: inherit; font-size: 14px;',
   );

@@ -250,7 +250,7 @@ const OtherSetting = () => {
             Accept: 'application/json',
             'Content-Type': 'application/json',
             // Adding User-Agent which is often required by GitHub API
-            'User-Agent': 'new-api-update-checker',
+            'User-Agent': 'vancine-update-checker',
           },
         },
       ).then((response) => response.json());

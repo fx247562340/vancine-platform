@@ -1,7 +1,7 @@
 {
-  "name": "new-api-electron",
+  "name": "vancine-electron",
   "version": "1.0.0",
-  "description": "New API - AI Model Gateway Desktop Application",
+  "description": "Vancine - AI Model Gateway Desktop Application",
   "main": "main.js",
   "scripts": {
     "start-app": "electron .",
@@ -29,8 +29,8 @@
     "electron-builder": "^26.7.0"
   },
   "build": {
-    "appId": "com.newapi.desktop",
-    "productName": "New-API-App",
+    "appId": "com.vancine.desktop",
+    "productName": "Vancine-App",
     "publish": null,
     "directories": {
       "output": "dist"
@@ -57,8 +57,8 @@
       ],
       "extraResources": [
         {
-          "from": "../new-api",
-          "to": "bin/new-api"
+          "from": "../vancine",
+          "to": "bin/vancine"
         },
         {
           "from": "../web/dist",
@@ -94,8 +94,8 @@
       ],
       "extraResources": [
         {
-          "from": "../new-api.exe",
-          "to": "bin/new-api.exe"
+          "from": "../vancine.exe",
+          "to": "bin/vancine.exe"
         },
         {
           "from": "../LICENSE",
@@ -128,8 +128,8 @@
       "category": "Development",
       "extraResources": [
         {
-          "from": "../new-api",
-          "to": "bin/new-api"
+          "from": "../vancine",
+          "to": "bin/vancine"
         },
         {
           "from": "../LICENSE",

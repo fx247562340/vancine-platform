@@ -69,7 +69,7 @@ echo "✅ 镜像上传完成"
 # 5. 重启容器
 # ============================================================
 echo "🔄 重启服务..."
-ssh "$SERVER" "docker rm -f new-api && cd /opt/vancine-platform && docker compose up -d"
+ssh "$SERVER" "docker rm -f vancine && cd /opt/vancine-platform && docker compose up -d"
 echo "✅ 容器重启完成"
 
 # ============================================================
@@ -82,6 +82,6 @@ STATUS=$(ssh "$SERVER" "curl -s http://localhost:3000/api/status" 2>/dev/null)
 if echo "$STATUS" | grep -q '"success":true'; then
   echo "🎉 部署成功！服务正常运行"
 else
-  echo "❌ 部署可能失败，请检查: ssh $SERVER 'docker logs new-api --tail 20'"
+  echo "❌ 部署可能失败，请检查: ssh $SERVER 'docker logs vancine --tail 20'"
   exit 1
 fi
