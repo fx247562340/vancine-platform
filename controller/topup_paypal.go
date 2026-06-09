@@ -319,8 +319,8 @@ func genPayPalOrder(referenceId string, amount float64, email string) (approveUR
 
 const paypalSignatureHeader = "paypal-transmission-id"
 const paypalSignatureSigHeader = "paypal-transmission-sig"
-const paypalSignatureCertUrlHeader = "paypal-transmission-cert-url"
-const paypalSignatureTimestampHeader = "paypal-transmission-timestamp"
+const paypalSignatureCertUrlHeader = "paypal-cert-url"
+const paypalSignatureTimestampHeader = "paypal-transmission-time"
 
 type PayPalWebhookEvent struct {
 	Id           string `json:"id"`
@@ -465,7 +465,7 @@ func PayPalWebhook(c *gin.Context) {
 
 	// Verify signature
 	headers := make(map[string]string)
-	for _, h := range []string{paypalSignatureHeader, paypalSignatureSigHeader, paypalSignatureCertUrlHeader, paypalSignatureTimestampHeader, "paypal-auth-algo"} {
+	for _, h := range []string{paypalSignatureHeader, paypalSignatureSigHeader, paypalSignatureCertUrlHeader, paypalSignatureTimestampHeader, "paypal-auth-algo", "paypal-auth-version"} {
 		headers[h] = c.GetHeader(h)
 	}
 
