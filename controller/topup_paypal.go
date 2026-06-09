@@ -342,7 +342,8 @@ type PayPalWebhookEvent struct {
 					Id     string `json:"id"`
 					Status string `json:"status"`
 					Amount struct {
-						Value string `json:"value"`
+						Value        string `json:"value"`
+						CurrencyCode string `json:"currency_code"`
 					} `json:"amount"`
 				} `json:"captures"`
 			} `json:"payments"`
@@ -553,6 +554,10 @@ func HandlePayPalReturn(c *gin.Context) {
 			Captures []struct {
 				Id     string `json:"id"`
 				Status string `json:"status"`
+				Amount struct {
+					Value        string `json:"value"`
+					CurrencyCode string `json:"currency_code"`
+				} `json:"amount"`
 			} `json:"captures"`
 		} `json:"payments"`
 	}
@@ -633,6 +638,29 @@ func HandlePayPalReturn(c *gin.Context) {
 	callerIp := c.ClientIP()
 	LockOrder(referenceId)
 	defer UnlockOrder(referenceId)
+
+	// Verify capture amount matches local order
+	localOrder := model.GetTopUpByTradeNo(referenceId)
+	if localOrder == nil {
+		logger.LogWarn(ctx, fmt.Sprintf("PayPal return 本地订单不存在 trade_no=%s", referenceId))
+		c.Redirect(http.StatusFound, paymentReturnPath("/console/topup?payment_error=true"))
+		return
+	}
+	if len(orderDetail.PurchaseUnits) > 0 && len(orderDetail.PurchaseUnits[0].Payments.Captures) > 0 {
+		capture := orderDetail.PurchaseUnits[0].Payments.Captures[0]
+		if capture.Status == "COMPLETED" {
+			payPalAmount := capture.Amount.Value
+			expectedAmount := fmt.Sprintf("%.2f", localOrder.Money)
+			if payPalAmount != expectedAmount {
+				logger.LogError(ctx, fmt.Sprintf("PayPal return 金额不匹配 trade_no=%s paypal_amount=%s expected=%s currency=%s",
+					referenceId, payPalAmount, expectedAmount, capture.Amount.CurrencyCode))
+				c.Redirect(http.StatusFound, paymentReturnPath("/console/topup?payment_error=true"))
+				return
+			}
+			logger.LogInfo(ctx, fmt.Sprintf("PayPal return 金额校验通过 trade_no=%s amount=%s currency=%s",
+				referenceId, payPalAmount, capture.Amount.CurrencyCode))
+		}
+	}
 
 	err = model.RechargePayPal(referenceId, "", "", callerIp, transactionId)
 	if err != nil {
@@ -744,6 +772,27 @@ func handlePayPalCapture(ctx context.Context, event *PayPalWebhookEvent, rawPayl
 	payerEmail := event.Resource.Payer.EmailAddress
 	payerName := event.Resource.Payer.PayerId
 	transactionId := event.Resource.Id
+
+	// Verify capture amount matches local order
+	localOrder := model.GetTopUpByTradeNo(referenceId)
+	if localOrder == nil {
+		logger.LogWarn(ctx, fmt.Sprintf("PayPal webhook 本地订单不存在 trade_no=%s", referenceId))
+		return
+	}
+	if len(event.Resource.PurchaseUnits) > 0 && len(event.Resource.PurchaseUnits[0].Payments.Captures) > 0 {
+		capture := event.Resource.PurchaseUnits[0].Payments.Captures[0]
+		if capture.Status == "COMPLETED" {
+			payPalAmount := capture.Amount.Value
+			expectedAmount := fmt.Sprintf("%.2f", localOrder.Money)
+			if payPalAmount != expectedAmount {
+				logger.LogError(ctx, fmt.Sprintf("PayPal webhook 金额不匹配 trade_no=%s paypal_amount=%s expected=%s currency=%s",
+					referenceId, payPalAmount, expectedAmount, capture.Amount.CurrencyCode))
+				return
+			}
+			logger.LogInfo(ctx, fmt.Sprintf("PayPal webhook 金额校验通过 trade_no=%s amount=%s currency=%s",
+				referenceId, payPalAmount, capture.Amount.CurrencyCode))
+		}
+	}
 
 	err := model.RechargePayPal(referenceId, payerEmail, payerName, callerIp, transactionId)
 	if err != nil {
