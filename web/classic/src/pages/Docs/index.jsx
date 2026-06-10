@@ -540,7 +540,7 @@ const Docs = () => {
                   <tbody>
                     {[
                       ['Base URL', 'https://vancine.com/v1'],
-                      [isZh ? 'API 格式' : 'API Format', 'OpenAI 兼容 (JSON)'],
+                      [isZh ? 'API 格式' : 'API Format', isZh ? 'OpenAI 兼容 (JSON)' : 'OpenAI Compatible (JSON)'],
                       [isZh ? '认证方式' : 'Authentication', 'Bearer Token'],
                       [isZh ? '流式输出' : 'Streaming', 'SSE (Server-Sent Events)'],
                     ].map(([k, v], i, arr) => (
