@@ -24,6 +24,7 @@ import {
   isValidMessage,
 } from './utils';
 import axios from 'axios';
+import i18n from 'i18next';
 import { MESSAGE_ROLES } from '../constants/playground.constants';
 
 export let API = axios.create({
@@ -92,7 +93,29 @@ export function updateAPI() {
   });
 
   patchAPIInstance(API);
+
+  // Re-add Accept-Language interceptor
+  API.interceptors.request.use((config) => {
+    const lang = i18n.language || localStorage.getItem('i18nextLng') || 'en';
+    const langMap = { zh: 'zh-CN', en: 'en' };
+    const acceptLang = langMap[lang] || lang;
+    if (acceptLang) {
+      config.headers['Accept-Language'] = acceptLang;
+    }
+    return config;
+  });
 }
+
+// Add Accept-Language header based on current i18n language
+API.interceptors.request.use((config) => {
+  const lang = i18n.language || localStorage.getItem('i18nextLng') || 'en';
+  const langMap = { zh: 'zh-CN', en: 'en' };
+  const acceptLang = langMap[lang] || lang;
+  if (acceptLang) {
+    config.headers['Accept-Language'] = acceptLang;
+  }
+  return config;
+});
 
 API.interceptors.response.use(
   (response) => response,

@@ -8,6 +8,7 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
+	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/middleware"
 	"github.com/QuantumNous/new-api/model"
@@ -117,8 +118,8 @@ func GetStatus(c *gin.Context) {
 		"passkey_user_verification":   passkeySetting.UserVerification,
 		"passkey_attachment":          passkeySetting.AttachmentPreference,
 		"setup":                       constant.Setup,
-		"user_agreement_enabled":      legalSetting.UserAgreement != "",
-		"privacy_policy_enabled":      legalSetting.PrivacyPolicy != "",
+		"user_agreement_enabled":      len(legalSetting.UserAgreement) > 0,
+		"privacy_policy_enabled":      len(legalSetting.PrivacyPolicy) > 0,
 		"checkin_enabled":             operation_setting.GetCheckinSetting().Enabled,
 	}
 
@@ -181,30 +182,60 @@ func GetNotice(c *gin.Context) {
 }
 
 func GetAbout(c *gin.Context) {
+	lang := i18n.GetLangFromContext(c)
 	common.OptionMapRWMutex.RLock()
-	defer common.OptionMapRWMutex.RUnlock()
+	raw := common.OptionMap["About"]
+	common.OptionMapRWMutex.RUnlock()
+
+	// Try to parse as localized map first
+	var content string
+	if raw != "" {
+		var m map[string]string
+		if err := json.Unmarshal([]byte(raw), &m); err == nil && len(m) > 0 {
+			content = m[lang]
+			if content == "" {
+				content = m[i18n.DefaultLang]
+			}
+		} else {
+			// Plain string (old format)
+			content = raw
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
-		"data":    common.OptionMap["About"],
+		"data":    content,
 	})
 	return
 }
 
 func GetUserAgreement(c *gin.Context) {
+	lang := i18n.GetLangFromContext(c)
+	settings := system_setting.GetLegalSettings()
+	content := settings.UserAgreement[lang]
+	if content == "" {
+		content = settings.UserAgreement[i18n.DefaultLang]
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
-		"data":    system_setting.GetLegalSettings().UserAgreement,
+		"data":    content,
 	})
 	return
 }
 
 func GetPrivacyPolicy(c *gin.Context) {
+	lang := i18n.GetLangFromContext(c)
+	settings := system_setting.GetLegalSettings()
+	content := settings.PrivacyPolicy[lang]
+	if content == "" {
+		content = settings.PrivacyPolicy[i18n.DefaultLang]
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
-		"data":    system_setting.GetLegalSettings().PrivacyPolicy,
+		"data":    content,
 	})
 	return
 }

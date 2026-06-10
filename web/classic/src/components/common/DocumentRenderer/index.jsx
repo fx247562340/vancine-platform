@@ -69,12 +69,22 @@ const sanitizeHtml = (html) => {
  * @param {string} emptyMessage - 空内容时的提示消息
  */
 const DocumentRenderer = ({ apiEndpoint, title, cacheKey, emptyMessage }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
 
+  // Make cache key language-aware
+  const lang = i18n.language || 'en';
+  const normalizedLang = lang.startsWith('zh') ? 'zh-CN' : 'en';
+  const localizedCacheKey = `${cacheKey}_${normalizedLang}`;
+
+  // Clean up old non-localized cache key
+  useEffect(() => {
+    localStorage.removeItem(cacheKey);
+  }, [cacheKey]);
+
   const loadContent = async () => {
-    const cachedContent = localStorage.getItem(cacheKey) || '';
+    const cachedContent = localStorage.getItem(localizedCacheKey) || '';
     if (cachedContent) {
       setContent(cachedContent);
       setLoading(false);
@@ -85,7 +95,7 @@ const DocumentRenderer = ({ apiEndpoint, title, cacheKey, emptyMessage }) => {
       const { success, message, data } = res.data;
       if (success && data) {
         setContent(data);
-        localStorage.setItem(cacheKey, data);
+        localStorage.setItem(localizedCacheKey, data);
       } else {
         if (!cachedContent) {
           showError(message || emptyMessage);
@@ -111,7 +121,7 @@ const DocumentRenderer = ({ apiEndpoint, title, cacheKey, emptyMessage }) => {
 
   useEffect(() => {
     loadContent();
-  }, []);
+  }, [localizedCacheKey]);
 
   // 处理HTML样式注入
   useEffect(() => {

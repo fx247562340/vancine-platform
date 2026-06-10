@@ -52,9 +52,9 @@ export function LegalDocument({
   fetchDocument,
   emptyMessage,
 }: LegalDocumentProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { data, isLoading } = useQuery({
-    queryKey: [queryKey],
+    queryKey: [queryKey, i18n.language],
     queryFn: fetchDocument,
     staleTime: 10 * 60 * 1000,
   })

@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import axios, { type AxiosRequestConfig } from 'axios'
-import { t } from 'i18next'
+import i18n, { t } from 'i18next'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -151,6 +151,17 @@ export function getCommonHeaders(): Record<string, string> {
     headers['New-Api-User'] = uid
   }
 
+  // Add Accept-Language
+  const lang = i18n.language
+  const langMap: Record<string, string> = {
+    zh: 'zh-CN',
+    en: 'en',
+  }
+  const acceptLang = langMap[lang] || lang
+  if (acceptLang) {
+    headers['Accept-Language'] = acceptLang
+  }
+
   return headers
 }
 
@@ -158,12 +169,24 @@ export function getCommonHeaders(): Record<string, string> {
 // Request Interceptor
 // ============================================================================
 
-// Attach user ID header for all requests
+// Attach user ID header and Accept-Language for all requests
 api.interceptors.request.use((config) => {
   const uid = getUserId()
   if (uid) {
     // Custom header for user identification
     ;(config.headers as Record<string, string>)['New-Api-User'] = uid
+  }
+  // Map frontend language to backend Accept-Language
+  // Frontend: zh, en, fr, ru, ja, vi
+  // Backend: zh-CN, en
+  const lang = i18n.language
+  const langMap: Record<string, string> = {
+    zh: 'zh-CN',
+    en: 'en',
+  }
+  const acceptLang = langMap[lang] || lang
+  if (acceptLang) {
+    ;(config.headers as Record<string, string>)['Accept-Language'] = acceptLang
   }
   return config
 })

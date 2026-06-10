@@ -331,10 +331,20 @@ type PayPalWebhookEvent struct {
 		Id            string `json:"id"`
 		Status        string `json:"status"`
 		CustomId      string `json:"custom_id"`
+		InvoiceId     string `json:"invoice_id"`
 		Payer         struct {
 			EmailAddress string `json:"email_address"`
 			PayerId      string `json:"payer_id"`
 		} `json:"payer"`
+		Amount struct {
+			Value        string `json:"value"`
+			CurrencyCode string `json:"currency_code"`
+		} `json:"amount"`
+		Links []struct {
+			Href   string `json:"href"`
+			Rel    string `json:"rel"`
+			Method string `json:"method"`
+		} `json:"links"`
 		PurchaseUnits []struct {
 			ReferenceId string `json:"reference_id"`
 			Payments    struct {
@@ -497,6 +507,8 @@ func PayPalWebhook(c *gin.Context) {
 	switch event.EventType {
 	case "CHECKOUT.ORDER.APPROVED", "PAYMENT.CAPTURE.COMPLETED":
 		handlePayPalCapture(ctx, &event, payload, callerIp)
+	case "PAYMENT.CAPTURE.REFUNDED":
+		handlePayPalRefund(ctx, &event, payload, callerIp)
 	default:
 		logger.LogInfo(ctx, fmt.Sprintf("PayPal webhook 忽略事件 event_type=%s", event.EventType))
 	}
@@ -789,6 +801,13 @@ func handlePayPalCapture(ctx context.Context, event *PayPalWebhookEvent, rawPayl
 					referenceId, payPalAmount, expectedAmount, capture.Amount.CurrencyCode))
 				return
 			}
+			// Verify currency
+			expectedCurrency := setting.PayPalCurrency
+			if expectedCurrency != "" && capture.Amount.CurrencyCode != expectedCurrency {
+				logger.LogError(ctx, fmt.Sprintf("PayPal webhook 币种不匹配 trade_no=%s paypal_currency=%s expected=%s",
+					referenceId, capture.Amount.CurrencyCode, expectedCurrency))
+				return
+			}
 			logger.LogInfo(ctx, fmt.Sprintf("PayPal webhook 金额校验通过 trade_no=%s amount=%s currency=%s",
 				referenceId, payPalAmount, capture.Amount.CurrencyCode))
 		}
@@ -801,4 +820,77 @@ func handlePayPalCapture(ctx context.Context, event *PayPalWebhookEvent, rawPayl
 	}
 
 	logger.LogInfo(ctx, fmt.Sprintf("PayPal 充值成功 trade_no=%s payer=%s", referenceId, payerEmail))
+}
+
+// handlePayPalRefund handles PAYMENT.CAPTURE.REFUNDED webhook events.
+// It finds the original TopUp by capture ID, deducts the credited quota,
+// and marks the order as refunded.
+func handlePayPalRefund(ctx context.Context, event *PayPalWebhookEvent, rawPayload []byte, callerIp string) {
+	// The refund event resource has links with rel="up" pointing to the original capture
+	// Extract capture ID from links
+	var captureId string
+	for _, link := range event.Resource.Links {
+		if link.Rel == "up" {
+			// URL format: .../v2/payments/captures/{CAPTURE_ID}
+			parts := strings.Split(link.Href, "/")
+			if len(parts) > 0 {
+				captureId = parts[len(parts)-1]
+			}
+			break
+		}
+	}
+
+	// Fallback: try invoice_id which may contain the trade_no
+	var tradeNo string
+	if event.Resource.InvoiceId != "" {
+		tradeNo = event.Resource.InvoiceId
+	}
+
+	if captureId == "" && tradeNo == "" {
+		logger.LogWarn(ctx, fmt.Sprintf("PayPal refund 无法提取 captureId 或 tradeNo event_id=%s", event.Id))
+		return
+	}
+
+	LockOrder(captureId)
+	defer UnlockOrder(captureId)
+
+	// Find the original TopUp
+	var topUp *model.TopUp
+	if tradeNo != "" {
+		topUp = model.GetTopUpByTradeNo(tradeNo)
+	}
+	if topUp == nil && captureId != "" {
+		// Search by transaction_id (capture ID)
+		topUp = model.GetTopUpByTransactionId(captureId)
+	}
+
+	if topUp == nil {
+		logger.LogWarn(ctx, fmt.Sprintf("PayPal refund 找不到原始订单 captureId=%s tradeNo=%s", captureId, tradeNo))
+		return
+	}
+
+	if topUp.Status != common.TopUpStatusSuccess {
+		logger.LogWarn(ctx, fmt.Sprintf("PayPal refund 订单状态不是 success trade_no=%s status=%s", topUp.TradeNo, topUp.Status))
+		return
+	}
+
+	// Calculate refund amount
+	refundAmount := event.Resource.Amount.Value
+	expectedAmount := fmt.Sprintf("%.2f", topUp.Money)
+	if refundAmount != expectedAmount {
+		logger.LogError(ctx, fmt.Sprintf("PayPal refund 金额不匹配 trade_no=%s refund_amount=%s expected=%s",
+			topUp.TradeNo, refundAmount, expectedAmount))
+		// Still process the refund for partial refunds, but log the mismatch
+	}
+
+	// Deduct quota and mark as refunded in a single transaction
+	quota := int64(topUp.Money * common.QuotaPerUnit)
+	err := model.RefundPayPalTopUp(topUp.TradeNo, int(quota))
+	if err != nil {
+		logger.LogError(ctx, fmt.Sprintf("PayPal refund 事务处理失败 trade_no=%s error=%q", topUp.TradeNo, err.Error()))
+		return
+	}
+
+	logger.LogInfo(ctx, fmt.Sprintf("PayPal 退款处理成功 trade_no=%s user_id=%d quota_deducted=%d refund_amount=%s",
+		topUp.TradeNo, topUp.UserId, quota, refundAmount))
 }

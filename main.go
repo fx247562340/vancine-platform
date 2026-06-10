@@ -100,6 +100,9 @@ func main() {
 	// 热更新配置
 	go model.SyncOptions(common.SyncFrequency)
 
+	// 自动过期待支付订单（每小时检查一次，超过 24 小时的订单标记为 expired）
+	go model.StartPendingTopUpCleaner(1*time.Hour, 24*time.Hour)
+
 	// 数据看板
 	go model.UpdateQuotaData()
 

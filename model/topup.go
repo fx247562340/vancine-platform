@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/logger"
@@ -20,7 +21,7 @@ type TopUp struct {
 	PaymentMethod   string  `json:"payment_method" gorm:"type:varchar(50)"`
 	PaymentProvider string  `json:"payment_provider" gorm:"type:varchar(50);default:''"`
 	PaymentId       string  `json:"payment_id" gorm:"type:varchar(255);default:'';index"`
-	TransactionId   string  `json:"transaction_id" gorm:"type:varchar(255);default:'';index"`
+	TransactionId   string  `json:"transaction_id" gorm:"type:varchar(255);default:'';uniqueIndex"`
 	CreateTime      int64   `json:"create_time"`
 	CompleteTime    int64   `json:"complete_time"`
 	Status          string  `json:"status"`
@@ -81,6 +82,45 @@ func GetTopUpByTradeNo(tradeNo string) *TopUp {
 		return nil
 	}
 	return topUp
+}
+
+func GetTopUpByTransactionId(transactionId string) *TopUp {
+	var topUp *TopUp
+	err := DB.Where("transaction_id = ?", transactionId).First(&topUp).Error
+	if err != nil {
+		return nil
+	}
+	return topUp
+}
+
+// RefundPayPalTopUp deducts quota and marks the order as refunded in a single transaction.
+func RefundPayPalTopUp(tradeNo string, quota int) error {
+	return DB.Transaction(func(tx *gorm.DB) error {
+		// Lock the order row
+		refCol := "`trade_no`"
+		if common.UsingPostgreSQL {
+			refCol = `"trade_no"`
+		}
+		var topUp TopUp
+		err := tx.Set("gorm:query_option", "FOR UPDATE").Where(refCol+" = ?", tradeNo).First(&topUp).Error
+		if err != nil {
+			return errors.New("充值订单不存在")
+		}
+
+		if topUp.Status != common.TopUpStatusSuccess {
+			return errors.New("订单状态不是 success，无法退款")
+		}
+
+		// Deduct quota
+		err = tx.Model(&User{}).Where("id = ?", topUp.UserId).Update("quota", gorm.Expr("quota - ?", quota)).Error
+		if err != nil {
+			return err
+		}
+
+		// Mark as refunded
+		topUp.Status = common.TopUpStatusRefunded
+		return tx.Save(&topUp).Error
+	})
 }
 
 func UpdatePendingTopUpStatus(tradeNo string, expectedPaymentProvider string, targetStatus string) error {
@@ -663,4 +703,30 @@ func RechargeWaffoPancake(tradeNo string) (err error) {
 	}
 
 	return nil
+}
+
+// CleanExpiredPendingTopUps marks pending orders older than the given duration as expired.
+// Returns the number of orders expired.
+func CleanExpiredPendingTopUps(maxAge time.Duration) int64 {
+	cutoff := time.Now().Add(-maxAge).Unix()
+	result := DB.Model(&TopUp{}).
+		Where("status = ? AND create_time < ?", common.TopUpStatusPending, cutoff).
+		Update("status", common.TopUpStatusExpired)
+	if result.Error != nil {
+		common.SysLog("failed to expire pending topups: " + result.Error.Error())
+		return 0
+	}
+	return result.RowsAffected
+}
+
+// StartPendingTopUpCleaner runs periodically to expire stale pending orders.
+// Orders older than maxAge are marked as "expired".
+func StartPendingTopUpCleaner(interval, maxAge time.Duration) {
+	for {
+		time.Sleep(interval)
+		count := CleanExpiredPendingTopUps(maxAge)
+		if count > 0 {
+			common.SysLog(fmt.Sprintf("expired %d pending topups older than %v", count, maxAge))
+		}
+	}
 }
