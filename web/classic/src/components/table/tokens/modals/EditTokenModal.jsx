@@ -203,6 +203,20 @@ const EditTokenModal = (props) => {
     }
   }, [props.visiable, props.editingToken.id]);
 
+  // Re-apply group value after groups load (fixes race condition where
+  // loadToken resolves before loadGroups, leaving Form.Select without options)
+  useEffect(() => {
+    if (!isEdit || !props.visiable || groups.length === 0) return;
+    const currentGroup = formApiRef.current?.getValue?.('group');
+    if (currentGroup && !groups.some((g) => g.value === currentGroup)) {
+      const fallback =
+        groups.find((g) => g.value === 'default')?.value ??
+        groups[0]?.value ??
+        '';
+      formApiRef.current?.setValue?.('group', fallback);
+    }
+  }, [groups, isEdit, props.visiable]);
+
   const generateRandomSuffix = () => {
     const characters =
       'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';

@@ -145,7 +145,8 @@ export function ApiKeysMutateDrawer({
         getApiKeyFormDefaultValues(defaultUseAutoGroup && backendHasAuto)
       )
     }
-  }, [open, isUpdate, currentRow, form, defaultUseAutoGroup, backendHasAuto])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, isUpdate, currentRow?.id])
 
   // Correct group after groups load: if the form value is not in available groups, fall back
   useEffect(() => {
