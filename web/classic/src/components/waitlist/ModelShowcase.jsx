@@ -8,7 +8,7 @@ const modelTypes = [
   {
     icon: '💬',
     title: '大语言模型', titleEn: 'LLM Models',
-    models: 'DeepSeek V4 Pro · Qwen 3 · GLM-5 · Doubao Pro · Kimi K2.5 · Hunyuan Pro',
+    models: 'DeepSeek V4 Pro · Qwen 3 · Doubao Pro · Kimi K2.5 · MiniMax M2.7 · GLM-5',
     desc: '中国最强 LLM，统一 OpenAI 协议接入',
     descEn: 'Top Chinese LLMs via unified OpenAI protocol',
     color: '#3B82F6',
@@ -16,7 +16,7 @@ const modelTypes = [
   {
     icon: '🎨',
     title: '图片生成', titleEn: 'Image Generation',
-    models: 'Seedream 4.0 · Qwen Image · FLUX 1.1 Pro · GPT Image · Jimeng · Imagen 4',
+    models: 'Seedream 4.0 · Qwen Image · GPT Image · Grok Imagine · Imagen 4 · FLUX',
     desc: '文生图、图生图、图片编辑',
     descEn: 'Text-to-image, image editing',
     color: '#EC4899',
@@ -24,7 +24,7 @@ const modelTypes = [
   {
     icon: '🎬',
     title: '视频生成', titleEn: 'Video Generation',
-    models: 'Seedance 2.0 · Hailuo 2.3 · Kling V2 · Wan 2.5 · Vidu 2.0 · Veo 3.1',
+    models: 'Seedance 2.0 · Hailuo 2.3 · Wan 2.5 · Kling V2 · Veo 3.1 · Sora 2',
     desc: '文生视频、图生视频',
     descEn: 'Text-to-video and image-to-video',
     color: '#F97316',
@@ -40,7 +40,7 @@ const modelTypes = [
   {
     icon: '🎵',
     title: '音频 & 音乐', titleEn: 'Audio & Music',
-    models: 'Suno · MiniMax Speech 2.5 · CosyVoice · Fish Audio · GPT Audio',
+    models: 'MiniMax Speech 2.5 · GPT Audio · Doubao TTS · CosyVoice · Fish Audio',
     desc: '音乐生成、语音合成、声音克隆',
     descEn: 'Music generation, TTS, voice cloning',
     color: '#10B981',

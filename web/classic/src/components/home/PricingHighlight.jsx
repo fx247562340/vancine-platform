@@ -16,8 +16,8 @@ const PricingHighlight = () => {
         </svg>
       ),
       items: [
-        { foreign: { name: 'GPT-4o', price: '$2.50', unit: '/M tokens' }, domestic: { name: 'DeepSeek V4', price: '$0.50', unit: '/M tokens' }, saving: '80%' },
-        { foreign: { name: 'Claude Sonnet 4', price: '$3.00', unit: '/M tokens' }, domestic: { name: 'Doubao Pro', price: '$0.40', unit: '/M tokens' }, saving: '87%' },
+        { foreign: { name: 'GPT-5', price: '$1.25', unit: '/M tokens' }, domestic: { name: 'DeepSeek V4 Pro', price: '$0.30', unit: '/M tokens' }, saving: '76%' },
+        { foreign: { name: 'Claude Opus 4.7', price: '$15.00', unit: '/M tokens' }, domestic: { name: 'Qwen 3', price: '$0.40', unit: '/M tokens' }, saving: '97%' },
       ],
     },
     {
@@ -30,7 +30,8 @@ const PricingHighlight = () => {
         </svg>
       ),
       items: [
-        { foreign: { name: 'Runway Gen-3', price: '$0.10', unit: '/sec' }, domestic: { name: 'Seedance 1.0 Pro', price: '$0.04', unit: '/sec' }, saving: '60%' },
+        { foreign: { name: 'Runway Gen-4', price: '$0.10', unit: '/sec' }, domestic: { name: 'Seedance 2.0', price: '$0.04', unit: '/sec' }, saving: '60%' },
+        { foreign: { name: 'Veo 3.1', price: '$0.08', unit: '/sec' }, domestic: { name: 'Hailuo 2.3', price: '$0.03', unit: '/sec' }, saving: '63%' },
       ],
     },
     {
@@ -43,7 +44,8 @@ const PricingHighlight = () => {
         </svg>
       ),
       items: [
-        { foreign: { name: 'DALL·E 3', price: '$0.040', unit: '/image' }, domestic: { name: 'Seedream 4.0', price: '$0.010', unit: '/image' }, saving: '75%' },
+        { foreign: { name: 'GPT Image', price: '$0.040', unit: '/image' }, domestic: { name: 'Seedream 4.0', price: '$0.010', unit: '/image' }, saving: '75%' },
+        { foreign: { name: 'Imagen 4', price: '$0.032', unit: '/image' }, domestic: { name: 'Qwen Image', price: '$0.008', unit: '/image' }, saving: '75%' },
       ],
     },
   ];

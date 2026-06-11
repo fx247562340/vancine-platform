@@ -2,14 +2,16 @@ import React from 'react';
 import { Typography } from '@douyinfe/semi-ui';
 import { useTranslation } from 'react-i18next';
 import {
-  DeepSeek, Volcengine,
+  DeepSeek, Volcengine, Qwen, Zhipu, Moonshot, Minimax,
+  Hunyuan, OpenAI, Claude, Gemini, XAI,
 } from '@lobehub/icons';
 import ScrollReveal from './ScrollReveal';
 
 const { Text } = Typography;
 
 const providers = [
-  DeepSeek, Volcengine,
+  DeepSeek, Qwen, Zhipu, Volcengine, Moonshot, Minimax, Hunyuan,
+  OpenAI, Claude, Gemini, XAI,
 ];
 
 const ProvidersSection = () => {
@@ -59,7 +61,7 @@ const ProvidersSection = () => {
               className='text-xl md:text-2xl font-bold'
               style={{ color: 'rgba(255,255,255,0.3)' }}
             >
-              2+
+              11+
             </Text>
           </div>
         </div>

@@ -42,8 +42,8 @@ export default function Hero() {
 
         {/* Subheadline */}
         <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto mb-10 leading-relaxed">
-          Generate videos, images, music, and text with the best Chinese AI
-          models — at a fraction of the cost. One unified API, no complexity.
+          Access flagship models from DeepSeek, Qwen, Doubao, Kimi, MiniMax and
+          more — plus GPT, Claude, Gemini and Grok. One unified API.
         </p>
 
         {/* CTAs */}
@@ -67,7 +67,7 @@ export default function Hero() {
         {/* Stats */}
         <div className="mt-16 flex flex-wrap items-center justify-center gap-8 md:gap-16 text-white/70">
           <div className="text-center">
-            <div className="text-3xl font-bold text-white">20+</div>
+            <div className="text-3xl font-bold text-white">50+</div>
             <div className="text-sm mt-1">AI Models</div>
           </div>
           <div className="w-px h-10 bg-white/20 hidden md:block" />

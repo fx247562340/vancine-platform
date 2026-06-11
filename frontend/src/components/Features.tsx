@@ -8,32 +8,32 @@ const features = [
     color: "bg-accent-pink/10 text-accent-pink",
     title: "Video Generation",
     description:
-      "Generate stunning videos from text or images. Powered by Wan 2.2, Kling, and other cutting-edge models.",
-    models: "Wan 2.2 · Kling · Hailuo",
+      "Generate stunning videos from text or images with Seedance, Hailuo, Wan, Kling and Veo.",
+    models: "Seedance 2.0 · Hailuo 2.3 · Wan 2.5 · Kling V2 · Veo 3.1",
   },
   {
     icon: Image,
     color: "bg-primary/10 text-primary",
     title: "Image Generation",
     description:
-      "Create high-quality images with FLUX, Qwen-Image, Seedream, and more. From photorealistic to artistic styles.",
-    models: "FLUX · Qwen-Image · Seedream",
+      "Create high-quality images with Seedream, Qwen Image, GPT Image, Grok Imagine and more.",
+    models: "Seedream 4.0 · Qwen Image · GPT Image · Grok Imagine · Imagen 4",
   },
   {
     icon: Brain,
     color: "bg-secondary/10 text-secondary",
     title: "LLM API",
     description:
-      "Access the most powerful Chinese LLMs through a single OpenAI-compatible endpoint. DeepSeek, Qwen, GLM, and more.",
-    models: "DeepSeek V4 · Qwen 3.6 · GLM 5.1",
+      "Access flagship LLMs from DeepSeek, Alibaba, ByteDance, Moonshot and more — one unified OpenAI-compatible endpoint.",
+    models: "DeepSeek V4 Pro · Qwen 3 · Doubao Pro · Kimi K2.5 · GLM-5",
   },
   {
     icon: Music,
     color: "bg-accent-yellow/10 text-accent-yellow",
-    title: "Music Generation",
+    title: "Audio & Speech",
     description:
-      "Compose music from text descriptions. Full songs with vocals, instruments, and professional mixing.",
-    models: "Suno · Udio",
+      "Natural speech synthesis, voice cloning, and music generation from leading providers.",
+    models: "MiniMax Speech 2.5 · GPT Audio · Doubao TTS · CosyVoice",
   },
 ];
 
