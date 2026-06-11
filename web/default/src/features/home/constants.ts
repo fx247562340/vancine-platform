@@ -35,12 +35,8 @@ export const AI_APPLICATIONS = [
 
 // Hero section - AI Models (Right side)
 export const AI_MODELS = [
-  'Qwen.Color',
   'DeepSeek.Color',
   'Doubao.Color',
-  'OpenAI',
-  'Claude.Color',
-  'Gemini.Color',
 ] as const
 
 // Hero section - Gateway Features
@@ -60,24 +56,24 @@ export const GATEWAY_FEATURES = [
 // Stats section - Default statistics
 export const DEFAULT_STATS = [
   {
-    value: '50',
+    value: '15',
     suffix: '+',
-    description: 'upstream services integrated',
+    description: 'models available',
   },
   {
-    value: '100',
-    suffix: '+',
-    description: 'model billing support',
+    value: '4',
+    suffix: '',
+    description: 'AI categories',
   },
   {
-    value: '50',
-    suffix: '+',
-    description: 'compatible API routes',
+    value: '1',
+    suffix: '',
+    description: 'unified API',
   },
   {
-    value: '10',
-    suffix: '+',
-    description: 'scheduling controls',
+    value: '2',
+    suffix: '',
+    description: 'languages supported',
   },
 ] as const
 
