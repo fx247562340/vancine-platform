@@ -69,7 +69,7 @@ import { SiDiscord } from 'react-icons/si';
 
 const LoginForm = () => {
   let navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const githubButtonTextKeyByState = {
     idle: '使用 GitHub 继续',
     redirecting: '正在跳转 GitHub...',
@@ -969,6 +969,7 @@ const LoginForm = () => {
           <div className='flex justify-center mt-6'>
             <Turnstile
               sitekey={turnstileSiteKey}
+              language={i18n.language || 'en'}
               onVerify={(token) => {
                 setTurnstileToken(token);
               }}

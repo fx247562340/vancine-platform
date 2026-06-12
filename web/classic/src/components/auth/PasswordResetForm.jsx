@@ -35,7 +35,7 @@ import { useTranslation } from 'react-i18next';
 const { Text, Title } = Typography;
 
 const PasswordResetForm = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [inputs, setInputs] = useState({
     email: '',
   });
@@ -177,6 +177,7 @@ const PasswordResetForm = () => {
               <div className='flex justify-center mt-6'>
                 <Turnstile
                   sitekey={turnstileSiteKey}
+                  language={i18n.language || 'en'}
                   onVerify={(token) => {
                     setTurnstileToken(token);
                   }}
