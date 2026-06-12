@@ -141,7 +141,6 @@ const EditTokenModal = (props) => {
   };
 
   const loadGroups = async () => {
-    console.log('[EditTokenModal] loadGroups start');
     let res = await API.get(`/api/user/self/groups`);
     const { success, message, data } = res.data;
     if (success) {
@@ -155,7 +154,6 @@ const EditTokenModal = (props) => {
           localGroupOptions.sort((a, b) => (a.value === 'auto' ? -1 : 1));
         }
       }
-      console.log('[EditTokenModal] loadGroups done, groups=', localGroupOptions.map(g => g.value));
       setGroups(localGroupOptions);
     } else {
       showError(t(message));
@@ -163,7 +161,6 @@ const EditTokenModal = (props) => {
   };
 
   const loadToken = async () => {
-    console.log('[EditTokenModal] loadToken start');
     setLoading(true);
     let res = await API.get(`/api/token/${props.editingToken.id}`);
     const { success, message, data } = res.data;
@@ -179,7 +176,6 @@ const EditTokenModal = (props) => {
       data.remain_amount = Number(
         quotaToDisplayAmount(data.remain_quota || 0).toFixed(6),
       );
-      console.log('[EditTokenModal] loadToken done, group=', data.group, 'formReady=', !!formApiRef.current);
       setPendingTokenData(data);
     } else {
       showError(message);
@@ -189,36 +185,11 @@ const EditTokenModal = (props) => {
 
   // Apply pending token data when both data and groups are ready
   useEffect(() => {
-    console.log('[EditTokenModal] effect [pendingTokenData, groups]', {
-      hasPending: !!pendingTokenData,
-      groupsLen: groups.length,
-      hasForm: !!formApiRef.current,
-      pendingGroup: pendingTokenData?.group,
-    });
     if (pendingTokenData && groups.length > 0 && formApiRef.current) {
-      console.log('[EditTokenModal] applying token data, group=', pendingTokenData.group);
       formApiRef.current.setValues({ ...getInitValues(), ...pendingTokenData });
-      // Verify the group was set
-      setTimeout(() => {
-        const currentGroup = formApiRef.current?.getValue('group');
-        console.log('[EditTokenModal] after setValues, form group=', currentGroup);
-      }, 50);
       setPendingTokenData(null);
     }
   }, [pendingTokenData, groups]);
-
-  // Re-apply group value when groups list changes (handles timing issue)
-  useEffect(() => {
-    if (groups.length > 0 && formApiRef.current) {
-      const currentGroup = formApiRef.current.getValue('group');
-      console.log('[EditTokenModal] groups changed, currentGroup=', currentGroup, 'groups=', groups.map(g => g.value));
-      if (currentGroup && groups.some((g) => g.value === currentGroup)) {
-        // Force Select to re-validate by setting the value again
-        formApiRef.current.setValue('group', currentGroup);
-        console.log('[EditTokenModal] re-applied group value:', currentGroup);
-      }
-    }
-  }, [groups]);
 
   useEffect(() => {
     if (formApiRef.current) {
@@ -278,12 +249,10 @@ const EditTokenModal = (props) => {
       }
       localInputs.model_limits = localInputs.model_limits.join(',');
       localInputs.model_limits_enabled = localInputs.model_limits.length > 0;
-      console.log('[EditTokenModal] submit, tokenId=', props.editingToken.id, 'group=', localInputs.group);
       let res = await API.put(`/api/token/`, {
         ...localInputs,
         id: parseInt(props.editingToken.id),
       });
-      console.log('[EditTokenModal] submit response:', res.data);
       const { success, message } = res.data;
       if (success) {
         showSuccess(t('令牌更新成功！'));
@@ -425,19 +394,15 @@ const EditTokenModal = (props) => {
                     />
                   </Col>
                   <Col span={24}>
-                    <Form.Slot label={t('令牌分组')}>
-                      <Select
-                        placeholder={groups.length > 0 ? t('令牌分组，默认为用户的分组') : t('管理员未设置用户可选分组')}
-                        disabled={groups.length === 0}
-                        optionList={groups}
-                        value={values.group}
-                        onChange={(value) => {
-                          formApiRef.current?.setValue('group', value);
-                        }}
-                        showClear
-                        style={{ width: '100%' }}
-                      />
-                    </Form.Slot>
+                    <Form.Select
+                      field='group'
+                      label={t('令牌分组')}
+                      placeholder={groups.length > 0 ? t('令牌分组，默认为用户的分组') : t('管理员未设置用户可选分组')}
+                      disabled={groups.length === 0}
+                      optionList={groups}
+                      showClear
+                      style={{ width: '100%' }}
+                    />
                   </Col>
                   <Col
                     span={24}
