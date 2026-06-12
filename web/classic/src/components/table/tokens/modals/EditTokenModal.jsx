@@ -158,6 +158,10 @@ const EditTokenModal = (props) => {
 
   const loadToken = async () => {
     setLoading(true);
+    // Wait for groups to load first so Form.Select has options when value is set
+    if (groups.length === 0) {
+      await loadGroups();
+    }
     let res = await API.get(`/api/token/${props.editingToken.id}`);
     const { success, message, data } = res.data;
     if (success) {
@@ -202,20 +206,6 @@ const EditTokenModal = (props) => {
       formApiRef.current?.reset();
     }
   }, [props.visiable, props.editingToken.id]);
-
-  // Re-apply group value after groups load (fixes race condition where
-  // loadToken resolves before loadGroups, leaving Form.Select without options)
-  useEffect(() => {
-    if (!isEdit || !props.visiable || groups.length === 0) return;
-    const currentGroup = formApiRef.current?.getValue?.('group');
-    if (currentGroup && !groups.some((g) => g.value === currentGroup)) {
-      const fallback =
-        groups.find((g) => g.value === 'default')?.value ??
-        groups[0]?.value ??
-        '';
-      formApiRef.current?.setValue?.('group', fallback);
-    }
-  }, [groups, isEdit, props.visiable]);
 
   const generateRandomSuffix = () => {
     const characters =
