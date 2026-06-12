@@ -20,7 +20,13 @@ deploy/
 ## Deploy Process
 
 1. Build frontend: `cd web/classic && npm run build`
-2. Build Go binary: `CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o vancine`
+2. Build Go binary:
+   ```bash
+   VERSION=$(git describe --tags --always 2>/dev/null || echo "v1.0.4")
+   CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+     -ldflags "-s -w -X github.com/QuantumNous/new-api/common.Version=${VERSION}" \
+     -o vancine
+   ```
 3. Upload to server: `scp vancine root@64.83.35.21:/tmp/vancine`
 4. Deploy binary:
    ```bash
