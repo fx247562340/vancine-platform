@@ -92,24 +92,27 @@ function TokensPage() {
       const { success, message, data } = res.data || {};
       if (success) {
         const categories = getModelCategories(tokensData.t);
-        const options = (data || []).map((model) => {
-          let icon = null;
-          for (const [key, category] of Object.entries(categories)) {
-            if (key !== 'all' && category.filter({ model_name: model })) {
-              icon = category.icon;
-              break;
+        const options = (data || [])
+          .map((item) => (typeof item === 'string' ? item : item.model))
+          .filter((name) => typeof name === 'string' && name.length > 0)
+          .map((name) => {
+            let icon = null;
+            for (const [key, category] of Object.entries(categories)) {
+              if (key !== 'all' && category.filter({ model_name: name })) {
+                icon = category.icon;
+                break;
+              }
             }
-          }
-          return {
-            label: (
-              <span className='flex items-center gap-1'>
-                {icon}
-                {model}
-              </span>
-            ),
-            value: model,
-          };
-        });
+            return {
+              label: (
+                <span className='flex items-center gap-1'>
+                  {icon}
+                  {name}
+                </span>
+              ),
+              value: name,
+            };
+          });
         setModelOptions(options);
       } else {
         showError(tokensData.t(message));

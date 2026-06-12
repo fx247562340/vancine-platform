@@ -490,7 +490,7 @@ function inferTokenizer(
   tokenizer: string
   note?: string
 } {
-  const name = model.model_name.toLowerCase()
+  const name = (typeof model.model_name === 'string' ? model.model_name : String(model.model_name || '')).toLowerCase()
   if (vendor === 'openai') {
     if (/gpt-3|davinci|babbage|whisper|tts/.test(name)) {
       return { tokenizer: 'cl100k_base', note: 'Older GPT-3.5 family' }

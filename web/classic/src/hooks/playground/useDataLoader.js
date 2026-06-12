@@ -69,20 +69,13 @@ export const useDataLoader = (
           JSON.parse(localStorage.getItem('user'))?.group;
         const groupOptions = processGroupsData(data, userGroup);
         setGroups(groupOptions);
-
-        const hasCurrentGroup = groupOptions.some(
-          (option) => option.value === inputs.group,
-        );
-        if (!hasCurrentGroup) {
-          handleInputChange('group', groupOptions[0]?.value || '');
-        }
       } else {
         showError(t(message));
       }
     } catch (error) {
       showError(t('加载分组失败'));
     }
-  }, [userState, inputs.group, handleInputChange, setGroups, t]);
+  }, [userState, handleInputChange, setGroups, t]);
 
   // 自动加载数据
   useEffect(() => {
@@ -91,6 +84,18 @@ export const useDataLoader = (
       loadGroups();
     }
   }, [userState?.user, loadModels, loadGroups]);
+
+  // 当分组列表加载后，检查当前选中的分组是否仍在可用列表中
+  useEffect(() => {
+    if (groups.length > 0 && inputs.group) {
+      const hasCurrentGroup = groups.some(
+        (option) => option.value === inputs.group,
+      );
+      if (!hasCurrentGroup) {
+        handleInputChange('group', groups[0]?.value || '');
+      }
+    }
+  }, [groups, inputs.group, handleInputChange]);
 
   return {
     loadModels,

@@ -157,6 +157,13 @@ export function getLucideIcon(key, selected = false) {
   }
 }
 
+// 安全地获取模型名称（处理非字符串类型）
+const safeModelName = (model) => {
+  if (typeof model.model_name === 'string') return model.model_name;
+  if (model.model_name == null) return '';
+  return String(model.model_name);
+};
+
 // 获取模型分类
 export const getModelCategories = (() => {
   let categoriesCache = null;
@@ -177,144 +184,156 @@ export const getModelCategories = (() => {
       openai: {
         label: 'OpenAI',
         icon: <OpenAI />,
-        filter: (model) =>
-            model.model_name.toLowerCase().includes('gpt') ||
-            model.model_name.toLowerCase().includes('dall-e') ||
-            model.model_name.toLowerCase().includes('whisper') ||
-            model.model_name.toLowerCase().includes('tts-1') ||
-            model.model_name.toLowerCase().includes('text-embedding-3') ||
-            model.model_name.toLowerCase().includes('text-moderation') ||
-            model.model_name.toLowerCase().includes('babbage') ||
-            model.model_name.toLowerCase().includes('davinci') ||
-            model.model_name.toLowerCase().includes('curie') ||
-            model.model_name.toLowerCase().includes('ada') ||
-            model.model_name.toLowerCase().includes('o1') ||
-            model.model_name.toLowerCase().includes('o3') ||
-            model.model_name.toLowerCase().includes('o4'),
+        filter: (model) => {
+          const name = safeModelName(model).toLowerCase();
+          return name.includes('gpt') ||
+            name.includes('dall-e') ||
+            name.includes('whisper') ||
+            name.includes('tts-1') ||
+            name.includes('text-embedding-3') ||
+            name.includes('text-moderation') ||
+            name.includes('babbage') ||
+            name.includes('davinci') ||
+            name.includes('curie') ||
+            name.includes('ada') ||
+            name.includes('o1') ||
+            name.includes('o3') ||
+            name.includes('o4');
+        },
       },
       anthropic: {
         label: 'Anthropic',
         icon: <Claude.Color />,
-        filter: (model) => model.model_name.toLowerCase().includes('claude'),
+        filter: (model) => safeModelName(model).toLowerCase().includes('claude'),
       },
       gemini: {
         label: 'Gemini',
         icon: <Gemini.Color />,
-        filter: (model) =>
-            model.model_name.toLowerCase().includes('gemini') ||
-            model.model_name.toLowerCase().includes('gemma') ||
-            model.model_name.toLowerCase().includes('learnlm') ||
-            model.model_name.toLowerCase().startsWith('embedding-') ||
-            model.model_name.toLowerCase().includes('text-embedding-004') ||
-            model.model_name.toLowerCase().includes('imagen-4') ||
-            model.model_name.toLowerCase().includes('veo-') ||
-            model.model_name.toLowerCase().includes('aqa'),
+        filter: (model) => {
+          const name = safeModelName(model).toLowerCase();
+          return name.includes('gemini') ||
+            name.includes('gemma') ||
+            name.includes('learnlm') ||
+            name.startsWith('embedding-') ||
+            name.includes('text-embedding-004') ||
+            name.includes('imagen-4') ||
+            name.includes('veo-') ||
+            name.includes('aqa');
+        },
       },
       moonshot: {
         label: 'Moonshot',
         icon: <Moonshot />,
-        filter: (model) =>
-            model.model_name.toLowerCase().includes('moonshot') ||
-            model.model_name.toLowerCase().includes('kimi'),
+        filter: (model) => {
+          const name = safeModelName(model).toLowerCase();
+          return name.includes('moonshot') || name.includes('kimi');
+        },
       },
       zhipu: {
         label: t('智谱'),
         icon: <Zhipu.Color />,
-        filter: (model) =>
-            model.model_name.toLowerCase().includes('chatglm') ||
-            model.model_name.toLowerCase().includes('glm-') ||
-            model.model_name.toLowerCase().includes('cogview') ||
-            model.model_name.toLowerCase().includes('cogvideo'),
+        filter: (model) => {
+          const name = safeModelName(model).toLowerCase();
+          return name.includes('chatglm') ||
+            name.includes('glm-') ||
+            name.includes('cogview') ||
+            name.includes('cogvideo');
+        },
       },
       qwen: {
         label: t('通义千问'),
         icon: <Qwen.Color />,
-        filter: (model) => model.model_name.toLowerCase().includes('qwen'),
+        filter: (model) => safeModelName(model).toLowerCase().includes('qwen'),
       },
       deepseek: {
         label: 'DeepSeek',
         icon: <DeepSeek.Color />,
-        filter: (model) => model.model_name.toLowerCase().includes('deepseek'),
+        filter: (model) => safeModelName(model).toLowerCase().includes('deepseek'),
       },
       minimax: {
         label: 'MiniMax',
         icon: <Minimax.Color />,
-        filter: (model) =>
-            model.model_name.toLowerCase().includes('abab') ||
-            model.model_name.toLowerCase().includes('minimax'),
+        filter: (model) => {
+          const name = safeModelName(model).toLowerCase();
+          return name.includes('abab') || name.includes('minimax');
+        },
       },
       baidu: {
         label: t('文心一言'),
         icon: <Wenxin.Color />,
-        filter: (model) => model.model_name.toLowerCase().includes('ernie'),
+        filter: (model) => safeModelName(model).toLowerCase().includes('ernie'),
       },
       xunfei: {
         label: t('讯飞星火'),
         icon: <Spark.Color />,
-        filter: (model) => model.model_name.toLowerCase().includes('spark'),
+        filter: (model) => safeModelName(model).toLowerCase().includes('spark'),
       },
       midjourney: {
         label: 'Midjourney',
         icon: <Midjourney />,
-        filter: (model) => model.model_name.toLowerCase().includes('mj_'),
+        filter: (model) => safeModelName(model).toLowerCase().includes('mj_'),
       },
       tencent: {
         label: t('腾讯混元'),
         icon: <Hunyuan.Color />,
-        filter: (model) => model.model_name.toLowerCase().includes('hunyuan'),
+        filter: (model) => safeModelName(model).toLowerCase().includes('hunyuan'),
       },
       cohere: {
         label: 'Cohere',
         icon: <Cohere.Color />,
-        filter: (model) =>
-            model.model_name.toLowerCase().includes('command') ||
-            model.model_name.toLowerCase().includes('c4ai-') ||
-            model.model_name.toLowerCase().includes('embed-'),
+        filter: (model) => {
+          const name = safeModelName(model).toLowerCase();
+          return name.includes('command') ||
+            name.includes('c4ai-') ||
+            name.includes('embed-');
+        },
       },
       cloudflare: {
         label: 'Cloudflare',
         icon: <Cloudflare.Color />,
-        filter: (model) => model.model_name.toLowerCase().includes('@cf/'),
+        filter: (model) => safeModelName(model).toLowerCase().includes('@cf/'),
       },
       ai360: {
         label: t('360智脑'),
         icon: <Ai360.Color />,
-        filter: (model) => model.model_name.toLowerCase().includes('360'),
+        filter: (model) => safeModelName(model).toLowerCase().includes('360'),
       },
       jina: {
         label: 'Jina',
         icon: <Jina />,
-        filter: (model) => model.model_name.toLowerCase().includes('jina'),
+        filter: (model) => safeModelName(model).toLowerCase().includes('jina'),
       },
       mistral: {
         label: 'Mistral AI',
         icon: <Mistral.Color />,
-        filter: (model) =>
-            model.model_name.toLowerCase().includes('mistral') ||
-            model.model_name.toLowerCase().includes('codestral') ||
-            model.model_name.toLowerCase().includes('pixtral') ||
-            model.model_name.toLowerCase().includes('voxtral') ||
-            model.model_name.toLowerCase().includes('magistral'),
+        filter: (model) => {
+          const name = safeModelName(model).toLowerCase();
+          return name.includes('mistral') ||
+            name.includes('codestral') ||
+            name.includes('pixtral') ||
+            name.includes('voxtral') ||
+            name.includes('magistral');
+        },
       },
       xai: {
         label: 'xAI',
         icon: <XAI />,
-        filter: (model) => model.model_name.toLowerCase().includes('grok'),
+        filter: (model) => safeModelName(model).toLowerCase().includes('grok'),
       },
       llama: {
         label: 'Llama',
         icon: <Ollama />,
-        filter: (model) => model.model_name.toLowerCase().includes('llama'),
+        filter: (model) => safeModelName(model).toLowerCase().includes('llama'),
       },
       doubao: {
         label: t('豆包'),
         icon: <Doubao.Color />,
-        filter: (model) => model.model_name.toLowerCase().includes('doubao'),
+        filter: (model) => safeModelName(model).toLowerCase().includes('doubao'),
       },
       yi: {
         label: t('零一万物'),
         icon: <Yi.Color />,
-        filter: (model) => model.model_name.toLowerCase().includes('yi'),
+        filter: (model) => safeModelName(model).toLowerCase().includes('yi'),
       },
     };
 

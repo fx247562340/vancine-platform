@@ -23,7 +23,6 @@ import {
   showError,
   showSuccess,
   timestamp2string,
-  renderGroupOption,
   getCurrencyConfig,
   getModelCategories,
   selectFilter,
@@ -46,6 +45,7 @@ import {
   Col,
   Row,
   InputNumber,
+  Select,
 } from '@douyinfe/semi-ui';
 import {
   IconCreditCard,
@@ -109,24 +109,30 @@ const EditTokenModal = (props) => {
     const { success, message, data } = res.data;
     if (success) {
       const categories = getModelCategories(t);
-      let localModelOptions = data.map((model) => {
-        let icon = null;
-        for (const [key, category] of Object.entries(categories)) {
-          if (key !== 'all' && category.filter({ model_name: model })) {
-            icon = category.icon;
-            break;
+      let localModelOptions = data
+        .map((item) => {
+          const name = typeof item === 'string' ? item : item.model;
+          return name;
+        })
+        .filter((name) => typeof name === 'string' && name.length > 0)
+        .map((name) => {
+          let icon = null;
+          for (const [key, category] of Object.entries(categories)) {
+            if (key !== 'all' && category.filter({ model_name: name })) {
+              icon = category.icon;
+              break;
+            }
           }
-        }
-        return {
-          label: (
-            <span className='flex items-center gap-1'>
-              {icon}
-              {model}
-            </span>
-          ),
-          value: model,
-        };
-      });
+          return {
+            label: (
+              <span className='flex items-center gap-1'>
+                {icon}
+                {name}
+              </span>
+            ),
+            value: name,
+          };
+        });
       setModels(localModelOptions);
     } else {
       showError(t(message));
@@ -138,7 +144,7 @@ const EditTokenModal = (props) => {
     const { success, message, data } = res.data;
     if (success) {
       let localGroupOptions = Object.entries(data).map(([group, info]) => ({
-        label: info.desc,
+        label: `${group} (${info.ratio}x)`,
         value: group,
         ratio: info.ratio,
       }));
@@ -148,9 +154,6 @@ const EditTokenModal = (props) => {
         }
       }
       setGroups(localGroupOptions);
-      // if (statusState?.status?.default_use_auto_group && formApiRef.current) {
-      //   formApiRef.current.setValue('group', 'auto');
-      // }
     } else {
       showError(t(message));
     }
@@ -158,10 +161,6 @@ const EditTokenModal = (props) => {
 
   const loadToken = async () => {
     setLoading(true);
-    // Wait for groups to load first so Form.Select has options when value is set
-    if (groups.length === 0) {
-      await loadGroups();
-    }
     let res = await API.get(`/api/token/${props.editingToken.id}`);
     const { success, message, data } = res.data;
     if (success) {
@@ -176,6 +175,7 @@ const EditTokenModal = (props) => {
       data.remain_amount = Number(
         quotaToDisplayAmount(data.remain_quota || 0).toFixed(6),
       );
+      // Apply token data directly to form
       if (formApiRef.current) {
         formApiRef.current.setValues({ ...getInitValues(), ...data });
       }
@@ -387,32 +387,19 @@ const EditTokenModal = (props) => {
                     />
                   </Col>
                   <Col span={24}>
-                    {groups.length > 0 ? (
-                      <Form.Select
-                        field='group'
-                        label={t('令牌分组')}
-                        placeholder={t('令牌分组，默认为用户的分组')}
+                    <Form.Slot label={t('令牌分组')}>
+                      <Select
+                        placeholder={groups.length > 0 ? t('令牌分组，默认为用户的分组') : t('管理员未设置用户可选分组')}
+                        disabled={groups.length === 0}
                         optionList={groups}
-                        renderOptionItem={renderGroupOption}
-                        filter={(input, option) => {
-                          const q = input.toLowerCase();
-                          return (
-                            option.value?.toLowerCase().includes(q) ||
-                            (typeof option.label === 'string' &&
-                              option.label.toLowerCase().includes(q))
-                          );
+                        value={values.group}
+                        onChange={(value) => {
+                          formApiRef.current?.setValue('group', value);
                         }}
                         showClear
                         style={{ width: '100%' }}
                       />
-                    ) : (
-                      <Form.Select
-                        placeholder={t('管理员未设置用户可选分组')}
-                        disabled
-                        label={t('令牌分组')}
-                        style={{ width: '100%' }}
-                      />
-                    )}
+                    </Form.Slot>
                   </Col>
                   <Col
                     span={24}
