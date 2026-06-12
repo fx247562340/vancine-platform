@@ -133,7 +133,7 @@ const Playground = () => {
   );
 
   // 数据加载
-  useDataLoader(userState, inputs, handleInputChange, setModels, setGroups, setEndpointsMap);
+  useDataLoader(userState, inputs, handleInputChange, setModels, groups, setGroups, setEndpointsMap);
 
   // 自动滚动到底部（仅在流式回复时）
   useEffect(() => {

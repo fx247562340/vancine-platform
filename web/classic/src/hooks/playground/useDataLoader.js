@@ -27,6 +27,7 @@ export const useDataLoader = (
   inputs,
   handleInputChange,
   setModels,
+  groups,
   setGroups,
   setEndpointsMap,
 ) => {
