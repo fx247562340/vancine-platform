@@ -278,10 +278,12 @@ const EditTokenModal = (props) => {
       }
       localInputs.model_limits = localInputs.model_limits.join(',');
       localInputs.model_limits_enabled = localInputs.model_limits.length > 0;
+      console.log('[EditTokenModal] submit, tokenId=', props.editingToken.id, 'group=', localInputs.group);
       let res = await API.put(`/api/token/`, {
         ...localInputs,
         id: parseInt(props.editingToken.id),
       });
+      console.log('[EditTokenModal] submit response:', res.data);
       const { success, message } = res.data;
       if (success) {
         showSuccess(t('令牌更新成功！'));
