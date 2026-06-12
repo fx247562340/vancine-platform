@@ -132,7 +132,14 @@ func Redeem(key string, userId int) (quota int, err error) {
 			return errors.New("无效的兑换码")
 		}
 		if redemption.Status != common.RedemptionCodeStatusEnabled {
-			return errors.New("该兑换码已被使用")
+			switch redemption.Status {
+			case common.RedemptionCodeStatusUsed:
+				return errors.New("该兑换码已被使用")
+			case common.RedemptionCodeStatusDisabled:
+				return errors.New("该兑换码已被禁用")
+			default:
+				return errors.New("该兑换码不可用")
+			}
 		}
 		if redemption.ExpiredTime != 0 && redemption.ExpiredTime < common.GetTimestamp() {
 			return errors.New("该兑换码已过期")
