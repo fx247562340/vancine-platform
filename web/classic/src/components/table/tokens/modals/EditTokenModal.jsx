@@ -68,7 +68,6 @@ const EditTokenModal = (props) => {
   const [models, setModels] = useState([]);
   const [groups, setGroups] = useState([]);
   const [showQuotaInput, setShowQuotaInput] = useState(false);
-  const [formReady, setFormReady] = useState(false);
   const [pendingTokenData, setPendingTokenData] = useState(null);
   const isEdit = props.editingToken.id !== undefined;
 
@@ -177,21 +176,26 @@ const EditTokenModal = (props) => {
       data.remain_amount = Number(
         quotaToDisplayAmount(data.remain_quota || 0).toFixed(6),
       );
-      // Store data to apply when form is ready
-      setPendingTokenData(data);
+      // Apply token data to form
+      if (formApiRef.current) {
+        formApiRef.current.setValues({ ...getInitValues(), ...data });
+      } else {
+        // Form not ready yet, store for later
+        setPendingTokenData(data);
+      }
     } else {
       showError(message);
     }
     setLoading(false);
   };
 
-  // Apply pending token data when form is ready
+  // Apply pending token data when form becomes available
   useEffect(() => {
-    if (pendingTokenData && formReady && formApiRef.current) {
+    if (pendingTokenData && formApiRef.current) {
       formApiRef.current.setValues({ ...getInitValues(), ...pendingTokenData });
       setPendingTokenData(null);
     }
-  }, [pendingTokenData, formReady]);
+  }, [pendingTokenData]);
 
   useEffect(() => {
     if (formApiRef.current) {
@@ -205,16 +209,15 @@ const EditTokenModal = (props) => {
 
   useEffect(() => {
     if (props.visiable) {
-      setFormReady(false);
       if (isEdit) {
-        loadToken();
+        // Delay token loading to ensure Form has mounted
+        setTimeout(() => loadToken(), 100);
       } else {
         formApiRef.current?.setValues(getInitValues());
       }
     } else {
       formApiRef.current?.reset();
       setPendingTokenData(null);
-      setFormReady(false);
     }
   }, [props.visiable, props.editingToken.id]);
 
@@ -369,10 +372,7 @@ const EditTokenModal = (props) => {
         <Form
           key={isEdit ? 'edit' : 'new'}
           initValues={getInitValues()}
-          getFormApi={(api) => {
-            formApiRef.current = api;
-            setFormReady(true);
-          }}
+          getFormApi={(api) => (formApiRef.current = api)}
           onSubmit={submit}
         >
           {({ values }) => (
