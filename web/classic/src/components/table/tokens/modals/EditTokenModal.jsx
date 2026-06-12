@@ -141,6 +141,7 @@ const EditTokenModal = (props) => {
   };
 
   const loadGroups = async () => {
+    console.log('[EditTokenModal] loadGroups start');
     let res = await API.get(`/api/user/self/groups`);
     const { success, message, data } = res.data;
     if (success) {
@@ -154,6 +155,7 @@ const EditTokenModal = (props) => {
           localGroupOptions.sort((a, b) => (a.value === 'auto' ? -1 : 1));
         }
       }
+      console.log('[EditTokenModal] loadGroups done, groups=', localGroupOptions.map(g => g.value));
       setGroups(localGroupOptions);
     } else {
       showError(t(message));
@@ -161,6 +163,7 @@ const EditTokenModal = (props) => {
   };
 
   const loadToken = async () => {
+    console.log('[EditTokenModal] loadToken start');
     setLoading(true);
     let res = await API.get(`/api/token/${props.editingToken.id}`);
     const { success, message, data } = res.data;
@@ -176,6 +179,7 @@ const EditTokenModal = (props) => {
       data.remain_amount = Number(
         quotaToDisplayAmount(data.remain_quota || 0).toFixed(6),
       );
+      console.log('[EditTokenModal] loadToken done, group=', data.group, 'formReady=', !!formApiRef.current);
       setPendingTokenData(data);
     } else {
       showError(message);
@@ -185,8 +189,20 @@ const EditTokenModal = (props) => {
 
   // Apply pending token data when both data and groups are ready
   useEffect(() => {
+    console.log('[EditTokenModal] effect [pendingTokenData, groups]', {
+      hasPending: !!pendingTokenData,
+      groupsLen: groups.length,
+      hasForm: !!formApiRef.current,
+      pendingGroup: pendingTokenData?.group,
+    });
     if (pendingTokenData && groups.length > 0 && formApiRef.current) {
+      console.log('[EditTokenModal] applying token data, group=', pendingTokenData.group);
       formApiRef.current.setValues({ ...getInitValues(), ...pendingTokenData });
+      // Verify the group was set
+      setTimeout(() => {
+        const currentGroup = formApiRef.current?.getValue('group');
+        console.log('[EditTokenModal] after setValues, form group=', currentGroup);
+      }, 50);
       setPendingTokenData(null);
     }
   }, [pendingTokenData, groups]);
@@ -195,9 +211,11 @@ const EditTokenModal = (props) => {
   useEffect(() => {
     if (groups.length > 0 && formApiRef.current) {
       const currentGroup = formApiRef.current.getValue('group');
+      console.log('[EditTokenModal] groups changed, currentGroup=', currentGroup, 'groups=', groups.map(g => g.value));
       if (currentGroup && groups.some((g) => g.value === currentGroup)) {
         // Force Select to re-validate by setting the value again
         formApiRef.current.setValue('group', currentGroup);
+        console.log('[EditTokenModal] re-applied group value:', currentGroup);
       }
     }
   }, [groups]);
