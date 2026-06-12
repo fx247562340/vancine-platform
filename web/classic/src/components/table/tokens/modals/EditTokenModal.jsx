@@ -176,26 +176,31 @@ const EditTokenModal = (props) => {
       data.remain_amount = Number(
         quotaToDisplayAmount(data.remain_quota || 0).toFixed(6),
       );
-      // Apply token data to form
-      if (formApiRef.current) {
-        formApiRef.current.setValues({ ...getInitValues(), ...data });
-      } else {
-        // Form not ready yet, store for later
-        setPendingTokenData(data);
-      }
+      setPendingTokenData(data);
     } else {
       showError(message);
     }
     setLoading(false);
   };
 
-  // Apply pending token data when form becomes available
+  // Apply pending token data when both data and groups are ready
   useEffect(() => {
-    if (pendingTokenData && formApiRef.current) {
+    if (pendingTokenData && groups.length > 0 && formApiRef.current) {
       formApiRef.current.setValues({ ...getInitValues(), ...pendingTokenData });
       setPendingTokenData(null);
     }
-  }, [pendingTokenData]);
+  }, [pendingTokenData, groups]);
+
+  // Re-apply group value when groups list changes (handles timing issue)
+  useEffect(() => {
+    if (groups.length > 0 && formApiRef.current) {
+      const currentGroup = formApiRef.current.getValue('group');
+      if (currentGroup && groups.some((g) => g.value === currentGroup)) {
+        // Force Select to re-validate by setting the value again
+        formApiRef.current.setValue('group', currentGroup);
+      }
+    }
+  }, [groups]);
 
   useEffect(() => {
     if (formApiRef.current) {
@@ -210,8 +215,7 @@ const EditTokenModal = (props) => {
   useEffect(() => {
     if (props.visiable) {
       if (isEdit) {
-        // Delay token loading to ensure Form has mounted
-        setTimeout(() => loadToken(), 100);
+        loadToken();
       } else {
         formApiRef.current?.setValues(getInitValues());
       }
