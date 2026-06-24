@@ -1,11 +1,12 @@
 # Vancine Platform - Nginx Configuration
 #
-# Server: 64.83.35.21
+# Server: 27.124.22.102
 # Path:   /etc/nginx/sites-enabled/vancine
 #
 # After editing, run: nginx -t && systemctl reload nginx
 #
 # Changelog:
+#   2026-06-25  Migrated production from 64.83.35.21 to 27.124.22.102.
 #   2026-06-12  Replaced X-Frame-Options: SAMEORIGIN with CSP frame-ancestors
 #               to allow Cloudflare Turnstile cross-origin iframe rendering.
 

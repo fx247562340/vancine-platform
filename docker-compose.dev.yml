@@ -2,8 +2,9 @@
 #
 # Usage:
 #   1. docker compose -f docker-compose.dev.yml up -d
-#   2. cd web && bun install && bun run dev
-#   3. Open http://localhost:3001 (Rsbuild dev server, API auto-proxied to :3000)
+#   2. cd web/default && npm install --no-audit --no-fund && npm run dev
+#      # or: cd web/classic && npm install --legacy-peer-deps --no-audit --no-fund && npm run dev
+#   3. Open the frontend dev server printed by npm; it proxies API calls to :3000.
 #
 # Rebuild backend after Go code changes:
 #   docker compose -f docker-compose.dev.yml up -d --build vancine

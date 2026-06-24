@@ -1,7 +1,7 @@
 # Backend-only build for frontend development
-# Skips frontend build, uses a placeholder for //go:embed web/dist
+# Skips frontend build, uses placeholder files for the embedded frontend dist.
 
-FROM docker.1ms.run/golang:1.26.1-alpine AS builder
+FROM golang:1.26.1-alpine AS builder
 
 ENV GO111MODULE=on CGO_ENABLED=0
 ARG TARGETOS
@@ -22,7 +22,7 @@ RUN mkdir -p web/default/dist web/classic/dist && \
 
 RUN go build -ldflags "-s -w -X 'github.com/QuantumNous/new-api/common.Version=$(cat VERSION)'" -o vancine
 
-FROM docker.1ms.run/debian:bookworm-slim
+FROM debian:bookworm-slim
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates tzdata wget \

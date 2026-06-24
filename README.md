@@ -58,6 +58,22 @@ curl -X POST http://localhost:3000/v1/chat/completions \
 - **Deployment:** Docker + GitHub Actions CI/CD
 - **Payment:** Stripe (pay-as-you-go credits)
 
+## Deployment and Release
+
+- Current version: [`VERSION`](VERSION) = `1.0.4`
+- Production server: `27.124.22.102`
+- Production URL: `https://vancine.com`
+- Deployment reference: [docs/deployment.md](docs/deployment.md)
+- Release process: [docs/release-process.md](docs/release-process.md)
+
+Standard production deploy:
+
+```bash
+./deploy.sh
+```
+
+The deploy script builds on the production server from `origin/main`. It does not build locally or copy a local binary.
+
 ## API Endpoints
 
 | Type | Endpoint | Method |

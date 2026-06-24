@@ -11,7 +11,7 @@ This is an AI API gateway/proxy built with Go. It aggregates 40+ upstream AI pro
 - **Databases**: SQLite, MySQL, PostgreSQL (all three must be supported)
 - **Cache**: Redis (go-redis) + in-memory cache
 - **Auth**: JWT, WebAuthn/Passkeys, OAuth (GitHub, Discord, OIDC, etc.)
-- **Frontend package manager**: Bun (preferred over npm/yarn/pnpm)
+- **Frontend package manager**: npm with committed `package-lock.json` files
 
 ## Architecture
 
@@ -50,7 +50,7 @@ web/             — Frontend themes container
 - Languages: en (base), zh (fallback), fr, ru, ja, vi
 - Translation files: `web/default/src/i18n/locales/{lang}.json` — flat JSON, keys are English source strings
 - Usage: `useTranslation()` hook, call `t('English key')` in components
-- CLI tools: `bun run i18n:sync` (from `web/default/`)
+- CLI tools: `npm run i18n:sync` (from `web/default/`)
 
 ## Rules
 
@@ -92,13 +92,14 @@ All database code MUST be fully compatible with all three databases simultaneous
 - Ensure all migrations work on all three databases.
 - For SQLite, use `ALTER TABLE ... ADD COLUMN` instead of `ALTER COLUMN` (see `model/main.go` for patterns).
 
-### Rule 3: Frontend — Prefer Bun
+### Rule 3: Frontend — Use npm and committed lockfiles
 
-Use `bun` as the preferred package manager and script runner for the frontend (`web/default/` directory):
-- `bun install` for dependency installation
-- `bun run dev` for development server
-- `bun run build` for production build
-- `bun run i18n:*` for i18n tooling
+Both frontend themes use npm, not bun, for reproducible production builds:
+- `web/default`: `npm install --no-audit --no-fund`, then `npm run build`.
+- `web/classic`: `npm install --legacy-peer-deps --no-audit --no-fund`, then `npm run build`.
+- Commit and maintain `package-lock.json` for both themes.
+- Do not reintroduce `bun.lock` or use `bun install` for production builds.
+- `web/classic` must keep `react-icons` pinned to `5.3.0`; later versions remove `SiLinkedin`, which the code still imports.
 
 ### Rule 4: New Channel StreamOptions Support
 

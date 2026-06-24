@@ -1,121 +1,128 @@
 #!/bin/bash
-# Vancine Platform 一键部署脚本
+# Vancine Platform server-side deploy script
 #
-# 构建流程：本地构建前端 → 本地编译 Go 二进制（嵌入前端） → 上传到服务器 → 构建 Docker 镜像
-# 为什么不用 Dockerfile.deploy：服务器内存不足无法在容器内编译，且 Docker Hub 访问受限无法拉取基础镜像
+# Standard production flow after the 2026-06-25 migration:
+#   GitHub -> production server git pull/reset -> docker compose build -> up -d
 #
-# 用法: ./deploy.sh "commit message"
-#   或: ./deploy.sh                    (跳过 git 提交，仅构建部署)
+# Usage:
+#   ./deploy.sh                    # deploy current origin/main to production
+#   ./deploy.sh "commit message"   # commit tracked local changes, push, then deploy
+#
+# Notes:
+# - Do not commit .env, keys, or secrets.
+# - VERSION is read from the tracked VERSION file and exposed in the app/build.
+# - The production server keeps docker-compose.override.yml with the build: block.
 
-set -e
+set -euo pipefail
 
-SERVER="root@64.83.35.21"
+SERVER="root@27.124.22.102"
+APP_DIR="/opt/vancine-platform"
 IMAGE_NAME="vancine-custom"
-PLATFORM="linux/amd64"
+BRANCH="main"
 
 cd "$(dirname "$0")"
 
-VERSION=$(cat VERSION | tr -d '[:space:]')
+VERSION=$(tr -d '[:space:]' < VERSION)
 if [ -z "$VERSION" ]; then
   echo "❌ VERSION 文件为空"
   exit 1
 fi
+
 echo "📌 版本: $VERSION"
+echo "🖥️  生产服务器: $SERVER"
+echo "🌿 分支: $BRANCH"
 
 # ============================================================
-# 1. Git 提交 & 推送
+# 1. Optional Git commit & push
 # ============================================================
-if [ -n "$1" ]; then
+if [ -n "${1:-}" ]; then
   echo "📦 Git 提交: $1"
-  # Only stage tracked files (safe: won't add new untracked files like .env)
+  # Only stage tracked files. This avoids adding .env, generated files, or secrets.
   git add -u
-  # Safety check: abort if .env or other sensitive files are staged
   if git diff --cached --name-only | grep -qE '\.env$|\.key$|\.pem$|secret|password'; then
     echo "❌ 检测到敏感文件被暂存，已中止提交。请检查 git status"
     git reset HEAD
     exit 1
   fi
   git commit -m "$1"
-  git push
+  git push origin "$BRANCH"
   echo "✅ Git 推送完成"
 else
   echo "⏭️  跳过 Git 提交（未提供 commit message）"
+  echo "🔎 确认本地 HEAD 已推送到 origin/$BRANCH..."
+  git fetch origin "$BRANCH" --quiet
+  LOCAL_HEAD=$(git rev-parse HEAD)
+  REMOTE_HEAD=$(git rev-parse "origin/$BRANCH")
+  if [ "$LOCAL_HEAD" != "$REMOTE_HEAD" ]; then
+    echo "❌ 本地 HEAD 与 origin/$BRANCH 不一致。请先 git push，或传入 commit message 让脚本提交。"
+    echo "   local : $LOCAL_HEAD"
+    echo "   remote: $REMOTE_HEAD"
+    exit 1
+  fi
 fi
 
 # ============================================================
-# 2. 构建前端
+# 2. Pull source on production server
 # ============================================================
-echo "🔨 构建 classic 前端..."
-cd web/classic
-npm install --silent --legacy-peer-deps
-npm run build
-cd ../..
-echo "✅ classic 前端构建完成"
-
-echo "🔨 构建 default 前端..."
-cd web/default
-npm install --silent
-npm run build
-cd ../..
-echo "✅ default 前端构建完成"
-
-# ============================================================
-# 3. 本地编译 Go 二进制（嵌入前端资源）
-# ============================================================
-echo "🔨 编译 Go 二进制 ($PLATFORM)..."
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o vancine-linux .
-echo "✅ 编译完成"
+echo "📥 服务器拉取最新代码..."
+ssh "$SERVER" "set -euo pipefail
+cd '$APP_DIR'
+git fetch origin '$BRANCH'
+git reset --hard 'origin/$BRANCH'
+if [ ! -f docker-compose.override.yml ]; then
+  cat > docker-compose.override.yml <<'YML'
+services:
+  vancine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+YML
+fi
+git log -1 --oneline
+"
 
 # ============================================================
-# 4. 上传到服务器并构建镜像
+# 3. Build image on production server
 # ============================================================
-echo "📤 上传到 $SERVER..."
-scp vancine-linux "$SERVER:/opt/vancine-platform/vancine-linux"
-
-echo "🐳 构建 Docker 镜像 (v${VERSION})..."
-ssh "$SERVER" "cd /opt/vancine-platform && cat > Dockerfile.simple << 'EOF'
-FROM docker.1ms.run/debian:bookworm-slim
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tzdata wget && rm -rf /var/lib/apt/lists/* && update-ca-certificates
-COPY vancine-linux /vancine
-EXPOSE 3000
-WORKDIR /data
-ENTRYPOINT [\"/vancine\"]
-EOF
-docker build -t ${IMAGE_NAME}:${VERSION} -t ${IMAGE_NAME}:latest -f Dockerfile.simple .
-rm -f vancine-linux Dockerfile.simple"
-
-# 更新 docker-compose.yml 使用版本标签
-ssh "$SERVER" "cd /opt/vancine-platform && sed -i 's|image: ${IMAGE_NAME}:.*|image: ${IMAGE_NAME}:${VERSION}|' docker-compose.yml"
-
-echo "✅ 镜像构建完成: ${IMAGE_NAME}:${VERSION}"
+echo "🐳 服务器构建 Docker 镜像..."
+ssh "$SERVER" "set -euo pipefail
+cd '$APP_DIR'
+docker compose build vancine
+docker tag '${IMAGE_NAME}:latest' '${IMAGE_NAME}:${VERSION}'
+"
+echo "✅ 镜像构建完成: ${IMAGE_NAME}:${VERSION} 和 ${IMAGE_NAME}:latest"
 
 # ============================================================
-# 5. 重启容器
+# 4. Restart containers
 # ============================================================
 echo "🔄 重启服务..."
-ssh "$SERVER" "cd /opt/vancine-platform && docker compose up -d"
-echo "✅ 容器重启完成"
+ssh "$SERVER" "set -euo pipefail
+cd '$APP_DIR'
+docker compose up -d
+"
 
 # ============================================================
-# 6. 验证
+# 5. Verify
 # ============================================================
-echo "⏳ 等待服务启动..."
-sleep 5
+echo "⏳ 等待服务健康..."
+ssh "$SERVER" "set -euo pipefail
+for i in \$(seq 1 60); do
+  status=\$(docker inspect -f '{{.State.Health.Status}}' vancine 2>/dev/null || echo unknown)
+  echo \"[\$i] health=\$status\"
+  [ \"\$status\" = healthy ] && break
+  [ \"\$status\" = unhealthy ] && exit 1
+  sleep 2
+done
+curl -fsS http://127.0.0.1:3000/api/status >/tmp/vancine-status.json
+grep -q '\"success\":true' /tmp/vancine-status.json
+curl -fsS https://vancine.com/api/status >/tmp/vancine-status-https.json
+grep -q '\"success\":true' /tmp/vancine-status-https.json
+"
+echo "🎉 部署成功！版本 v${VERSION}，服务正常运行"
 
-STATUS=$(ssh "$SERVER" "curl -s http://localhost:3000/api/status" 2>/dev/null)
-if echo "$STATUS" | grep -q '"success":true'; then
-  echo "🎉 部署成功！版本 v${VERSION}，服务正常运行"
-else
-  echo "❌ 部署可能失败，请检查: ssh $SERVER 'docker logs vancine --tail 20'"
-  exit 1
-fi
-
 # ============================================================
-# 7. 清理旧镜像（保留最近 3 个版本）
+# 6. Clean old images (keep latest + current tagged + recent cache)
 # ============================================================
-echo "🧹 清理旧镜像..."
-ssh "$SERVER" "docker images ${IMAGE_NAME} --format '{{.Tag}}' | grep -v latest | sort -V | head -n -3 | xargs -I{} docker rmi ${IMAGE_NAME}:{} 2>/dev/null || true"
+echo "🧹 清理旧镜像标签（保留最近 3 个版本）..."
+ssh "$SERVER" "docker images '${IMAGE_NAME}' --format '{{.Tag}}' | grep -v latest | sort -V | head -n -3 | xargs -I{} docker rmi '${IMAGE_NAME}:{}' 2>/dev/null || true"
 echo "✅ 清理完成"
-
-# 清理本地临时文件
-rm -f vancine-linux
