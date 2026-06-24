@@ -1,6 +1,10 @@
 # ---- Frontend: default ----
 FROM node:20-alpine AS builder
 WORKDIR /build
+RUN npm config set registry https://registry.npmmirror.com \
+ && npm config set fetch-retries 5 \
+ && npm config set fetch-retry-mintimeout 20000 \
+ && npm config set fetch-retry-maxtimeout 120000
 COPY web/default/package.json web/default/package-lock.json ./
 RUN npm install --no-audit --no-fund --loglevel=warn
 COPY ./web/default .
@@ -11,6 +15,10 @@ RUN rm -rf node_modules/.vite node_modules/.cache dist \
 # ---- Frontend: classic ----
 FROM node:20-alpine AS builder-classic
 WORKDIR /build
+RUN npm config set registry https://registry.npmmirror.com \
+ && npm config set fetch-retries 5 \
+ && npm config set fetch-retry-mintimeout 20000 \
+ && npm config set fetch-retry-maxtimeout 120000
 COPY web/classic/package.json web/classic/package-lock.json ./
 RUN npm install --legacy-peer-deps --no-audit --no-fund --loglevel=warn
 COPY ./web/classic .
