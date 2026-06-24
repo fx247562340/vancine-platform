@@ -33,6 +33,18 @@ Write the bare number in `VERSION`, for example:
 
 Do not include the `v` prefix in the file. The app formats it as `v1.0.5` at runtime.
 
+## Required release gates
+
+Production deploys are gated by local Docker verification and user approval:
+
+1. Make the code change locally.
+2. Build and run the full app locally with Docker.
+3. Ask the user to verify `http://127.0.0.1:3000`.
+4. Only after the user confirms, commit and push.
+5. Deploy on the production server by pulling from GitHub and building there.
+
+Do not deploy directly from an unverified local edit.
+
 ## Pre-release checklist
 
 Before deploying:
@@ -49,14 +61,24 @@ Before deploying:
    cat VERSION
    ```
 
-3. Build both frontends locally if the change touches frontend code.
+3. Build and run the full app locally with Docker for user verification.
 
    ```bash
-   cd web/default && npm install --no-audit --no-fund && npm run build
-   cd ../classic && npm install --legacy-peer-deps --no-audit --no-fund && npm run build
+   cat > docker-compose.override.yml <<'YML'
+   services:
+     vancine:
+       build:
+         context: .
+         dockerfile: Dockerfile
+   YML
+   docker compose build vancine
+   docker compose up -d
+   curl -s http://127.0.0.1:3000/api/status
    ```
 
-4. For backend changes, run the relevant Go checks.
+   Ask the user to verify the local app at `http://127.0.0.1:3000`. If the user finds an issue, fix it and repeat this step before continuing.
+
+4. Run targeted checks for the changed area. For frontend-only changes, the Docker build above already runs both production frontend builds. For backend changes, also run:
 
    ```bash
    go test ./...

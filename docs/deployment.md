@@ -46,9 +46,68 @@ Release rule:
 3. Deploy from `origin/main` on the production server.
 4. Verify `/api/status` returns the expected version.
 
-## Standard deployment
+## Development-to-release workflow
 
-From the local project checkout:
+Every change follows this gate sequence:
+
+```text
+local code change
+  ↓
+local Docker build and local app startup
+  ↓
+user verifies the local app
+  ↓
+commit + push to GitHub
+  ↓
+production server pulls origin/main
+  ↓
+production server builds Docker image
+  ↓
+production deploy + health checks
+```
+
+Do not skip the local Docker verification gate for user-visible changes. The production server should only pull and build after the user confirms the locally running app is correct.
+
+### Local Docker verification
+
+From the project root:
+
+```bash
+cd /Users/xin/ClaudeProject/vancine-platform
+cp .env.example .env   # first time only; fill local-only secrets
+cat > docker-compose.override.yml <<'YML'
+services:
+  vancine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+YML
+docker compose build vancine
+docker compose up -d
+curl -s http://127.0.0.1:3000/api/status
+```
+
+Open the local app at:
+
+```text
+http://127.0.0.1:3000
+```
+
+The user verifies behavior against this local Docker instance. If changes are needed, repeat local build/start and verification before committing.
+
+Stop local services when done:
+
+```bash
+docker compose down
+```
+
+Reset local test data when needed:
+
+```bash
+docker compose down -v
+```
+
+
 
 ```bash
 cd /Users/xin/ClaudeProject/vancine-platform

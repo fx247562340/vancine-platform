@@ -74,6 +74,13 @@ Standard production deploy:
 
 The deploy script builds on the production server from `origin/main`. It does not build locally or copy a local binary.
 
+Required release gate:
+
+1. Make changes locally.
+2. Run the full app locally with Docker.
+3. Verify the local app at `http://127.0.0.1:3000`.
+4. After approval, commit/push and deploy with `./deploy.sh`.
+
 ## API Endpoints
 
 | Type | Endpoint | Method |
