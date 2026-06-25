@@ -11,7 +11,7 @@ This page is the source of truth for production deployment after the 2026-06-25 
 | OS | Ubuntu 24.04 LTS |
 | App directory | `/opt/vancine-platform` |
 | Public domain | `https://vancine.com` |
-| API domain | `https://api.vancine.com` redirects to `https://vancine.com` |
+| Legacy API domain | `https://api.vancine.com` is deprecated; it only 301 redirects to `https://vancine.com` |
 | Runtime | Docker Compose |
 | App container | `vancine` |
 | Database | PostgreSQL 15 container `postgres`, database `new-api` |
@@ -208,7 +208,7 @@ scp deploy/nginx/vancine root@27.124.22.102:/etc/nginx/sites-enabled/vancine
 ssh root@27.124.22.102 'nginx -t && systemctl reload nginx'
 ```
 
-The config proxies `vancine.com` and `www.vancine.com` to `127.0.0.1:3000` and redirects `api.vancine.com` to `https://vancine.com$request_uri`.
+The config proxies `vancine.com` and `www.vancine.com` to `127.0.0.1:3000`. `api.vancine.com` is a deprecated legacy domain and only redirects to `https://vancine.com$request_uri`.
 
 ## Backup
 

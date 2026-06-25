@@ -3,7 +3,7 @@
 # Vancine Model Testing Script
 # 测试所有可用模型并记录结果
 
-API_URL="https://api.vancine.com"
+API_URL="https://vancine.com"
 API_KEY=""  # 需要填入有效的 API Key
 
 echo "=========================================="

@@ -44,6 +44,11 @@ frontend/out/
 frontend/.env.local
 frontend/.env.*.local
 
+# Local Docker/runtime state
+.env.local-backup-*
+docker-compose.override.yml
+favicon_logosc/
+
 # Build artifacts
 vancine-custom.tar.gz
 *.tar.gz

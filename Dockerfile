@@ -10,7 +10,7 @@ RUN npm install --no-audit --no-fund --loglevel=warn
 COPY ./web/default .
 COPY ./VERSION .
 RUN rm -rf node_modules/.vite node_modules/.cache dist \
-    && DISABLE_ESLINT_PLUGIN='true' VITE_REACT_APP_VERSION=$(cat VERSION) npm run build
+    && NODE_OPTIONS=--max-old-space-size=4096 DISABLE_ESLINT_PLUGIN='true' VITE_REACT_APP_VERSION=$(cat VERSION) npm run build
 
 # ---- Frontend: classic ----
 FROM node:20-alpine AS builder-classic
@@ -23,7 +23,7 @@ COPY web/classic/package.json web/classic/package-lock.json ./
 RUN npm install --legacy-peer-deps --no-audit --no-fund --loglevel=warn
 COPY ./web/classic .
 COPY ./VERSION .
-RUN VITE_REACT_APP_VERSION=$(cat VERSION) npm run build
+RUN NODE_OPTIONS=--max-old-space-size=4096 VITE_REACT_APP_VERSION=$(cat VERSION) npm run build
 
 # ---- Backend: Go binary (embeds the two dist/ above) ----
 FROM golang:1.26.1-alpine@sha256:2389ebfa5b7f43eeafbd6be0c3700cc46690ef842ad962f6c5bd6be49ed82039 AS builder2

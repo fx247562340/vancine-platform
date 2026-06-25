@@ -49,7 +49,7 @@ export default function Hero() {
         {/* CTAs */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <a
-            href="https://api.vancine.com"
+            href="https://vancine.com/docs"
             className="group flex items-center gap-2 px-8 py-3.5 text-base font-semibold text-primary bg-white rounded-xl hover:bg-white/90 transition-all hover:shadow-xl hover:shadow-white/20 hover:-translate-y-0.5"
           >
             Get Started Free

@@ -2,6 +2,24 @@
 
 All notable Vancine platform release and operations changes are tracked here.
 
+## Unreleased
+
+### Branding
+
+- Replaced root and frontend public logos with the new transparent Vancine logo.
+- Replaced favicon.ico assets for classic/default/front-end app entry points.
+- Added 16x16, 32x32, Apple touch, Android Chrome, and web manifest favicon assets to both frontend public directories.
+- Updated both frontend HTML entry points to use `/favicon.ico`, size-specific PNG favicons, `apple-touch-icon`, and `site.webmanifest`.
+
+### Build
+
+- Increased Node heap for frontend Docker build steps with `NODE_OPTIONS=--max-old-space-size=4096` to avoid local Docker OOM during classic Vite build.
+
+### Local verification
+
+- Synced production `.env`, PostgreSQL data, `data/`, and `uploads/` to local Docker.
+- Local verification service is running at `http://127.0.0.1:3001` because port 3000 is occupied by another local container.
+
 ## 1.0.4 - 2026-06-25
 
 ### Infrastructure

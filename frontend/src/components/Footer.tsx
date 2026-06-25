@@ -4,7 +4,7 @@ const links = {
   Product: [
     { label: "Features", href: "#features" },
     { label: "Pricing", href: "#pricing" },
-    { label: "API Docs", href: "https://api.vancine.com" },
+    { label: "API Docs", href: "https://vancine.com/docs" },
   ],
   Company: [
     { label: "About", href: "#" },

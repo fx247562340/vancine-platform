@@ -41,7 +41,7 @@ Do NOT use the `Read` tool, `cat`, or any file-reading command to open binary im
 10. **需求验证（P0）** — waitlist 页面 + 社区投放 + 问卷 + 访谈，14 天验证开发者付费意愿
 11. ~~**页签标题显示 "new-api"**~~ — 浏览器 tab 标题改为 Vancine ✅
 12. ~~**多语言列表裁剪**~~ — 仅支持简体中文和英语 ✅
-13. ~~**首页 API 地址显示错误**~~ — 已设置 ServerAddress 为 `https://api.vancine.com/v1` ✅
+13. ~~**首页 API 地址显示错误**~~ — 已设置 ServerAddress 为 `https://vancine.com`，用户调用地址为 `https://vancine.com/v1`；`api.vancine.com` 为废弃旧域名，仅保留 301 跳转 ✅
 14. ~~**语言切换按钮显示 i18n key**~~ — 已修复 ✅
 15. ~~**首页中英文切换适配**~~ — classic 主题首页已做 i18n 适配 ✅
 16. ~~**完善平台接入文档**~~ — 编写 API 接入指南 ✅

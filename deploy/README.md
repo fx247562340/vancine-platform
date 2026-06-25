@@ -13,7 +13,7 @@ Production deployment configuration for the Vancine API platform.
 | SSH key | `~/.ssh/id_ed25519` |
 | App directory | `/opt/vancine-platform` |
 | Domain | `vancine.com` |
-| API redirect | `api.vancine.com` → `https://vancine.com` |
+| Legacy API domain | `api.vancine.com` deprecated; 301 redirects to `https://vancine.com` |
 | Containers | `vancine`, `postgres`, `redis` |
 | Database | PostgreSQL container `postgres`, DB `new-api` |
 
@@ -109,7 +109,7 @@ ssh root@27.124.22.102 "nginx -t && systemctl reload nginx"
 The current config:
 
 - Proxies `vancine.com` and `www.vancine.com` to `127.0.0.1:3000`.
-- Redirects `api.vancine.com` to `https://vancine.com$request_uri`.
+- Treats `api.vancine.com` as a deprecated legacy domain and redirects it to `https://vancine.com$request_uri`.
 - Uses Let's Encrypt certificates from `/etc/letsencrypt/live/vancine.com/`.
 - Adds CSP, HSTS, X-Content-Type-Options, X-XSS-Protection, and Referrer-Policy headers.
 - Sets `client_max_body_size 20m`.

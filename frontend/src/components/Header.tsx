@@ -6,7 +6,7 @@ import { Menu, X, Zap } from "lucide-react";
 const navLinks = [
   { label: "Features", href: "#features" },
   { label: "Pricing", href: "#pricing" },
-  { label: "Docs", href: "https://api.vancine.com" },
+  { label: "Docs", href: "https://vancine.com/docs" },
 ];
 
 export default function Header() {
@@ -33,7 +33,7 @@ export default function Header() {
             </a>
           ))}
           <a
-            href="https://api.vancine.com"
+            href="https://vancine.com/docs"
             className="px-5 py-2 text-sm font-semibold text-white rounded-xl bg-primary hover:bg-primary-dark transition-all hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5"
           >
             Get Started
@@ -65,7 +65,7 @@ export default function Header() {
               </a>
             ))}
             <a
-              href="https://api.vancine.com"
+              href="https://vancine.com/docs"
               className="mt-2 px-5 py-2.5 text-sm font-semibold text-white text-center rounded-xl bg-primary hover:bg-primary-dark transition-all"
             >
               Get Started
