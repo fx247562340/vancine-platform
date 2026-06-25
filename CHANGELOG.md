@@ -4,6 +4,11 @@ All notable Vancine platform release and operations changes are tracked here.
 
 ## 1.0.6 - 2026-06-25
 
+### Hotfix
+
+- Fixed Playground routing for Bailian image models (`wan2.7-image`, `wan2.7-image-pro`) so database endpoint overrides cannot force image models through chat completions.
+- Preserved `image-generation` as the first supported endpoint for recognized image models even when model metadata includes custom endpoints.
+
 ### Light mode
 
 - Adapted homepage, docs, and About pages to support light/dark theme switching.

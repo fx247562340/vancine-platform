@@ -215,13 +215,18 @@ func updatePricing() {
 	}
 
 	// 再补充模型自定义端点：若配置有效则替换默认端点，不做合并
+	// 图片模型即使配置了自定义端点，也必须保留 image-generation 作为首选端点，
+	// 否则操练场会把图片模型误判为文本模型并路由到 chat completions。
 	for modelName, meta := range metaMap {
 		if strings.TrimSpace(meta.Endpoints) == "" {
 			continue
 		}
 		var raw map[string]interface{}
 		if err := json.Unmarshal([]byte(meta.Endpoints), &raw); err == nil {
-			endpoints := make([]string, 0, len(raw))
+			endpoints := make([]string, 0, len(raw)+1)
+			if common.IsImageGenerationModel(modelName) {
+				endpoints = append(endpoints, string(constant.EndpointTypeImageGeneration))
+			}
 			for k, v := range raw {
 				switch v.(type) {
 				case string, map[string]interface{}:
