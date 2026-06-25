@@ -1,18 +1,25 @@
 import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { API, showError } from '../../helpers';
 import { marked } from 'marked';
 import { useTranslation } from 'react-i18next';
+import ScrollReveal from '../../components/home/ScrollReveal';
 
 /* ──────────────────── Color constants ──────────────────── */
 
 const C = {
-  text: { h1: '#f0f0f0', body: '#d1d5db', muted: '#9ca3af', subtle: '#6b7280' },
-  bg: { light: '#141414', card: '#1a1a1a' },
-  border: '#2a2a2a',
-  accent: '#a78bfa', accentBg: 'rgba(167,139,250,0.1)',
-  green: '#34d399', greenBg: 'rgba(52,211,153,0.1)',
-  blue: '#60a5fa', blueBg: 'rgba(96,165,250,0.1)',
-  orange: '#fbbf24', orangeBg: 'rgba(251,191,36,0.1)',
+  text: {
+    h1: 'var(--vc-text-strong)',
+    body: 'var(--vc-text-body)',
+    muted: 'var(--vc-text-muted)',
+    subtle: 'var(--vc-text-subtle)',
+  },
+  bg: { light: 'var(--semi-color-fill-0)', card: 'var(--vc-card-bg)' },
+  border: 'var(--vc-border)',
+  accent: 'var(--vc-accent)', accentBg: 'var(--vc-accent-bg)',
+  green: 'var(--semi-color-success)', greenBg: 'var(--semi-color-success-light-default)',
+  blue: 'var(--semi-color-info)', blueBg: 'var(--semi-color-info-light-default)',
+  orange: 'var(--semi-color-warning)', orangeBg: 'var(--semi-color-warning-light-default)',
 };
 
 /* ──────────────────── Data ──────────────────── */
@@ -138,7 +145,10 @@ const About = () => {
       return <iframe src={customAbout} style={{ width: '100%', height: '100vh', border: 'none', marginTop: '64px' }} />;
     }
     return (
-      <div style={{ marginTop: '64px', padding: '32px', maxWidth: '800px', margin: '96px auto 0', fontSize: '16px', lineHeight: 1.8, color: C.text.body }}>
+      <div
+        className='vancine-public-page vancine-about-page'
+        style={{ marginTop: '64px', padding: '32px', maxWidth: '800px', margin: '96px auto 0', fontSize: '16px', lineHeight: 1.8, color: C.text.body, background: 'var(--vc-page-bg)' }}
+      >
         <div dangerouslySetInnerHTML={{ __html: customAbout }} />
       </div>
     );
@@ -148,59 +158,85 @@ const About = () => {
   const containerStyle = { maxWidth: '960px', margin: '0 auto', padding: '0 24px' };
 
   return (
-    <div style={{ minHeight: '100vh' }}>
+    <div className='vancine-public-page vancine-about-page' style={{ minHeight: '100vh', background: 'var(--vc-page-bg)' }}>
       <div style={{ ...containerStyle, paddingTop: '120px', paddingBottom: '80px' }}>
 
         {/* ── Hero ── */}
-        <div style={{ textAlign: 'center', marginBottom: '80px' }}>
-          <p style={{ fontSize: '13px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.accent, marginBottom: '16px' }}>
-            {d.hero.tag}
-          </p>
-          <h1 style={{ fontSize: 'clamp(32px, 5vw, 48px)', fontWeight: 700, color: C.text.h1, marginBottom: '20px', lineHeight: 1.2 }}>
-            {d.hero.title}
-          </h1>
-          <p style={{ fontSize: '18px', color: C.text.muted, maxWidth: '640px', margin: '0 auto', lineHeight: 1.7 }}>
-            {d.hero.sub}
-          </p>
-        </div>
+        <ScrollReveal>
+          <div style={{ textAlign: 'center', marginBottom: '80px' }}>
+            <motion.p
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              style={{ fontSize: '13px', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.accent, marginBottom: '16px' }}
+            >
+              {d.hero.tag}
+            </motion.p>
+            <h1 style={{ fontSize: 'clamp(32px, 5vw, 48px)', fontWeight: 700, color: C.text.h1, marginBottom: '20px', lineHeight: 1.2 }}>
+              {d.hero.title}
+            </h1>
+            <p style={{ fontSize: '18px', color: C.text.muted, maxWidth: '640px', margin: '0 auto', lineHeight: 1.7 }}>
+              {d.hero.sub}
+            </p>
+          </div>
+        </ScrollReveal>
 
         {/* ── Mission ── */}
-        <div style={{ ...sectionGap, textAlign: 'center' }}>
-          <h2 style={{ fontSize: '28px', fontWeight: 700, color: C.text.h1, marginBottom: '16px' }}>
-            {d.mission.title}
-          </h2>
-          <p style={{ fontSize: '16px', color: C.text.body, maxWidth: '680px', margin: '0 auto', lineHeight: 1.8 }}>
-            {d.mission.body}
-          </p>
-        </div>
+        <ScrollReveal delay={0.08}>
+          <div style={{ ...sectionGap, textAlign: 'center' }}>
+            <h2 style={{ fontSize: '28px', fontWeight: 700, color: C.text.h1, marginBottom: '16px' }}>
+              {d.mission.title}
+            </h2>
+            <p style={{ fontSize: '16px', color: C.text.body, maxWidth: '680px', margin: '0 auto', lineHeight: 1.8 }}>
+              {d.mission.body}
+            </p>
+          </div>
+        </ScrollReveal>
 
         {/* ── What We Offer ── */}
         <div style={sectionGap}>
-          <h2 style={{ fontSize: '28px', fontWeight: 700, color: C.text.h1, textAlign: 'center', marginBottom: '40px' }}>
-            {d.what.title}
-          </h2>
+          <ScrollReveal>
+            <h2 style={{ fontSize: '28px', fontWeight: 700, color: C.text.h1, textAlign: 'center', marginBottom: '40px' }}>
+              {d.what.title}
+            </h2>
+          </ScrollReveal>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
             {d.what.items.map((item, i) => (
-              <div key={i} style={{
-                background: C.bg.card,
-                border: `1px solid ${C.border}`,
-                borderRadius: '16px',
-                padding: '28px 24px',
-                textAlign: 'center',
-              }}>
-                <div style={{ fontSize: '36px', marginBottom: '16px' }}>{item.icon}</div>
-                <h3 style={{ fontSize: '16px', fontWeight: 600, color: C.text.h1, marginBottom: '8px' }}>{item.title}</h3>
-                <p style={{ fontSize: '14px', color: C.text.muted, lineHeight: 1.6 }}>{item.desc}</p>
-              </div>
+              <ScrollReveal key={i} delay={0.1 + i * 0.08}>
+                <motion.div
+                  whileHover={{ y: -4, scale: 1.02 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+                  style={{
+                    background: C.bg.card,
+                    border: `1px solid ${C.border}`,
+                    borderRadius: '16px',
+                    padding: '28px 24px',
+                    textAlign: 'center',
+                    height: '100%',
+                  }}
+                >
+                  <motion.div
+                    style={{ fontSize: '36px', marginBottom: '16px' }}
+                    whileHover={{ scale: 1.2, rotate: 8 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 14 }}
+                  >
+                    {item.icon}
+                  </motion.div>
+                  <h3 style={{ fontSize: '16px', fontWeight: 600, color: C.text.h1, marginBottom: '8px' }}>{item.title}</h3>
+                  <p style={{ fontSize: '14px', color: C.text.muted, lineHeight: 1.6 }}>{item.desc}</p>
+                </motion.div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
 
         {/* ── Model Categories ── */}
         <div style={sectionGap}>
-          <h2 style={{ fontSize: '28px', fontWeight: 700, color: C.text.h1, textAlign: 'center', marginBottom: '40px' }}>
-            {d.models.title}
-          </h2>
+          <ScrollReveal>
+            <h2 style={{ fontSize: '28px', fontWeight: 700, color: C.text.h1, textAlign: 'center', marginBottom: '40px' }}>
+              {d.models.title}
+            </h2>
+          </ScrollReveal>
           <div style={{
             display: 'flex',
             flexWrap: 'wrap',
@@ -209,72 +245,97 @@ const About = () => {
             alignItems: 'stretch',
           }}>
             {d.models.items.map((item, i) => (
-              <div key={i} style={{
-                background: item.bg,
-                border: `1px solid ${item.color}22`,
-                borderRadius: '14px',
-                padding: '20px 22px',
-                width: '280px',
-                minHeight: '118px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                textAlign: 'left',
-              }}>
-                <div style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  alignSelf: 'flex-start',
-                  padding: '4px 10px',
-                  borderRadius: '999px',
-                  background: `${item.color}18`,
-                  color: item.color,
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  marginBottom: '12px',
-                }}>
-                  {item.name}
-                </div>
-                <div style={{ fontSize: '14px', color: C.text.muted, lineHeight: 1.6 }}>{item.desc}</div>
-              </div>
+              <ScrollReveal key={i} delay={0.05 + i * 0.06}>
+                <motion.div
+                  whileHover={{ y: -3, scale: 1.015 }}
+                  transition={{ type: 'spring', stiffness: 280, damping: 22 }}
+                  style={{
+                    background: item.bg,
+                    border: `1px solid ${C.border}`,
+                    borderRadius: '14px',
+                    padding: '20px 22px',
+                    width: '280px',
+                    minHeight: '118px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    textAlign: 'left',
+                  }}
+                >
+                  <motion.div
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      alignSelf: 'flex-start',
+                      padding: '4px 10px',
+                      borderRadius: '999px',
+                      background: `${item.color}18`,
+                      color: item.color,
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      marginBottom: '12px',
+                    }}
+                    whileHover={{ scale: 1.06 }}
+                    transition={{ type: 'spring', stiffness: 350, damping: 18 }}
+                  >
+                    {item.name}
+                  </motion.div>
+                  <div style={{ fontSize: '14px', color: C.text.muted, lineHeight: 1.6 }}>{item.desc}</div>
+                </motion.div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
 
         {/* ── Our Story ── */}
         <div style={sectionGap}>
-          <h2 style={{ fontSize: '28px', fontWeight: 700, color: C.text.h1, textAlign: 'center', marginBottom: '32px' }}>
-            {d.story.title}
-          </h2>
+          <ScrollReveal>
+            <h2 style={{ fontSize: '28px', fontWeight: 700, color: C.text.h1, textAlign: 'center', marginBottom: '32px' }}>
+              {d.story.title}
+            </h2>
+          </ScrollReveal>
           <div style={{ maxWidth: '680px', margin: '0 auto' }}>
             {d.story.paragraphs.map((p, i) => (
-              <p key={i} style={{ fontSize: '15px', color: C.text.body, lineHeight: 1.8, marginBottom: '20px' }}>{p}</p>
+              <ScrollReveal key={i} delay={0.06 + i * 0.1}>
+                <p style={{ fontSize: '15px', color: C.text.body, lineHeight: 1.8, marginBottom: '20px' }}>{p}</p>
+              </ScrollReveal>
             ))}
           </div>
         </div>
 
         {/* ── Contact ── */}
         <div style={{ ...sectionGap, textAlign: 'center' }}>
-          <h2 style={{ fontSize: '28px', fontWeight: 700, color: C.text.h1, marginBottom: '32px' }}>
-            {d.contact.title}
-          </h2>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '24px', flexWrap: 'wrap' }}>
-            <a href={`mailto:${d.contact.email}`} style={{
-              display: 'flex', alignItems: 'center', gap: '8px',
-              background: C.bg.card, border: `1px solid ${C.border}`, borderRadius: '12px', padding: '16px 24px',
-              color: C.text.body, textDecoration: 'none', fontSize: '15px',
-            }}>
-              <span style={{ fontSize: '20px' }}>✉️</span> {d.contact.email}
-            </a>
-          </div>
+          <ScrollReveal>
+            <h2 style={{ fontSize: '28px', fontWeight: 700, color: C.text.h1, marginBottom: '32px' }}>
+              {d.contact.title}
+            </h2>
+          </ScrollReveal>
+          <ScrollReveal delay={0.1}>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '24px', flexWrap: 'wrap' }}>
+              <motion.a
+                href={`mailto:${d.contact.email}`}
+                whileHover={{ y: -3, scale: 1.03 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  background: C.bg.card, border: `1px solid ${C.border}`, borderRadius: '12px', padding: '16px 24px',
+                  color: C.text.body, textDecoration: 'none', fontSize: '15px',
+                }}
+              >
+                <span style={{ fontSize: '20px' }}>✉️</span> {d.contact.email}
+              </motion.a>
+            </div>
+          </ScrollReveal>
         </div>
 
         {/* ── Footer ── */}
-        <div style={{ textAlign: 'center', paddingTop: '40px', borderTop: `1px solid ${C.border}` }}>
-          <p style={{ fontSize: '13px', color: C.text.subtle, lineHeight: 2 }}>
-            © {currentYear} Vancine · {isZh ? '让中国 AI 模型更容易被全球开发者使用' : 'Making Chinese AI models easier for global developers to use'}
-          </p>
-        </div>
+        <ScrollReveal>
+          <div style={{ textAlign: 'center', paddingTop: '40px', borderTop: `1px solid ${C.border}` }}>
+            <p style={{ fontSize: '13px', color: C.text.subtle, lineHeight: 2 }}>
+              © {currentYear} Vancine · {isZh ? '让中国 AI 模型更容易被全球开发者使用' : 'Making Chinese AI models easier for global developers to use'}
+            </p>
+          </div>
+        </ScrollReveal>
 
       </div>
     </div>

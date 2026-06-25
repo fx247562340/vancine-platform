@@ -2,7 +2,28 @@
 
 All notable Vancine platform release and operations changes are tracked here.
 
-## Unreleased
+## 1.0.6 - 2026-06-25
+
+### Light mode
+
+- Adapted homepage, docs, and About pages to support light/dark theme switching.
+- Replaced hardcoded dark-only color palettes with Semi Design CSS variable tokens.
+- Added `vancine-public-page` semantic CSS token layer for public marketing pages.
+- Made homepage hero video overlay, provider logos, pricing cards, and footer theme-aware.
+- Made docs page tables, code blocks, callouts, and TOC follow the active theme.
+- Made About page cards, model coverage chips, and contact section follow the active theme.
+
+### Motion
+
+- Added aurora soft-light background blobs to the homepage hero (dark mode only).
+- Added word-by-word text reveal animation on the hero headline.
+- Added count-up number animation on hero stats.
+- Added spring hover micro-interactions on hero CTA buttons.
+- Added cursor-tracking spotlight glow on feature cards.
+- Added icon scale/rotate on feature card hover.
+- Added ScrollReveal staggered entrance on About page sections.
+- Added spring hover lift on About cards, model chips, and contact card.
+- Respected `prefers-reduced-motion` for aurora blobs.
 
 ### Branding
 

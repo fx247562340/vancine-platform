@@ -101,6 +101,14 @@ const Home = () => {
   }, []);
 
   useEffect(() => {
+    const iframe = document.querySelector('.home-content-iframe');
+    if (iframe?.contentWindow) {
+      iframe.contentWindow.postMessage({ themeMode: actualTheme }, '*');
+      iframe.contentWindow.postMessage({ lang: i18n.language }, '*');
+    }
+  }, [actualTheme, i18n.language]);
+
+  useEffect(() => {
     API.get('/api/pricing')
       .then((res) => {
         if (res.data?.success && res.data?.data) {
@@ -111,17 +119,11 @@ const Home = () => {
       .catch(() => {});
   }, []);
 
-  // Force dark background for the homepage
-  useEffect(() => {
-    const prevBg = document.body.style.backgroundColor;
-    document.body.style.backgroundColor = '#090909';
-    return () => {
-      document.body.style.backgroundColor = prevBg;
-    };
-  }, []);
-
   return (
-    <div className='w-full overflow-x-hidden' style={{ background: '#090909' }}>
+    <div
+      className='vancine-public-page vancine-home-page w-full overflow-x-hidden'
+      style={{ background: 'var(--vc-page-bg)' }}
+    >
       <NoticeModal
         visible={noticeVisible}
         onClose={() => setNoticeVisible(false)}
@@ -146,11 +148,12 @@ const Home = () => {
           {homePageContent.startsWith('https://') ? (
             <iframe
               src={homePageContent}
-              className='w-full h-screen border-none'
+              className='home-content-iframe w-full h-screen border-none'
             />
           ) : (
             <div
-              className='mt-[60px]'
+              className='vancine-public-page vancine-home-page mt-[60px]'
+              style={{ color: 'var(--vc-text-body)' }}
               dangerouslySetInnerHTML={{ __html: homePageContent }}
             />
           )}

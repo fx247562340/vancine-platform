@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { motion } from 'framer-motion';
 import ScrollReveal from './ScrollReveal';
 
 const features = [
@@ -45,12 +46,88 @@ const features = [
   },
 ];
 
+/* ── Spotlight card: radial glow follows cursor ── */
+const FeatureCard = ({ f, isChinese, index }) => {
+  const cardRef = useRef(null);
+
+  const handleMouseMove = (e) => {
+    const card = cardRef.current;
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    card.style.setProperty('--spotlight-x', `${x}px`);
+    card.style.setProperty('--spotlight-y', `${y}px`);
+  };
+
+  return (
+    <ScrollReveal key={f.title} delay={index * 0.1} className='h-full'>
+      <motion.div
+        ref={cardRef}
+        onMouseMove={handleMouseMove}
+        whileHover={{ y: -4, scale: 1.01 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+        className='feature-spotlight-card group relative p-7 h-full min-h-[260px] flex flex-col'
+        style={{
+          background: 'var(--vc-card-bg)',
+          borderRadius: '20px',
+          border: '1px solid var(--vc-border)',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Cursor-tracking spotlight overlay */}
+        <div
+          className='spotlight-glow absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none'
+          style={{
+            background: `radial-gradient(260px circle at var(--spotlight-x, 50%) var(--spotlight-y, 50%), ${f.accent}18, transparent 70%)`,
+          }}
+        />
+
+        {/* Hover gradient backdrop */}
+        <div
+          className='absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none'
+          style={{ background: f.gradient }}
+        />
+
+        <div className='relative z-10 flex h-full flex-col'>
+          <motion.div
+            className='text-3xl mb-4 w-12 h-12 flex items-center justify-center rounded-xl'
+            style={{ background: `${f.accent}15` }}
+            whileHover={{ scale: 1.1, rotate: 5 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 16 }}
+          >
+            {f.icon}
+          </motion.div>
+          <h3
+            className='text-xl font-semibold mb-2'
+            style={{ color: 'var(--vc-text-strong)' }}
+          >
+            {isChinese ? f.titleZh : f.title}
+          </h3>
+          <p
+            className='leading-relaxed mb-3 flex-1'
+            style={{ color: 'var(--vc-text-muted)', fontSize: '15px' }}
+          >
+            {isChinese ? f.descZh : f.desc}
+          </p>
+          <p
+            className='text-xs font-medium uppercase tracking-wider'
+            style={{ color: f.accent, opacity: 0.8 }}
+          >
+            {f.models}
+          </p>
+        </div>
+      </motion.div>
+    </ScrollReveal>
+  );
+};
+
 const FeaturesSection = ({ isMobile }) => {
   const { t, i18n } = useTranslation();
   const isChinese = i18n.language.startsWith('zh');
 
   return (
-    <section className='py-24 px-6' style={{ background: '#090909' }}>
+    <section className='py-24 px-6' style={{ background: 'var(--vc-section-bg)' }}>
       <div className='max-w-[1200px] mx-auto'>
         {/* Section Header */}
         <ScrollReveal>
@@ -58,9 +135,9 @@ const FeaturesSection = ({ isMobile }) => {
             <span
               className='inline-block px-3 py-1 mb-6 text-xs font-semibold uppercase tracking-widest rounded-full'
               style={{
-                color: 'rgba(255,255,255,0.5)',
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                color: 'var(--vc-text-muted)',
+                background: 'var(--vc-glass-bg)',
+                border: '1px solid var(--vc-glass-border)',
               }}
             >
               {t('Features')}
@@ -69,7 +146,7 @@ const FeaturesSection = ({ isMobile }) => {
               className='font-bold mb-4'
               style={{
                 fontSize: isMobile ? '28px' : '40px',
-                color: '#fff',
+                color: 'var(--vc-text-strong)',
                 letterSpacing: '-0.03em',
               }}
             >
@@ -79,7 +156,7 @@ const FeaturesSection = ({ isMobile }) => {
               className='max-w-2xl mx-auto'
               style={{
                 fontSize: '18px',
-                color: 'rgba(255,255,255,0.45)',
+                color: 'var(--vc-text-muted)',
                 letterSpacing: '-0.01em',
               }}
             >
@@ -91,50 +168,7 @@ const FeaturesSection = ({ isMobile }) => {
         {/* Feature Cards */}
         <div className='grid grid-cols-1 md:grid-cols-2 gap-5'>
           {features.map((f, i) => (
-            <ScrollReveal key={f.title} delay={i * 0.1} className='h-full'>
-              <div
-                className='group relative p-7 h-full min-h-[260px] flex flex-col transition-all duration-300 hover:-translate-y-1'
-                style={{
-                  background: '#141414',
-                  borderRadius: '20px',
-                  border: '1px solid rgba(255,255,255,0.06)',
-                  overflow: 'hidden',
-                }}
-              >
-                {/* Gradient spotlight */}
-                <div
-                  className='absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500'
-                  style={{ background: f.gradient }}
-                />
-
-                <div className='relative z-10 flex h-full flex-col'>
-                  <div
-                    className='text-3xl mb-4 w-12 h-12 flex items-center justify-center rounded-xl'
-                    style={{ background: `${f.accent}15` }}
-                  >
-                    {f.icon}
-                  </div>
-                  <h3
-                    className='text-xl font-semibold mb-2'
-                    style={{ color: '#fff' }}
-                  >
-                    {isChinese ? f.titleZh : f.title}
-                  </h3>
-                  <p
-                    className='leading-relaxed mb-3 flex-1'
-                    style={{ color: 'rgba(255,255,255,0.5)', fontSize: '15px' }}
-                  >
-                    {isChinese ? f.descZh : f.desc}
-                  </p>
-                  <p
-                    className='text-xs font-medium uppercase tracking-wider'
-                    style={{ color: f.accent, opacity: 0.8 }}
-                  >
-                    {f.models}
-                  </p>
-                </div>
-              </div>
-            </ScrollReveal>
+            <FeatureCard key={f.title} f={f} isChinese={isChinese} index={i} />
           ))}
         </div>
       </div>

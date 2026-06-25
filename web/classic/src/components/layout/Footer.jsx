@@ -221,10 +221,10 @@ const FooterBar = () => {
     loadFooter();
   }, []);
 
-  const darkFooterClass = isHomePage ? 'footer-dark' : '';
+  const homeFooterClass = isHomePage ? 'vancine-public-page vancine-home-page footer-home' : '';
 
   return (
-    <div className={`w-full ${darkFooterClass}`}>
+    <div className={`w-full ${homeFooterClass}`}>
       {footer ? (
         <footer className='relative h-auto py-4 px-6 md:px-24 w-full flex items-center justify-center overflow-hidden'>
           <div className='flex flex-col md:flex-row items-center justify-between w-full max-w-[1110px] gap-4'>

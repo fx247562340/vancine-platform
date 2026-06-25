@@ -9,7 +9,7 @@ const CTASection = ({ isMobile }) => {
   const { t } = useTranslation();
 
   return (
-    <section className='py-32 px-6 relative overflow-hidden' style={{ background: '#090909' }}>
+    <section className='py-32 px-6 relative overflow-hidden' style={{ background: 'var(--vc-section-bg)' }}>
       {/* Atmospheric gradient orb */}
       <div
         className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] pointer-events-none'
@@ -25,7 +25,7 @@ const CTASection = ({ isMobile }) => {
             className='font-bold mb-6'
             style={{
               fontSize: isMobile ? '32px' : '56px',
-              color: '#fff',
+              color: 'var(--vc-text-strong)',
               letterSpacing: '-0.04em',
               lineHeight: 1.1,
             }}
@@ -48,7 +48,7 @@ const CTASection = ({ isMobile }) => {
             className='mb-10 max-w-xl mx-auto'
             style={{
               fontSize: '18px',
-              color: 'rgba(255,255,255,0.45)',
+              color: 'var(--vc-text-muted)',
               lineHeight: 1.6,
             }}
           >
@@ -62,8 +62,8 @@ const CTASection = ({ isMobile }) => {
               size={isMobile ? 'default' : 'large'}
               className='!font-semibold !px-10 !py-4'
               style={{
-                backgroundColor: '#fff',
-                color: '#090909',
+                backgroundColor: 'var(--vc-inverse-bg)',
+                color: 'var(--vc-inverse-text)',
                 border: 'none',
                 borderRadius: '9999px',
                 fontSize: '16px',

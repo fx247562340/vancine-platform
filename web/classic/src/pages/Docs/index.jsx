@@ -24,19 +24,30 @@ import { StatusContext } from '../../context/Status';
 /* ──────────────────── Color constants ──────────────────── */
 
 const C = {
-  text: { h1: '#f0f0f0', body: '#d1d5db', muted: '#9ca3af', subtle: '#6b7280' },
-  bg: { light: '#1a1a1a', card: '#141414', code: '#0d0d1a' },
-  border: '#2a2a2a',
-  accent: '#a78bfa', accentBg: 'rgba(167,139,250,0.1)',
-  badge: {
-    purple: { bg: 'rgba(167,139,250,0.15)', text: '#a78bfa' },
-    green: { bg: 'rgba(52,211,153,0.15)', text: '#34d399' },
-    blue: { bg: 'rgba(96,165,250,0.15)', text: '#60a5fa' },
-    orange: { bg: 'rgba(251,191,36,0.15)', text: '#fbbf24' },
-    red: { bg: 'rgba(248,113,113,0.15)', text: '#f87171' },
-    gray: { bg: 'rgba(156,163,175,0.12)', text: '#9ca3af' },
+  text: {
+    h1: 'var(--vc-text-strong)',
+    body: 'var(--vc-text-body)',
+    muted: 'var(--vc-text-muted)',
+    subtle: 'var(--vc-text-subtle)',
   },
-  method: { GET: '#34d399', POST: '#60a5fa', PUT: '#fbbf24', DELETE: '#f87171' },
+  bg: {
+    light: 'var(--semi-color-fill-0)',
+    card: 'var(--vc-card-bg)',
+    code: 'var(--vc-code-bg)',
+  },
+  border: 'var(--vc-border)',
+  accent: 'var(--vc-accent)',
+  accentBg: 'var(--vc-accent-bg)',
+  codeText: 'var(--vc-code-text)',
+  badge: {
+    purple: { bg: 'var(--semi-color-primary-light-default)', text: 'var(--semi-color-primary)' },
+    green: { bg: 'var(--semi-color-success-light-default)', text: 'var(--semi-color-success)' },
+    blue: { bg: 'var(--semi-color-info-light-default)', text: 'var(--semi-color-info)' },
+    orange: { bg: 'var(--semi-color-warning-light-default)', text: 'var(--semi-color-warning)' },
+    red: { bg: 'var(--semi-color-danger-light-default)', text: 'var(--semi-color-danger)' },
+    gray: { bg: 'var(--semi-color-fill-0)', text: 'var(--semi-color-text-2)' },
+  },
+  method: { GET: 'var(--semi-color-success)', POST: 'var(--semi-color-info)', PUT: 'var(--semi-color-warning)', DELETE: 'var(--semi-color-danger)' },
 };
 
 /* ──────────────────── data ──────────────────── */
@@ -165,7 +176,7 @@ const Badge = ({ children, color = 'purple' }) => {
 };
 
 const MethodBadge = ({ method }) => (
-  <span style={{ display: 'inline-block', padding: '2px 8px', fontSize: '12px', fontWeight: 700, color: '#fff', borderRadius: '4px', background: C.method[method] || '#6b7280' }}>
+  <span style={{ display: 'inline-block', padding: '2px 8px', fontSize: '12px', fontWeight: 700, color: '#fff', borderRadius: '4px', background: C.method[method] || 'var(--semi-color-text-2)' }}>
     {method}
   </span>
 );
@@ -182,10 +193,10 @@ const Endpoint = ({ method, path, desc }) => (
 
 const Callout = ({ type = 'info', children }) => {
   const styles = {
-    info: { border: '#60a5fa', bg: 'rgba(96,165,250,0.08)', text: '#93c5fd' },
-    warning: { border: '#fbbf24', bg: 'rgba(251,191,36,0.08)', text: '#fcd34d' },
-    tip: { border: '#34d399', bg: 'rgba(52,211,153,0.08)', text: '#6ee7b7' },
-    danger: { border: '#f87171', bg: 'rgba(248,113,113,0.08)', text: '#fca5a5' },
+    info: { border: 'var(--semi-color-info)', bg: 'var(--semi-color-info-light-default)', text: 'var(--semi-color-info)' },
+    warning: { border: 'var(--semi-color-warning)', bg: 'var(--semi-color-warning-light-default)', text: 'var(--semi-color-warning)' },
+    tip: { border: 'var(--semi-color-success)', bg: 'var(--semi-color-success-light-default)', text: 'var(--semi-color-success)' },
+    danger: { border: 'var(--semi-color-danger)', bg: 'var(--semi-color-danger-light-default)', text: 'var(--semi-color-danger)' },
   };
   const s = styles[type] || styles.info;
   const icons = { info: 'ℹ️', warning: '⚠️', tip: '💡', danger: '🚫' };
@@ -208,7 +219,7 @@ const ParamTable = ({ params, labels }) => (
       </thead>
       <tbody>
         {params.map(([name, type, req, desc], i) => (
-          <tr key={i} style={{ borderBottom: i < params.length - 1 ? `1px solid ${C.bg.light}` : 'none' }}>
+          <tr key={i} style={{ borderBottom: i < params.length - 1 ? `1px solid ${C.border}` : 'none' }}>
             <td style={{ padding: '12px 16px' }}>
               <code style={{ fontSize: '13px', fontFamily: 'monospace', color: C.accent, background: C.accentBg, padding: '2px 6px', borderRadius: '4px' }}>{name}</code>
             </td>
@@ -237,7 +248,7 @@ const CodeBlock = ({ code, title, labels }) => {
           </button>
         </div>
       )}
-      <pre style={{ background: C.bg.code, color: '#e2e8f0', padding: '16px', overflowX: 'auto', fontSize: '13px', lineHeight: 1.7, margin: 0 }}>
+      <pre style={{ background: C.bg.code, color: C.codeText, padding: '16px', overflowX: 'auto', fontSize: '13px', lineHeight: 1.7, margin: 0 }}>
         <code>{code}</code>
       </pre>
     </div>
@@ -296,7 +307,7 @@ const Td = ({ children, style }) => (
 );
 
 const Tr = ({ last, children }) => (
-  <tr style={{ borderBottom: last ? 'none' : `1px solid ${C.bg.light}` }}>{children}</tr>
+  <tr style={{ borderBottom: last ? 'none' : `1px solid ${C.border}` }}>{children}</tr>
 );
 
 /* ──────────────────── Code Samples ──────────────────── */
@@ -701,7 +712,7 @@ const Docs = () => {
     ];
 
   return (
-    <div style={{ width: '100%', minHeight: '100vh' }}>
+    <div className='vancine-public-page vancine-docs-page' style={{ width: '100%', minHeight: '100vh', background: 'var(--vc-page-bg)' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '96px 16px 32px' }}>
         <div style={{ marginBottom: '40px' }}>
           <h1 style={{ fontSize: '36px', fontWeight: 700, color: C.text.h1, marginBottom: '12px' }}>{d.title}</h1>
@@ -747,7 +758,7 @@ const Docs = () => {
                       [isZh ? '模型清单' : 'Model list', 'GET /v1/models'],
                       [isZh ? '公开定价' : 'Public pricing', 'GET /api/pricing'],
                     ].map(([k, v], i, arr) => (
-                      <tr key={i} style={{ borderBottom: i < arr.length - 1 ? `1px solid ${C.bg.light}` : 'none' }}>
+                      <tr key={i} style={{ borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : 'none' }}>
                         <td style={{ padding: '12px 16px', fontWeight: 600, color: C.text.body, width: '160px', background: C.bg.light }}>{k}</td>
                         <td style={{ padding: '12px 16px', fontFamily: 'monospace', color: C.accent }}>{v}</td>
                       </tr>

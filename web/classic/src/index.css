@@ -56,6 +56,78 @@ body.semi-always-dark {
   --semi-blue-9: 245, 243, 254;
 }
 
+/* Public marketing/docs pages use semantic aliases backed by Semi tokens. */
+.vancine-public-page {
+  --vc-page-bg: var(--semi-color-bg-0);
+  --vc-section-bg: var(--semi-color-bg-0);
+  --vc-card-bg: var(--semi-color-bg-1);
+  --vc-card-bg-hover: var(--semi-color-bg-2);
+  --vc-code-bg: var(--semi-color-bg-2);
+  --vc-code-text: var(--semi-color-text-0);
+  --vc-border: var(--semi-color-border);
+  --vc-text-strong: var(--semi-color-text-0);
+  --vc-text-body: var(--semi-color-text-1);
+  --vc-text-muted: var(--semi-color-text-2);
+  --vc-text-subtle: var(--semi-color-text-3);
+  --vc-accent: var(--semi-color-primary);
+  --vc-accent-bg: var(--semi-color-primary-light-default);
+  --vc-glass-bg: rgba(255, 255, 255, 0.72);
+  --vc-glass-border: rgba(var(--semi-grey-9), 0.08);
+  --vc-hero-overlay: linear-gradient(180deg, rgba(248, 250, 252, 0.62) 0%, rgba(248, 250, 252, 0.78) 52%, var(--vc-page-bg) 100%);
+  --vc-hero-bottom-fade: linear-gradient(to top, var(--vc-page-bg), transparent);
+  --vc-hero-video-filter: brightness(1.08) saturate(0.92);
+  --vc-hero-grid: rgba(15, 23, 42, 0.08);
+  --vc-provider-fade-left: linear-gradient(to right, var(--vc-page-bg), transparent);
+  --vc-provider-fade-right: linear-gradient(to left, var(--vc-page-bg), transparent);
+  --vc-inverse-bg: var(--semi-color-text-0);
+  --vc-inverse-text: var(--semi-color-bg-0);
+  background: var(--vc-page-bg);
+  color: var(--vc-text-strong);
+}
+
+body[theme-mode="dark"] .vancine-public-page,
+html.dark .vancine-public-page,
+body.semi-always-dark .vancine-public-page {
+  --vc-page-bg: #090909;
+  --vc-section-bg: #090909;
+  --vc-card-bg: #141414;
+  --vc-card-bg-hover: #1f1f1f;
+  --vc-code-bg: #0d0d1a;
+  --vc-code-text: #e2e8f0;
+  --vc-border: rgba(255, 255, 255, 0.08);
+  --vc-text-strong: #ffffff;
+  --vc-text-body: rgba(255, 255, 255, 0.72);
+  --vc-text-muted: rgba(255, 255, 255, 0.52);
+  --vc-text-subtle: rgba(255, 255, 255, 0.35);
+  --vc-accent: #a78bfa;
+  --vc-accent-bg: rgba(167, 139, 250, 0.12);
+  --vc-glass-bg: rgba(255, 255, 255, 0.06);
+  --vc-glass-border: rgba(255, 255, 255, 0.12);
+  --vc-hero-overlay: linear-gradient(180deg, rgba(9, 9, 9, 0.4) 0%, rgba(9, 9, 9, 0.6) 50%, rgba(9, 9, 9, 1) 100%);
+  --vc-hero-bottom-fade: linear-gradient(to top, #090909, transparent);
+  --vc-hero-video-filter: brightness(0.35);
+  --vc-hero-grid: rgba(255, 255, 255, 0.1);
+  --vc-provider-fade-left: linear-gradient(to right, #090909, transparent);
+  --vc-provider-fade-right: linear-gradient(to left, #090909, transparent);
+  --vc-inverse-bg: #ffffff;
+  --vc-inverse-text: #090909;
+}
+
+.vancine-public-page a {
+  color: var(--vc-accent);
+}
+
+/* Aurora blobs: visible only in dark mode */
+.dark-only {
+  display: none;
+}
+
+body[theme-mode="dark"] .dark-only,
+html.dark .dark-only,
+body.semi-always-dark .dark-only {
+  display: block;
+}
+
 body.sidebar-collapsed {
   --sidebar-current-width: var(--sidebar-width-collapsed);
 }
@@ -741,6 +813,18 @@ html.dark .sbg-variant-green {
   animation: sweep-shine 4s linear infinite;
 }
 
+.home-base-url-input .semi-input,
+.home-base-url-input input {
+  color: var(--vc-text-strong) !important;
+}
+
+.home-base-url-input .semi-input-wrapper,
+.home-base-url-input.semi-input-wrapper {
+  background: var(--vc-glass-bg) !important;
+  border-color: var(--vc-glass-border) !important;
+}
+
+
 /* ==================== 首页 Logo 滚动动画 ==================== */
 @keyframes marquee {
   0% {
@@ -762,49 +846,56 @@ html.dark .sbg-variant-green {
 
 /* ==================== 首页透明导航栏 ==================== */
 .header-transparent {
-  color: #fff !important;
+  color: var(--vc-text-strong, #fff) !important;
 }
 
 .header-transparent .semi-typography,
 .header-transparent .semi-typography-heading {
-  color: #fff !important;
+  color: var(--vc-text-strong, #fff) !important;
 }
 
 .header-transparent a {
-  color: rgba(255, 255, 255, 0.8) !important;
+  color: var(--vc-text-body, rgba(255, 255, 255, 0.8)) !important;
 }
 
 .header-transparent a:hover {
-  color: #fff !important;
+  color: var(--vc-text-strong, #fff) !important;
 }
 
 .header-transparent .semi-tag {
-  background: rgba(255, 255, 255, 0.15) !important;
-  color: #fff !important;
-  border: none !important;
+  background: var(--vc-glass-bg, rgba(255, 255, 255, 0.15)) !important;
+  color: var(--vc-text-strong, #fff) !important;
+  border: 1px solid var(--vc-glass-border, transparent) !important;
 }
 
-/* ==================== 首页暗色 Footer ==================== */
-.footer-dark {
-  background: #090909;
-  color: rgba(255, 255, 255, 0.4);
+/* ==================== 首页 Footer ==================== */
+.footer-dark,
+.footer-home {
+  background: var(--vc-page-bg, #090909);
+  color: var(--vc-text-muted, rgba(255, 255, 255, 0.4));
 }
 
 .footer-dark .semi-typography,
 .footer-dark span,
-.footer-dark p {
-  color: rgba(255, 255, 255, 0.4) !important;
+.footer-dark p,
+.footer-home .semi-typography,
+.footer-home span,
+.footer-home p {
+  color: var(--vc-text-muted, rgba(255, 255, 255, 0.4)) !important;
 }
 
-.footer-dark a {
-  color: rgba(255, 255, 255, 0.5) !important;
+.footer-dark a,
+.footer-home a {
+  color: var(--vc-text-body, rgba(255, 255, 255, 0.5)) !important;
 }
 
-.footer-dark a:hover {
-  color: rgba(255, 255, 255, 0.8) !important;
+.footer-dark a:hover,
+.footer-home a:hover {
+  color: var(--vc-text-strong, rgba(255, 255, 255, 0.8)) !important;
 }
 
-.footer-dark .bg-\\[\\#FFD166\\] {
+.footer-dark [class~="bg-[#FFD166]"],
+.footer-home [class~="bg-[#FFD166]"] {
   display: none !important;
 }
 

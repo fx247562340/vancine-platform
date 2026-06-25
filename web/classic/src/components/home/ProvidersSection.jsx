@@ -29,13 +29,13 @@ const ProvidersSection = () => {
   return (
     <section
       className='py-20 overflow-hidden'
-      style={{ background: '#090909', borderTop: '1px solid rgba(255,255,255,0.06)' }}
+      style={{ background: 'var(--vc-section-bg)', borderTop: '1px solid var(--vc-border)' }}
     >
       <ScrollReveal>
         <div className='text-center mb-10'>
           <span
             className='text-sm'
-            style={{ color: 'rgba(255,255,255,0.3)', letterSpacing: '-0.01em' }}
+            style={{ color: 'var(--vc-text-subtle)', letterSpacing: '-0.01em' }}
           >
             {t('已接入的大模型供应商')}
           </span>
@@ -47,11 +47,11 @@ const ProvidersSection = () => {
         {/* Fade edges */}
         <div
           className='absolute left-0 top-0 bottom-0 w-24 z-10'
-          style={{ background: 'linear-gradient(to right, #090909, transparent)' }}
+          style={{ background: 'var(--vc-provider-fade-left)' }}
         />
         <div
           className='absolute right-0 top-0 bottom-0 w-24 z-10'
-          style={{ background: 'linear-gradient(to left, #090909, transparent)' }}
+          style={{ background: 'var(--vc-provider-fade-right)' }}
         />
 
         {/* Scrolling track */}
@@ -64,16 +64,16 @@ const ProvidersSection = () => {
                 className='flex-shrink-0 mx-6 md:mx-8 flex items-center justify-center'
                 title={provider.label}
                 aria-label={provider.label}
-                style={{ width: 48, height: 48, opacity: 0.35 }}
+                style={{ width: 48, height: 48, opacity: 0.45, color: 'var(--vc-text-body)' }}
               >
-                <Icon size={36} color='#fff' />
+                <Icon size={36} color='currentColor' />
               </div>
             );
           })}
           <div className='flex-shrink-0 mx-6 md:mx-8 flex items-center justify-center'>
             <Text
               className='text-xl md:text-2xl font-bold'
-              style={{ color: 'rgba(255,255,255,0.3)' }}
+              style={{ color: 'var(--vc-text-subtle)' }}
             >
               11+
             </Text>
