@@ -20,6 +20,25 @@ All notable Vancine platform release and operations changes are tracked here.
 - Synced production `.env`, PostgreSQL data, `data/`, and `uploads/` to local Docker.
 - Local verification service is running at `http://127.0.0.1:3001` because port 3000 is occupied by another local container.
 
+## 1.0.5 - 2026-06-25
+
+### Homepage
+
+- Updated the classic homepage model category cards to show current connected Chinese models.
+- Replaced unavailable overseas provider logos in the connected-provider marquee with connected Chinese provider logos.
+- Updated the pricing highlight to compare current overseas models against current Chinese models.
+- Fixed homepage model category card heights so the cards align cleanly.
+
+### About
+
+- Rewrote the classic About page with more realistic product-focused copy.
+- Removed user-facing GitHub and open-source attribution links from the About page display.
+- Cleaned up the About page model coverage card layout so five cards wrap with the final row centered.
+
+### Build and release
+
+- Bumped the Docker Compose runtime `VERSION` environment to `v1.0.5` so `/api/status` reports the release version.
+
 ## 1.0.4 - 2026-06-25
 
 ### Infrastructure

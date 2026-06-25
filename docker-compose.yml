@@ -24,7 +24,7 @@ services:
       - SQL_DSN=${SQL_DSN}
       - REDIS_CONN_STRING=${REDIS_CONN_STRING}
       - TZ=Asia/Shanghai
-      - VERSION=v1.0.4
+      - VERSION=v1.0.5
       - ERROR_LOG_ENABLED=true
       - BATCH_UPDATE_ENABLED=true
       - NODE_NAME=vancine-node-1

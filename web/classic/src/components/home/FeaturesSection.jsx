@@ -7,9 +7,9 @@ const features = [
     icon: '🧠',
     title: 'LLM API',
     titleZh: '大语言模型',
-    desc: 'Access flagship LLMs from DeepSeek, Alibaba, ByteDance, Moonshot and more — one unified OpenAI-compatible endpoint.',
-    descZh: '访问 DeepSeek、阿里、字节、月之暗面等旗舰大模型，统一 OpenAI 兼容接口。',
-    models: 'DeepSeek V4 Pro · Qwen 3 · Doubao Pro · Kimi K2.5 · GLM-5',
+    desc: 'Access the newest connected flagship LLMs from DeepSeek, Alibaba, ByteDance, Moonshot, Zhipu and MiniMax through one OpenAI-compatible endpoint.',
+    descZh: '访问已接入的 DeepSeek、阿里、字节、月之暗面、智谱、MiniMax 最新旗舰大模型，统一 OpenAI 兼容接口。',
+    models: 'DeepSeek V4 Pro · Qwen 3.7 Max · Doubao Seed 2.0 Pro · Kimi K2.6 · GLM-5.1 · MiniMax M2.5',
     gradient: 'radial-gradient(circle at 30% 30%, rgba(0,184,148,0.15) 0%, transparent 70%)',
     accent: '#00b894',
   },
@@ -17,9 +17,9 @@ const features = [
     icon: '🎨',
     title: 'Image Generation',
     titleZh: '图片生成',
-    desc: 'Generate stunning images with Seedream, Qwen Image, Grok Imagine and more.',
-    descZh: '使用 Seedream、Qwen Image、Grok Imagine 等模型生成高质量图片。',
-    models: 'Seedream 4.0 · Qwen Image · GPT Image · Grok Imagine · Imagen 4',
+    desc: 'Generate production images with the latest connected Seedream and Qwen Image families.',
+    descZh: '使用已接入的 Seedream 与 Qwen Image 最新系列生成高质量生产图片。',
+    models: 'Doubao Seedream 5.0 Lite · Doubao Seedream 4.5 · Qwen Image 2.0 Pro · Qwen Image 2.0',
     gradient: 'radial-gradient(circle at 70% 30%, rgba(212,77,240,0.15) 0%, transparent 70%)',
     accent: '#d44df0',
   },
@@ -27,9 +27,9 @@ const features = [
     icon: '🎬',
     title: 'Video Generation',
     titleZh: '视频生成',
-    desc: 'Create videos with Seedance, Hailuo, Wan, Kling and Veo — the best from China and beyond.',
-    descZh: '使用 Seedance、海螺、万相、可灵、Veo 等模型，从文本或图片生成视频。',
-    models: 'Seedance 2.0 · Hailuo 2.3 · Wan 2.5 · Kling V2 · Veo 3.1',
+    desc: 'Create videos with connected Chinese video models, from fast Seedance previews to higher quality generation.',
+    descZh: '使用已接入的国产视频模型，从 Seedance 快速预览到高质量生成，覆盖文生视频与图生视频。',
+    models: 'Doubao Seedance 2.0 · Doubao Seedance 2.0 Fast · Doubao Seedance 1.5 Pro',
     gradient: 'radial-gradient(circle at 30% 70%, rgba(106,76,245,0.15) 0%, transparent 70%)',
     accent: '#6a4cf5',
   },
@@ -37,9 +37,9 @@ const features = [
     icon: '🎵',
     title: 'Audio & Speech',
     titleZh: '音频与语音',
-    desc: 'Natural speech synthesis, voice cloning, and music generation from leading providers.',
-    descZh: '自然语音合成、声音克隆和音乐生成，来自 MiniMax、字节、OpenAI 等。',
-    models: 'MiniMax Speech 2.5 · GPT Audio · Doubao TTS · CosyVoice',
+    desc: 'Use connected Chinese speech and multimodal models for TTS, voice, audio understanding and real-time applications.',
+    descZh: '使用已接入的国产语音与多模态模型，覆盖 TTS、语音、音频理解和实时应用。',
+    models: 'MiniMax Speech 2.5 · Qwen 3.5 Omni Flash · Doubao TTS · CosyVoice',
     gradient: 'radial-gradient(circle at 70% 70%, rgba(255,122,61,0.15) 0%, transparent 70%)',
     accent: '#ff7a3d',
   },
@@ -91,9 +91,9 @@ const FeaturesSection = ({ isMobile }) => {
         {/* Feature Cards */}
         <div className='grid grid-cols-1 md:grid-cols-2 gap-5'>
           {features.map((f, i) => (
-            <ScrollReveal key={f.title} delay={i * 0.1}>
+            <ScrollReveal key={f.title} delay={i * 0.1} className='h-full'>
               <div
-                className='group relative p-7 transition-all duration-300 hover:-translate-y-1'
+                className='group relative p-7 h-full min-h-[260px] flex flex-col transition-all duration-300 hover:-translate-y-1'
                 style={{
                   background: '#141414',
                   borderRadius: '20px',
@@ -107,7 +107,7 @@ const FeaturesSection = ({ isMobile }) => {
                   style={{ background: f.gradient }}
                 />
 
-                <div className='relative z-10'>
+                <div className='relative z-10 flex h-full flex-col'>
                   <div
                     className='text-3xl mb-4 w-12 h-12 flex items-center justify-center rounded-xl'
                     style={{ background: `${f.accent}15` }}
@@ -121,7 +121,7 @@ const FeaturesSection = ({ isMobile }) => {
                     {isChinese ? f.titleZh : f.title}
                   </h3>
                   <p
-                    className='leading-relaxed mb-3'
+                    className='leading-relaxed mb-3 flex-1'
                     style={{ color: 'rgba(255,255,255,0.5)', fontSize: '15px' }}
                   >
                     {isChinese ? f.descZh : f.desc}

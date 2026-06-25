@@ -16,8 +16,9 @@ const PricingHighlight = () => {
         </svg>
       ),
       items: [
-        { foreign: { name: 'GPT-5', price: '$1.25', unit: '/M tokens' }, domestic: { name: 'DeepSeek V4 Pro', price: '$0.30', unit: '/M tokens' }, saving: '76%' },
-        { foreign: { name: 'Claude Opus 4.7', price: '$15.00', unit: '/M tokens' }, domestic: { name: 'Qwen 3', price: '$0.40', unit: '/M tokens' }, saving: '97%' },
+        { foreign: { name: 'GPT-5', price: '$1.25', unit: '/M tokens' }, domestic: { name: 'DeepSeek V4 Flash', price: '$0.12', unit: '/M tokens' }, saving: '90%' },
+        { foreign: { name: 'Claude Opus 4.8', price: '$15.00', unit: '/M tokens' }, domestic: { name: 'Qwen 3.7 Max', price: '$0.40', unit: '/M tokens' }, saving: '97%' },
+        { foreign: { name: 'Gemini 3 Pro', price: '$2.00', unit: '/M tokens' }, domestic: { name: 'Kimi K2.6', price: '$0.42', unit: '/M tokens' }, saving: '79%' },
       ],
     },
     {
@@ -30,8 +31,8 @@ const PricingHighlight = () => {
         </svg>
       ),
       items: [
-        { foreign: { name: 'Runway Gen-4', price: '$0.10', unit: '/sec' }, domestic: { name: 'Seedance 2.0', price: '$0.04', unit: '/sec' }, saving: '60%' },
-        { foreign: { name: 'Veo 3.1', price: '$0.08', unit: '/sec' }, domestic: { name: 'Hailuo 2.3', price: '$0.03', unit: '/sec' }, saving: '63%' },
+        { foreign: { name: 'Runway Gen-4', price: '$0.10', unit: '/sec' }, domestic: { name: 'Doubao Seedance 2.0 Fast', price: '¥0.55', unit: '/call' }, saving: '约 50%+' },
+        { foreign: { name: 'Veo 3.1', price: '$0.08', unit: '/sec' }, domestic: { name: 'Doubao Seedance 2.0', price: '¥0.68', unit: '/call' }, saving: '约 40%+' },
       ],
     },
     {
@@ -44,8 +45,8 @@ const PricingHighlight = () => {
         </svg>
       ),
       items: [
-        { foreign: { name: 'GPT Image', price: '$0.040', unit: '/image' }, domestic: { name: 'Seedream 4.0', price: '$0.010', unit: '/image' }, saving: '75%' },
-        { foreign: { name: 'Imagen 4', price: '$0.032', unit: '/image' }, domestic: { name: 'Qwen Image', price: '$0.008', unit: '/image' }, saving: '75%' },
+        { foreign: { name: 'GPT Image 1', price: '$0.040', unit: '/image' }, domestic: { name: 'Doubao Seedream 4.5', price: '$0.014', unit: '/image' }, saving: '65%' },
+        { foreign: { name: 'Imagen 4', price: '$0.032', unit: '/image' }, domestic: { name: 'Qwen Image 2.0 Pro', price: '$0.012', unit: '/image' }, saving: '63%' },
       ],
     },
   ];
@@ -61,7 +62,7 @@ const PricingHighlight = () => {
             {t('国产模型，全球性价比')}
           </h2>
           <p style={{ color: 'rgba(255,255,255,0.45)', maxWidth: '560px', margin: '0 auto', fontSize: '15px', lineHeight: 1.7 }}>
-            {t('同等能力，价格仅为国际模型的 20-50%')}
+            {t('海外最新模型 vs 中国最新模型，按实际调用计费')}
           </p>
         </div>
       </ScrollReveal>
@@ -100,9 +101,9 @@ const PricingHighlight = () => {
                   flexWrap: 'wrap',
                   borderTop: i > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none',
                 }}>
-                  {/* Foreign Model */}
+                  {/* Overseas Model */}
                   <div style={{ flex: '1 1 160px' }}>
-                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)', marginBottom: '4px' }}>{t('国际模型')}</div>
+                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)', marginBottom: '4px' }}>{t('海外模型')}</div>
                     <div style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 500, fontSize: '15px' }}>{item.foreign.name}</div>
                     <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '14px', marginTop: '4px' }}>
                       {item.foreign.price}
@@ -117,9 +118,9 @@ const PricingHighlight = () => {
                     </svg>
                   </div>
 
-                  {/* Domestic Model */}
+                  {/* Chinese Model */}
                   <div style={{ flex: '1 1 160px' }}>
-                    <div style={{ fontSize: '12px', color: '#00b894', marginBottom: '4px' }}>{t('国产模型')}</div>
+                    <div style={{ fontSize: '12px', color: '#00b894', marginBottom: '4px' }}>{t('中国模型')}</div>
                     <div style={{ color: '#fff', fontWeight: 600, fontSize: '15px' }}>{item.domestic.name}</div>
                     <div style={{ fontSize: '14px', marginTop: '4px' }}>
                       <span style={{ color: '#fff' }}>{item.domestic.price}</span>
@@ -138,7 +139,7 @@ const PricingHighlight = () => {
                       color: '#00b894',
                       border: '1px solid rgba(0, 184, 148, 0.2)',
                     }}>
-                      {t('省')} {item.saving}
+                      {item.saving.endsWith('%') ? `${t('省')} ${item.saving}` : item.saving}
                     </div>
                   </div>
                 </div>

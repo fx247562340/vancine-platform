@@ -3,15 +3,24 @@ import { Typography } from '@douyinfe/semi-ui';
 import { useTranslation } from 'react-i18next';
 import {
   DeepSeek, Volcengine, Qwen, Zhipu, Moonshot, Minimax,
-  Hunyuan, OpenAI, Claude, Gemini, XAI,
+  Hunyuan, Doubao, Kling, Wenxin, Spark,
 } from '@lobehub/icons';
 import ScrollReveal from './ScrollReveal';
 
 const { Text } = Typography;
 
 const providers = [
-  DeepSeek, Qwen, Zhipu, Volcengine, Moonshot, Minimax, Hunyuan,
-  OpenAI, Claude, Gemini, XAI,
+  { icon: DeepSeek, label: 'DeepSeek' },
+  { icon: Qwen, label: 'Qwen' },
+  { icon: Doubao, label: 'Doubao' },
+  { icon: Moonshot, label: 'Moonshot' },
+  { icon: Zhipu, label: 'Zhipu' },
+  { icon: Minimax, label: 'MiniMax' },
+  { icon: Volcengine, label: 'Volcengine' },
+  { icon: Hunyuan, label: 'Hunyuan' },
+  { icon: Kling, label: 'Kling' },
+  { icon: Wenxin, label: 'Wenxin' },
+  { icon: Spark, label: 'Spark' },
 ];
 
 const ProvidersSection = () => {
@@ -47,15 +56,20 @@ const ProvidersSection = () => {
 
         {/* Scrolling track */}
         <div className='flex animate-marquee'>
-          {[...providers, ...providers, ...providers, ...providers].map((Icon, i) => (
-            <div
-              key={i}
-              className='flex-shrink-0 mx-6 md:mx-8 flex items-center justify-center'
-              style={{ width: 48, height: 48, opacity: 0.3 }}
-            >
-              <Icon size={36} color='#fff' />
-            </div>
-          ))}
+          {[...providers, ...providers, ...providers, ...providers].map((provider, i) => {
+            const Icon = provider.icon;
+            return (
+              <div
+                key={`${provider.label}-${i}`}
+                className='flex-shrink-0 mx-6 md:mx-8 flex items-center justify-center'
+                title={provider.label}
+                aria-label={provider.label}
+                style={{ width: 48, height: 48, opacity: 0.35 }}
+              >
+                <Icon size={36} color='#fff' />
+              </div>
+            );
+          })}
           <div className='flex-shrink-0 mx-6 md:mx-8 flex items-center justify-center'>
             <Text
               className='text-xl md:text-2xl font-bold'

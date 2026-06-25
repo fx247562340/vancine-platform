@@ -21,95 +21,85 @@ const L = {
   en: {
     hero: {
       tag: 'About Vancine',
-      title: 'One API for All AI Models',
-      sub: 'We provide developers worldwide with a unified, cost-effective gateway to the best Chinese AI models — text, image, video, audio, and 3D.',
+      title: 'A practical gateway to Chinese AI models',
+      sub: 'Vancine helps developers call Chinese text, image, video, audio, and 3D models through one OpenAI-compatible API, with unified billing and routing.',
     },
     mission: {
-      title: 'Our Mission',
-      body: 'Make cutting-edge AI accessible to every developer, regardless of geography or budget. We bridge the gap between world-class Chinese AI models and global developers through a single, OpenAI-compatible API.',
+      title: 'What we are building',
+      body: 'We focus on the unglamorous work that makes model access usable: stable API routing, clear pricing, consistent request formats, usable documentation, and support when an integration breaks.',
     },
     what: {
-      title: 'What We Offer',
+      title: 'What Vancine does',
       items: [
-        { icon: '🔌', title: 'Unified API', desc: 'One endpoint for text, image, video, audio, and 3D generation. OpenAI-compatible format — switch in minutes.' },
-        { icon: '💰', title: 'Best Pricing', desc: 'Access Chinese AI models at 20-50% the cost of international alternatives. Pay-as-you-go, no subscriptions.' },
-        { icon: '⚡', title: 'Low Latency', desc: 'Optimized routing and edge infrastructure for fast response times across Asia, North America, and Europe.' },
-        { icon: '🔒', title: 'Secure & Private', desc: 'Encrypted API keys, usage analytics, and team management built in. Your data stays yours.' },
+        { icon: '🔌', title: 'Unified API surface', desc: 'Use one OpenAI-compatible endpoint for chat, image, video, audio, and 3D workflows instead of wiring each provider separately.' },
+        { icon: '🧭', title: 'Model routing', desc: 'Route requests across configured channels by group, priority, and weight, with failed channels automatically skipped when needed.' },
+        { icon: '💳', title: 'Usage-based billing', desc: 'See model pricing and usage in one place. Pay for actual calls instead of managing separate provider balances.' },
+        { icon: '🧰', title: 'Developer tooling', desc: 'Docs, examples, request logs, and playground tools help teams test prompts and debug real API calls faster.' },
       ],
     },
     models: {
-      title: 'Supported Model Categories',
+      title: 'Model coverage',
       items: [
-        { name: 'LLM', desc: 'DeepSeek, Qwen, Doubao, GLM and more', color: C.accent, bg: C.accentBg },
-        { name: 'Image', desc: 'Seedream, FLUX, Kolors, Ideogram', color: C.green, bg: C.greenBg },
-        { name: 'Video', desc: 'Wan, Kling, Seedance, Hailuo', color: C.blue, bg: C.blueBg },
-        { name: 'Audio', desc: 'Doubao TTS, Whisper STT', color: C.orange, bg: C.orangeBg },
-        { name: '3D', desc: 'Hitem3D, Hyper3D, Trellis', color: C.accent, bg: C.accentBg },
+        { name: 'LLM', desc: 'DeepSeek, Qwen, Doubao, Kimi, GLM, MiniMax', color: C.accent, bg: C.accentBg },
+        { name: 'Image', desc: 'Doubao Seedream, Qwen Image', color: C.green, bg: C.greenBg },
+        { name: 'Video', desc: 'Doubao Seedance and other video routes', color: C.blue, bg: C.blueBg },
+        { name: 'Audio', desc: 'Doubao TTS, MiniMax Speech, Qwen Omni', color: C.orange, bg: C.orangeBg },
+        { name: '3D', desc: 'Hyper3D, Hitem3D, Doubao Seed3D', color: C.accent, bg: C.accentBg },
       ],
     },
     story: {
-      title: 'Our Story',
+      title: 'Why Vancine exists',
       paragraphs: [
-        'Vancine was founded in 2025 by a solo developer who saw a simple problem: Chinese AI models were world-class, but nearly impossible for international developers to access.',
-        'We built a unified API gateway that normalizes dozens of different model APIs into a single, OpenAI-compatible interface. No more juggling multiple providers, managing separate billing, or dealing with language barriers.',
-        'Vancine is still in its early stages. We are actively building and improving based on real user feedback. If you encounter any issues, please reach out — we respond to every message.',
+        'Chinese AI models are moving quickly, especially in cost-effective text, image, and video generation. For many developers outside China, the hard part is not interest in these models — it is reliable access, documentation, billing, and integration time.',
+        'Vancine packages these models behind a familiar API shape so teams can test and switch models without rewriting their application for every provider. The goal is not to hide the model ecosystem, but to make it easier to use in production.',
+        'We are still improving the platform with real usage feedback. If a model route, price, document, or response format is confusing, tell us. Those reports directly shape what we fix next.',
       ],
     },
     contact: {
-      title: 'Get in Touch',
+      title: 'Contact',
       email: 'support@vancine.com',
-      github: 'github.com/fx247562340/vancine-platform',
-    },
-    legal: {
-      basedOn: 'Based on',
-      licensed: 'Licensed under',
     },
   },
   zh: {
     hero: {
       tag: '关于 Vancine',
-      title: '一个 API 接入所有 AI 模型',
-      sub: '为全球开发者提供统一、高性价比的中国 AI 模型网关 — 文本、图片、视频、音频和 3D。',
+      title: '一个实用的中国 AI 模型网关',
+      sub: 'Vancine 帮助开发者用一个 OpenAI 兼容 API 调用中国文本、图片、视频、音频和 3D 模型，并统一处理计费与路由。',
     },
     mission: {
-      title: '我们的使命',
-      body: '让每个开发者都能用上前沿 AI，不受地域和预算限制。我们通过一个 OpenAI 兼容的 API，架起中国顶级 AI 模型与全球开发者之间的桥梁。',
+      title: '我们在做什么',
+      body: '我们专注解决模型接入里最实际的问题：稳定的 API 路由、清晰的价格、统一的请求格式、可用的文档，以及集成出问题时能排查的工具和支持。',
     },
     what: {
-      title: '我们提供什么',
+      title: 'Vancine 提供什么',
       items: [
-        { icon: '🔌', title: '统一 API', desc: '一个端点覆盖文本、图片、视频、音频和 3D 生成。OpenAI 兼容格式，分钟级切换。' },
-        { icon: '💰', title: '最优价格', desc: '以国际模型 20-50% 的价格使用中国 AI 模型。按量付费，无订阅。' },
-        { icon: '⚡', title: '低延迟', desc: '优化路由和边缘基础设施，覆盖亚洲、北美和欧洲的快速响应。' },
-        { icon: '🔒', title: '安全私密', desc: '加密 API Key、用量分析和团队管理。您的数据始终属于您。' },
+        { icon: '🔌', title: '统一 API 接口', desc: '用一个 OpenAI 兼容端点处理对话、图片、视频、音频和 3D 工作流，不必分别对接每个供应商。' },
+        { icon: '🧭', title: '模型路由', desc: '按分组、优先级和权重在已配置渠道间路由请求，失败渠道可自动跳过，降低单点故障影响。' },
+        { icon: '💳', title: '按量计费', desc: '在一个平台查看模型价格和用量，按实际调用付费，不需要分别管理多个供应商余额。' },
+        { icon: '🧰', title: '开发者工具', desc: '文档、示例、请求日志和操练场帮助团队更快测试提示词、排查真实 API 调用。' },
       ],
     },
     models: {
-      title: '支持的模型类别',
+      title: '模型覆盖范围',
       items: [
-        { name: 'LLM', desc: 'DeepSeek、Qwen、Doubao、GLM 等', color: C.accent, bg: C.accentBg },
-        { name: '图片', desc: 'Seedream、FLUX、Kolors、Ideogram', color: C.green, bg: C.greenBg },
-        { name: '视频', desc: 'Wan、Kling、Seedance、Hailuo', color: C.blue, bg: C.blueBg },
-        { name: '音频', desc: 'Doubao TTS、Whisper STT', color: C.orange, bg: C.orangeBg },
-        { name: '3D', desc: 'Hitem3D、Hyper3D、Trellis', color: C.accent, bg: C.accentBg },
+        { name: 'LLM', desc: 'DeepSeek、Qwen、Doubao、Kimi、GLM、MiniMax', color: C.accent, bg: C.accentBg },
+        { name: '图片', desc: 'Doubao Seedream、Qwen Image', color: C.green, bg: C.greenBg },
+        { name: '视频', desc: 'Doubao Seedance 等视频路由', color: C.blue, bg: C.blueBg },
+        { name: '音频', desc: 'Doubao TTS、MiniMax Speech、Qwen Omni', color: C.orange, bg: C.orangeBg },
+        { name: '3D', desc: 'Hyper3D、Hitem3D、Doubao Seed3D', color: C.accent, bg: C.accentBg },
       ],
     },
     story: {
-      title: '我们的故事',
+      title: '为什么做 Vancine',
       paragraphs: [
-        'Vancine 创立于 2025 年，由一位独立开发者发起。我们发现一个简单的问题：中国的 AI 模型已达世界水平，但国际开发者几乎无法使用。',
-        '我们构建了一个统一的 API 网关，将数十种不同的模型 API 标准化为一个 OpenAI 兼容的接口。不再需要对接多个供应商、管理多个账单或克服语言障碍。',
-        'Vancine 仍处于早期阶段。我们正在根据真实用户反馈持续改进。如果您遇到任何问题，请联系我们 — 我们会回复每一条消息。',
+        '中国 AI 模型迭代很快，尤其在高性价比文本、图片和视频生成上。对很多海外开发者来说，真正困难的不是有没有兴趣，而是稳定访问、文档、计费和集成成本。',
+        'Vancine 把这些模型整理到熟悉的 API 形态后面，让团队可以测试和切换模型，而不必为了每个供应商重写应用。我们的目标不是隐藏模型生态，而是让它更容易进入生产环境。',
+        '平台还在持续改进。如果某个模型路由、价格、文档或响应格式让你困惑，请告诉我们。这些真实反馈会直接决定我们下一步修什么。',
       ],
     },
     contact: {
-      title: '联系我们',
+      title: '联系 Vancine',
       email: 'support@vancine.com',
-      github: 'github.com/fx247562340/vancine-platform',
-    },
-    legal: {
-      basedOn: '基于',
-      licensed: '授权许可',
     },
   },
 };
@@ -211,18 +201,41 @@ const About = () => {
           <h2 style={{ fontSize: '28px', fontWeight: 700, color: C.text.h1, textAlign: 'center', marginBottom: '40px' }}>
             {d.models.title}
           </h2>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'center' }}>
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '16px',
+            justifyContent: 'center',
+            alignItems: 'stretch',
+          }}>
             {d.models.items.map((item, i) => (
               <div key={i} style={{
                 background: item.bg,
                 border: `1px solid ${item.color}22`,
-                borderRadius: '12px',
-                padding: '20px 28px',
-                minWidth: '160px',
-                textAlign: 'center',
+                borderRadius: '14px',
+                padding: '20px 22px',
+                width: '280px',
+                minHeight: '118px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                textAlign: 'left',
               }}>
-                <div style={{ fontSize: '18px', fontWeight: 700, color: item.color, marginBottom: '6px' }}>{item.name}</div>
-                <div style={{ fontSize: '13px', color: C.text.muted }}>{item.desc}</div>
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  alignSelf: 'flex-start',
+                  padding: '4px 10px',
+                  borderRadius: '999px',
+                  background: `${item.color}18`,
+                  color: item.color,
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  marginBottom: '12px',
+                }}>
+                  {item.name}
+                </div>
+                <div style={{ fontSize: '14px', color: C.text.muted, lineHeight: 1.6 }}>{item.desc}</div>
               </div>
             ))}
           </div>
@@ -253,27 +266,13 @@ const About = () => {
             }}>
               <span style={{ fontSize: '20px' }}>✉️</span> {d.contact.email}
             </a>
-            <a href={`https://${d.contact.github}`} target="_blank" rel="noopener noreferrer" style={{
-              display: 'flex', alignItems: 'center', gap: '8px',
-              background: C.bg.card, border: `1px solid ${C.border}`, borderRadius: '12px', padding: '16px 24px',
-              color: C.text.body, textDecoration: 'none', fontSize: '15px',
-            }}>
-              <span style={{ fontSize: '20px' }}>🐙</span> GitHub
-            </a>
           </div>
         </div>
 
-        {/* ── Legal ── */}
+        {/* ── Footer ── */}
         <div style={{ textAlign: 'center', paddingTop: '40px', borderTop: `1px solid ${C.border}` }}>
           <p style={{ fontSize: '13px', color: C.text.subtle, lineHeight: 2 }}>
-            © {currentYear} Vancine. {d.legal.basedOn}{' '}
-            <a href="https://github.com/songquanpeng/one-api/releases/tag/v0.5.4" target="_blank" rel="noopener noreferrer" style={{ color: C.accent, textDecoration: 'none' }}>
-              One API v0.5.4
-            </a>{' '}
-            © 2023 JustSong. {d.legal.licensed}{' '}
-            <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener noreferrer" style={{ color: C.accent, textDecoration: 'none' }}>
-              AGPL v3.0
-            </a>.
+            © {currentYear} Vancine · {isZh ? '让中国 AI 模型更容易被全球开发者使用' : 'Making Chinese AI models easier for global developers to use'}
           </p>
         </div>
 
