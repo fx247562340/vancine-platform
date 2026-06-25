@@ -16,6 +16,13 @@ var (
 		"prefix:imagen-",
 		"flux-",
 		"flux.1-",
+		"wan2.6",
+		"wan2.7",
+		"qwen-image",
+		"z-image",
+		"cogview-3",
+		"cogview-3-plus",
+		"cogview-4",
 	}
 	OpenAITextModels = []string{
 		"gpt-",

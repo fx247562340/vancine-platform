@@ -96,6 +96,10 @@ export const IMAGE_GENERATION_MODELS = [
   'gpt-image-1',
   'doubao-seedream',
   'seedream',
+  'wan2.6',
+  'wan2.7',
+  'qwen-image',
+  'z-image',
 ];
 
 export const VIDEO_GENERATIONS_MODELS = ['video-', 'sora-', 'doubao-seedance', 'seedance'];
