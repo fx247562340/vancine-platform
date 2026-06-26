@@ -8,6 +8,8 @@ All notable Vancine platform release and operations changes are tracked here.
 
 - Fixed Playground routing for Bailian image models (`wan2.7-image`, `wan2.7-image-pro`) so database endpoint overrides cannot force image models through chat completions.
 - Preserved `image-generation` as the first supported endpoint for recognized image models even when model metadata includes custom endpoints.
+- Disabled Seedream image watermarks by default in the Playground and Volcengine relay unless callers explicitly request them.
+- Kept `3d-generation` for frontend categorization while pointing its default API path to `/v1/video/generations`, matching the actual async task route.
 
 ### Light mode
 

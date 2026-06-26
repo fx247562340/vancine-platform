@@ -311,6 +311,7 @@ const Playground = () => {
           n: 1,
           size: '1920x1920',
           response_format: 'url',
+          watermark: false,
         };
         // 图片生成传 HTTP URL（图生图/图编辑）
         // 统一用 image 字段，单张传字符串，多张传数组
