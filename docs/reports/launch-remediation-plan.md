@@ -3,7 +3,7 @@
 > 制定日期：2026-06-09  
 > 适用对象：个人开发者维护的 API 聚合平台  
 > 当前状态：仅适合受控测试，不适合公开注册、公开推广或继续开放 PayPal 收款  
-> 配套审查报告：`LAUNCH_READINESS_REVIEW.md`
+> 配套审查报告：`launch-readiness-review.md`
 
 ## 1. 目标与执行原则
 

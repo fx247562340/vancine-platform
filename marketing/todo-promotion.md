@@ -1,6 +1,6 @@
 # Vancine 推广待办任务
 
-> 基于 PROMOTION_PLAN_REVIEW.md 审查结论制定
+> 基于 `promotion-plan-review.md` 审查结论制定
 > 更新日期：2026-06-09
 
 ---
@@ -38,7 +38,7 @@
 - 3D 模型：3 个 ⚠️（仅限 Playground）
 - **总计：17 个模型**
 
-详见 `MODEL_TEST_RESULTS.md`
+详见 `../docs/reports/model-test-results.md`
 
 ### 4. 确认免费额度
 - [x] 已设置新用户免费额度：500,000（$1.00）
@@ -214,4 +214,4 @@
 ---
 
 *文档版本：v1.0*
-*基于 PROMOTION_PLAN_REVIEW.md 审查结论*
+*基于 `promotion-plan-review.md` 审查结论*

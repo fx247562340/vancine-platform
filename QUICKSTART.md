@@ -212,7 +212,7 @@ console.log(response.choices[0].message.content);
 
 - 📖 查看 [完整 API 文档](https://vancine.com/docs)
 - 💰 查看 [模型定价](https://vancine.com/pricing)
-- 🔧 查看 [可用模型列表](MODEL_TEST_RESULTS.md)
+- 🔧 查看 [可用模型列表](docs/reports/model-test-results.md)
 - 💬 遇到问题？联系 support@vancine.com
 
 ---

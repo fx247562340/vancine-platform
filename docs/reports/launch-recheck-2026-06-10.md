@@ -1,7 +1,7 @@
 # Vancine 上线准备度复查
 
 > 复查日期：2026-06-10  
-> 对比基线：`LAUNCH_READINESS_REVIEW.md`  
+> 对比基线：`launch-readiness-review.md`  
 > 范围：当前工作区、自动化门禁、生产配置、公开接口、备份与支付流程
 
 ## 结论
