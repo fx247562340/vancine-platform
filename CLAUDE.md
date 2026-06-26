@@ -27,6 +27,29 @@ Do NOT use the `Read` tool, `cat`, or any file-reading command to open binary im
 
 ---
 
+## Session Gate — 开发任务前必读
+
+**每次开始涉及代码、配置、部署的任务前，必须确认以下所有条目。违反任何一条 = 任务未完成。**
+
+| # | 检查项 | 详情 |
+|---|--------|------|
+| 1 | 读 `AGENTS.md` | 8 条项目规则（JSON、DB 兼容、npm、受保护标识等） |
+| 2 | 读 `docs/devlog/YYYY-MM.md` | 当月开发日志，了解近期上下文 |
+| 3 | 版本确认 | `cat VERSION` — 发版前必须确认当前版本号 |
+| 4 | 本地 Docker 验证 | 发版前必须：`docker compose build vancine && docker compose up -d`，用户确认 `http://127.0.0.1:3001`（本地端口因冲突映射到 3001，生产是 3000） |
+| 5 | 写 devlog | 任务完成后立即追加 `docs/devlog/YYYY-MM.md`，不写 = 未完成 |
+| 6 | commit 格式 | `<type>: <summary>`，不允许 `git add -A` |
+| 7 | CHANGELOG 更新 | 发版时同步更新 `CHANGELOG.md` |
+| 8 | 预部署检查 | 推生产前运行 `./bin/pre-deploy-check.sh` |
+
+快速验证命令：
+
+```bash
+./bin/pre-deploy-check.sh
+```
+
+---
+
 ## 项目概览
 
 Vancine 是一个面向海外开发者、OpenAI 兼容的中国 AI 模型 API 网关。
@@ -92,6 +115,8 @@ QUICKSTART.md               # 用户快速开始
 
 ## 强制要求 — 每次会话必读
 
+> 快速检查清单见上方 **Session Gate**。以下为详细规则。
+
 ### 1. 开发规范
 
 所有代码、配置、部署相关任务必须严格遵守：
@@ -105,7 +130,7 @@ QUICKSTART.md               # 用户快速开始
 
 参考 `docs/deployment.md` 和 `docs/release-process.md`。简化要求：
 
-1. **本地先验证**：先 `docker compose build vancine && docker compose up -d`，让用户验证 `http://127.0.0.1:3001`（本地端口因冲突映射到 3001，生产仍是 3000）。
+1. **本地先验证**：先 `docker compose build vancine && docker compose up -d`，让用户验证 `http://127.0.0.1:3001`（本地端口因本机 3000 冲突映射到 3001，生产仍是 3000）。
 2. **不允许跳过本地验证直接推生产**。
 3. **发布走服务器端构建**，不要再用旧的本地构建 + 二进制上传。
 4. 发布步骤：

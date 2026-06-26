@@ -30,7 +30,7 @@ cat VERSION
 Current value:
 
 ```text
-1.0.4
+1.0.6
 ```
 
 The Docker build passes this value into the Go binary:
@@ -189,7 +189,7 @@ Expected fields:
   "setup": true,
   "system_name": "Vancine",
   "server_address": "https://vancine.com",
-  "version": "v1.0.4"
+  "version": "v1.0.6"
 }
 ```
 

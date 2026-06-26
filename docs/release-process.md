@@ -8,10 +8,10 @@ The current version is tracked in the root `VERSION` file.
 
 ```bash
 cat VERSION
-# 1.0.4
+# 1.0.6
 ```
 
-The application exposes this version through `/api/status` as `version: "v1.0.4"`.
+The application exposes this version through `/api/status` as `version: "v1.0.6"`.
 
 ## Version policy
 
@@ -128,11 +128,11 @@ Expected status fields:
   "setup": true,
   "system_name": "Vancine",
   "server_address": "https://vancine.com",
-  "version": "v1.0.4"
+  "version": "v1.0.6"
 }
 ```
 
-For a new release, replace `v1.0.4` with the value from `VERSION`.
+For a new release, replace `v1.0.6` with the value from `VERSION`.
 
 ## Rollback
 

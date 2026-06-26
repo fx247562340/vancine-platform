@@ -26,7 +26,7 @@ The current application version is stored in the root [`VERSION`](../VERSION) fi
 Current version:
 
 ```text
-1.0.4
+1.0.6
 ```
 
 The Docker build injects this value into the Go binary with:
@@ -157,7 +157,7 @@ Expected key fields:
   "setup": true,
   "system_name": "Vancine",
   "server_address": "https://vancine.com",
-  "version": "v1.0.4"
+  "version": "v1.0.6"
 }
 ```
 
