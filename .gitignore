@@ -49,6 +49,14 @@ frontend/.env.*.local
 docker-compose.override.yml
 favicon_logosc/
 
+# Local build artifacts
+/vancine
+/vancine-*
+*.test
+
+# Generated marketing/media outputs
+/output/
+
 # Build artifacts
 vancine-custom.tar.gz
 *.tar.gz
