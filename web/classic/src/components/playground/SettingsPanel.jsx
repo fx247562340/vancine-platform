@@ -19,9 +19,10 @@ For commercial licensing, please contact support@quantumnous.com
 
 import React from 'react';
 import { Card, Select, Typography, Button, Switch } from '@douyinfe/semi-ui';
-import { Sparkles, Users, ToggleLeft, X, Settings } from 'lucide-react';
+import { Sparkles, Users, ToggleLeft, X, Settings, Mic } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { renderGroupOption, selectFilter } from '../../helpers';
+import { renderGroupOption, selectFilter, isAudioSpeechModel } from '../../helpers';
+import { DOUBAO_TTS_VOICES, DOUBAO_TTS2_VOICES } from '../../constants/playground.constants';
 import ParameterControl from './ParameterControl';
 import ConfigManager from './ConfigManager';
 import CustomRequestEditor from './CustomRequestEditor';
@@ -46,6 +47,12 @@ const SettingsPanel = ({
   messages,
 }) => {
   const { t } = useTranslation();
+
+  // TTS 音色：仅 audio 模型显示，按模型版本(1.0/2.0)切换音色列表
+  // 后端给 TTS 模型返回的 endpoint 是 openai（非 audio-speech），所以按模型名判断更可靠
+  const isAudioModel = isAudioSpeechModel(inputs.model);
+  const isTTS2 = inputs.model?.toLowerCase().includes('2.0');
+  const voiceOptions = isTTS2 ? DOUBAO_TTS2_VOICES : DOUBAO_TTS_VOICES;
 
   const currentConfig = {
     inputs,
@@ -172,6 +179,35 @@ const SettingsPanel = ({
             disabled={customRequestMode}
           />
         </div>
+
+        {/* TTS 音色选择 — 仅 audio 模型显示 */}
+        {isAudioModel && (
+          <div className={customRequestMode ? 'opacity-50' : ''}>
+            <div className='flex items-center gap-2 mb-2'>
+              <Mic size={16} className='text-gray-500' />
+              <Typography.Text strong className='text-sm'>
+                {t('音色')}
+              </Typography.Text>
+              {customRequestMode && (
+                <Typography.Text className='text-xs text-orange-600'>
+                  ({t('已在自定义模式中忽略')})
+                </Typography.Text>
+              )}
+            </div>
+            <Select
+              placeholder={t('请选择音色')}
+              name='voice'
+              filter={selectFilter}
+              onChange={(value) => onInputChange('voice', value)}
+              value={inputs.voice}
+              optionList={voiceOptions}
+              style={{ width: '100%' }}
+              dropdownStyle={{ width: '100%', maxWidth: '100%' }}
+              className='!rounded-lg'
+              disabled={customRequestMode}
+            />
+          </div>
+        )}
 
         {/* 图片URL输入 — 已隐藏，改用输入框粘贴上传 */}
         {/* <div className={customRequestMode ? 'opacity-50' : ''}>

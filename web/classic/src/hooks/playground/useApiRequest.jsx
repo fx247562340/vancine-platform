@@ -665,6 +665,67 @@ export const useApiRequest = (
     [setDebugData, setActiveDebugTab, streamMessageUpdate, completeMessage],
   );
 
+  // 发送语音合成请求（TTS 返回二进制音频，非 JSON）
+  const sendAudioRequest = useCallback(
+    (payload) => {
+      setDebugData((prev) => ({
+        ...prev,
+        request: payload,
+        timestamp: new Date().toISOString(),
+        response: null,
+        isStreaming: false,
+      }));
+      setActiveDebugTab(DEBUG_TABS.REQUEST);
+
+      fetch(API_ENDPOINTS.AUDIO_SPEECH, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'New-Api-User': getUserIdFromLocalStorage(),
+        },
+        body: JSON.stringify(payload),
+      })
+        .then((response) => {
+          if (!response.ok) {
+            return response.text().then((text) => {
+              throw new Error(`HTTP ${response.status}: ${text}`);
+            });
+          }
+          return response.blob();
+        })
+        .then((blob) => {
+          // 转 base64 data URL：data URL 不依赖页面生命周期，且渲染器对
+          // data:audio 链接渲染为 <audio> 播放器（blob: URL 点击会跳空页面）
+          const reader = new FileReader();
+          reader.onload = () => {
+            const audioUrl = reader.result;
+            setDebugData((prev) => ({
+              ...prev,
+              response: `Audio received: ${blob.size} bytes, type: ${blob.type || 'audio/mpeg'}`,
+            }));
+            setActiveDebugTab(DEBUG_TABS.RESPONSE);
+            // Markdown 渲染器对 data:audio 链接渲染为 <audio controls> 播放器
+            streamMessageUpdate(`🔊 ${t('语音已生成')}：\n\n[▶ ${t('播放')} / ⬇ ${t('下载')}](${audioUrl})`, 'content');
+            completeMessage(MESSAGE_STATUS.COMPLETE);
+          };
+          reader.onerror = () => {
+            setDebugData((prev) => ({ ...prev, response: t('音频解码失败') }));
+            setActiveDebugTab(DEBUG_TABS.RESPONSE);
+            streamMessageUpdate(`${t('语音合成失败')}: ${t('音频解码失败')}`, 'content');
+            completeMessage(MESSAGE_STATUS.ERROR);
+          };
+          reader.readAsDataURL(blob);
+        })
+        .catch((error) => {
+          setDebugData((prev) => ({ ...prev, response: error.message }));
+          setActiveDebugTab(DEBUG_TABS.RESPONSE);
+          streamMessageUpdate(`${t('语音合成失败')}: ${error.message}`, 'content');
+          completeMessage(MESSAGE_STATUS.ERROR);
+        });
+    },
+    [setDebugData, setActiveDebugTab, streamMessageUpdate, completeMessage, t],
+  );
+
   // 停止生成
   const onStopGenerator = useCallback(() => {
     // 清理任务轮询
@@ -730,6 +791,7 @@ export const useApiRequest = (
     sendRequest,
     sendImageRequest,
     sendTaskRequest,
+    sendAudioRequest,
     onStopGenerator,
     streamMessageUpdate,
     completeMessage,

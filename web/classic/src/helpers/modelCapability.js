@@ -53,7 +53,8 @@ export function isVideoGenerationModel(modelName) {
 
 export function isAudioSpeechModel(modelName) {
   if (!modelName) return false;
-  return AUDIO_SPEECH_MODELS.some((m) => modelName.startsWith(m));
+  const lower = modelName.toLowerCase();
+  return AUDIO_SPEECH_MODELS.some((m) => lower.startsWith(m));
 }
 
 export function isAudioTranslationModel(modelName) {

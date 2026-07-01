@@ -2,6 +2,23 @@
 
 All notable Vancine platform release and operations changes are tracked here.
 
+## 1.0.7 - 2026-07-02
+
+### TTS（火山方舟语音合成全链路修复）
+
+- Fixed `Doubao-tts2.0` returning `resource ID is mismatched with speaker related resource`. Root cause was the voice alias map pairing `alloy` with a 1.0 voice under a 2.0 resource. Split the map into V1/V2 by model version and made `mapVoiceType` passthrough native voice IDs (suffix `_bigtts`) with version-matched alias fallback.
+- Discovered (via direct upstream testing) that voice suffixes map to model versions inversely to the initial assumption: `uranus` suffix voices belong to `seed-tts-2.0`, while `mars` suffix and legacy `M392` voices belong to `seed-tts-1.0`. Voice/model mismatches now fail fast with the upstream error rather than silently sending the wrong pairing.
+- Added per-request pricing for `doubao-tts` (0.05 USD) and `doubao-tts2.0` (0.08 USD) via `defaultModelPrice`, replacing the punitive default 37.5 ratio. Volcengine TTS billing flows through `PostTextConsumeQuota` → `calculateTextQuotaSummary` `UsePrice` branch; no `DoResponse` change needed.
+- Added Playground TTS route `POST /pg/audio/speech` → `PlaygroundAudio` (reuses `playgroundRelay` + `RelayFormatOpenAIAudio`), plus `Path2RelayMode` matching so the route resolves to `RelayModeAudioSpeech`. Previously the Playground sent audio models to `/pg/video/generations` (video task adaptor) with no `voice` field, which always failed.
+- Playground now shows a voice dropdown for audio models, version-aware: 12 multilingual 2.0 voices (uranus: zh/en/es/fr/de/ar) for `Doubao-tts2.0`, 12 voices (mars + M392) for `Doubao-tts`. Audio models are no longer filtered out of the Playground model list.
+- Removed the broken video-task path for audio models in `Playground/index.jsx`; audio now sends `{model, input, voice, response_format}` to `/pg/audio/speech` and renders the returned MP3 as an inline `<audio>` player.
+- Fixed audio links rendering as empty clicks: react-markdown 10's `defaultUrlTransform` strips `data:`/`blob:` protocols, so `MarkdownRenderer` now passes a custom `urlTransform` that allows `data:audio` and `blob:` through. `sendAudioRequest` embeds the audio as a base64 data URL (independent of page lifecycle) and the player is sized to `maxWidth:520px / minWidth:280px`.
+- Docs page: TTS examples now use native voice IDs (split into `tts` 1.0 and `tts2` 2.0 groups), `voice` is required, and a multilingual voice list table is added with a Callout explaining the suffix→version rule.
+
+### Notes
+
+- Direct upstream verification confirmed the Volcengine side was never the problem: the channel key has 2.0 access, the service is activated, and voices are public parameters (no console subscription needed). The earlier "voices need subscription" note in memory was corrected.
+
 ## 1.0.6 - 2026-06-25
 
 ### Hotfix

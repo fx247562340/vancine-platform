@@ -219,12 +219,6 @@ export const processModelsData = (data, currentModel) => {
   // 兼容新格式 [{model, endpoints}] 和旧格式 ["model1", "model2"]
   const endpointsMap = {};
   const modelOptions = data
-    .filter((item) => {
-      // Filter out audio/TTS models from playground (not supported)
-      const endpoints = typeof item !== 'string' && item.endpoints ? item.endpoints : [];
-      const isAudio = endpoints.some((ep) => ep === 'audio-speech' || ep === 'audio');
-      return !isAudio;
-    })
     .map((item) => {
       const name = typeof item === 'string' ? item : item.model;
       if (typeof item !== 'string' && item.endpoints) {

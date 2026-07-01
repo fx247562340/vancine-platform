@@ -49,6 +49,7 @@ import {
   getTextContent,
   buildApiPayload,
   encodeToBase64,
+  isAudioSpeechModel,
 } from '../../helpers';
 
 // Components
@@ -124,7 +125,7 @@ const Playground = () => {
   } = state;
 
   // API 请求相关
-  const { sendRequest, sendImageRequest, sendTaskRequest, onStopGenerator } = useApiRequest(
+  const { sendRequest, sendImageRequest, sendTaskRequest, sendAudioRequest, onStopGenerator } = useApiRequest(
     setMessage,
     setDebugData,
     setActiveDebugTab,
@@ -297,7 +298,7 @@ const Playground = () => {
     const isImageModel = modelEndpoints.some((ep) => ep === 'image-generation' || ep === 'image');
     const isVideoModel = modelEndpoints.some((ep) => ep === 'openai-video' || ep === 'video');
     const is3DModel = modelEndpoints.some((ep) => ep === '3d-generation');
-    const isAudioModel = modelEndpoints.some((ep) => ep === 'audio-speech' || ep === 'audio');
+    const isAudioModel = isAudioSpeechModel(inputs.model);
 
     setMessage((prevMessage) => {
       const newMessages = [...prevMessage, userMessageWithImages];
@@ -321,8 +322,20 @@ const Playground = () => {
             : validImageUrls;
         }
         sendImageRequest(imagePayload);
-      } else if (isVideoModel || is3DModel || isAudioModel) {
-        // 视频/3D/音频任务：发送到对应的 task 端点
+      } else if (isAudioModel) {
+        // 语音合成：发送到 /pg/audio/speech（OpenAI 兼容 TTS，非视频任务）
+        const lastUserMsg = [...newMessages].reverse().find((m) => m.role === 'user');
+        const inputText = lastUserMsg?.content || content;
+        const audioPayload = {
+          model: inputs.model,
+          group: inputs.group,
+          input: inputText,
+          voice: inputs.voice || 'zh_female_vv_uranus_bigtts',
+          response_format: 'mp3',
+        };
+        sendAudioRequest(audioPayload);
+      } else if (isVideoModel || is3DModel) {
+        // 视频/3D 任务：发送到对应的 task 端点
         const lastUserMsg = [...newMessages].reverse().find((m) => m.role === 'user');
         const prompt = lastUserMsg?.content || content;
         const taskEndpoint = is3DModel ? API_ENDPOINTS.THREE_D_GENERATIONS : API_ENDPOINTS.VIDEO_GENERATIONS;

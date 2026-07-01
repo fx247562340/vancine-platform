@@ -76,6 +76,12 @@ func Playground3D(c *gin.Context) {
 	RelayTask(c)
 }
 
+// PlaygroundAudio 操练场语音合成入口
+// 走 OpenAI 兼容的 /v1/audio/speech relay 路径（非视频任务），复用 playgroundRelay 认证。
+func PlaygroundAudio(c *gin.Context) {
+	playgroundRelay(c, types.RelayFormatOpenAIAudio)
+}
+
 // playgroundRelay 操练场通用中继：认证 → 创建临时 token → 执行 relay
 func playgroundRelay(c *gin.Context, relayFormat types.RelayFormat) {
 	var newAPIError *types.NewAPIError

@@ -522,7 +522,7 @@ while (true) {
   -d '{
     "model": "Doubao-tts",
     "input": "hello world",
-    "voice": "alloy"
+    "voice": "zh_male_M392_conversation_wvae_bigtts"
   }' \\
   --output speech.mp3`,
     },
@@ -539,7 +539,7 @@ response = requests.post(
     json={
         "model": "Doubao-tts",
         "input": "hello world",
-        "voice": "alloy",
+        "voice": "zh_male_M392_conversation_wvae_bigtts",
     },
 )
 
@@ -559,7 +559,61 @@ const response = await fetch("${baseUrl}/audio/speech", {
   body: JSON.stringify({
     model: "Doubao-tts",
     input: "hello world",
-    voice: "alloy",
+    voice: "zh_male_M392_conversation_wvae_bigtts",
+  }),
+});
+
+const audio = Buffer.from(await response.arrayBuffer());
+await writeFile("speech.mp3", audio);`,
+    },
+  },
+  tts2: {
+    curl: {
+      title: 'cURL',
+      code: `curl -X POST ${baseUrl}/audio/speech \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer sk-your-api-key" \\
+  -d '{
+    "model": "Doubao-tts2.0",
+    "input": "hello world",
+    "voice": "zh_female_vv_uranus_bigtts"
+  }' \\
+  --output speech.mp3`,
+    },
+    python: {
+      title: 'Python',
+      code: `import requests
+
+response = requests.post(
+    "${baseUrl}/audio/speech",
+    headers={
+        "Authorization": "Bearer sk-your-api-key",
+        "Content-Type": "application/json",
+    },
+    json={
+        "model": "Doubao-tts2.0",
+        "input": "hello world",
+        "voice": "zh_female_vv_uranus_bigtts",
+    },
+)
+
+with open("speech.mp3", "wb") as f:
+    f.write(response.content)`,
+    },
+    node: {
+      title: 'Node.js',
+      code: `import { writeFile } from "node:fs/promises";
+
+const response = await fetch("${baseUrl}/audio/speech", {
+  method: "POST",
+  headers: {
+    Authorization: "Bearer sk-your-api-key",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    model: "Doubao-tts2.0",
+    input: "hello world",
+    voice: "zh_female_vv_uranus_bigtts",
   }),
 });
 
@@ -987,7 +1041,7 @@ const Docs = () => {
                 params={[
                   ['model', 'string', true, isZh ? 'Doubao-tts 或 Doubao-tts2.0' : 'Doubao-tts or Doubao-tts2.0'],
                   ['input', 'string', true, isZh ? '待合成文本' : 'Text to synthesize'],
-                  ['voice', 'string', false, isZh ? '音色，例如 alloy' : 'Voice, for example alloy'],
+                  ['voice', 'string', true, isZh ? '音色 ID，见下方音色列表' : 'Voice ID, see voice list below'],
                 ]}
               />
 
@@ -996,6 +1050,53 @@ const Docs = () => {
               </Callout>
 
               <CodeSampleTabs samples={samples} section="tts" labels={d} />
+
+              <H3>{isZh ? 'Doubao-tts2.0 示例（2.0 音色）' : 'Doubao-tts2.0 example (2.0 voices)'}</H3>
+              <CodeSampleTabs samples={samples} section="tts2" labels={d} />
+
+              <H3>{isZh ? '可用音色' : 'Available voices'}</H3>
+              <Callout type="info">
+                {isZh
+                  ? '音色 ID 后缀决定所属模型版本：uranus 后缀用于 Doubao-tts2.0，mars 后缀和 M392 旧格式用于 Doubao-tts。音色与模型版本不匹配会返回 resource mismatch 错误。'
+                  : 'The voice ID suffix determines the model version: uranus suffix is for Doubao-tts2.0, while mars suffix and the legacy M392 format are for Doubao-tts. A voice/model mismatch returns a resource mismatch error.'}
+              </Callout>
+              <Table
+                headers={[isZh ? '音色 ID' : 'Voice ID', isZh ? '名称' : 'Name', isZh ? '适用模型' : 'Model', isZh ? '语种·场景' : 'Language / use case']}
+                rows={[
+                  ['zh_female_vv_uranus_bigtts', 'Vivi', '2.0', isZh ? '中文 女·温柔（多语种）' : 'Chinese, female, gentle (multilingual)'],
+                  ['en_female_nadia_uranus_bigtts', 'Nadia', '2.0', 'English, female'],
+                  ['en_female_jane_uranus_bigtts', 'Jane', '2.0', 'English, female'],
+                  ['en_female_rachel_p1_uranus_bigtts', 'Rachel', '2.0', 'English, female'],
+                  ['en_male_david_uranus_bigtts', 'David', '2.0', 'English, male'],
+                  ['en_male_alex_uranus_bigtts', 'Alex', '2.0', 'English, male'],
+                  ['en_male_kevin_uranus_bigtts', 'Kevin', '2.0', 'English, male'],
+                  ['en_female_stokie_uranus_bigtts', 'Stokie', '2.0', isZh ? '英式英语 女' : 'English (UK), female'],
+                  ['es_female_bv084_uranus_bigtts', isZh ? '西语 女' : 'Spanish, female', '2.0', 'Español'],
+                  ['fr_female_fr_bv078_uranus_bigtts', isZh ? '法语 女' : 'French, female', '2.0', 'Français'],
+                  ['de_female_bv081_uranus_bigtts', isZh ? '德语 女' : 'German, female', '2.0', 'Deutsch'],
+                  ['ar_female_dina_uranus_bigtts', isZh ? '阿语 女' : 'Arabic, female', '2.0', 'العربية'],
+                  ['zh_male_M392_conversation_wvae_bigtts', 'M392', '1.0', isZh ? '中文 男·自然对话' : 'Chinese, male, natural conversation'],
+                  ['zh_female_M392_conversation_wvae_bigtts', 'M392', '1.0', isZh ? '中文 女·自然对话' : 'Chinese, female, natural conversation'],
+                  ['zh_female_cancan_mars_bigtts', isZh ? '灿灿' : 'Cancan', '1.0', isZh ? '中文 女·明亮' : 'Chinese, female, bright'],
+                  ['zh_male_wenhao_mars_bigtts', isZh ? '文豪' : 'Wenhao', '1.0', isZh ? '中文 男·沉稳' : 'Chinese, male, steady'],
+                  ['en_female_amanda_mars_bigtts', 'Amanda', '1.0', 'English, female'],
+                  ['en_female_emily_mars_bigtts', 'Emily', '1.0', 'English, female'],
+                  ['en_male_adam_mars_bigtts', 'Adam', '1.0', 'English, male'],
+                  ['en_male_jackson_mars_bigtts', 'Jackson', '1.0', 'English, male'],
+                  ['en_female_sarah_mars_bigtts', 'Sarah', '1.0', 'English, female'],
+                  ['en_male_smith_mars_bigtts', 'Smith', '1.0', 'English, male'],
+                  ['en_female_anna_mars_bigtts', 'Anna', '1.0', 'English, female'],
+                  ['en_male_dryw_mars_bigtts', 'Dryw', '1.0', 'English, male'],
+                ]}
+                renderRow={([vid, name, model, usecase], i, last) => (
+                  <Tr key={i} last={last}>
+                    <Td style={{ fontFamily: 'monospace', color: C.accent, fontSize: '13px' }}>{vid}</Td>
+                    <Td style={{ color: C.text.body }}>{name}</Td>
+                    <Td><Badge color={model.includes('2.0') ? 'green' : 'gray'}>{model}</Badge></Td>
+                    <Td style={{ color: C.text.muted }}>{usecase}</Td>
+                  </Tr>
+                )}
+              />
             </section>
 
             <section id="errors" style={{ marginBottom: '64px' }}>

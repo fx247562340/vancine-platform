@@ -104,7 +104,7 @@ export const IMAGE_GENERATION_MODELS = [
 
 export const VIDEO_GENERATIONS_MODELS = ['video-', 'sora-', 'doubao-seedance', 'seedance'];
 
-export const AUDIO_SPEECH_MODELS = ['tts-1', 'tts-1-hd', 'doubao-tts'];
+export const AUDIO_SPEECH_MODELS = ['tts-1', 'tts-1-hd', 'doubao-tts', 'doubao-tts2.0'];
 
 export const AUDIO_TRANSLATION_MODELS = ['whisper-1'];
 
@@ -114,6 +114,7 @@ export const API_ENDPOINTS = {
   IMAGES_GENERATIONS: '/pg/images/generations',
   VIDEO_GENERATIONS: '/pg/video/generations',
   THREE_D_GENERATIONS: '/pg/3d/generations',
+  AUDIO_SPEECH: '/pg/audio/speech',
   TASKS: '/api/task/',
   USER_MODELS: '/api/user/models',
   USER_GROUPS: '/api/user/self/groups',
@@ -124,6 +125,7 @@ export const DEFAULT_CONFIG = {
   inputs: {
     model: 'gpt-4o',
     group: '',
+    voice: '',
     temperature: 0.7,
     top_p: 1,
     max_tokens: 4096,
@@ -169,3 +171,44 @@ export const STORAGE_KEYS = {
   CONFIG: 'playground_config',
   MESSAGES: 'playground_messages',
 };
+
+// ========== TTS 音色列表 ==========
+// 平台面向海外客户，列表覆盖多语种（中/英/西/法/德/阿）。
+// 音色 ID 直接透传火山原生 voice_type，与后端 mapVoiceType 的 passthrough 路径一致。
+//
+// 重要：音色后缀决定所属模型版本，必须与 resource ID 匹配，否则上游报
+// "resource ID is mismatched with speaker related resource"：
+//   - uranus 后缀 → seed-tts-2.0（Doubao-tts2.0）
+//   - mars 后缀 / M392 旧格式 → seed-tts-1.0（Doubao-tts）
+
+// 2.0 音色（Doubao-tts2.0 / seed-tts-2.0，uranus 后缀）
+export const DOUBAO_TTS2_VOICES = [
+  { value: 'zh_female_vv_uranus_bigtts', label: 'Vivi · 中文 女 · 温柔（多语种）' },
+  { value: 'en_female_nadia_uranus_bigtts', label: 'Nadia · English Female' },
+  { value: 'en_female_jane_uranus_bigtts', label: 'Jane · English Female' },
+  { value: 'en_female_rachel_p1_uranus_bigtts', label: 'Rachel · English Female' },
+  { value: 'en_male_david_uranus_bigtts', label: 'David · English Male' },
+  { value: 'en_male_alex_uranus_bigtts', label: 'Alex · English Male' },
+  { value: 'en_male_kevin_uranus_bigtts', label: 'Kevin · English Male' },
+  { value: 'en_female_stokie_uranus_bigtts', label: 'Stokie · English (UK) Female' },
+  { value: 'es_female_bv084_uranus_bigtts', label: 'Español · 西语 女' },
+  { value: 'fr_female_fr_bv078_uranus_bigtts', label: 'Français · 法语 女' },
+  { value: 'de_female_bv081_uranus_bigtts', label: 'Deutsch · 德语 女' },
+  { value: 'ar_female_dina_uranus_bigtts', label: 'العربية · 阿语 女' },
+];
+
+// 1.0 音色（Doubao-tts / seed-tts-1.0，mars 后缀或 M392 旧格式）
+export const DOUBAO_TTS_VOICES = [
+  { value: 'zh_male_M392_conversation_wvae_bigtts', label: 'M392 · 中文 男 · 自然对话' },
+  { value: 'zh_female_M392_conversation_wvae_bigtts', label: 'M392 · 中文 女 · 自然对话' },
+  { value: 'zh_female_cancan_mars_bigtts', label: '灿灿 · 中文 女 · 明亮' },
+  { value: 'zh_male_wenhao_mars_bigtts', label: '文豪 · 中文 男 · 沉稳' },
+  { value: 'en_female_amanda_mars_bigtts', label: 'Amanda · English Female' },
+  { value: 'en_female_emily_mars_bigtts', label: 'Emily · English Female' },
+  { value: 'en_male_adam_mars_bigtts', label: 'Adam · English Male' },
+  { value: 'en_male_jackson_mars_bigtts', label: 'Jackson · English Male' },
+  { value: 'en_female_sarah_mars_bigtts', label: 'Sarah · English Female' },
+  { value: 'en_male_smith_mars_bigtts', label: 'Smith · English Male' },
+  { value: 'en_female_anna_mars_bigtts', label: 'Anna · English Female' },
+  { value: 'en_male_dryw_mars_bigtts', label: 'Dryw · English Male' },
+];

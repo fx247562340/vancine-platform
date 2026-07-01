@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { defaultUrlTransform } from 'react-markdown';
 import 'katex/dist/katex.min.css';
 import 'highlight.js/styles/github.css';
 import './markdown.css';
@@ -414,6 +414,16 @@ function _MarkdownContent(props) {
     <ReactMarkdown
       remarkPlugins={[RemarkMath, RemarkGfm, RemarkBreaks]}
       rehypePlugins={rehypePluginsBase}
+      // 默认 urlTransform 只允许 http(s)/mailto 等协议，会清空 blob:/data: 链接。
+      // 操练场 TTS 生成的音频用 data:audio 和 blob: URL，需要透传才能渲染 <audio>。
+      urlTransform={(url, key, node) => {
+        if (key === 'src' || key === 'href') {
+          if (/^(blob:|data:audio\/)/i.test(url)) {
+            return url;
+          }
+        }
+        return defaultUrlTransform(url, key, node);
+      }}
       components={{
         pre: PreCode,
         code: CustomCode,
@@ -429,10 +439,16 @@ function _MarkdownContent(props) {
         ),
         a: (aProps) => {
           const href = aProps.href || '';
-          if (/\.(aac|mp3|opus|wav)$/.test(href)) {
+          // blob: / data:audio 链接（如操练场 TTS 生成的临时音频）也渲染为播放器
+          const isAudioBlob = /^blob:/.test(href) || /^data:audio\//i.test(href);
+          if (isAudioBlob || /\.(aac|mp3|opus|wav)$/.test(href)) {
             return (
-              <figure style={{ margin: '12px 0' }}>
-                <audio controls src={href} style={{ width: '100%' }}></audio>
+              <figure style={{ margin: '12px 0', width: '100%', maxWidth: '520px' }}>
+                <audio
+                  controls
+                  src={href}
+                  style={{ width: '100%', minWidth: '280px', verticalAlign: 'middle' }}
+                ></audio>
               </figure>
             );
           }

@@ -137,13 +137,30 @@ type VolcengineTTSV3QueryResponse struct {
 	} `json:"data"`
 }
 
-var openAIToVolcengineVoiceMap = map[string]string{
+// openAIToVolcengineVoiceMapV1 maps OpenAI voice aliases to Volcengine 1.0
+// voice types (seed-tts-1.0 / Doubao-tts). 1.0 voices use the legacy ID format
+// without the mars/uranus suffix.
+var openAIToVolcengineVoiceMapV1 = map[string]string{
 	"alloy":   "zh_male_M392_conversation_wvae_bigtts",
-	"echo":    "zh_male_wenhao_mars_bigtts",
-	"fable":   "zh_female_tianmei_mars_bigtts",
-	"onyx":    "zh_male_zhibei_mars_bigtts",
-	"nova":    "zh_female_shuangkuaisisi_mars_bigtts",
-	"shimmer": "zh_female_cancan_mars_bigtts",
+	"echo":    "zh_male_M392_conversation_wvae_bigtts",
+	"fable":   "zh_female_M392_conversation_wvae_bigtts",
+	"onyx":    "zh_male_M392_conversation_wvae_bigtts",
+	"nova":    "zh_female_M392_conversation_wvae_bigtts",
+	"shimmer": "zh_female_M392_conversation_wvae_bigtts",
+}
+
+// openAIToVolcengineVoiceMapV2 maps OpenAI voice aliases to Volcengine 2.0
+// voice types (seed-tts-2.0 / Doubao-tts2.0). 2.0 voices carry the uranus
+// suffix and must not be paired with the seed-tts-1.0 resource — pairing a
+// mars/uranus voice with the wrong resource is rejected upstream as
+// "resource ID is mismatched with speaker related resource".
+var openAIToVolcengineVoiceMapV2 = map[string]string{
+	"alloy":   "zh_female_vv_uranus_bigtts",
+	"echo":    "en_male_alex_uranus_bigtts",
+	"fable":   "en_female_jane_uranus_bigtts",
+	"onyx":    "en_male_kevin_uranus_bigtts",
+	"nova":    "en_female_nadia_uranus_bigtts",
+	"shimmer": "en_female_rachel_p1_uranus_bigtts",
 }
 
 var responseFormatToEncodingMap = map[string]string{
@@ -163,9 +180,33 @@ func parseVolcengineAuth(apiKey string) (appID, token string, err error) {
 	return parts[0], parts[1], nil
 }
 
-func mapVoiceType(openAIVoice string) string {
-	if voice, ok := openAIToVolcengineVoiceMap[openAIVoice]; ok {
-		return voice
+// mapVoiceType resolves the speaker voice ID for a TTS request.
+//
+// The primary path is passthrough: if the caller supplies a native Volcengine
+// voice ID (all 1.0/2.0 IDs end with "_bigtts"), it is returned unchanged so
+// users can target any voice the upstream offers. The alias fallback only
+// applies when a short OpenAI-style alias (alloy/echo/...) is given, and picks
+// the V1 or V2 map based on resourceName (info.UpstreamModelName) so the voice
+// version always matches the resource ID — a 2.0 resource with a 1.0 voice
+// (or vice versa) is rejected upstream as "resource ID is mismatched with
+// speaker related resource".
+func mapVoiceType(openAIVoice string, resourceName string) string {
+	if openAIVoice == "" {
+		return openAIVoice
+	}
+	// Native Volcengine voice IDs (1.0 and 2.0 alike) end with "_bigtts".
+	if strings.Contains(openAIVoice, "_bigtts") {
+		return openAIVoice
+	}
+	// OpenAI alias fallback, version-matched to the resource.
+	if strings.Contains(resourceName, "2.0") {
+		if voice, ok := openAIToVolcengineVoiceMapV2[openAIVoice]; ok {
+			return voice
+		}
+	} else {
+		if voice, ok := openAIToVolcengineVoiceMapV1[openAIVoice]; ok {
+			return voice
+		}
 	}
 	return openAIVoice
 }
