@@ -30,7 +30,7 @@ cat VERSION
 Current value:
 
 ```text
-1.0.6
+1.0.7
 ```
 
 The Docker build passes this value into the Go binary:
@@ -39,10 +39,12 @@ The Docker build passes this value into the Go binary:
 -X 'github.com/QuantumNous/new-api/common.Version=$(cat VERSION)'
 ```
 
+⚠️ **Important**: `docker-compose.yml` also sets a `VERSION` environment variable on the container (`- VERSION=vX.Y.Z`). At runtime `common/init.go` reads this env var and **overrides** the binary-embedded version. So both must be kept in sync, or the banner / `/api/status` will show a stale version.
+
 Release rule:
 
-1. Update `VERSION` before a release.
-2. Commit the version change with the release changes.
+1. Update `VERSION` (root file) **and** the `VERSION` env var in `docker-compose.yml` to the same value before a release.
+2. Commit both version changes with the release changes.
 3. Deploy from `origin/main` on the production server.
 4. Verify `/api/status` returns the expected version.
 
@@ -189,7 +191,7 @@ Expected fields:
   "setup": true,
   "system_name": "Vancine",
   "server_address": "https://vancine.com",
-  "version": "v1.0.6"
+  "version": "v1.0.7"
 }
 ```
 

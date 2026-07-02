@@ -179,7 +179,7 @@ export const STORAGE_KEYS = {
 // 重要：音色后缀决定所属模型版本，必须与 resource ID 匹配，否则上游报
 // "resource ID is mismatched with speaker related resource"：
 //   - uranus 后缀 → seed-tts-2.0（Doubao-tts2.0）
-//   - mars 后缀 / M392 旧格式 → seed-tts-1.0（Doubao-tts）
+//   - mars 后缀 → seed-tts-1.0（Doubao-tts）
 
 // 2.0 音色（Doubao-tts2.0 / seed-tts-2.0，uranus 后缀）
 export const DOUBAO_TTS2_VOICES = [
@@ -197,10 +197,8 @@ export const DOUBAO_TTS2_VOICES = [
   { value: 'ar_female_dina_uranus_bigtts', label: 'العربية · 阿语 女' },
 ];
 
-// 1.0 音色（Doubao-tts / seed-tts-1.0，mars 后缀或 M392 旧格式）
+// 1.0 音色（Doubao-tts / seed-tts-1.0，mars 后缀）
 export const DOUBAO_TTS_VOICES = [
-  { value: 'zh_male_M392_conversation_wvae_bigtts', label: 'M392 · 中文 男 · 自然对话' },
-  { value: 'zh_female_M392_conversation_wvae_bigtts', label: 'M392 · 中文 女 · 自然对话' },
   { value: 'zh_female_cancan_mars_bigtts', label: '灿灿 · 中文 女 · 明亮' },
   { value: 'zh_male_wenhao_mars_bigtts', label: '文豪 · 中文 男 · 沉稳' },
   { value: 'en_female_amanda_mars_bigtts', label: 'Amanda · English Female' },

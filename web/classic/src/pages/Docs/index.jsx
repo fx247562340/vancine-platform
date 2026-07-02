@@ -522,7 +522,7 @@ while (true) {
   -d '{
     "model": "Doubao-tts",
     "input": "hello world",
-    "voice": "zh_male_M392_conversation_wvae_bigtts"
+    "voice": "zh_female_cancan_mars_bigtts"
   }' \\
   --output speech.mp3`,
     },
@@ -539,7 +539,7 @@ response = requests.post(
     json={
         "model": "Doubao-tts",
         "input": "hello world",
-        "voice": "zh_male_M392_conversation_wvae_bigtts",
+        "voice": "zh_female_cancan_mars_bigtts",
     },
 )
 
@@ -559,7 +559,7 @@ const response = await fetch("${baseUrl}/audio/speech", {
   body: JSON.stringify({
     model: "Doubao-tts",
     input: "hello world",
-    voice: "zh_male_M392_conversation_wvae_bigtts",
+    voice: "zh_female_cancan_mars_bigtts",
   }),
 });
 
@@ -1057,8 +1057,8 @@ const Docs = () => {
               <H3>{isZh ? '可用音色' : 'Available voices'}</H3>
               <Callout type="info">
                 {isZh
-                  ? '音色 ID 后缀决定所属模型版本：uranus 后缀用于 Doubao-tts2.0，mars 后缀和 M392 旧格式用于 Doubao-tts。音色与模型版本不匹配会返回 resource mismatch 错误。'
-                  : 'The voice ID suffix determines the model version: uranus suffix is for Doubao-tts2.0, while mars suffix and the legacy M392 format are for Doubao-tts. A voice/model mismatch returns a resource mismatch error.'}
+                  ? '音色 ID 后缀决定所属模型版本：uranus 后缀用于 Doubao-tts2.0，mars 后缀用于 Doubao-tts。音色与模型版本不匹配会返回 resource mismatch 错误。'
+                  : 'The voice ID suffix determines the model version: uranus suffix is for Doubao-tts2.0, while mars suffix is for Doubao-tts. A voice/model mismatch returns a resource mismatch error.'}
               </Callout>
               <Table
                 headers={[isZh ? '音色 ID' : 'Voice ID', isZh ? '名称' : 'Name', isZh ? '适用模型' : 'Model', isZh ? '语种·场景' : 'Language / use case']}
@@ -1075,8 +1075,6 @@ const Docs = () => {
                   ['fr_female_fr_bv078_uranus_bigtts', isZh ? '法语 女' : 'French, female', '2.0', 'Français'],
                   ['de_female_bv081_uranus_bigtts', isZh ? '德语 女' : 'German, female', '2.0', 'Deutsch'],
                   ['ar_female_dina_uranus_bigtts', isZh ? '阿语 女' : 'Arabic, female', '2.0', 'العربية'],
-                  ['zh_male_M392_conversation_wvae_bigtts', 'M392', '1.0', isZh ? '中文 男·自然对话' : 'Chinese, male, natural conversation'],
-                  ['zh_female_M392_conversation_wvae_bigtts', 'M392', '1.0', isZh ? '中文 女·自然对话' : 'Chinese, female, natural conversation'],
                   ['zh_female_cancan_mars_bigtts', isZh ? '灿灿' : 'Cancan', '1.0', isZh ? '中文 女·明亮' : 'Chinese, female, bright'],
                   ['zh_male_wenhao_mars_bigtts', isZh ? '文豪' : 'Wenhao', '1.0', isZh ? '中文 男·沉稳' : 'Chinese, male, steady'],
                   ['en_female_amanda_mars_bigtts', 'Amanda', '1.0', 'English, female'],

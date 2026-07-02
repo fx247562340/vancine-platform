@@ -11,7 +11,7 @@ cat VERSION
 # 1.0.6
 ```
 
-The application exposes this version through `/api/status` as `version: "v1.0.6"`.
+The application exposes this version through `/api/status` as `version: "v1.0.7"`.
 
 ## Version policy
 
@@ -128,11 +128,11 @@ Expected status fields:
   "setup": true,
   "system_name": "Vancine",
   "server_address": "https://vancine.com",
-  "version": "v1.0.6"
+  "version": "v1.0.7"
 }
 ```
 
-For a new release, replace `v1.0.6` with the value from `VERSION`.
+For a new release, replace `v1.0.7` with the value from `VERSION`.
 
 ## Rollback
 

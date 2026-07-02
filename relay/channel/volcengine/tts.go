@@ -138,15 +138,15 @@ type VolcengineTTSV3QueryResponse struct {
 }
 
 // openAIToVolcengineVoiceMapV1 maps OpenAI voice aliases to Volcengine 1.0
-// voice types (seed-tts-1.0 / Doubao-tts). 1.0 voices use the legacy ID format
-// without the mars/uranus suffix.
+// voice types (seed-tts-1.0 / Doubao-tts). 1.0 voices use the mars suffix.
+// M392 legacy voices are excluded — they fail in some channel configurations.
 var openAIToVolcengineVoiceMapV1 = map[string]string{
-	"alloy":   "zh_male_M392_conversation_wvae_bigtts",
-	"echo":    "zh_male_M392_conversation_wvae_bigtts",
-	"fable":   "zh_female_M392_conversation_wvae_bigtts",
-	"onyx":    "zh_male_M392_conversation_wvae_bigtts",
-	"nova":    "zh_female_M392_conversation_wvae_bigtts",
-	"shimmer": "zh_female_M392_conversation_wvae_bigtts",
+	"alloy":   "zh_female_cancan_mars_bigtts",
+	"echo":    "zh_male_wenhao_mars_bigtts",
+	"fable":   "zh_female_cancan_mars_bigtts",
+	"onyx":    "zh_male_wenhao_mars_bigtts",
+	"nova":    "zh_female_cancan_mars_bigtts",
+	"shimmer": "zh_female_cancan_mars_bigtts",
 }
 
 // openAIToVolcengineVoiceMapV2 maps OpenAI voice aliases to Volcengine 2.0
