@@ -2,11 +2,11 @@
 
 ## Status
 
-Approved conversational design, pending written-spec review.
+Approved bilingual design, ready for implementation.
 
 ## Objective
 
-Create a focused English acquisition page at `/ai-media-api` for overseas AI product developers. The page should convert qualified visitors into registered and activated users by presenting Vancine's real multimedia API capabilities, developer experience, and fixed `$1` signup credit.
+Create a focused English-and-Chinese acquisition page at `/ai-media-api` for overseas AI product developers. The page should convert qualified visitors into registered and activated users by presenting Vancine's real multimedia API capabilities, developer experience, and fixed `$1` signup credit.
 
 This page is additive. It does not replace or redesign the current homepage.
 
@@ -46,6 +46,22 @@ The page must not claim unsupported savings percentages, guaranteed worldwide av
 - Production remains on the Classic theme.
 - No backend business-logic or database changes are required.
 
+## Language Scope
+
+Version one supports English and Chinese immediately in both themes.
+
+- English is the default language.
+- Simplified Chinese is provided for `zh`, `zh-CN`, and Classic's existing `zh-TW` locale in version one. A dedicated Traditional Chinese editorial pass is deferred to the later site-wide localization project.
+- Existing French, Japanese, Russian, and Vietnamese site locales display the English landing-page copy through explicit English fallback values until those languages are restored in a later project.
+- Every visible string, accessibility label, metadata value, FAQ answer, and non-code button label must be internationalized.
+- Model names, API paths, HTTP verbs, JSON keys, code samples, `Vancine`, `OpenAI`, and `$1` are not translated.
+- Language changes must update the rendered page and route metadata without reloading.
+- Missing landing-page translations must fall back to English, never to an empty string or untranslated key.
+
+Implementation follows each theme's current i18next conventions. English source strings remain translation keys. Default locale files are `web/default/src/i18n/locales/{en,zh,fr,ja,ru,vi}.json`. Classic locale files are `web/classic/src/i18n/locales/{en,zh-CN,zh-TW,fr,ja,ru,vi}.json`.
+
+This phase does not introduce locale-prefixed URLs. `/ai-media-api` remains the only route and the English metadata remains canonical. A later site-wide international SEO project may add routes such as `/ja/ai-media-api` and `hreflang` metadata.
+
 ## Conversion Path
 
 ```text
@@ -59,9 +75,11 @@ View /ai-media-api
 
 CTA behavior:
 
-- Logged-out visitor: `/register?source=ai-media-api`.
-- Logged-in visitor: `/console/playground`.
-- Documentation CTA: the relevant English media API documentation section.
+- Default logged-out visitor: `/sign-up`.
+- Default logged-in visitor: `/playground`.
+- Classic logged-out visitor: `/register?source=ai-media-api`.
+- Classic logged-in visitor: `/console/playground`.
+- Documentation CTA: the relevant media API documentation destination configured by the application.
 - Pricing CTA: `/pricing`.
 
 ## Page Structure and Copy
@@ -292,13 +310,92 @@ Actions:
 - Primary: `Start Free with $1 Credit`.
 - Secondary: `View Documentation`.
 
+## Approved Chinese Copy
+
+The Chinese version uses the following product copy. English text remains the i18next key; the Chinese text is its value. Technical identifiers and code remain unchanged.
+
+| English source | Chinese value |
+| --- | --- |
+| Built for AI product developers | 为 AI 产品开发者打造 |
+| Access Leading Chinese AI Media Models Through One API | 通过一个 API 接入领先的中国 AI 多媒体模型 |
+| Generate videos, images, speech, text, and 3D assets without integrating every provider separately. Use one API key, unified billing, and developer-friendly endpoints. | 无需逐个集成模型服务商，即可生成视频、图片、语音、文本和 3D 资产。一个 API 密钥、统一计费，以及开发者友好的接口。 |
+| Get $1 in free credits. No credit card required. | 注册即得 1 美元免费额度，无需信用卡。 |
+| Start Free with $1 Credit | 领取 1 美元额度，免费开始 |
+| Explore the API | 查看 API |
+| Video, image, audio, text, and 3D generation—available with one API key. | 一个 API 密钥，即可使用视频、图片、音频、文本和 3D 生成能力。 |
+| Stop Rebuilding the Same Integration | 无需重复开发同一种集成 |
+| Every model provider comes with its own authentication, request format, billing system, and operational quirks. Vancine gives your product one consistent integration layer. | 每个模型服务商都有不同的认证方式、请求格式、计费系统和运行规则。Vancine 为你的产品提供统一的接入层。 |
+| One API Key | 一个 API 密钥 |
+| Unified Billing | 统一计费 |
+| Consistent Developer Experience | 一致的开发体验 |
+| Connect once and access supported media and text models from one account. | 一次接入，即可通过一个账户使用支持的多媒体和文本模型。 |
+| Manage one balance instead of separate provider accounts and payment methods. | 只需管理一个余额，无需维护多个服务商账户和支付方式。 |
+| Use documented request patterns, centralized usage logs, and async task workflows. | 使用清晰的请求规范、集中的用量日志和异步任务工作流。 |
+| One Integration Across the AI Media Stack | 一次接入，覆盖完整 AI 多媒体能力 |
+| Video Generation | 视频生成 |
+| Image Generation | 图片生成 |
+| Text to Speech | 文本转语音 |
+| Text Models | 文本模型 |
+| 3D Generation | 3D 生成 |
+| Browse Models and Live Pricing | 查看模型与实时价格 |
+| Make Your First Request in Minutes | 几分钟内完成第一次调用 |
+| Use the OpenAI SDK for compatible text workflows or call the documented media endpoints with any HTTP client. | 文本工作流可以使用 OpenAI SDK，多媒体接口也可以通过任意 HTTP 客户端调用。 |
+| Image | 图片 |
+| Video | 视频 |
+| Copy code | 复制代码 |
+| Code copied | 代码已复制 |
+| Unable to copy code | 无法复制代码 |
+| Read API Documentation | 阅读 API 文档 |
+| Built for Products That Generate More Than Text | 为不止生成文本的产品而生 |
+| AI Video Platforms | AI 视频平台 |
+| Creative Automation Tools | 创意自动化工具 |
+| AI SaaS Products | AI SaaS 产品 |
+| Developer Tools and Agents | 开发者工具与智能体 |
+| One Integration Instead of Many | 一次集成，替代多次对接 |
+| Direct integrations | 直接集成多个服务商 |
+| Multiple provider accounts | 多个服务商账户 |
+| One account | 一个账户 |
+| Different authentication methods | 不同的认证方式 |
+| Separate balances | 分散的账户余额 |
+| Provider-specific request formats | 各不相同的请求格式 |
+| Documented common endpoints | 统一且有文档的接口 |
+| Scattered usage records | 分散的用量记录 |
+| Centralized usage logs | 集中的用量日志 |
+| Repeated maintenance | 重复维护 |
+| One integration layer | 一个接入层 |
+| Model-specific capabilities still follow their documented requirements. Vancine simplifies access without hiding important model differences. | 各模型的能力仍以对应文档为准。Vancine 简化接入，同时保留重要的模型差异。 |
+| Start Building Before You Commit | 先开始构建，再决定投入 |
+| Create an account and receive $1 in free credits. Explore supported models, test requests in the Playground, and review public pricing before adding funds. | 创建账户即可获得 1 美元免费额度。充值前，你可以先查看支持的模型、在 Playground 测试请求并了解公开价格。 |
+| $1 free credit | 1 美元免费额度 |
+| No credit card required | 无需信用卡 |
+| Public model pricing | 公开的模型价格 |
+| Pay only for actual usage | 仅按实际用量付费 |
+| Start Free | 免费开始 |
+| View Live Pricing | 查看实时价格 |
+| Build Your First AI Media Request Today | 今天就完成你的第一次 AI 多媒体调用 |
+| Create your account, claim $1 in free credits, and test supported models in the Playground. | 创建账户，领取 1 美元免费额度，并在 Playground 中测试支持的模型。 |
+| View Documentation | 查看文档 |
+
+FAQ copy:
+
+| English question | Chinese question | Chinese answer |
+| --- | --- | --- |
+| Is Vancine OpenAI compatible? | Vancine 兼容 OpenAI API 吗？ | 对于支持的文本和语音工作流，Vancine 提供 OpenAI 兼容的请求方式。视频、图片和 3D 能力请使用文档中对应的多媒体接口。 |
+| Which models can I access? | 我可以使用哪些模型？ | 你可以使用平台当前支持的视频、图片、语音、文本和 3D 模型。具体可用模型请以实时价格页和 API 文档为准。 |
+| How does video generation work? | 视频生成如何工作？ | 视频生成采用异步任务流程：提交生成请求、获得任务 ID，然后查询任务状态并获取结果。 |
+| Do I need a credit card to start? | 开始使用需要信用卡吗？ | 不需要。注册后可获得 1 美元免费额度，无需绑定信用卡即可开始测试。 |
+| Where can I see pricing? | 在哪里查看价格？ | 请查看实时价格页。模型价格可能调整，因此落地页不会写死具体价格。 |
+| Can I test models before integrating? | 正式接入前可以测试模型吗？ | 可以。注册后可先在 Playground 中测试支持的模型，再开始代码集成。 |
+
+The English FAQ answers must express the same facts as the approved Chinese answers. Chinese accessibility labels and metadata use natural Chinese equivalents rather than leaving English-only UI text.
+
 ## Visual Design
 
 Extend the current Vancine Classic visual language:
 
 - Dark background.
 - Purple, blue, and teal gradient accents.
-- Large readable English typography.
+- Large readable typography for both English and Chinese.
 - Developer-tool code cards.
 - Text model badges instead of provider logos.
 - Existing Vancine logo, navigation, button, and footer patterns.

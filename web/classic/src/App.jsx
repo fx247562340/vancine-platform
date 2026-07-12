@@ -57,6 +57,7 @@ const UserAgreement = lazy(() => import('./pages/UserAgreement'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const Waitlist = lazy(() => import('./pages/Waitlist'));
 const Docs = lazy(() => import('./pages/Docs'));
+const AiMediaApi = lazy(() => import('./pages/AiMediaApi'));
 
 function DynamicOAuth2Callback() {
   const { provider } = useParams();
@@ -392,6 +393,14 @@ function App() {
           element={
             <Suspense fallback={<Loading></Loading>} key={location.pathname}>
               <Docs />
+            </Suspense>
+          }
+        />
+        <Route
+          path='/ai-media-api'
+          element={
+            <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+              <AiMediaApi />
             </Suspense>
           }
         />
