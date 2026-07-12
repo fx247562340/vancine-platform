@@ -4,6 +4,7 @@ import { IconCopy, IconPlay, IconFile } from '@douyinfe/semi-icons';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
+import { trackEvent } from '../../helpers/analytics';
 
 /* ── Aurora blobs: slow drifting soft lights behind the hero ── */
 const AuroraBlob = ({ color, size, top, left, delay = 0 }) => (
@@ -17,7 +18,11 @@ const AuroraBlob = ({ color, size, top, left, delay = 0 }) => (
       background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
       filter: 'blur(80px)',
     }}
-    animate={{ x: [0, 30, -20, 0], y: [0, -20, 30, 0], scale: [1, 1.15, 0.9, 1] }}
+    animate={{
+      x: [0, 30, -20, 0],
+      y: [0, -20, 30, 0],
+      scale: [1, 1.15, 0.9, 1],
+    }}
     transition={{ duration: 18, repeat: Infinity, delay, ease: 'easeInOut' }}
   />
 );
@@ -32,7 +37,11 @@ const WordReveal = ({ text, delay = 0, duration = 0.4 }) => {
           key={i}
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration, delay: delay + i * 0.06, ease: [0.25, 0.46, 0.45, 0.94] }}
+          transition={{
+            duration,
+            delay: delay + i * 0.06,
+            ease: [0.25, 0.46, 0.45, 0.94],
+          }}
           style={{ display: 'inline-block' }}
         >
           {word === ' ' ? ' ' : word}
@@ -66,19 +75,31 @@ const CountUp = ({ end, suffix = '', duration = 1.6 }) => {
           requestAnimationFrame(tick);
         }
       },
-      { threshold: 0.3 }
+      { threshold: 0.3 },
     );
     observer.observe(ref);
     return () => observer.disconnect();
   }, [ref, end, duration]);
 
-  return <span ref={setRef}>{count}{suffix}</span>;
+  return (
+    <span ref={setRef}>
+      {count}
+      {suffix}
+    </span>
+  );
 };
 
-const HeroSection = ({ serverAddress, modelCount, docsLink, onCopy, isMobile }) => {
+const HeroSection = ({
+  serverAddress,
+  modelCount,
+  docsLink,
+  onCopy,
+  isMobile,
+}) => {
   const { t } = useTranslation();
   const prefersReduced =
-    typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    typeof window !== 'undefined' &&
+    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
   return (
     <section className='relative w-full h-screen min-h-[600px] flex items-center justify-center overflow-hidden'>
@@ -114,14 +135,35 @@ const HeroSection = ({ serverAddress, modelCount, docsLink, onCopy, isMobile }) 
       {/* Aurora blobs (dark mode only, disabled for reduced-motion) */}
       {!prefersReduced && (
         <div className='dark-only' aria-hidden>
-          <AuroraBlob color='rgba(106,76,245,0.12)' size='520px' top='-10%' left='15%' delay={0} />
-          <AuroraBlob color='rgba(212,77,240,0.08)' size='440px' top='30%' left='65%' delay={4} />
-          <AuroraBlob color='rgba(0,184,148,0.06)' size='380px' top='55%' left='35%' delay={8} />
+          <AuroraBlob
+            color='rgba(106,76,245,0.12)'
+            size='520px'
+            top='-10%'
+            left='15%'
+            delay={0}
+          />
+          <AuroraBlob
+            color='rgba(212,77,240,0.08)'
+            size='440px'
+            top='30%'
+            left='65%'
+            delay={4}
+          />
+          <AuroraBlob
+            color='rgba(0,184,148,0.06)'
+            size='380px'
+            top='55%'
+            left='35%'
+            delay={8}
+          />
         </div>
       )}
 
       {/* Content */}
-      <div className='relative z-10 max-w-[1200px] mx-auto px-6 text-center py-20' style={{ color: 'var(--vc-text-strong)' }}>
+      <div
+        className='relative z-10 max-w-[1200px] mx-auto px-6 text-center py-20'
+        style={{ color: 'var(--vc-text-strong)' }}
+      >
         {/* Badge */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -153,13 +195,18 @@ const HeroSection = ({ serverAddress, modelCount, docsLink, onCopy, isMobile }) 
           <br />
           <span
             style={{
-              background: 'linear-gradient(135deg, #6a4cf5 0%, #d44df0 50%, #00b894 100%)',
+              background:
+                'linear-gradient(135deg, #6a4cf5 0%, #d44df0 50%, #00b894 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               display: 'inline-block',
             }}
           >
-            <WordReveal text={t('Infinite Creativity')} delay={0.8} duration={0.45} />
+            <WordReveal
+              text={t('Infinite Creativity')}
+              delay={0.8}
+              duration={0.45}
+            />
           </span>
         </h1>
 
@@ -175,7 +222,9 @@ const HeroSection = ({ serverAddress, modelCount, docsLink, onCopy, isMobile }) 
             letterSpacing: '-0.01em',
           }}
         >
-          {t('Generate videos, images, music, and text with the best AI models — at a fraction of the cost.')}
+          {t(
+            'Generate videos, images, music, and text with the best AI models — at a fraction of the cost.',
+          )}
         </motion.p>
 
         {/* CTAs */}
@@ -186,7 +235,12 @@ const HeroSection = ({ serverAddress, modelCount, docsLink, onCopy, isMobile }) 
           className='flex flex-col sm:flex-row items-center justify-center gap-4 mb-12'
         >
           <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
-            <Link to='/console'>
+            <Link
+              to='/console'
+              onClick={() =>
+                trackEvent('get_started_clicked', { location: 'hero' })
+              }
+            >
               <Button
                 size={isMobile ? 'default' : 'large'}
                 className='!font-semibold !px-8 !py-3'
@@ -231,7 +285,10 @@ const HeroSection = ({ serverAddress, modelCount, docsLink, onCopy, isMobile }) 
           transition={{ duration: 0.6, delay: 1.8 }}
           className='max-w-lg mx-auto'
         >
-          <div className='mb-2 text-xs uppercase tracking-widest' style={{ color: 'var(--vc-text-subtle)' }}>
+          <div
+            className='mb-2 text-xs uppercase tracking-widest'
+            style={{ color: 'var(--vc-text-subtle)' }}
+          >
             API Base URL
           </div>
           <Input
@@ -271,12 +328,23 @@ const HeroSection = ({ serverAddress, modelCount, docsLink, onCopy, isMobile }) 
             { value: 1, suffix: '', label: t('Unified API') },
           ].map((stat, i) => (
             <React.Fragment key={stat.label}>
-              {i > 0 && <div className='w-px h-10 hidden md:block' style={{ background: 'var(--vc-border)' }} />}
+              {i > 0 && (
+                <div
+                  className='w-px h-10 hidden md:block'
+                  style={{ background: 'var(--vc-border)' }}
+                />
+              )}
               <div className='text-center'>
-                <div className='text-3xl font-bold' style={{ color: 'var(--vc-text-strong)' }}>
+                <div
+                  className='text-3xl font-bold'
+                  style={{ color: 'var(--vc-text-strong)' }}
+                >
                   <CountUp end={stat.value} suffix={stat.suffix} />
                 </div>
-                <div className='text-sm mt-1' style={{ color: 'var(--vc-text-muted)' }}>
+                <div
+                  className='text-sm mt-1'
+                  style={{ color: 'var(--vc-text-muted)' }}
+                >
                   {stat.label}
                 </div>
               </div>

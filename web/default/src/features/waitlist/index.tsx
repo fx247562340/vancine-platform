@@ -17,15 +17,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
 import { PublicLayout } from '@/components/layout'
 import { Footer } from '@/components/layout/components/footer'
-import { WaitlistHero } from './components/waitlist-hero'
-import { PricingComparison } from './components/pricing-comparison'
 import { ModelShowcase } from './components/model-showcase'
+import { PricingComparison } from './components/pricing-comparison'
+import { WaitlistHero } from './components/waitlist-hero'
 
 export function WaitlistPage() {
-  const { t } = useTranslation()
   const [joined, setJoined] = useState(false)
 
   return (

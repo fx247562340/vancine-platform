@@ -23,6 +23,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import { trackEvent } from '@/lib/analytics'
 import { cn } from '@/lib/utils'
 import { useStatus } from '@/hooks/use-status'
 import { Button } from '@/components/ui/button'
@@ -161,6 +162,11 @@ export function SignUpForm({
 
     if (!validateTurnstile()) return
 
+    // All client-side validation passed (legal consent, email/code, Turnstile).
+    // Record the funnel event before calling the register API. No user input
+    // is included in the event.
+    trackEvent('signup_started')
+
     setIsLoading(true)
     try {
       const res = await register({
@@ -173,6 +179,8 @@ export function SignUpForm({
       })
 
       if (res?.success) {
+        // Record a successful registration before redirecting to login.
+        trackEvent('signup_completed')
         toast.success(t('Account created! Please sign in'))
         redirectToLogin()
       } else {

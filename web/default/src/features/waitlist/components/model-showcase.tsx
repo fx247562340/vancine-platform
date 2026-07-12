@@ -12,7 +12,8 @@ const modelTypes = [
     icon: '💬',
     title: 'LLM Models',
     titleZh: '大语言模型',
-    models: 'DeepSeek V4 Pro · Qwen 3 · Doubao Pro · Kimi K2.5 · MiniMax M2.7 · GLM-5',
+    models:
+      'DeepSeek V4 Pro · Qwen 3 · Doubao Pro · Kimi K2.5 · MiniMax M2.7 · GLM-5',
     desc: 'Top Chinese LLMs via unified OpenAI protocol',
     descZh: '中国最强 LLM，统一 OpenAI 协议接入',
     color: 'text-blue-500 dark:text-blue-400',
@@ -23,7 +24,8 @@ const modelTypes = [
     icon: '🎨',
     title: 'Image Generation',
     titleZh: '图片生成',
-    models: 'Seedream 4.0 · Qwen Image · GPT Image · Grok Imagine · Imagen 4 · FLUX',
+    models:
+      'Seedream 4.0 · Qwen Image · GPT Image · Grok Imagine · Imagen 4 · FLUX',
     desc: 'Text-to-image and image editing',
     descZh: '文生图、图生图、图片编辑',
     color: 'text-pink-500 dark:text-pink-400',
@@ -56,7 +58,8 @@ const modelTypes = [
     icon: '🎵',
     title: 'Audio & Music',
     titleZh: '音频 & 音乐',
-    models: 'MiniMax Speech 2.5 · GPT Audio · Doubao TTS · CosyVoice · Fish Audio',
+    models:
+      'MiniMax Speech 2.5 · GPT Audio · Doubao TTS · CosyVoice · Fish Audio',
     desc: 'Music generation, TTS, voice cloning',
     descZh: '音乐生成、语音合成、声音克隆',
     color: 'text-emerald-500 dark:text-emerald-400',
@@ -77,7 +80,7 @@ const modelTypes = [
 ]
 
 export function ModelShowcase() {
-  const { t, i18n } = useTranslation()
+  const { i18n } = useTranslation()
   const isZh = i18n.language.startsWith('zh')
 
   return (

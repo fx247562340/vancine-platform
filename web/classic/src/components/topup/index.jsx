@@ -29,6 +29,8 @@ import {
   copy,
   getQuotaPerUnit,
 } from '../../helpers';
+import { trackEvent } from '../../helpers/analytics';
+import { isSafeHttpPaymentUrl } from '../../helpers/validate-payment-url';
 import { Modal, Toast } from '@douyinfe/semi-ui';
 import { useTranslation } from 'react-i18next';
 import { UserContext } from '../../context/User';
@@ -39,23 +41,6 @@ import InvitationCard from './InvitationCard';
 import TransferModal from './modals/TransferModal';
 import PaymentConfirmModal from './modals/PaymentConfirmModal';
 import TopupHistoryModal from './modals/TopupHistoryModal';
-
-// Reject non-navigable schemes (e.g. javascript:, data:) and relative URLs.
-// Only http / https are allowed for backend-provided redirect targets.
-// Mirrors isSafeHttpCheckoutUrl in the default frontend's
-// features/wallet/hooks/use-waffo-pancake-payment.ts.
-function isSafeHttpCheckoutUrl(value) {
-  const trimmed = (value || '').trim();
-  if (!trimmed) {
-    return false;
-  }
-  try {
-    const u = new URL(trimmed);
-    return u.protocol === 'http:' || u.protocol === 'https:';
-  } catch {
-    return false;
-  }
-}
 
 const TopUp = () => {
   const { t } = useTranslation();
@@ -334,14 +319,38 @@ const TopUp = () => {
         if (message === 'success') {
           if (payWay === 'stripe') {
             // Stripe 支付回调处理
+            if (!isSafeHttpPaymentUrl(data.pay_link)) {
+              showError(t('支付跳转地址不安全'));
+              return;
+            }
+            trackEvent('checkout_started', {
+              provider: 'stripe',
+              amount: parseInt(topUpCount),
+            });
             window.open(data.pay_link, '_blank');
           } else if (payWay === 'paypal') {
             // PayPal 支付 — 当前窗口跳转，用户完成后自动跳回
+            if (!isSafeHttpPaymentUrl(data.pay_link)) {
+              showError(t('支付跳转地址不安全'));
+              return;
+            }
+            trackEvent('checkout_started', {
+              provider: 'paypal',
+              amount: parseInt(topUpCount),
+            });
             window.location.href = data.pay_link;
           } else {
             // 普通支付表单提交
             let params = data;
             let url = res.data.url;
+            if (!isSafeHttpPaymentUrl(url)) {
+              showError(t('支付跳转地址不安全'));
+              return;
+            }
+            trackEvent('checkout_started', {
+              provider: payWay,
+              amount: parseInt(topUpCount),
+            });
             let form = document.createElement('form');
             form.action = url;
             form.method = 'POST';
@@ -440,6 +449,14 @@ const TopUp = () => {
       if (res !== undefined) {
         const { message, data } = res.data;
         if (message === 'success' && data?.payment_url) {
+          if (!isSafeHttpPaymentUrl(data.payment_url)) {
+            showError(t('支付跳转地址不安全'));
+            return;
+          }
+          trackEvent('checkout_started', {
+            provider: 'waffo',
+            amount: parseInt(topUpCount),
+          });
           window.open(data.payment_url, '_blank');
         } else {
           showError(data || t('支付请求失败'));
@@ -497,9 +514,13 @@ const TopUp = () => {
         const { message, data } = res.data;
         if (message === 'success') {
           const checkoutUrl = data?.checkout_url || '';
-          if (checkoutUrl && isSafeHttpCheckoutUrl(checkoutUrl)) {
+          if (checkoutUrl && isSafeHttpPaymentUrl(checkoutUrl)) {
             // In-tab redirect (not window.open) — popup blocker fires after
             // the await loses user-gesture context.
+            trackEvent('checkout_started', {
+              provider: 'waffo_pancake',
+              amount: parseInt(topUpCount),
+            });
             window.location.href = checkoutUrl;
           } else if (checkoutUrl) {
             showError(t('支付跳转地址不安全'));
@@ -550,6 +571,16 @@ const TopUp = () => {
 
   const processCreemCallback = (data) => {
     // 与 Stripe 保持一致的实现方式
+    if (!isSafeHttpPaymentUrl(data?.checkout_url)) {
+      showError(t('支付跳转地址不安全'));
+      return;
+    }
+    // Creem is product-based; price/quota not always available here, so only
+    // the provider is sent (no order id, no checkout URL).
+    trackEvent('checkout_started', {
+      provider: 'creem',
+      amount: Number(selectedCreemProduct?.price) || undefined,
+    });
     window.open(data.checkout_url, '_blank');
   };
 

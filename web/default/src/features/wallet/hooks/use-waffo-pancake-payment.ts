@@ -19,7 +19,9 @@ For commercial licensing, please contact support@quantumnous.com
 import { useState, useCallback } from 'react'
 import i18next from 'i18next'
 import { toast } from 'sonner'
+import { trackEvent } from '@/lib/analytics'
 import { requestWaffoPancakePayment, isApiSuccess } from '../api'
+import { isSafeHttpPaymentUrl } from '../lib'
 
 function getCheckoutUrl(data: unknown): string | null {
   if (!data || typeof data !== 'object') {
@@ -31,23 +33,6 @@ function getCheckoutUrl(data: unknown): string | null {
   }
 
   return null
-}
-
-/**
- * Reject non-navigable schemes (e.g. javascript:, data:) and relative URLs.
- * Only http/https are allowed for backend-provided redirect targets.
- */
-function isSafeHttpCheckoutUrl(value: string): boolean {
-  const trimmed = value.trim()
-  if (!trimmed) {
-    return false
-  }
-  try {
-    const u = new URL(trimmed)
-    return u.protocol === 'http:' || u.protocol === 'https:'
-  } catch {
-    return false
-  }
 }
 
 function getErrorMessage(message: string | undefined, data: unknown): string {
@@ -80,10 +65,14 @@ export function useWaffoPancakePayment() {
           const checkoutUrl = getCheckoutUrl(response.data)
 
           if (checkoutUrl) {
-            if (!isSafeHttpCheckoutUrl(checkoutUrl)) {
+            if (!isSafeHttpPaymentUrl(checkoutUrl)) {
               toast.error(i18next.t('Invalid payment redirect URL'))
               return false
             }
+            trackEvent('checkout_started', {
+              provider: 'waffo_pancake',
+              amount: Math.floor(topupAmount),
+            })
             toast.success(i18next.t('Redirecting to payment page...'))
             window.location.href = checkoutUrl
             return true

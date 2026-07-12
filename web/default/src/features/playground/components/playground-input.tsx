@@ -17,8 +17,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useState, useRef, useCallback } from 'react'
-import { XIcon } from 'lucide-react'
 import {
+  XIcon,
   PaperclipIcon,
   FileIcon,
   ImageIcon,

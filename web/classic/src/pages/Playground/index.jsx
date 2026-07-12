@@ -125,7 +125,13 @@ const Playground = () => {
   } = state;
 
   // API 请求相关
-  const { sendRequest, sendImageRequest, sendTaskRequest, sendAudioRequest, onStopGenerator } = useApiRequest(
+  const {
+    sendRequest,
+    sendImageRequest,
+    sendTaskRequest,
+    sendAudioRequest,
+    onStopGenerator,
+  } = useApiRequest(
     setMessage,
     setDebugData,
     setActiveDebugTab,
@@ -134,13 +140,22 @@ const Playground = () => {
   );
 
   // 数据加载
-  useDataLoader(userState, inputs, handleInputChange, setModels, groups, setGroups, setEndpointsMap);
+  useDataLoader(
+    userState,
+    inputs,
+    handleInputChange,
+    setModels,
+    groups,
+    setGroups,
+    setEndpointsMap,
+  );
 
   // 自动滚动到底部（仅在流式回复时）
   useEffect(() => {
     if (!Array.isArray(message) || message.length === 0) return;
     const lastMsg = message[message.length - 1];
-    const isStreaming = lastMsg.status === 'loading' || lastMsg.status === 'incomplete';
+    const isStreaming =
+      lastMsg.status === 'loading' || lastMsg.status === 'incomplete';
     if (isStreaming && chatRef.current && chatRef.current.scrollToBottom) {
       chatRef.current.scrollToBottom();
     }
@@ -295,11 +310,17 @@ const Playground = () => {
 
     // 根据 API 返回的 endpoints 字段路由（和 default 主题一致）
     const modelEndpoints = endpointsMap[inputs.model] || [];
-    const isImageModel = modelEndpoints.some((ep) => ep === 'image-generation' || ep === 'image');
-    const isVideoModel = modelEndpoints.some((ep) => ep === 'openai-video' || ep === 'video');
+    const isImageModel = modelEndpoints.some(
+      (ep) => ep === 'image-generation' || ep === 'image',
+    );
+    const isVideoModel = modelEndpoints.some(
+      (ep) => ep === 'openai-video' || ep === 'video',
+    );
     const is3DModel = modelEndpoints.some((ep) => ep === '3d-generation');
     const isAudioModel = isAudioSpeechModel(inputs.model);
 
+    // playground_request_started is now emitted from within the hook
+    // (startRequestAnalytics) so the custom-request mode is also covered.
     setMessage((prevMessage) => {
       const newMessages = [...prevMessage, userMessageWithImages];
 
@@ -317,14 +338,15 @@ const Playground = () => {
         // 图片生成传 HTTP URL（图生图/图编辑）
         // 统一用 image 字段，单张传字符串，多张传数组
         if (inputs.imageEnabled && validImageUrls.length > 0) {
-          imagePayload.image = validImageUrls.length === 1
-            ? validImageUrls[0]
-            : validImageUrls;
+          imagePayload.image =
+            validImageUrls.length === 1 ? validImageUrls[0] : validImageUrls;
         }
         sendImageRequest(imagePayload);
       } else if (isAudioModel) {
         // 语音合成：发送到 /pg/audio/speech（OpenAI 兼容 TTS，非视频任务）
-        const lastUserMsg = [...newMessages].reverse().find((m) => m.role === 'user');
+        const lastUserMsg = [...newMessages]
+          .reverse()
+          .find((m) => m.role === 'user');
         const inputText = lastUserMsg?.content || content;
         const audioPayload = {
           model: inputs.model,
@@ -336,9 +358,13 @@ const Playground = () => {
         sendAudioRequest(audioPayload);
       } else if (isVideoModel || is3DModel) {
         // 视频/3D 任务：发送到对应的 task 端点
-        const lastUserMsg = [...newMessages].reverse().find((m) => m.role === 'user');
+        const lastUserMsg = [...newMessages]
+          .reverse()
+          .find((m) => m.role === 'user');
         const prompt = lastUserMsg?.content || content;
-        const taskEndpoint = is3DModel ? API_ENDPOINTS.THREE_D_GENERATIONS : API_ENDPOINTS.VIDEO_GENERATIONS;
+        const taskEndpoint = is3DModel
+          ? API_ENDPOINTS.THREE_D_GENERATIONS
+          : API_ENDPOINTS.VIDEO_GENERATIONS;
         const taskPayload = {
           model: inputs.model,
           group: inputs.group,
@@ -516,13 +542,21 @@ const Playground = () => {
       if (!inputs.imageEnabled) {
         handleInputChange('imageEnabled', true);
       }
-      const newUrls = [...(inputs.imageUrls || []).filter(u => u.trim() !== ''), url];
+      const newUrls = [
+        ...(inputs.imageUrls || []).filter((u) => u.trim() !== ''),
+        url,
+      ];
       handleInputChange('imageUrls', newUrls);
       // 同时保存 base64，用于图片/视频生成 API（上游无法访问我们的 URL）
       const newBase64 = [...(inputs.imageBase64 || []), base64];
       handleInputChange('imageBase64', newBase64);
     },
-    [inputs.imageEnabled, inputs.imageUrls, inputs.imageBase64, handleInputChange],
+    [
+      inputs.imageEnabled,
+      inputs.imageUrls,
+      inputs.imageBase64,
+      handleInputChange,
+    ],
   );
 
   // 移除单张图片
@@ -530,9 +564,11 @@ const Playground = () => {
     (index) => {
       const newUrls = (inputs.imageUrls || []).filter((_, i) => i !== index);
       handleInputChange('imageUrls', newUrls);
-      const newBase64 = (inputs.imageBase64 || []).filter((_, i) => i !== index);
+      const newBase64 = (inputs.imageBase64 || []).filter(
+        (_, i) => i !== index,
+      );
       handleInputChange('imageBase64', newBase64);
-      if (newUrls.filter(u => u.trim() !== '').length === 0) {
+      if (newUrls.filter((u) => u.trim() !== '').length === 0) {
         handleInputChange('imageEnabled', false);
       }
     },

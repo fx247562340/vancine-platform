@@ -20,6 +20,7 @@ import { Link } from '@tanstack/react-router'
 import { CherryStudio } from '@lobehub/icons'
 import { ArrowRight, BookOpen } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { trackEvent } from '@/lib/analytics'
 import { useStatus } from '@/hooks/use-status'
 import { Button } from '@/components/ui/button'
 import { HeroTerminalDemo } from '../hero-terminal-demo'
@@ -151,6 +152,9 @@ export function Hero(props: HeroProps) {
                 <Button
                   className='group h-11 rounded-lg px-5 text-sm font-medium'
                   render={<Link to='/sign-up' />}
+                  onClick={() =>
+                    trackEvent('get_started_clicked', { location: 'hero' })
+                  }
                 >
                   {t('Get Started')}
                   <ArrowRight className='ml-1.5 size-4 transition-transform duration-200 group-hover:translate-x-0.5' />

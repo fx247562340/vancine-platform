@@ -41,12 +41,13 @@ export function Playground() {
     updateConfig,
   } = usePlaygroundState()
 
-  const { sendChat, stopGeneration, isGenerating, setPendingImages } = useChatHandler({
-    config,
-    parameterEnabled,
-    models,
-    onMessageUpdate: updateMessages,
-  })
+  const { sendChat, stopGeneration, isGenerating, setPendingImages } =
+    useChatHandler({
+      config,
+      parameterEnabled,
+      models,
+      onMessageUpdate: updateMessages,
+    })
 
   // Edit dialog state
   const [editingMessageKey, setEditingMessageKey] = useState<string | null>(
@@ -55,7 +56,7 @@ export function Playground() {
 
   // Load models
   const { data: modelsData, isLoading: isLoadingModels } = useQuery({
-    queryKey: ['playground-models'],
+    queryKey: ['playground-models', t],
     queryFn: async () => {
       try {
         return await getUserModels()
@@ -72,7 +73,7 @@ export function Playground() {
 
   // Load groups
   const { data: groupsData } = useQuery({
-    queryKey: ['playground-groups'],
+    queryKey: ['playground-groups', t],
     queryFn: async () => {
       try {
         return await getUserGroups()
@@ -223,7 +224,10 @@ export function Playground() {
           onModelChange={(value) => updateConfig('model', value)}
           onStop={stopGeneration}
           onSubmit={handleSendMessage}
-          showImageUpload={config.model?.toLowerCase().includes('3d') || config.model?.toLowerCase().includes('hitem')}
+          showImageUpload={
+            config.model?.toLowerCase().includes('3d') ||
+            config.model?.toLowerCase().includes('hitem')
+          }
         />
       </div>
     </div>

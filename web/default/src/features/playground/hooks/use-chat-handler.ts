@@ -18,7 +18,9 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useCallback, useMemo, useRef } from 'react'
 import { toast } from 'sonner'
-import { sendChatCompletion, sendPlaygroundRequest, getApiPathForEndpoint } from '../api'
+import { trackEvent } from '@/lib/analytics'
+import { createPlaygroundAnalytics } from '@/lib/playground-analytics'
+import { sendChatCompletion, sendPlaygroundRequest } from '../api'
 import { MESSAGE_STATUS, ERROR_MESSAGES } from '../constants'
 import {
   buildChatCompletionPayload,
@@ -27,7 +29,12 @@ import {
   processStreamingContent,
   finalizeMessage,
 } from '../lib'
-import type { Message, PlaygroundConfig, ParameterEnabled, ModelOption } from '../types'
+import type {
+  Message,
+  PlaygroundConfig,
+  ParameterEnabled,
+  ModelOption,
+} from '../types'
 import { useStreamRequest } from './use-stream-request'
 
 interface UseChatHandlerOptions {
@@ -67,11 +74,33 @@ export function useChatHandler({
   const { sendStreamRequest, stopStream, isStreaming } = useStreamRequest()
   const pendingImagesRef = useRef<string[]>([])
 
+  // One analytics tracker instance per hook. Each request then gets its own
+  // isolated handle (via analytics.start) that its async callbacks close over,
+  // so concurrent requests never cross-contaminate.
+  const analytics = useMemo(
+    () => createPlaygroundAnalytics(trackEvent),
+    [],
+  )
+
+  // The handle of the most recently started, still-on-the-wire request. Used
+  // by stopGeneration to cancel in flight. Each send function replaces it.
+  const latestRequestRef = useRef<ReturnType<typeof analytics.start> | null>(
+    null,
+  )
+
   // 当前模型的 endpoint 类型
   const endpointType = useMemo(
     () => getPrimaryEndpoint(config.model, models),
     [config.model, models]
   )
+
+  // 本地辅助：为一新请求开启跟踪并注册为当前请求。返回该请求专属 handle，
+  // 所有异步回调闭包都应引用此 handle。
+  function trackRequestHandle(model: string, epType: string) {
+    const handle = analytics.start(model, epType)
+    latestRequestRef.current = handle
+    return handle
+  }
 
   // Handle stream update
   const handleStreamUpdate = useCallback(
@@ -104,18 +133,6 @@ export function useChatHandler({
     [onMessageUpdate]
   )
 
-  // Handle stream complete
-  const handleStreamComplete = useCallback(() => {
-    onMessageUpdate((prev) =>
-      updateLastAssistantMessage(prev, (message) =>
-        message.status === MESSAGE_STATUS.COMPLETE ||
-        message.status === MESSAGE_STATUS.ERROR
-          ? message
-          : { ...finalizeMessage(message), status: MESSAGE_STATUS.COMPLETE }
-      )
-    )
-  }, [onMessageUpdate])
-
   // Handle stream error
   const handleStreamError = useCallback(
     (error: string, errorCode?: string) => {
@@ -127,9 +144,12 @@ export function useChatHandler({
     [onMessageUpdate]
   )
 
-  // 发送图片生成请求
+  // 发送图片生成请求。该 handle 在整个请求生命周期中被持有（包括可能耗时较长的
+  // 任务轮询），因此即使在异步完成时也能准确归因。
   const sendImageRequest = useCallback(
     async (messages: Message[]) => {
+      const handle = trackRequestHandle(config.model, 'image-generation')
+
       // 取最后一条用户消息作为 prompt
       const lastUserMsg = [...messages].reverse().find((m) => m.from === 'user')
       const prompt = lastUserMsg?.versions?.[0]?.content || ''
@@ -143,7 +163,10 @@ export function useChatHandler({
       }
 
       try {
-        const response = await sendPlaygroundRequest('image-generation', payload) as {
+        const response = (await sendPlaygroundRequest(
+          'image-generation',
+          payload
+        )) as {
           data?: Array<{ url?: string; b64_json?: string }>
           error?: { message?: string }
         }
@@ -154,34 +177,51 @@ export function useChatHandler({
             updateLastAssistantMessage(prev, (message) => ({
               ...finalizeMessage({
                 ...message,
-                versions: [{
-                  ...message.versions[0],
-                  content: `![生成图片](${imageUrl})`,
-                }],
+                versions: [
+                  {
+                    ...message.versions[0],
+                    content: `![生成图片](${imageUrl})`,
+                  },
+                ],
               }),
               status: MESSAGE_STATUS.COMPLETE,
             }))
           )
+          handle.success() // sync image URL obtained
         } else if (response?.error?.message) {
           handleStreamError(response.error.message)
+          handle.fail()
         }
       } catch (error: unknown) {
-        const err = error as { response?: { data?: { message?: string } }; message?: string }
+        const err = error as {
+          response?: { data?: { message?: string } }
+          message?: string
+        }
         handleStreamError(
-          err?.response?.data?.message || err?.message || ERROR_MESSAGES.API_REQUEST_ERROR
+          err?.response?.data?.message ||
+            err?.message ||
+            ERROR_MESSAGES.API_REQUEST_ERROR
         )
+        handle.fail()
       }
     },
     [config, onMessageUpdate, handleStreamError]
   )
 
-  // 发送任务类请求（视频/3D）
+  // 发送任务类请求（视频/3D）。success = 后端接受并返回有效 task_id。这不等于
+  // 最终生成完成，仅仅是任务受理成功。
   const sendTaskRequest = useCallback(
     async (messages: Message[]) => {
+      const handle = trackRequestHandle(
+        config.model,
+        isTaskEndpoint(endpointType)
+          ? endpointType
+          : 'openai-video',
+      )
+
       const lastUserMsg = [...messages].reverse().find((m) => m.from === 'user')
       const prompt = lastUserMsg?.versions?.[0]?.content || ''
 
-      const apiPath = getApiPathForEndpoint(endpointType)
       const payload: Record<string, unknown> = {
         model: config.model,
         group: config.group,
@@ -194,7 +234,10 @@ export function useChatHandler({
       }
 
       try {
-        const response = await sendPlaygroundRequest(endpointType, payload) as {
+        const response = (await sendPlaygroundRequest(
+          endpointType,
+          payload
+        )) as {
           task_id?: string
           id?: string
           error?: { message?: string }
@@ -206,30 +249,44 @@ export function useChatHandler({
             updateLastAssistantMessage(prev, (message) => ({
               ...finalizeMessage({
                 ...message,
-                versions: [{
-                  ...message.versions[0],
-                  content: `任务已提交，ID: ${taskId}\n\n请在任务管理中查看进度。`,
-                }],
+                versions: [
+                  {
+                    ...message.versions[0],
+                    content: `任务已提交，ID: ${taskId}\n\n请在任务管理中查看进度。`,
+                  },
+                ],
               }),
               status: MESSAGE_STATUS.COMPLETE,
             }))
           )
+          handle.success() // backend accepted the task (valid task_id)
         } else if (response?.error?.message) {
           handleStreamError(response.error.message)
+          handle.fail()
         }
       } catch (error: unknown) {
-        const err = error as { response?: { data?: { message?: string } }; message?: string }
+        const err = error as {
+          response?: { data?: { message?: string } }
+          message?: string
+        }
         handleStreamError(
-          err?.response?.data?.message || err?.message || ERROR_MESSAGES.API_REQUEST_ERROR
+          err?.response?.data?.message ||
+            err?.message ||
+            ERROR_MESSAGES.API_REQUEST_ERROR
         )
+        handle.fail()
       }
     },
     [config, endpointType, onMessageUpdate, handleStreamError]
   )
 
-  // Send streaming chat request
+  // Send streaming chat request. The handle is created here and threaded into
+  // stream-success and stream-error paths via a wrapping callback, so the
+  // exact request that was dispatched is the one whose success is recorded.
   const sendStreamingChat = useCallback(
     (messages: Message[]) => {
+      const handle = trackRequestHandle(config.model, 'openai')
+
       const payload = buildChatCompletionPayload(
         messages,
         config,
@@ -238,8 +295,22 @@ export function useChatHandler({
       sendStreamRequest(
         payload,
         handleStreamUpdate,
-        handleStreamComplete,
-        handleStreamError
+        () => {
+          // Stream received its normal completion signal ([DONE]).
+          handle.success()
+          onMessageUpdate((prev) =>
+            updateLastAssistantMessage(prev, (message) =>
+              message.status === MESSAGE_STATUS.COMPLETE ||
+              message.status === MESSAGE_STATUS.ERROR
+                ? message
+                : { ...finalizeMessage(message), status: MESSAGE_STATUS.COMPLETE }
+            )
+          )
+        },
+        (error, errorCode) => {
+          handle.fail()
+          handleStreamError(error, errorCode)
+        }
       )
     },
     [
@@ -247,7 +318,6 @@ export function useChatHandler({
       parameterEnabled,
       sendStreamRequest,
       handleStreamUpdate,
-      handleStreamComplete,
       handleStreamError,
     ]
   )
@@ -255,6 +325,8 @@ export function useChatHandler({
   // Send non-streaming chat request
   const sendNonStreamingChat = useCallback(
     async (messages: Message[]) => {
+      const handle = trackRequestHandle(config.model, 'openai')
+
       const payload = buildChatCompletionPayload(
         messages,
         config,
@@ -283,6 +355,7 @@ export function useChatHandler({
             status: MESSAGE_STATUS.COMPLETE,
           }))
         )
+        handle.success() // valid choice returned
       } catch (error: unknown) {
         const err = error as {
           response?: {
@@ -296,12 +369,15 @@ export function useChatHandler({
             ERROR_MESSAGES.API_REQUEST_ERROR,
           err?.response?.data?.error?.code || undefined
         )
+        handle.fail()
       }
     },
     [config, parameterEnabled, onMessageUpdate, handleStreamError]
   )
 
-  // Send chat request (route by endpoint type)
+  // Send chat request (route by endpoint type). Each branch creates its own
+  // handle through trackRequestHandle, so 'started' is recorded exactly once per
+  // real request, before the model is invoked.
   const sendChat = useCallback(
     (messages: Message[]) => {
       if (endpointType === 'image-generation') {
@@ -314,11 +390,22 @@ export function useChatHandler({
         sendNonStreamingChat(messages)
       }
     },
-    [endpointType, config.stream, sendImageRequest, sendTaskRequest, sendStreamingChat, sendNonStreamingChat]
+    [
+      config.stream,
+      endpointType,
+      sendImageRequest,
+      sendTaskRequest,
+      sendStreamingChat,
+      sendNonStreamingChat,
+    ]
   )
 
-  // Stop generation
+  // Cancel the latest in-flight request's analytics handle, so a racing
+  // success callback (e.g. late [DONE]) does not get reported after a stop.
   const stopGeneration = useCallback(() => {
+    const latest = latestRequestRef.current
+    latestRequestRef.current = null
+    latest?.cancel()
     stopStream()
     onMessageUpdate((prev) =>
       updateLastAssistantMessage(prev, (message) =>

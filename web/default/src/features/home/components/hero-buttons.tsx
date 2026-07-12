@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { Link } from '@tanstack/react-router'
 import { ArrowRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { trackEvent } from '@/lib/analytics'
 import { Button } from '@/components/ui/button'
 
 interface HeroButtonsProps {
@@ -40,7 +41,11 @@ export function HeroButtons({ isAuthenticated }: HeroButtonsProps) {
 
   return (
     <>
-      <Button size='lg' render={<Link to='/sign-up' />}>
+      <Button
+        size='lg'
+        render={<Link to='/sign-up' />}
+        onClick={() => trackEvent('get_started_clicked', { location: 'hero' })}
+      >
         {t('Get Started')}
         <ArrowRight className='ml-2 h-5 w-5' />
       </Button>

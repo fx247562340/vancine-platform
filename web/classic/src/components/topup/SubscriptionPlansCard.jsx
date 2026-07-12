@@ -32,6 +32,8 @@ import {
 } from '@douyinfe/semi-ui';
 import { API, showError, showSuccess, renderQuota } from '../../helpers';
 import { getCurrencyConfig } from '../../helpers/render';
+import { trackEvent } from '../../helpers/analytics';
+import { isSafeHttpPaymentUrl } from '../../helpers/validate-payment-url';
 import { RefreshCw, Sparkles } from 'lucide-react';
 import SubscriptionPurchaseModal from './modals/SubscriptionPurchaseModal';
 import {
@@ -124,7 +126,17 @@ const SubscriptionPlansCard = ({
         plan_id: selectedPlan.plan.id,
       });
       if (res.data?.message === 'success') {
-        window.open(res.data.data?.pay_link, '_blank');
+        const payLink = res.data.data?.pay_link;
+        if (!isSafeHttpPaymentUrl(payLink)) {
+          showError(t('支付跳转地址不安全'));
+          return;
+        }
+        // Subscription checkout; amount is plan price in major currency units.
+        trackEvent('checkout_started', {
+          provider: 'stripe',
+          amount: Number(selectedPlan?.plan?.price_amount) || undefined,
+        });
+        window.open(payLink, '_blank');
         showSuccess(t('已打开支付页面'));
         closeBuy();
       } else {
@@ -152,7 +164,16 @@ const SubscriptionPlansCard = ({
         plan_id: selectedPlan.plan.id,
       });
       if (res.data?.message === 'success') {
-        window.open(res.data.data?.checkout_url, '_blank');
+        const checkoutUrl = res.data.data?.checkout_url;
+        if (!isSafeHttpPaymentUrl(checkoutUrl)) {
+          showError(t('支付跳转地址不安全'));
+          return;
+        }
+        trackEvent('checkout_started', {
+          provider: 'creem',
+          amount: Number(selectedPlan?.plan?.price_amount) || undefined,
+        });
+        window.open(checkoutUrl, '_blank');
         showSuccess(t('已打开支付页面'));
         closeBuy();
       } else {
@@ -181,7 +202,16 @@ const SubscriptionPlansCard = ({
         payment_method: selectedEpayMethod,
       });
       if (res.data?.message === 'success') {
-        submitEpayForm({ url: res.data.url, params: res.data.data });
+        const epayUrl = res.data.url;
+        if (!isSafeHttpPaymentUrl(epayUrl)) {
+          showError(t('支付跳转地址不安全'));
+          return;
+        }
+        trackEvent('checkout_started', {
+          provider: selectedEpayMethod,
+          amount: Number(selectedPlan?.plan?.price_amount) || undefined,
+        });
+        submitEpayForm({ url: epayUrl, params: res.data.data });
         showSuccess(t('已发起支付'));
         closeBuy();
       } else {

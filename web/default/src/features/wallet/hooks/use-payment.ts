@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { useState, useCallback } from 'react'
 import i18next from 'i18next'
 import { toast } from 'sonner'
+import { trackEvent } from '@/lib/analytics'
 import {
   calculateAmount,
   calculateStripeAmount,
@@ -28,6 +29,7 @@ import {
   isApiSuccess,
 } from '../api'
 import {
+  isSafeHttpPaymentUrl,
   isStripePayment,
   isWaffoPancakePayment,
   submitPaymentForm,
@@ -101,7 +103,16 @@ export function usePayment() {
 
         // Handle Stripe payment
         if (isStripe && response.data?.pay_link) {
-          window.open(response.data.pay_link as string, '_blank')
+          const payLink = response.data.pay_link as string
+          if (!isSafeHttpPaymentUrl(payLink)) {
+            toast.error(i18next.t('Invalid payment redirect URL'))
+            return false
+          }
+          trackEvent('checkout_started', {
+            provider: 'stripe',
+            amount,
+          })
+          window.open(payLink, '_blank')
           toast.success(i18next.t('Redirecting to payment page...'))
           return true
         }
@@ -110,6 +121,14 @@ export function usePayment() {
         if (!isStripe && response.data) {
           const url = (response as unknown as { url?: string }).url
           if (url) {
+            if (!isSafeHttpPaymentUrl(url)) {
+              toast.error(i18next.t('Invalid payment redirect URL'))
+              return false
+            }
+            trackEvent('checkout_started', {
+              provider: paymentType,
+              amount,
+            })
             submitPaymentForm(url, response.data)
             toast.success(i18next.t('Redirecting to payment page...'))
             return true

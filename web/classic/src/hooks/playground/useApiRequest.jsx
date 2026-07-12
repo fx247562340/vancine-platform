@@ -31,6 +31,8 @@ import {
   processThinkTags,
   processIncompleteThinkTags,
 } from '../../helpers';
+import { trackEvent } from '../../helpers/analytics';
+import { createPlaygroundAnalytics } from '../../helpers/playground-analytics';
 
 export const useApiRequest = (
   setMessage,
@@ -40,6 +42,28 @@ export const useApiRequest = (
   saveMessages,
 ) => {
   const { t } = useTranslation();
+
+  // One analytics tracker instance per hook (survives re-renders). Each
+  // individual request then gets its own isolated handle via start(), so
+  // concurrent requests never cross-contaminate. Only { model, endpoint_type }
+  // are ever recorded — no prompt, messages, images, or files.
+  const analytics = useRef(createPlaygroundAnalytics(trackEvent)).current;
+
+  // The handle of the most recently started, still-on-the-wire request. Used
+  // by onStopGenerator to cancel in flight. Each send function replaces it with
+  // its own fresh handle.
+  const latestRequestRef = useRef(null);
+
+  /**
+   * Begin tracking a request and register its handle as the current one. Returns
+   * the per-request handle so the async callbacks running for this request can
+   * close over it (and only it).
+   */
+  function trackRequestHandle(model, endpointType) {
+    const handle = analytics.start(model, endpointType);
+    latestRequestRef.current = handle;
+    return handle;
+  }
 
   // 处理消息自动关闭逻辑的公共函数
   const applyAutoCollapseLogic = useCallback(
@@ -134,7 +158,9 @@ export const useApiRequest = (
     [setMessage, applyAutoCollapseLogic],
   );
 
-  // 完成消息
+  // UI-only: finalise the last assistant message to the given status. No
+  // analytics here — success/fail are reported at the exact detection points
+  // inside each send function via the per-request handle they close over.
   const completeMessage = useCallback(
     (status = MESSAGE_STATUS.COMPLETE) => {
       setMessage((prevMessage) => {
@@ -174,6 +200,7 @@ export const useApiRequest = (
   // 非流式请求
   const handleNonStreamRequest = useCallback(
     async (payload) => {
+      const handle = trackRequestHandle(payload?.model, 'openai');
       setDebugData((prev) => ({
         ...prev,
         request: payload,
@@ -241,6 +268,8 @@ export const useApiRequest = (
 
         if (data.choices?.[0]) {
           const choice = data.choices[0];
+          // Non-stream chat returned a valid choice → request succeeded.
+          handle.success();
           let content = choice.message?.content || '';
           let reasoningContent =
             choice.message?.reasoning_content ||
@@ -295,6 +324,7 @@ export const useApiRequest = (
           }
           return newMessages;
         });
+        handle.fail();
       }
     },
     [setDebugData, setActiveDebugTab, setMessage, t, applyAutoCollapseLogic],
@@ -303,6 +333,9 @@ export const useApiRequest = (
   // SSE请求
   const handleSSE = useCallback(
     (payload) => {
+      // Owned handle for this exact request; all async callbacks below close
+      // over it. On [DONE] -> success(); any stream/parse error -> fail().
+      const handle = trackRequestHandle(payload?.model, 'openai');
       setDebugData((prev) => ({
         ...prev,
         request: payload,
@@ -339,6 +372,7 @@ export const useApiRequest = (
             sseMessages: [...(prev.sseMessages || []), '[DONE]'], // 添加 DONE 标记
             isStreaming: false,
           }));
+          handle.success(); // stream completed normally
           completeMessage();
           return;
         }
@@ -383,6 +417,7 @@ export const useApiRequest = (
           setActiveDebugTab(DEBUG_TABS.RESPONSE);
 
           streamMessageUpdate(t('解析响应数据时发生错误'), 'content');
+          handle.fail(); // malformed SSE frame
           completeMessage(MESSAGE_STATUS.ERROR);
         }
       });
@@ -390,6 +425,7 @@ export const useApiRequest = (
       source.addEventListener('error', (e) => {
         // 只有在流没有正常完成且连接状态异常时才处理错误
         if (!isStreamComplete && source.readyState !== 2) {
+          handle.fail(); // network / stream error
           console.error('SSE Error:', e);
           let errorMessage = e.data || t('请求发生错误');
           let errorCode = null;
@@ -421,7 +457,11 @@ export const useApiRequest = (
           setMessage((prevMessage) => {
             const newMessages = [...prevMessage];
             const lastMessage = newMessages[newMessages.length - 1];
-            if (lastMessage && lastMessage.status !== MESSAGE_STATUS.COMPLETE && lastMessage.status !== MESSAGE_STATUS.ERROR) {
+            if (
+              lastMessage &&
+              lastMessage.status !== MESSAGE_STATUS.COMPLETE &&
+              lastMessage.status !== MESSAGE_STATUS.ERROR
+            ) {
               newMessages[newMessages.length - 1] = {
                 ...lastMessage,
                 content: (lastMessage.content || '') + errorMessage,
@@ -459,6 +499,7 @@ export const useApiRequest = (
 
           source.close();
           streamMessageUpdate(t('连接已断开'), 'content');
+          handle.fail(); // HTTP readystate error
           completeMessage(MESSAGE_STATUS.ERROR);
         }
       });
@@ -476,6 +517,7 @@ export const useApiRequest = (
         setActiveDebugTab(DEBUG_TABS.RESPONSE);
 
         streamMessageUpdate(t('建立连接时发生错误'), 'content');
+        handle.fail(); // could not even start the stream
         completeMessage(MESSAGE_STATUS.ERROR);
       }
     },
@@ -492,9 +534,11 @@ export const useApiRequest = (
 
   const taskPollingTimerRef = useRef(null);
 
-  // 查询任务状态
+  // 查询任务状态。handle 是发起轮询的那个图片任务的专属 analytics 句柄；
+  // 在轮询结束（最终成功或失败）时调用 success() 或 fail()，而不是由
+  // completeMessage 处理。当未传入 handle 时不记录分析事件（允许无埋点的调用）。
   const pollTask = useCallback(
-    (submitData, isImageTask = false) => {
+    (submitData, isImageTask = false, handle = null) => {
       taskPollingTimerRef.current = setInterval(async () => {
         try {
           const pollUrl = `${API_ENDPOINTS.TASKS}${submitData.taskId}`;
@@ -512,7 +556,13 @@ export const useApiRequest = (
           if (!task) throw new Error('未找到任务数据');
 
           const status = task.status;
-          if (status && status !== 'NOT_START' && status !== 'SUBMITTED' && status !== 'QUEUED' && status !== 'IN_PROGRESS') {
+          if (
+            status &&
+            status !== 'NOT_START' &&
+            status !== 'SUBMITTED' &&
+            status !== 'QUEUED' &&
+            status !== 'IN_PROGRESS'
+          ) {
             clearInterval(taskPollingTimerRef.current);
             taskPollingTimerRef.current = null;
 
@@ -520,23 +570,33 @@ export const useApiRequest = (
               if (isImageTask) {
                 const images = task.data || [];
                 const imgContent = Array.isArray(images)
-                  ? images.map((img) => `![image](${img.url || img})`).join('\n')
+                  ? images
+                      .map((img) => `![image](${img.url || img})`)
+                      .join('\n')
                   : `任务已完成`;
                 streamMessageUpdate(imgContent, 'content');
               } else {
                 // 视频/3D等任务 — 优先用 result_url
                 if (task.result_url) {
-                  streamMessageUpdate(`任务完成！\n\n${task.result_url}`, 'content');
+                  streamMessageUpdate(
+                    `任务完成！\n\n${task.result_url}`,
+                    'content',
+                  );
                 } else {
-                  streamMessageUpdate('任务已完成，请在任务日志中查看详情', 'content');
+                  streamMessageUpdate(
+                    '任务已完成，请在任务日志中查看详情',
+                    'content',
+                  );
                 }
               }
               completeMessage(MESSAGE_STATUS.COMPLETE);
+              if (handle) handle.success(); // async task reached final SUCCESS
             } else {
               // 失败
               const failReason = task.fail_reason || '任务失败';
               streamMessageUpdate(`任务失败: ${failReason}`, 'content');
               completeMessage(MESSAGE_STATUS.ERROR);
+              if (handle) handle.fail();
             }
           }
         } catch (err) {
@@ -544,6 +604,7 @@ export const useApiRequest = (
           taskPollingTimerRef.current = null;
           streamMessageUpdate(`查询任务状态失败: ${err.message}`, 'content');
           completeMessage(MESSAGE_STATUS.ERROR);
+          if (handle) handle.fail();
         }
       }, 3000);
     },
@@ -553,6 +614,7 @@ export const useApiRequest = (
   // 发送图片生成请求
   const sendImageRequest = useCallback(
     (payload) => {
+      const handle = trackRequestHandle(payload?.model, 'image-generation');
       setDebugData((prev) => ({
         ...prev,
         request: payload,
@@ -579,22 +641,37 @@ export const useApiRequest = (
           return response.json();
         })
         .then((data) => {
-          setDebugData((prev) => ({ ...prev, response: JSON.stringify(data, null, 2) }));
+          setDebugData((prev) => ({
+            ...prev,
+            response: JSON.stringify(data, null, 2),
+          }));
           setActiveDebugTab(DEBUG_TABS.RESPONSE);
 
           // 兼容多种响应格式
           const imgData = data.data?.[0];
-          const imgUrl = imgData?.url || imgData?.image_url || imgData?.b64_json;
+          const imgUrl =
+            imgData?.url || imgData?.image_url || imgData?.b64_json;
           if (imgUrl) {
-            const isBase64 = imgUrl.startsWith('data:') || (!imgUrl.startsWith('http') && imgData?.b64_json);
-            const imgSrc = isBase64 ? `data:image/png;base64,${imgData.b64_json || imgUrl}` : imgUrl;
+            const isBase64 =
+              imgUrl.startsWith('data:') ||
+              (!imgUrl.startsWith('http') && imgData?.b64_json);
+            const imgSrc = isBase64
+              ? `data:image/png;base64,${imgData.b64_json || imgUrl}`
+              : imgUrl;
             streamMessageUpdate(`![image](${imgSrc})`, 'content');
+            handle.success(); // sync image URL obtained
             completeMessage(MESSAGE_STATUS.COMPLETE);
           } else if (data.task_id) {
-            pollTask({ taskId: data.task_id }, true);
+            // async image-generation task: poll with this same handle so the
+            // eventual SUCCESS/FAIL is attributed to the originating request.
+            pollTask({ taskId: data.task_id }, true, handle);
           } else {
-            console.log('Seedream response:', JSON.stringify(data).substring(0, 500));
+            console.log(
+              'Seedream response:',
+              JSON.stringify(data).substring(0, 500),
+            );
             streamMessageUpdate('图片生成成功，但未返回图片URL', 'content');
+            handle.success(); // API call succeeded (degrade gracefully)
             completeMessage(MESSAGE_STATUS.COMPLETE);
           }
         })
@@ -602,15 +679,29 @@ export const useApiRequest = (
           setDebugData((prev) => ({ ...prev, response: error.message }));
           setActiveDebugTab(DEBUG_TABS.RESPONSE);
           streamMessageUpdate(`图片生成失败: ${error.message}`, 'content');
+          handle.fail();
           completeMessage(MESSAGE_STATUS.ERROR);
         });
     },
-    [setDebugData, setActiveDebugTab, streamMessageUpdate, completeMessage, pollTask],
+    [
+      setDebugData,
+      setActiveDebugTab,
+      streamMessageUpdate,
+      completeMessage,
+      pollTask,
+    ],
   );
 
-  // 发送任务请求（视频/3D等）
+  // 发送任务请求（视频/3D等）。success = 后端接受并返回了有效 task_id（任务受
+  // 理成功）。这不等于最终视频/3D 产出完成。
   const sendTaskRequest = useCallback(
     (payload, endpoint) => {
+      const handle = trackRequestHandle(
+        payload?.model,
+        endpoint === API_ENDPOINTS.THREE_D_GENERATIONS
+          ? '3d-generation'
+          : 'openai-video',
+      );
       setDebugData((prev) => ({
         ...prev,
         request: payload,
@@ -637,7 +728,10 @@ export const useApiRequest = (
           return response.json();
         })
         .then((data) => {
-          setDebugData((prev) => ({ ...prev, response: JSON.stringify(data, null, 2) }));
+          setDebugData((prev) => ({
+            ...prev,
+            response: JSON.stringify(data, null, 2),
+          }));
           setActiveDebugTab(DEBUG_TABS.RESPONSE);
 
           const taskId = data.task_id || data.id;
@@ -646,12 +740,18 @@ export const useApiRequest = (
               `任务已提交！ID: ${taskId}\n\n请在任务日志中查看进度，完成后视频将在此显示。`,
               'content',
             );
+            handle.success(); // backend accepted the task (valid task_id)
             completeMessage(MESSAGE_STATUS.COMPLETE);
           } else if (data.error) {
-            streamMessageUpdate(`任务提交失败: ${data.error.message || JSON.stringify(data.error)}`, 'content');
+            streamMessageUpdate(
+              `任务提交失败: ${data.error.message || JSON.stringify(data.error)}`,
+              'content',
+            );
+            handle.fail();
             completeMessage(MESSAGE_STATUS.ERROR);
           } else {
             streamMessageUpdate('任务提交成功，但未返回任务ID', 'content');
+            handle.fail(); // treat missing task_id as failure to accept
             completeMessage(MESSAGE_STATUS.COMPLETE);
           }
         })
@@ -659,6 +759,7 @@ export const useApiRequest = (
           setDebugData((prev) => ({ ...prev, response: error.message }));
           setActiveDebugTab(DEBUG_TABS.RESPONSE);
           streamMessageUpdate(`任务请求失败: ${error.message}`, 'content');
+          handle.fail();
           completeMessage(MESSAGE_STATUS.ERROR);
         });
     },
@@ -668,6 +769,7 @@ export const useApiRequest = (
   // 发送语音合成请求（TTS 返回二进制音频，非 JSON）
   const sendAudioRequest = useCallback(
     (payload) => {
+      const handle = trackRequestHandle(payload?.model, 'audio_speech');
       setDebugData((prev) => ({
         ...prev,
         request: payload,
@@ -705,13 +807,21 @@ export const useApiRequest = (
             }));
             setActiveDebugTab(DEBUG_TABS.RESPONSE);
             // Markdown 渲染器对 data:audio 链接渲染为 <audio controls> 播放器
-            streamMessageUpdate(`🔊 ${t('语音已生成')}：\n\n[▶ ${t('播放')} / ⬇ ${t('下载')}](${audioUrl})`, 'content');
+            streamMessageUpdate(
+              `🔊 ${t('语音已生成')}：\n\n[▶ ${t('播放')} / ⬇ ${t('下载')}](${audioUrl})`,
+              'content',
+            );
+            handle.success(); // audio blob received and decoded
             completeMessage(MESSAGE_STATUS.COMPLETE);
           };
           reader.onerror = () => {
             setDebugData((prev) => ({ ...prev, response: t('音频解码失败') }));
             setActiveDebugTab(DEBUG_TABS.RESPONSE);
-            streamMessageUpdate(`${t('语音合成失败')}: ${t('音频解码失败')}`, 'content');
+            streamMessageUpdate(
+              `${t('语音合成失败')}: ${t('音频解码失败')}`,
+              'content',
+            );
+            handle.fail();
             completeMessage(MESSAGE_STATUS.ERROR);
           };
           reader.readAsDataURL(blob);
@@ -719,15 +829,25 @@ export const useApiRequest = (
         .catch((error) => {
           setDebugData((prev) => ({ ...prev, response: error.message }));
           setActiveDebugTab(DEBUG_TABS.RESPONSE);
-          streamMessageUpdate(`${t('语音合成失败')}: ${error.message}`, 'content');
+          streamMessageUpdate(
+            `${t('语音合成失败')}: ${error.message}`,
+            'content',
+          );
+          handle.fail();
           completeMessage(MESSAGE_STATUS.ERROR);
         });
     },
     [setDebugData, setActiveDebugTab, streamMessageUpdate, completeMessage, t],
   );
 
-  // 停止生成
+  // 停止生成。注意：中止取消的是最新的进行中的请求，即使没有活动的 SSE。
+  // （用户触发的是全局“停止”，并非请求级取消 —— 最新的正在进行中的请求
+  //  即使没有活动的 SSE 连接也会被取消。）
   const onStopGenerator = useCallback(() => {
+    // 取消最新进行中的请求句柄，使任何后续的成功信号无效。
+    const latest = latestRequestRef.current;
+    latestRequestRef.current = null;
+    if (latest) latest.cancel();
     // 清理任务轮询
     if (taskPollingTimerRef.current) {
       clearInterval(taskPollingTimerRef.current);
