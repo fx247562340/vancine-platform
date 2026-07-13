@@ -2,7 +2,7 @@
 
 ## Status
 
-Approved in conversation on 2026-07-13. This document replaces social-post-only acquisition as the primary first-customer strategy. The earlier campaign remains historical evidence and is not deleted.
+Approved in conversation on 2026-07-13. The owner has also confirmed that a fresh user can complete the `$1` Seedance activation path, so that gate will not be repeated. This document replaces social-post-only acquisition as the primary first-customer strategy. The earlier campaign remains historical evidence and is not deleted.
 
 ## Objective
 
@@ -67,11 +67,11 @@ This is fast to publish but depends on account authority and algorithmic distrib
 
 Publishing many model pages may compound over time, but it is slower to validate and risks thin or inaccurate content. The first cycle focuses on one strong Seedance page and one complete integration package.
 
-## Phase 0: Activation Readiness Gate
+## Phase 0: Activation Readiness Gate (Satisfied)
 
-No Seedance-specific distribution begins until a fresh-user journey is verified in production or in an equivalent production build.
+The owner confirmed on 2026-07-13 that the fresh-user journey has already been verified and works with the fixed `$1` credit. Do not create another account or consume more credit merely to repeat this gate.
 
-The verification uses a new account and must confirm:
+The completed verification covered:
 
 1. Registration works without a payment card.
 2. The account visibly receives the promised `$1` credit.
@@ -82,9 +82,7 @@ The verification uses a new account and must confirm:
 7. Usage and remaining balance are understandable after the request.
 8. The top-up path is reachable and emits `checkout_started` only after a valid payment destination is returned.
 
-If `$1` does not cover one successful Seedance generation, public copy must not imply that it does. Before distribution, either the signup credit must be adjusted through the normal product decision process or the starter experience must use a verified lower-cost request that succeeds within the existing credit.
-
-Record the tested model identifier, request body, total cost, task duration, terminal response shape, and any error encountered. Do not record or commit real API keys, user credentials, payment details, or personal data.
+Implementation still has to validate that every published endpoint, model identifier, request field, response field, and polling state matches the current application contract. Do not publish a measured price, latency, or output-specific claim unless that exact value is separately evidenced during developer-asset verification. Do not record or commit real API keys, user credentials, payment details, or personal data.
 
 ## Website Acquisition Page
 
@@ -257,8 +255,7 @@ https://vancine.com/seedance-api?utm_source=x&utm_medium=community&utm_campaign=
 
 ### Activation verification
 
-- Complete the Phase 0 fresh-user journey.
-- Confirm a successful Seedance generation within the verified free-credit constraint.
+- Treat the owner's completed fresh-user `$1` Seedance journey as satisfying Phase 0; do not repeat it.
 - Confirm all published request and response examples match the actual API.
 
 ### Website verification
@@ -322,12 +319,11 @@ Do not expand to other model-specific starter kits until Seedance produces eithe
 
 ## Implementation Order
 
-1. Verify the fresh-user `$1` Seedance activation path.
-2. Build and verify `/seedance-api` in Classic and Default.
-3. Prepare the standalone starter repository locally.
-4. Verify code examples, Postman, and n8n imports end to end.
-5. Run both frontend checks and the local Docker release gate.
-6. Obtain user approval, then push and deploy the website changes.
-7. Obtain confirmation immediately before creating and publishing external developer resources.
-8. Distribute through Postman, eligible Seedance resource repositories, and n8n.
-9. Review Umami results after 24 hours, 72 hours, and seven days.
+1. Build and verify `/seedance-api` in Classic and Default.
+2. Prepare the standalone starter repository locally.
+3. Verify code examples, Postman, and n8n imports end to end.
+4. Run both frontend checks and the local Docker release gate.
+5. Obtain user approval, then push and deploy the website changes.
+6. Obtain confirmation immediately before creating and publishing external developer resources.
+7. Distribute through Postman, eligible Seedance resource repositories, and n8n.
+8. Review Umami results after 24 hours, 72 hours, and seven days.
