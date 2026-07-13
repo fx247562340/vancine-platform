@@ -2,6 +2,21 @@
 
 All notable Vancine platform release and operations changes are tracked here.
 
+## 1.0.8 - 2026-07-13
+
+### New Channel: LongCat
+
+- Added LongCat (Meituan) as channel type 58, OpenAI-compatible protocol. Default base URL `https://api.longcat.chat/openai`, Bearer <REDACTED> `/v1/models` for upstream model list fetching.
+- Backend: `constant.ChannelTypeLongcat=58`, `ChannelTypeDummy` shifted to 59, `ChannelBaseURLs[58]`, `ChannelTypeNames`. `common/api_type.go` maps LongCat to `APITypeOpenAI` (no relay adaptor change needed).
+- Classic: `CHANNEL_OPTIONS` entry, `MODEL_FETCHABLE_CHANNEL_TYPES` includes 58, `getChannelIcon` renders native `LongCat.Color` icon from `@lobehub/icons`.
+- Default: `CHANNEL_TYPES[58]`, display order, `MODEL_FETCHABLE_TYPES`, `TYPE_TO_ICON[58]='LongCat'`.
+- LongCat-2.0 model metadata: English description and tags `Tools,Agentic,1M`.
+
+### Notes
+
+- LongCat uses standard OpenAI `/v1/models` response format, so `fetchChannelUpstreamModelIDs` and `FetchModels` work via the default branch with no special-casing.
+- LongCat is NOT added to `streamSupportedChannels` until `stream_options.include_usage` is verified with a live key.
+
 ## 1.0.7 - 2026-07-02
 
 ### TTS（火山方舟语音合成全链路修复）
