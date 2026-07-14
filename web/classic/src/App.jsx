@@ -58,6 +58,7 @@ const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const Waitlist = lazy(() => import('./pages/Waitlist'));
 const Docs = lazy(() => import('./pages/Docs'));
 const AiMediaApi = lazy(() => import('./pages/AiMediaApi'));
+const SeedanceApi = lazy(() => import('./pages/SeedanceApi'));
 
 function DynamicOAuth2Callback() {
   const { provider } = useParams();
@@ -401,6 +402,14 @@ function App() {
           element={
             <Suspense fallback={<Loading></Loading>} key={location.pathname}>
               <AiMediaApi />
+            </Suspense>
+          }
+        />
+        <Route
+          path='/seedance-api'
+          element={
+            <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+              <SeedanceApi />
             </Suspense>
           }
         />

@@ -39,6 +39,7 @@ import { UserContext } from '../../context/User';
 import { StatusContext } from '../../context/Status';
 import { useLocation } from 'react-router-dom';
 import { normalizeLanguage } from '../../i18n/language';
+import { isStandaloneLandingPage as isStandaloneLandingPagePath } from './standalone-landing';
 const { Sider, Content, Header } = Layout;
 
 const PageLayout = () => {
@@ -63,6 +64,13 @@ const PageLayout = () => {
   ];
 
   const shouldHideFooter = cardProPages.includes(location.pathname);
+
+  // Standalone landing pages manage their own header/footer; the global
+  // fixed HeaderBar and FooterBar must not render on these routes so the
+  // page's own sticky header is the only one visible.
+  const isStandaloneLandingPage = isStandaloneLandingPagePath(
+    location.pathname,
+  );
 
   const shouldInnerPadding =
     location.pathname.includes('/console') &&
@@ -153,22 +161,24 @@ const PageLayout = () => {
         overflow: isMobile ? 'visible' : 'hidden',
       }}
     >
-      <Header
-        style={{
-          padding: 0,
-          height: 'auto',
-          lineHeight: 'normal',
-          position: 'fixed',
-          width: '100%',
-          top: 0,
-          zIndex: 100,
-        }}
-      >
-        <HeaderBar
-          onMobileMenuToggle={() => setDrawerOpen((prev) => !prev)}
-          drawerOpen={drawerOpen}
-        />
-      </Header>
+      {!isStandaloneLandingPage && (
+        <Header
+          style={{
+            padding: 0,
+            height: 'auto',
+            lineHeight: 'normal',
+            position: 'fixed',
+            width: '100%',
+            top: 0,
+            zIndex: 100,
+          }}
+        >
+          <HeaderBar
+            onMobileMenuToggle={() => setDrawerOpen((prev) => !prev)}
+            drawerOpen={drawerOpen}
+          />
+        </Header>
+      )}
       <Layout
         style={{
           overflow: isMobile ? 'visible' : 'auto',
@@ -211,7 +221,11 @@ const PageLayout = () => {
           <Content
             style={{
               flex: '1 0 auto',
-              overflowY: isMobile ? 'visible' : 'hidden',
+              // Standalone landing pages use their own sticky header + own
+              // scroller, so the outer Content must not clip it with
+              // overflowY:hidden. Mobile already uses 'visible'.
+              overflowY:
+                isMobile || isStandaloneLandingPage ? 'visible' : 'hidden',
               WebkitOverflowScrolling: 'touch',
               padding: shouldInnerPadding ? (isMobile ? '5px' : '24px') : '0',
               position: 'relative',
@@ -221,7 +235,7 @@ const PageLayout = () => {
               <App />
             </ErrorBoundary>
           </Content>
-          {!shouldHideFooter && (
+          {!shouldHideFooter && !isStandaloneLandingPage && (
             <Layout.Footer
               style={{
                 flex: '0 0 auto',

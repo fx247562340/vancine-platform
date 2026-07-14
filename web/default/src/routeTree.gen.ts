@@ -16,6 +16,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as authRouteRouteImport } from './routes/(auth)/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SetupIndexRouteImport } from './routes/setup/index'
+import { Route as SeedanceApiIndexRouteImport } from './routes/seedance-api/index'
 import { Route as RankingsIndexRouteImport } from './routes/rankings/index'
 import { Route as PricingIndexRouteImport } from './routes/pricing/index'
 import { Route as AiMediaApiIndexRouteImport } from './routes/ai-media-api/index'
@@ -102,6 +103,11 @@ const IndexRoute = IndexRouteImport.update({
 const SetupIndexRoute = SetupIndexRouteImport.update({
   id: '/setup/',
   path: '/setup/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SeedanceApiIndexRoute = SeedanceApiIndexRouteImport.update({
+  id: '/seedance-api/',
+  path: '/seedance-api/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RankingsIndexRoute = RankingsIndexRouteImport.update({
@@ -430,6 +436,7 @@ export interface FileRoutesByFullPath {
   '/ai-media-api/': typeof AiMediaApiIndexRoute
   '/pricing/': typeof PricingIndexRoute
   '/rankings/': typeof RankingsIndexRoute
+  '/seedance-api/': typeof SeedanceApiIndexRoute
   '/setup/': typeof SetupIndexRoute
   '/user/reset': typeof authUserResetRoute
   '/chat/$chatId': typeof AuthenticatedChatChatIdRoute
@@ -490,6 +497,7 @@ export interface FileRoutesByTo {
   '/ai-media-api': typeof AiMediaApiIndexRoute
   '/pricing': typeof PricingIndexRoute
   '/rankings': typeof RankingsIndexRoute
+  '/seedance-api': typeof SeedanceApiIndexRoute
   '/setup': typeof SetupIndexRoute
   '/user/reset': typeof authUserResetRoute
   '/chat/$chatId': typeof AuthenticatedChatChatIdRoute
@@ -554,6 +562,7 @@ export interface FileRoutesById {
   '/ai-media-api/': typeof AiMediaApiIndexRoute
   '/pricing/': typeof PricingIndexRoute
   '/rankings/': typeof RankingsIndexRoute
+  '/seedance-api/': typeof SeedanceApiIndexRoute
   '/setup/': typeof SetupIndexRoute
   '/(auth)/user/reset': typeof authUserResetRoute
   '/_authenticated/chat/$chatId': typeof AuthenticatedChatChatIdRoute
@@ -617,6 +626,7 @@ export interface FileRouteTypes {
     | '/ai-media-api/'
     | '/pricing/'
     | '/rankings/'
+    | '/seedance-api/'
     | '/setup/'
     | '/user/reset'
     | '/chat/$chatId'
@@ -677,6 +687,7 @@ export interface FileRouteTypes {
     | '/ai-media-api'
     | '/pricing'
     | '/rankings'
+    | '/seedance-api'
     | '/setup'
     | '/user/reset'
     | '/chat/$chatId'
@@ -740,6 +751,7 @@ export interface FileRouteTypes {
     | '/ai-media-api/'
     | '/pricing/'
     | '/rankings/'
+    | '/seedance-api/'
     | '/setup/'
     | '/(auth)/user/reset'
     | '/_authenticated/chat/$chatId'
@@ -795,6 +807,7 @@ export interface RootRouteChildren {
   AiMediaApiIndexRoute: typeof AiMediaApiIndexRoute
   PricingIndexRoute: typeof PricingIndexRoute
   RankingsIndexRoute: typeof RankingsIndexRoute
+  SeedanceApiIndexRoute: typeof SeedanceApiIndexRoute
   SetupIndexRoute: typeof SetupIndexRoute
   PricingModelIdIndexRoute: typeof PricingModelIdIndexRoute
 }
@@ -848,6 +861,13 @@ declare module '@tanstack/react-router' {
       path: '/setup'
       fullPath: '/setup/'
       preLoaderRoute: typeof SetupIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/seedance-api/': {
+      id: '/seedance-api/'
+      path: '/seedance-api'
+      fullPath: '/seedance-api/'
+      preLoaderRoute: typeof SeedanceApiIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/rankings/': {
@@ -1380,6 +1400,7 @@ const rootRouteChildren: RootRouteChildren = {
   AiMediaApiIndexRoute: AiMediaApiIndexRoute,
   PricingIndexRoute: PricingIndexRoute,
   RankingsIndexRoute: RankingsIndexRoute,
+  SeedanceApiIndexRoute: SeedanceApiIndexRoute,
   SetupIndexRoute: SetupIndexRoute,
   PricingModelIdIndexRoute: PricingModelIdIndexRoute,
 }

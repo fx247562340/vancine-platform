@@ -24,25 +24,16 @@ import { Button, Dropdown } from '@douyinfe/semi-ui';
 import { trackEvent } from '../../helpers/analytics';
 import { getLogo, getSystemName } from '../../helpers';
 import { UserContext } from '../../context/User';
-import { VANCINE_DOCS_URL } from './landing';
+import {
+  VANCINE_SEEDANCE_DOCS_URL,
+  SEEDANCE_RESOURCE_EVENT,
+  SEEDANCE_RESOURCE_VALUES,
+  SEEDANCE_RESOURCE_LOCATIONS,
+} from './landing';
 import { useLanguagePreference } from '../../hooks/common/useLanguagePreference';
+
 import { MOBILE_MAX, DESKTOP_NAV_MIN } from '../../constants/breakpoints';
 
-// Whether the horizontal nav should be visible (>= DESKTOP_NAV_MIN).
-function useIsDesktopNavVisible() {
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const query = window.matchMedia(`(min-width: ${DESKTOP_NAV_MIN}px)`);
-    const update = () => setVisible(query.matches);
-    update();
-    query.addEventListener('change', update);
-    return () => query.removeEventListener('change', update);
-  }, []);
-  return visible;
-}
-
-// Whether we are below the mobile breakpoint (<= MOBILE_MAX).
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -56,12 +47,25 @@ function useIsMobile() {
   return isMobile;
 }
 
+// Whether the horizontal nav should be visible (>= 1024px).
+function useIsDesktopNavVisible() {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const query = window.matchMedia(`(min-width: ${DESKTOP_NAV_MIN}px)`);
+    const update = () => setVisible(query.matches);
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
+  return visible;
+}
+
 const LANGUAGES = [
   { code: 'en', label: 'English' },
   { code: 'zh-CN', label: '简体中文' },
 ];
 
-/* ──────────────────── Color constants ──────────────────── */
 const C = {
   text: {
     strong: 'var(--vc-text-strong)',
@@ -74,7 +78,7 @@ const C = {
   accentBg: 'var(--vc-accent-bg)',
 };
 
-const AiMediaHeader = () => {
+const SeedanceHeader = () => {
   const { t, i18n } = useTranslation();
   const [userState] = useContext(UserContext);
   const navigate = useNavigate();
@@ -83,14 +87,14 @@ const AiMediaHeader = () => {
   const systemName = getSystemName();
   const logo = getLogo();
   const currentLang = i18n.language?.startsWith('zh') ? 'zh-CN' : 'en';
-  const { handleLanguageChange } = useLanguagePreference();
-  const showDesktopNav = useIsDesktopNavVisible();
   const isMobile = useIsMobile();
+  const showDesktopNav = useIsDesktopNavVisible();
+  const { handleLanguageChange } = useLanguagePreference();
 
   const handlePrimary = () => {
-    trackEvent('get_started_clicked', { location: 'ai_media_hero' });
+    trackEvent('get_started_clicked', { location: 'seedance_hero' });
     navigate(
-      isAuthenticated ? '/console/playground' : '/register?source=ai-media-api',
+      isAuthenticated ? '/console/playground' : '/register?source=seedance-api',
     );
   };
 
@@ -152,13 +156,20 @@ const AiMediaHeader = () => {
             }}
           >
             {[
-              { href: '#models', key: 'Models' },
-              { href: '#api', key: 'Explore the API' },
-              { href: '#pricing', key: 'Pricing' },
               {
-                href: VANCINE_DOCS_URL,
+                href: '#workflow',
+                key: 'seedance.nav.workflow',
+              },
+              { href: '#api', key: 'seedance.nav.codeExamples' },
+              {
+                href: '#pricing',
+                key: 'seedance.nav.freeCredit',
+              },
+              {
+                href: VANCINE_SEEDANCE_DOCS_URL,
                 key: 'Documentation',
                 external: true,
+                location: SEEDANCE_RESOURCE_LOCATIONS[0],
               },
             ].map((l) => (
               <a
@@ -181,6 +192,14 @@ const AiMediaHeader = () => {
                 onMouseLeave={(e) =>
                   (e.currentTarget.style.color = C.text.muted)
                 }
+                onClick={() => {
+                  if (l.external) {
+                    trackEvent(SEEDANCE_RESOURCE_EVENT, {
+                      resource: SEEDANCE_RESOURCE_VALUES[0],
+                      location: l.location,
+                    });
+                  }
+                }}
               >
                 {t(l.key)}
               </a>
@@ -252,4 +271,4 @@ const AiMediaHeader = () => {
   );
 };
 
-export default AiMediaHeader;
+export default SeedanceHeader;

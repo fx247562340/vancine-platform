@@ -28,12 +28,13 @@ import zhTWTranslation from './locales/zh-TW.json';
 import ruTranslation from './locales/ru.json';
 import jaTranslation from './locales/ja.json';
 import viTranslation from './locales/vi.json';
-import { supportedLanguages } from './language';
+import { supportedLanguages, getDetectionConfig } from './language';
 
-i18n
-  .use(LanguageDetector)
-  .use(initReactI18next)
-  .init({
+// Pure init-options factory shared with the i18n test so the test can
+// assert against the ACTUAL production configuration (no copy).
+// i18next calls this once at startup; the test imports the same object.
+export function getI18nInitOptions() {
+  return {
     load: 'currentOnly',
     supportedLngs: supportedLanguages,
     resources: {
@@ -46,12 +47,19 @@ i18n
       vi: viTranslation,
     },
     fallbackLng: 'en',
-    lng: 'en',
     nsSeparator: false,
     interpolation: {
       escapeValue: false,
     },
-  });
+    // Honor the visitor's saved language first (localStorage set by our
+    // language switch handlers / LanguageDetector), then fall back to the
+    // browser's reported language. Caches resolved language in
+    // localStorage so it survives reloads.
+    detection: getDetectionConfig(),
+  };
+}
+
+i18n.use(LanguageDetector).use(initReactI18next).init(getI18nInitOptions());
 
 window.__i18n = i18n;
 

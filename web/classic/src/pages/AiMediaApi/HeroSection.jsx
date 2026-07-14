@@ -16,13 +16,30 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import React, { useContext } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { trackEvent } from '../../helpers/analytics';
 import { UserContext } from '../../context/User';
 import { getAiMediaCtaDestination, AI_MEDIA_CODE_EXAMPLES } from './landing';
+import { DESKTOP_NAV_MIN } from '../../constants/breakpoints';
+
+// Whether the viewport is wide enough for the desktop two-column hero
+// (matches the nav visibility threshold so nav layout and hero layout
+// transition together).
+function useIsDesktopHero() {
+  const [desktop, setDesktop] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const query = window.matchMedia(`(min-width: ${DESKTOP_NAV_MIN}px)`);
+    const update = () => setDesktop(query.matches);
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
+  return desktop;
+}
 
 /* ──────────────────── Color constants ──────────────────── */
 const C = {
@@ -55,6 +72,7 @@ const HeroSection = () => {
   const destination = getAiMediaCtaDestination(isAuthenticated);
   const imageExample =
     AI_MEDIA_CODE_EXAMPLES.find((e) => e.id === 'image') || {};
+  const isDesktopHero = useIsDesktopHero();
 
   const handlePrimary = () => {
     trackEvent('get_started_clicked', { location: 'ai_media_hero' });
@@ -73,9 +91,13 @@ const HeroSection = () => {
           paddingLeft: 24,
           paddingRight: 24,
           position: 'relative',
+          // Clip the decorative radial glow so its blur can never widen the
+          // document scrollWidth on narrow screens.
+          overflow: 'hidden',
         }}
       >
-        {/* subtle radial accent */}
+        {/* subtle radial accent — clipped to section bounds so the blur
+            glow can never widen the document scrollWidth on narrow screens. */}
         <div
           aria-hidden='true'
           style={{
@@ -89,18 +111,28 @@ const HeroSection = () => {
             background: `radial-gradient(circle, ${C.accentBg}, transparent 70%)`,
             filter: 'blur(40px)',
             pointerEvents: 'none',
+            maxWidth: '100vw',
           }}
         />
 
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(12, 1fr)',
-            gap: 48,
+            // Mobile stacks to a single column; desktop keeps the 7/5 split.
+            gridTemplateColumns: isDesktopHero ? 'repeat(12, 1fr)' : '1fr',
+            gap: isDesktopHero ? 48 : 32,
             position: 'relative',
           }}
         >
-          <div style={{ gridColumn: 'span 7' }}>
+          {/* Left / top: copy + CTAs. min-width:0 + max-width:100% keep the
+              text block from outgrowing the viewport on narrow screens. */}
+          <div
+            style={{
+              gridColumn: isDesktopHero ? 'span 7' : 'span 1',
+              minWidth: 0,
+              maxWidth: '100%',
+            }}
+          >
             <motion.p
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -204,13 +236,24 @@ const HeroSection = () => {
             </div>
           </div>
 
-          <div style={{ gridColumn: 'span 5' }}>
+          {/* Right / bottom: code preview card. minWidth:0 + maxWidth:100%
+              keep the card from outgrowing the viewport on phones; the pre
+              scrolls internally instead. */}
+          <div
+            style={{
+              gridColumn: isDesktopHero ? 'span 5' : 'span 1',
+              minWidth: 0,
+              maxWidth: '100%',
+            }}
+          >
             <div
               style={{
                 background: C.bg.card,
                 border: `1px solid ${C.border}`,
                 borderRadius: 16,
                 overflow: 'hidden',
+                minWidth: 0,
+                maxWidth: '100%',
               }}
             >
               <div
@@ -239,6 +282,11 @@ const HeroSection = () => {
                   overflowX: 'auto',
                   margin: 0,
                   color: C.text.body,
+                  // Force long code lines to scroll inside the card instead of
+                  // stretching the card (and the page) wider than the viewport.
+                  minWidth: 0,
+                  maxWidth: '100%',
+                  whiteSpace: 'pre',
                 }}
               >
                 {imageExample.code || ''}
