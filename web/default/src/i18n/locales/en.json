@@ -24,6 +24,8 @@
     "Code copied": "Code copied",
     "Unable to copy code": "Unable to copy code",
     "Read API Documentation": "Read API Documentation",
+    "Run the Seedance Collection in Postman": "Run the Seedance Collection in Postman",
+    "Use the verified collection to submit Seedance jobs and poll results. Add your real API key only in your private fork or local variable.": "Use the verified collection to submit Seedance jobs and poll results. Add your real API key only in your private fork or local variable.",
     "Video, image, audio, text, and 3D generation—available with one API key.": "Video, image, audio, text, and 3D generation—available with one API key.",
     "Stop Rebuilding the Same Integration": "Stop Rebuilding the Same Integration",
     "Every model provider comes with its own authentication, request format, billing system, and operational quirks. Vancine gives your product one consistent integration layer.": "Every model provider comes with its own authentication, request format, billing system, and operational quirks. Vancine gives your product one consistent integration layer.",

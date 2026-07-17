@@ -30,9 +30,12 @@ import {
   SEEDANCE_RESOURCE_VALUES,
   SEEDANCE_RESOURCE_LOCATIONS,
   VANCINE_SEEDANCE_DOCS_URL,
+  VANCINE_SEEDANCE_POSTMAN_URL,
   getSeedanceCtaDestination,
   getSeedanceMetadata,
   getSeedanceDocsUrl,
+  getSeedancePostmanUrl,
+  SEEDANCE_POSTMAN_TRACKING,
   SEEDANCE_CODE_EXAMPLES,
   SEEDANCE_FAQ,
 } from './landing.ts'
@@ -80,12 +83,45 @@ describe('default seedance-api landing contract', () => {
 
   test('resource event, values, and locations', () => {
     assert.equal(SEEDANCE_RESOURCE_EVENT, 'developer_resource_clicked')
-    assert.deepEqual(SEEDANCE_RESOURCE_VALUES, ['docs'])
+    assert.deepEqual(SEEDANCE_RESOURCE_VALUES, ['docs', 'postman'])
     assert.deepEqual(SEEDANCE_RESOURCE_LOCATIONS, [
       'header',
       'code_examples',
       'final_cta',
     ])
+  })
+
+  test('postman collection URL is the exact verified workspace', () => {
+    const expected =
+      'https://www.postman.com/vancine-ai/vancine-seedance-api/collection/jej2ty/vancine-seedance'
+    assert.equal(VANCINE_SEEDANCE_POSTMAN_URL, expected)
+    assert.equal(getSeedancePostmanUrl(), expected)
+    assert.ok(!VANCINE_SEEDANCE_POSTMAN_URL.includes('?'))
+    assert.ok(!VANCINE_SEEDANCE_POSTMAN_URL.includes('#'))
+    assert.ok(
+      !/[?&][^/]*key|token|api[_-]?key/i.test(VANCINE_SEEDANCE_POSTMAN_URL)
+    )
+  })
+
+  test('postman resource tracking payload is exactly the approved shape', () => {
+    assert.deepEqual(SEEDANCE_POSTMAN_TRACKING, {
+      event: 'developer_resource_clicked',
+      resource: 'postman',
+      location: 'code_examples',
+    })
+    assert.equal(SEEDANCE_POSTMAN_TRACKING.event, SEEDANCE_RESOURCE_EVENT)
+    assert.ok(
+      (SEEDANCE_RESOURCE_VALUES as readonly string[]).includes(
+        SEEDANCE_POSTMAN_TRACKING.resource
+      ),
+      'postman resource must be an allowed resource value'
+    )
+    assert.ok(
+      (SEEDANCE_RESOURCE_LOCATIONS as readonly string[]).includes(
+        SEEDANCE_POSTMAN_TRACKING.location
+      ),
+      'code_examples must be an allowed resource location'
+    )
   })
 
   test('English metadata matches the exact approved copy', () => {
@@ -207,6 +243,24 @@ describe('default seedance-api landing contract', () => {
     assert.ok(
       !/video\/generations\/\{task_id\}/.test(shell.code),
       'cURL must not contain a literal {task_id} placeholder'
+    )
+  })
+
+  test('cURL polls at most 120 times and never the old 60 default', () => {
+    const shell = SEEDANCE_CODE_EXAMPLES.find((e) => e.id === 'curl')!
+    assert.ok(/seq 1 120/.test(shell.code), 'cURL loop must use "seq 1 120"')
+    assert.ok(
+      /up to 120 attempts/.test(shell.code),
+      'cURL comment must say "up to 120 attempts"'
+    )
+    assert.ok(
+      /exceeded 120 attempts/.test(shell.code),
+      'cURL timeout must say "exceeded 120 attempts"'
+    )
+    assert.ok(!/seq 1 60/.test(shell.code), 'cURL must not retain "seq 1 60"')
+    assert.ok(
+      !/60 attempts/.test(shell.code),
+      'cURL must not retain any "60 attempts" wording'
     )
   })
 

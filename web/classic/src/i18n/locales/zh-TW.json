@@ -21,6 +21,8 @@
     "Code copied": "代码已复制",
     "Unable to copy code": "无法复制代码",
     "Read API Documentation": "阅读 API 文档",
+    "Run the Seedance Collection in Postman": "在 Postman 中執行 Seedance 集合",
+    "Use the verified collection to submit Seedance jobs and poll results. Add your real API key only in your private fork or local variable.": "使用已驗證的集合提交 Seedance 任務並輪詢結果。真實 API Key 僅填寫在你自己的私有 Fork 或本地變數中。",
     "Video, image, audio, text, and 3D generation—available with one API key.": "一个 API 密钥，即可使用视频、图片、音频、文本和 3D 生成能力。",
     "Stop Rebuilding the Same Integration": "无需重复开发同一种集成",
     "Every model provider comes with its own authentication, request format, billing system, and operational quirks. Vancine gives your product one consistent integration layer.": "每个模型服务商都有不同的认证方式、请求格式、计费系统和运行规则。Vancine 为你的产品提供统一的接入层。",

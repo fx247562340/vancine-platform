@@ -51,7 +51,10 @@ export const SEEDANCE_RESOURCE_EVENT = 'developer_resource_clicked'
  * Ordered, immutable list of the only resource values this page may send.
  * Every resource navigation must use one of these.
  */
-export const SEEDANCE_RESOURCE_VALUES = Object.freeze(['docs'] as const)
+export const SEEDANCE_RESOURCE_VALUES = Object.freeze([
+  'docs',
+  'postman',
+] as const)
 
 export type SeedanceResourceValue = (typeof SEEDANCE_RESOURCE_VALUES)[number]
 
@@ -103,6 +106,35 @@ export const VANCINE_SEEDANCE_DOCS_URL = 'https://vancine.com/docs#video'
 export function getSeedanceDocsUrl(): string {
   return VANCINE_SEEDANCE_DOCS_URL
 }
+
+/**
+ * Verified Postman Collection for the Seedance API. Opens the public
+ * workspace so developers can fork it and run the documented submit + poll
+ * flow. Never carries a query string, fragment, or credential.
+ */
+export const VANCINE_SEEDANCE_POSTMAN_URL =
+  'https://www.postman.com/vancine-ai/vancine-seedance-api/collection/jej2ty/vancine-seedance'
+
+/**
+ * Returns the verified Seedance Postman Collection URL.
+ *
+ * @returns the public Postman Collection URL
+ */
+export function getSeedancePostmanUrl(): string {
+  return VANCINE_SEEDANCE_POSTMAN_URL
+}
+
+/**
+ * Exact analytics payload emitted when a developer opens the Postman
+ * Collection from the Code Examples section. Derived from the shared
+ * resource contract (index 1 -> 'postman' value, 'code_examples' location)
+ * so it cannot drift from the allowed values.
+ */
+export const SEEDANCE_POSTMAN_TRACKING = Object.freeze({
+  event: SEEDANCE_RESOURCE_EVENT,
+  resource: SEEDANCE_RESOURCE_VALUES[1],
+  location: SEEDANCE_RESOURCE_LOCATIONS[1],
+} as const)
 
 interface SeedanceMetadata {
   title: string
@@ -193,9 +225,9 @@ if [ -z "$TASK_ID" ]; then
 fi
 echo "task_id = $TASK_ID"
 
-# 3. Poll the status with a fixed limit (every 5s, up to 60 attempts)
+# 3. Poll the status with a fixed limit (every 5s, up to 120 attempts)
 # Terminal states: completed / failed (current API), SUCCESS / FAILURE (legacy)
-for i in $(seq 1 60); do
+for i in $(seq 1 120); do
   RESULT=$(curl -s https://vancine.com/v1/video/generations/"$TASK_ID" \\
     -H "Authorization: Bearer $VANCINE_API_KEY")
   STATUS=$(echo "$RESULT" | jq -r '.status // .data.status // empty')
@@ -212,7 +244,7 @@ for i in $(seq 1 60); do
   sleep 5
 done
 
-echo "error: polling exceeded 60 attempts" >&2
+echo "error: polling exceeded 120 attempts" >&2
 exit 1`,
     },
     {

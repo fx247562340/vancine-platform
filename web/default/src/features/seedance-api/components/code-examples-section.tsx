@@ -17,13 +17,15 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useCallback, useId, useRef, useState } from 'react'
-import { Check, Copy } from 'lucide-react'
+import { Check, Copy, ExternalLink } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { trackEvent } from '@/lib/analytics'
 import { cn } from '@/lib/utils'
 import {
   SEEDANCE_CODE_EXAMPLES,
   getSeedanceDocsUrl,
+  getSeedancePostmanUrl,
+  SEEDANCE_POSTMAN_TRACKING,
   SEEDANCE_RESOURCE_EVENT,
   SEEDANCE_RESOURCE_VALUES,
   SEEDANCE_RESOURCE_LOCATIONS,
@@ -110,6 +112,39 @@ function CodePanel(props: { example: SeedanceCodeExample }) {
   )
 }
 
+function PostmanResourceCard() {
+  const { t } = useTranslation()
+
+  // One click -> exactly one analytics event. The payload comes from the
+  // shared landing contract so it cannot drift from the allowed values.
+  const handleClick = useCallback(() => {
+    trackEvent(SEEDANCE_POSTMAN_TRACKING.event, {
+      resource: SEEDANCE_POSTMAN_TRACKING.resource,
+      location: SEEDANCE_POSTMAN_TRACKING.location,
+    })
+  }, [])
+
+  return (
+    <div className='bg-card border-border mx-auto mt-8 flex max-w-2xl flex-wrap items-center justify-between gap-4 rounded-xl border p-4'>
+      <p className='text-muted-foreground min-w-0 flex-[1_1_280px] text-[13px] leading-relaxed break-words'>
+        {t(
+          'Use the verified collection to submit Seedance jobs and poll results. Add your real API key only in your private fork or local variable.'
+        )}
+      </p>
+      <a
+        href={getSeedancePostmanUrl()}
+        target='_blank'
+        rel='noopener noreferrer'
+        onClick={handleClick}
+        className='bg-primary text-primary-foreground focus-visible:ring-primary inline-flex min-w-0 flex-[1_1_160px] items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-center text-[13px] font-semibold break-words transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none'
+      >
+        <ExternalLink size={14} aria-hidden='true' />
+        {t('Run the Seedance Collection in Postman')}
+      </a>
+    </div>
+  )
+}
+
 export function CodeExamplesSection() {
   const { t } = useTranslation()
   const [activeId, setActiveId] = useState<SeedanceCodeExample['id']>('curl')
@@ -160,11 +195,13 @@ export function CodeExamplesSection() {
           </p>
         </div>
 
+        <PostmanResourceCard />
+
         <div className='mt-10'>
           <div
             role='tablist'
             aria-label={t('API examples')}
-            className='border-border bg-muted/40 mx-auto flex max-w-md gap-1 rounded-xl border p-1'
+            className='border-border bg-muted/40 mx-auto flex w-full max-w-md gap-1 rounded-xl border p-1'
           >
             {SEEDANCE_CODE_EXAMPLES.map((example, index) => {
               const selected = example.id === activeId
@@ -182,7 +219,7 @@ export function CodeExamplesSection() {
                   onClick={() => focusTab(index)}
                   onKeyDown={(e) => onKeyDown(e, index)}
                   className={cn(
-                    'focus-visible:ring-primary flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2',
+                    'focus-visible:ring-primary min-w-0 flex-1 rounded-lg px-2 py-2 text-sm font-medium whitespace-nowrap transition-colors focus:outline-none focus-visible:ring-2 sm:px-3',
                     selected
                       ? 'bg-background text-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground',

@@ -18,11 +18,13 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, Copy } from 'lucide-react';
+import { Check, Copy, ExternalLink } from 'lucide-react';
 import { trackEvent } from '../../helpers/analytics';
 import {
   SEEDANCE_CODE_EXAMPLES,
   getSeedanceDocsUrl,
+  getSeedancePostmanUrl,
+  SEEDANCE_POSTMAN_TRACKING,
   SEEDANCE_RESOURCE_EVENT,
   SEEDANCE_RESOURCE_VALUES,
   SEEDANCE_RESOURCE_LOCATIONS,
@@ -168,6 +170,85 @@ const CodePanel = ({ example }) => {
   );
 };
 
+const PostmanResourceCard = () => {
+  const { t } = useTranslation();
+  const [focused, setFocused] = useState(false);
+
+  // One click -> exactly one analytics event. The payload comes from the
+  // shared landing contract so it cannot drift from the allowed values.
+  const handleClick = useCallback(() => {
+    trackEvent(SEEDANCE_POSTMAN_TRACKING.event, {
+      resource: SEEDANCE_POSTMAN_TRACKING.resource,
+      location: SEEDANCE_POSTMAN_TRACKING.location,
+    });
+  }, []);
+
+  return (
+    <div
+      style={{
+        marginTop: 32,
+        maxWidth: 640,
+        marginLeft: 'auto',
+        marginRight: 'auto',
+        padding: '14px 18px',
+        background: C.bg.card,
+        border: `1px solid ${C.border}`,
+        borderRadius: 12,
+        display: 'flex',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 16,
+      }}
+    >
+      <p
+        style={{
+          minWidth: 0,
+          flex: '1 1 280px',
+          margin: 0,
+          fontSize: 13,
+          lineHeight: 1.6,
+          color: C.text.muted,
+          overflowWrap: 'break-word',
+        }}
+      >
+        {t(
+          'Use the verified collection to submit Seedance jobs and poll results. Add your real API key only in your private fork or local variable.',
+        )}
+      </p>
+      <a
+        href={getSeedancePostmanUrl()}
+        target='_blank'
+        rel='noopener noreferrer'
+        onClick={handleClick}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={{
+          flex: '1 1 160px',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 6,
+          padding: '8px 16px',
+          borderRadius: 8,
+          background: C.accent,
+          color: '#fff',
+          fontSize: 13,
+          fontWeight: 600,
+          textDecoration: 'none',
+          textAlign: 'center',
+          overflowWrap: 'break-word',
+          outline: focused ? `2px solid ${C.accent}` : '2px solid transparent',
+          outlineOffset: 2,
+        }}
+      >
+        <ExternalLink size={14} aria-hidden='true' />
+        {t('Run the Seedance Collection in Postman')}
+      </a>
+    </div>
+  );
+};
+
 const CodeExamplesSection = () => {
   const { t } = useTranslation();
   const [activeIndex, setActiveIndex] = useState(0);
@@ -224,9 +305,12 @@ const CodeExamplesSection = () => {
         </p>
       </div>
 
+      <PostmanResourceCard />
+
       <div
         style={{
           marginTop: 40,
+          width: '100%',
           maxWidth: 420,
           marginLeft: 'auto',
           marginRight: 'auto',
@@ -259,13 +343,15 @@ const CodeExamplesSection = () => {
                 onKeyDown={(e) => onKeyDown(e, idx)}
                 style={{
                   flex: 1,
-                  padding: '8px 12px',
+                  minWidth: 0,
+                  padding: '8px 8px',
                   borderRadius: 8,
                   border: 'none',
                   background: selected ? C.bg.card : 'transparent',
                   color: selected ? C.text.strong : C.text.muted,
                   fontWeight: 600,
                   fontSize: 14,
+                  whiteSpace: 'nowrap',
                   cursor: 'pointer',
                   boxShadow: selected ? '0 1px 2px rgba(0,0,0,0.2)' : 'none',
                 }}
