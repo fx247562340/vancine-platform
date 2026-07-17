@@ -45,12 +45,17 @@ the PostgreSQL container using its local authentication configuration.
 Create `/etc/vancine/backup.env` with owner `root:root` and mode `600`:
 
 ```ini
-BACKUP_SUCCESS_URL="https://monitor.example/private-success-push-url"
+BACKUP_DAILY_SUCCESS_URL="https://monitor.example/private-daily-success-push-url"
+BACKUP_WEEKLY_SUCCESS_URL="https://monitor.example/private-weekly-success-push-url"
+BACKUP_PREDEPLOY_SUCCESS_URL="https://monitor.example/private-predeploy-success-push-url"
+BACKUP_MANUAL_SUCCESS_URL="https://monitor.example/private-manual-success-push-url"
 BACKUP_FAILURE_URL="https://monitor.example/private-failure-push-url"
 ```
 
 The URLs are secrets and must never be committed or printed in reports.
-`BACKUP_SUCCESS_URL` is called only after archive and checksum verification.
+Each success URL is called only after archive and checksum verification. Daily
+and weekly jobs use independent URLs so either schedule can be monitored for a
+missed run.
 The systemd `OnFailure` service calls `BACKUP_FAILURE_URL` when any backup
 stage exits non-zero. If no failure URL is configured, the failure remains
 visible in the systemd journal.
@@ -73,9 +78,8 @@ ops/backup/tests/integration-postgres.sh
 ```
 
 The integration test starts isolated containers with `--network none` and no
-published ports. It
-removes only the temporary containers it creates and retains the generated
-test backup for inspection.
+published ports. It removes only the temporary containers it creates and
+retains the generated test backup for inspection.
 
 ## Production installation
 
@@ -83,6 +87,7 @@ Install only after local Docker verification, user approval, commit, push,
 and deployment of the approved commit:
 
 ```bash
+sudo install -d -m 700 -o root -g root /opt/vancine-platform/backups
 sudo install -d -m 700 -o root -g root /etc/vancine
 sudo install -m 644 ops/backup/systemd/vancine-backup@.service /etc/systemd/system/
 sudo install -m 644 ops/backup/systemd/vancine-backup-alert@.service /etc/systemd/system/
@@ -95,6 +100,12 @@ sudo systemd-analyze verify /etc/systemd/system/vancine-backup@.service \
 sudo systemctl daemon-reload
 sudo systemctl enable --now vancine-backup-daily.timer vancine-backup-weekly.timer
 ```
+
+The backup directory must exist before systemd starts the service because
+`ProtectSystem=strict` and `ReadWritePaths` establish the service mount
+namespace before `ExecStart` runs. If `BACKUP_ROOT` or `BACKUP_LOCK_FILE` is
+customized, add the corresponding writable path to a reviewed systemd drop-in;
+changing the environment variable alone is not sufficient.
 
 Before enabling the timers, confirm there is no legacy cron or timer invoking
 another Vancine backup script.
@@ -118,10 +129,9 @@ sudo /opt/vancine-platform/ops/backup/restore-drill.sh \
 ```
 
 The drill starts an isolated PostgreSQL 15 container with `--network none` and
-no published port,
-restores the archive, verifies the `users`, `tokens`, `top_ups`, and
-`subscription_orders` tables, reports row counts, and removes only that
-temporary container.
+no published port, restores the archive, verifies the `users`, `tokens`,
+`top_ups`, and `subscription_orders` tables, reports row counts, and removes
+only that temporary container.
 
 An encrypted off-site copy is still required for full P0-1 completion. The
 destination and credentials must be approved and configured separately.

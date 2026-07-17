@@ -8,10 +8,12 @@ restore_script=$(CDPATH= cd -- "$test_dir/.." && pwd)/restore-drill.sh
 test_run_root=$(mktemp -d "${TMPDIR:-/tmp}/vancine-backup-integration.XXXXXX")
 source_container=vancine-backup-source-$$
 restore_container=vancine-backup-restore-$$
+source_container_started=false
 
 cleanup_containers() {
-  docker rm -f "$source_container" >/dev/null 2>&1 || true
-  docker rm -f "$restore_container" >/dev/null 2>&1 || true
+  if [ "$source_container_started" = true ]; then
+    docker rm -f "$source_container" >/dev/null 2>&1 || true
+  fi
 }
 trap cleanup_containers EXIT
 
@@ -22,6 +24,7 @@ docker run -d \
   -e POSTGRES_HOST_AUTH_METHOD=trust \
   -e POSTGRES_DB=new-api \
   postgres:15 >/dev/null
+source_container_started=true
 
 source_ready=false
 for _ in $(seq 1 30); do

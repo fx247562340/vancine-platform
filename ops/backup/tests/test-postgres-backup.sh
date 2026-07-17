@@ -20,6 +20,13 @@ assert_not_file() {
   [ ! -f "$1" ] || fail "unexpected file: $1"
 }
 
+mode_of() {
+  if stat -f '%Lp' "$1" 2>/dev/null; then
+    return
+  fi
+  stat -c '%a' "$1"
+}
+
 run_backup() {
   case_name=$1
   backup_kind=$2
@@ -36,7 +43,11 @@ run_backup() {
     FAKE_BACKUP_TIMESTAMP="${FAKE_BACKUP_TIMESTAMP:-20260717T070000Z}" \
     FAKE_DF_MODE="${FAKE_DF_MODE:-enough}" \
     FAKE_ARCHIVE_MODE="${FAKE_ARCHIVE_MODE:-complete}" \
-    BACKUP_SUCCESS_URL="${BACKUP_SUCCESS_URL:-}" \
+    FAKE_FLOCK_MODE="${FAKE_FLOCK_MODE:-available}" \
+    BACKUP_DAILY_SUCCESS_URL="${BACKUP_DAILY_SUCCESS_URL:-}" \
+    BACKUP_WEEKLY_SUCCESS_URL="${BACKUP_WEEKLY_SUCCESS_URL:-}" \
+    BACKUP_PREDEPLOY_SUCCESS_URL="${BACKUP_PREDEPLOY_SUCCESS_URL:-}" \
+    BACKUP_MANUAL_SUCCESS_URL="${BACKUP_MANUAL_SUCCESS_URL:-}" \
     "$script_path" "$backup_kind"
 }
 
@@ -49,18 +60,25 @@ test_successful_backup_is_atomic_and_private() {
   assert_file "$final_file"
   assert_file "$checksum_file"
   assert_not_file "$final_file.partial"
-  [ "$(stat -f '%Lp' "$final_file")" = "600" ] || fail 'backup mode must be 600'
-  [ "$(stat -f '%Lp' "$test_run_root/success/backups")" = "700" ] || fail 'backup root mode must be 700'
-  [ "$(stat -f '%Lp' "$(dirname "$final_file")")" = "700" ] || fail 'backup directory mode must be 700'
+  [ "$(mode_of "$final_file")" = "600" ] || fail 'backup mode must be 600'
+  [ "$(mode_of "$test_run_root/success/backups")" = "700" ] || fail 'backup root mode must be 700'
+  [ "$(mode_of "$(dirname "$final_file")")" = "700" ] || fail 'backup directory mode must be 700'
   (cd "$(dirname "$final_file")" && sha256sum -c "$(basename "$checksum_file")") >/dev/null \
     || fail 'checksum must verify'
 }
 
 test_success_monitor_is_pinged_after_verification() {
-  BACKUP_SUCCESS_URL=https://monitor.invalid/success run_backup success-monitor daily
+  BACKUP_DAILY_SUCCESS_URL=https://monitor.invalid/daily-success \
+    run_backup success-monitor-daily daily
+  BACKUP_WEEKLY_SUCCESS_URL=https://monitor.invalid/weekly-success \
+    run_backup success-monitor-weekly weekly
 
-  grep -F 'https://monitor.invalid/success' "$test_run_root/success-monitor/curl.log" >/dev/null \
-    || fail 'success monitor must be pinged'
+  grep -F 'https://monitor.invalid/daily-success' \
+    "$test_run_root/success-monitor-daily/curl.log" >/dev/null \
+    || fail 'daily success monitor must be pinged'
+  grep -F 'https://monitor.invalid/weekly-success' \
+    "$test_run_root/success-monitor-weekly/curl.log" >/dev/null \
+    || fail 'weekly success monitor must be pinged independently'
 }
 
 test_invalid_backup_kind_stops_before_docker() {
@@ -109,6 +127,35 @@ test_existing_backup_is_never_overwritten() {
   [ ! -s "$case_root/docker.log" ] || fail 'collision must stop before docker'
 }
 
+test_existing_shared_lock_directory_keeps_its_mode() {
+  case_root=$test_run_root/shared-lock-directory
+  mkdir -p "$case_root/backups" "$case_root/shared-locks"
+  chmod 755 "$case_root/shared-locks"
+  : > "$case_root/docker.log"
+
+  PATH="$fixture_bin:$PATH" \
+    BACKUP_ROOT="$case_root/backups" \
+    BACKUP_LOCK_FILE="$case_root/shared-locks/vancine-backup.lock" \
+    FAKE_DOCKER_LOG="$case_root/docker.log" \
+    FAKE_BACKUP_TIMESTAMP=20260717T071000Z \
+    "$script_path" daily >/dev/null
+
+  [ "$(mode_of "$case_root/shared-locks")" = "755" ] \
+    || fail 'existing shared lock directory mode must remain unchanged'
+}
+
+test_busy_lock_stops_before_docker() {
+  if FAKE_FLOCK_MODE=busy run_backup busy-lock daily; then
+    fail 'busy backup lock must fail'
+  fi
+
+  [ ! -s "$test_run_root/busy-lock/docker.log" ] \
+    || fail 'busy lock must stop before docker'
+  [ ! -d "$test_run_root/busy-lock/backups/daily" ] \
+    || [ -z "$(find "$test_run_root/busy-lock/backups/daily" -type f -print)" ] \
+    || fail 'busy lock must not create backup artifacts'
+}
+
 test_invalid_archive_is_preserved_as_failed() {
   if FAKE_ARCHIVE_MODE=missing_subscription_orders run_backup invalid-archive weekly; then
     fail 'archive missing a required table must fail'
@@ -130,6 +177,8 @@ test_success_monitor_is_pinged_after_verification
 test_invalid_backup_kind_stops_before_docker
 test_low_disk_space_stops_before_dump
 test_existing_backup_is_never_overwritten
+test_existing_shared_lock_directory_keeps_its_mode
+test_busy_lock_stops_before_docker
 test_invalid_archive_is_preserved_as_failed
 test_script_contains_no_deletion_command
 

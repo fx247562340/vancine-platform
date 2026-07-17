@@ -52,5 +52,24 @@ fi
   exit 1
 }
 
+different_dump=$test_run_root/different.dump
+printf '%s\n' 'DIFFERENT_VALID_DUMP' > "$different_dump"
+(
+  cd "$test_run_root"
+  sha256sum "$(basename "$different_dump")" > "$(basename "$dump_file").sha256"
+)
+: > "$docker_log"
+if PATH="$fixture_bin:$PATH" \
+  FAKE_DOCKER_LOG="$docker_log" \
+  RESTORE_CONTAINER_NAME=vancine-restore-test-wrong-manifest \
+  "$script_path" "$dump_file"; then
+  printf 'FAIL: checksum manifest for another dump must be rejected\n' >&2
+  exit 1
+fi
+[ ! -s "$docker_log" ] || {
+  printf 'FAIL: wrong checksum target must stop before Docker\n' >&2
+  exit 1
+}
+
 printf 'PASS: restore drill behavior tests\n'
 printf 'Test artifacts retained at %s\n' "$test_run_root"

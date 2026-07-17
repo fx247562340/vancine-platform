@@ -19,6 +19,17 @@ fi
 dump_directory=$(CDPATH= cd -- "$(dirname -- "$dump_path")" && pwd)
 dump_name=$(basename "$dump_path")
 checksum_name=$(basename "$checksum_path")
+checksum_entry_count=$(awk 'NF { count++ } END { print count + 0 }' "$checksum_path")
+if [ "$checksum_entry_count" -ne 1 ]; then
+  printf 'Checksum file must contain exactly one entry\n' >&2
+  exit 65
+fi
+checksum_target=$(awk 'NF { print $2; exit }' "$checksum_path")
+checksum_target=${checksum_target#\*}
+if [ "$checksum_target" != "$dump_name" ]; then
+  printf 'Checksum file does not target the requested backup\n' >&2
+  exit 65
+fi
 (
   cd "$dump_directory"
   sha256sum -c "$checksum_name"

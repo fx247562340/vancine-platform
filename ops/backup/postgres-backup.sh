@@ -21,6 +21,13 @@ postgres_user=${POSTGRES_USER:-root}
 postgres_database=${POSTGRES_DB:-new-api}
 minimum_free_multiplier=${BACKUP_MIN_FREE_MULTIPLIER:-3}
 
+case "$backup_kind" in
+  daily) backup_success_url=${BACKUP_DAILY_SUCCESS_URL:-} ;;
+  weekly) backup_success_url=${BACKUP_WEEKLY_SUCCESS_URL:-} ;;
+  predeploy) backup_success_url=${BACKUP_PREDEPLOY_SUCCESS_URL:-} ;;
+  manual) backup_success_url=${BACKUP_MANUAL_SUCCESS_URL:-} ;;
+esac
+
 case "$minimum_free_multiplier" in
   ''|*[!0-9]*)
     printf 'BACKUP_MIN_FREE_MULTIPLIER must be a positive integer\n' >&2
@@ -33,7 +40,10 @@ case "$minimum_free_multiplier" in
 esac
 
 install -d -m 700 "$backup_root" "$backup_root/$backup_kind"
-install -d -m 700 "$(dirname "$backup_lock_file")"
+backup_lock_directory=$(dirname "$backup_lock_file")
+if [ ! -d "$backup_lock_directory" ]; then
+  install -d -m 700 "$backup_lock_directory"
+fi
 
 exec 9>"$backup_lock_file"
 if ! flock -n 9; then
@@ -129,9 +139,9 @@ chmod 600 "$final_path"
   sha256sum -c "$(basename "$checksum_path")"
 )
 
-if [ -n "${BACKUP_SUCCESS_URL:-}" ]; then
+if [ -n "$backup_success_url" ]; then
   curl --fail --silent --show-error --max-time 15 --retry 2 \
-    "$BACKUP_SUCCESS_URL" >/dev/null
+    "$backup_success_url" >/dev/null
 fi
 
 trap - ERR

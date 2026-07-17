@@ -12,6 +12,7 @@ service_file=$systemd_dir/vancine-backup@.service
 alert_service=$systemd_dir/vancine-backup-alert@.service
 daily_timer=$systemd_dir/vancine-backup-daily.timer
 weekly_timer=$systemd_dir/vancine-backup-weekly.timer
+readme_file=$(CDPATH= cd -- "$test_dir/.." && pwd)/README.md
 
 require_line() {
   expected=$1
@@ -41,6 +42,7 @@ require_line 'Unit=vancine-backup@daily.service' "$daily_timer"
 require_line 'OnCalendar=Sun *-*-* 03:30:00 Asia/Shanghai' "$weekly_timer"
 require_line 'Persistent=true' "$weekly_timer"
 require_line 'Unit=vancine-backup@weekly.service' "$weekly_timer"
+require_line 'sudo install -d -m 700 -o root -g root /opt/vancine-platform/backups' "$readme_file"
 
 if grep -ERn 'ExecStart=.*[[:space:]/](rm|unlink)([[:space:]]|$)|[[:space:]]-delete([[:space:]]|$)' "$systemd_dir"; then
   printf 'FAIL: systemd units must not delete backup files\n' >&2

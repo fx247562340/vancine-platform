@@ -216,8 +216,9 @@ The config proxies `vancine.com` and `www.vancine.com` to `127.0.0.1:3000`. `api
 
 The source-controlled backup tooling lives in `ops/backup/`. It creates
 PostgreSQL custom archives through a `.partial` file, validates required table
-data, writes a SHA-256 checksum, and then atomically publishes the backup.
-It contains no retention deletion logic.
+data, atomically publishes the dump, and then writes and verifies its SHA-256
+checksum. A dump is complete only when its adjacent `.sha256` file exists.
+The tooling contains no retention deletion logic.
 
 Manual database backup:
 
