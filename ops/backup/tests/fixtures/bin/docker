@@ -1,0 +1,44 @@
+#!/bin/sh
+
+if [ -n "${FAKE_DOCKER_LOG:-}" ]; then
+  printf '%s\n' "$*" >> "$FAKE_DOCKER_LOG"
+fi
+
+case "$*" in
+  "run "*)
+    printf '%s\n' 'fake-restore-container-id'
+    ;;
+  "rm -f "*)
+    ;;
+  *" pg_isready "*)
+    printf '%s\n' 'fake-postgres:5432 - accepting connections'
+    ;;
+  *" pg_restore --list"*)
+    cat >/dev/null
+    printf '%s\n' '1; 0 0 TABLE DATA public users root'
+    printf '%s\n' '2; 0 0 TABLE DATA public tokens root'
+    printf '%s\n' '3; 0 0 TABLE DATA public top_ups root'
+    if [ "${FAKE_ARCHIVE_MODE:-complete}" != "missing_subscription_orders" ]; then
+      printf '%s\n' '4; 0 0 TABLE DATA public subscription_orders root'
+    fi
+    ;;
+  *" pg_restore "*)
+    cat >/dev/null
+    ;;
+  *" psql "*"to_regclass"*)
+    printf '%s\n' 'present'
+    ;;
+  *" psql "*"count(*)"*)
+    printf '%s\n' '1'
+    ;;
+  *" psql "*)
+    printf '%s\n' "${FAKE_DATABASE_SIZE_BYTES:-1024}"
+    ;;
+  *" pg_dump "*)
+    printf '%s\n' 'FAKE_POSTGRES_CUSTOM_DUMP'
+    ;;
+  *)
+    printf 'unexpected fake docker invocation: %s\n' "$*" >&2
+    exit 64
+    ;;
+esac

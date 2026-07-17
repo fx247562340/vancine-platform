@@ -214,26 +214,34 @@ The config proxies `vancine.com` and `www.vancine.com` to `127.0.0.1:3000`. `api
 
 ## Backup
 
+The source-controlled backup tooling lives in `ops/backup/`. It creates
+PostgreSQL custom archives through a `.partial` file, validates required table
+data, writes a SHA-256 checksum, and then atomically publishes the backup.
+It contains no retention deletion logic.
+
 Manual database backup:
 
 ```bash
-ssh root@27.124.22.102 'docker exec postgres pg_dump -U root -Fc new-api > /tmp/vancine.dump'
+ssh root@27.124.22.102 \
+  'cd /opt/vancine-platform && ops/backup/postgres-backup.sh manual'
 ```
 
-Manual restore:
+Isolated restore drill:
 
 ```bash
-cat /tmp/vancine.dump | docker exec -i postgres pg_restore \
-  -h 127.0.0.1 -U root -d new-api \
-  --clean --if-exists --no-owner --no-acl
+/opt/vancine-platform/ops/backup/restore-drill.sh \
+  /opt/vancine-platform/backups/manual/vancine-db-YYYYMMDDTHHMMSSZ.dump
 ```
 
-Keep the existing scheduled backup jobs on the production server:
+The production schedule is managed by systemd:
 
-```cron
-30 2 * * * /opt/vancine-platform/backup.sh daily >> /opt/vancine-platform/backups/cron.log 2>&1
-30 3 * * 0 /opt/vancine-platform/backup.sh weekly >> /opt/vancine-platform/backups/cron.log 2>&1
+```text
+Daily:  02:30 Asia/Shanghai
+Weekly: Sunday 03:30 Asia/Shanghai
 ```
+
+See `ops/backup/README.md` for local tests, monitoring configuration,
+installation, timer verification, and recovery procedures.
 
 ## Rollback
 
