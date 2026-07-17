@@ -1,0 +1,8 @@
+#!/bin/sh
+
+printf '%s\n' 'Filesystem 1024-blocks Used Available Capacity Mounted on'
+if [ "${FAKE_DF_MODE:-enough}" = "low" ]; then
+  printf '%s\n' '/dev/fake 1000 999 1 100% /fake'
+else
+  printf '%s\n' '/dev/fake 1000 1 999 1% /fake'
+fi

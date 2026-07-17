@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the Vancine PostgreSQL daily backup
+
+[Timer]
+OnCalendar=*-*-* 02:30:00 Asia/Shanghai
+Persistent=true
+AccuracySec=1m
+Unit=vancine-backup@daily.service
+
+[Install]
+WantedBy=timers.target
