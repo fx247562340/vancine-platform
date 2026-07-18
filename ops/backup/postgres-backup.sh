@@ -21,6 +21,12 @@ postgres_user=${POSTGRES_USER:-root}
 postgres_database=${POSTGRES_DB:-new-api}
 minimum_free_multiplier=${BACKUP_MIN_FREE_MULTIPLIER:-3}
 
+oss_backup_env_file=${VANCINE_OSS_BACKUP_ENV_FILE:-/etc/vancine/oss-backup.env}
+if [ -f "$oss_backup_env_file" ]; then
+  # shellcheck disable=SC1090
+  . "$oss_backup_env_file"
+fi
+
 case "$backup_kind" in
   daily) backup_success_url=${BACKUP_DAILY_SUCCESS_URL:-} ;;
   weekly) backup_success_url=${BACKUP_WEEKLY_SUCCESS_URL:-} ;;
@@ -138,6 +144,12 @@ chmod 600 "$final_path"
   chmod 600 "$(basename "$checksum_path")"
   sha256sum -c "$(basename "$checksum_path")"
 )
+
+
+oss_upload_script=${VANCINE_OSS_UPLOAD_SCRIPT:-/opt/vancine-platform/ops/backup/oss-upload.sh}
+if [ -x "$oss_upload_script" ]; then
+  "$oss_upload_script" "$backup_kind" "$final_path" "$checksum_path"
+fi
 
 if [ -n "$backup_success_url" ]; then
   curl --fail --silent --show-error --max-time 15 --retry 2 \
