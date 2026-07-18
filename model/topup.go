@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type TopUp struct {
@@ -93,18 +95,55 @@ func GetTopUpByTransactionId(transactionId string) *TopUp {
 	return topUp
 }
 
+// lockTopUpQuery applies a cross-database row lock for top-up mutation
+// transactions. SQLite (used by tests) does not support SELECT ... FOR UPDATE,
+// so it returns the transaction unchanged; MySQL/PostgreSQL acquire an UPDATE
+// strength lock that serializes concurrent recharge/refund on the same order.
+func lockTopUpQuery(tx *gorm.DB) *gorm.DB {
+	if common.UsingSQLite {
+		return tx
+	}
+	return tx.Clauses(clause.Locking{Strength: "UPDATE"})
+}
+
+// FindTopUpByPaymentID looks up a top-up by its stored PayPal Order ID. When
+// expectedProvider is non-empty the lookup is provider-scoped so a stray Order
+// ID from another payment method can never settle a PayPal obligation.
+func FindTopUpByPaymentID(paymentID, expectedProvider string) (*TopUp, error) {
+	if strings.TrimSpace(paymentID) == "" {
+		return nil, ErrTopUpNotFound
+	}
+	var topUp TopUp
+	query := DB.Where("payment_id = ?", paymentID)
+	if expectedProvider != "" {
+		query = query.Where("payment_provider = ?", expectedProvider)
+	}
+	if err := query.First(&topUp).Error; err != nil {
+		// Only a true not-found maps to ErrTopUpNotFound; any other DB error
+		// (connection, constraint, etc.) is surfaced unchanged so callers do
+		// not mistake a transient failure for "no such order".
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrTopUpNotFound
+		}
+		return nil, err
+	}
+	return &topUp, nil
+}
+
 // RefundPayPalTopUp deducts quota and marks the order as refunded in a single transaction.
+// A duplicate full refund on an already-refunded order is a successful no-op: it returns
+// nil without deducting quota or logging again.
 func RefundPayPalTopUp(tradeNo string, quota int) error {
 	return DB.Transaction(func(tx *gorm.DB) error {
 		// Lock the order row
-		refCol := "`trade_no`"
-		if common.UsingPostgreSQL {
-			refCol = `"trade_no"`
-		}
 		var topUp TopUp
-		err := tx.Set("gorm:query_option", "FOR UPDATE").Where(refCol+" = ?", tradeNo).First(&topUp).Error
-		if err != nil {
+		if err := lockTopUpQuery(tx).Where("trade_no = ?", tradeNo).First(&topUp).Error; err != nil {
 			return errors.New("充值订单不存在")
+		}
+
+		// Idempotent: already-refunded full refund returns nil without deducting again.
+		if topUp.Status == common.TopUpStatusRefunded {
+			return nil
 		}
 
 		if topUp.Status != common.TopUpStatusSuccess {
@@ -112,7 +151,7 @@ func RefundPayPalTopUp(tradeNo string, quota int) error {
 		}
 
 		// Deduct quota
-		err = tx.Model(&User{}).Where("id = ?", topUp.UserId).Update("quota", gorm.Expr("quota - ?", quota)).Error
+		err := tx.Model(&User{}).Where("id = ?", topUp.UserId).Update("quota", gorm.Expr("quota - ?", quota)).Error
 		if err != nil {
 			return err
 		}
@@ -514,16 +553,11 @@ func RechargePayPal(referenceId string, customerEmail string, customerName strin
 	}
 
 	var quota int64
+	var credited bool
 	topUp := &TopUp{}
 
-	refCol := "`trade_no`"
-	if common.UsingPostgreSQL {
-		refCol = `"trade_no"`
-	}
-
 	err = DB.Transaction(func(tx *gorm.DB) error {
-		err := tx.Set("gorm:query_option", "FOR UPDATE").Where(refCol+" = ?", referenceId).First(topUp).Error
-		if err != nil {
+		if err := lockTopUpQuery(tx).Where("trade_no = ?", referenceId).First(topUp).Error; err != nil {
 			return errors.New("充值订单不存在")
 		}
 
@@ -531,17 +565,44 @@ func RechargePayPal(referenceId string, customerEmail string, customerName strin
 			return ErrPaymentMethodMismatch
 		}
 
+		// Idempotent: an already-success order with the same non-empty Capture ID
+		// returns nil without crediting or logging again. A different Capture ID or
+		// any other terminal state is rejected so a replay can never swap captures.
+		if topUp.Status == common.TopUpStatusSuccess {
+			if transactionId != "" && topUp.TransactionId == transactionId {
+				return nil
+			}
+			return ErrTopUpStatusInvalid
+		}
+
 		if topUp.Status != common.TopUpStatusPending {
-			return errors.New("充值订单状态错误")
+			return ErrTopUpStatusInvalid
+		}
+
+		// Application-level capture guard (deterministic and cross-database): a
+		// PayPal capture must carry a non-empty capture id, and that id must not
+		// already be bound to another top-up. Production unique constraints on
+		// transaction_id remain the final concurrency guard against races; this
+		// check gives a clear, DB-portable failure before any mutation.
+		if strings.TrimSpace(transactionId) == "" {
+			return ErrTopUpStatusInvalid
+		}
+		var dupCount int64
+		dupQuery := tx.Model(&TopUp{}).Where("transaction_id = ?", transactionId)
+		if topUp.Id > 0 {
+			dupQuery = dupQuery.Where("id <> ?", topUp.Id)
+		}
+		if err := dupQuery.Count(&dupCount).Error; err != nil {
+			return err
+		}
+		if dupCount > 0 {
+			return ErrTopUpStatusInvalid
 		}
 
 		topUp.CompleteTime = common.GetTimestamp()
 		topUp.Status = common.TopUpStatusSuccess
-		if transactionId != "" {
-			topUp.TransactionId = transactionId
-		}
-		err = tx.Save(topUp).Error
-		if err != nil {
+		topUp.TransactionId = transactionId
+		if err := tx.Save(topUp).Error; err != nil {
 			return err
 		}
 
@@ -568,6 +629,7 @@ func RechargePayPal(referenceId string, customerEmail string, customerName strin
 			return err
 		}
 
+		credited = true
 		return nil
 	})
 
@@ -576,7 +638,9 @@ func RechargePayPal(referenceId string, customerEmail string, customerName strin
 		return errors.New("充值失败，请稍后重试")
 	}
 
-	RecordTopupLog(topUp.UserId, fmt.Sprintf("使用PayPal充值成功，充值额度: %v，支付金额：%.2f", quota, topUp.Money), callerIp, topUp.PaymentMethod, PaymentMethodPayPal)
+	if credited {
+		RecordTopupLog(topUp.UserId, fmt.Sprintf("使用PayPal充值成功，充值额度: %v，支付金额：%.2f", quota, topUp.Money), callerIp, topUp.PaymentMethod, PaymentMethodPayPal)
+	}
 
 	return nil
 }

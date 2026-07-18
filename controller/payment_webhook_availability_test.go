@@ -1,10 +1,18 @@
 package controller
 
 import (
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
+	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
+
+	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -166,4 +174,141 @@ func TestEpayWebhookEnabledRequiresTopUpAndWebhookConfig(t *testing.T) {
 
 	operation_setting.PayMethods = nil
 	require.False(t, isEpayWebhookEnabled())
+}
+
+// setPayPalConfigForTest pins the PayPal gateway state for the duration of a
+// test. It controls the three conditions that gate new checkout: the enabled
+// flag, payment compliance, and presence of the active-mode credentials.
+func setPayPalConfigForTest(t *testing.T, enabled, complianceConfirmed, credsPresent bool) {
+	t.Helper()
+	paymentSetting := operation_setting.GetPaymentSetting()
+	origConfirmed := paymentSetting.ComplianceConfirmed
+	origVersion := paymentSetting.ComplianceTermsVersion
+	t.Cleanup(func() {
+		paymentSetting.ComplianceConfirmed = origConfirmed
+		paymentSetting.ComplianceTermsVersion = origVersion
+	})
+	paymentSetting.ComplianceConfirmed = complianceConfirmed
+	if complianceConfirmed {
+		paymentSetting.ComplianceTermsVersion = operation_setting.CurrentComplianceTermsVersion
+	} else {
+		paymentSetting.ComplianceTermsVersion = ""
+	}
+
+	origEnabled := setting.PayPalEnabled
+	origTestMode := setting.PayPalTestMode
+	origClientID := setting.PayPalClientId
+	origClientSecret := setting.PayPalClientSecret
+	origSandboxClientID := setting.PayPalSandboxClientId
+	origSandboxClientSecret := setting.PayPalSandboxClientSecret
+	t.Cleanup(func() {
+		setting.PayPalEnabled = origEnabled
+		setting.PayPalTestMode = origTestMode
+		setting.PayPalClientId = origClientID
+		setting.PayPalClientSecret = origClientSecret
+		setting.PayPalSandboxClientId = origSandboxClientID
+		setting.PayPalSandboxClientSecret = origSandboxClientSecret
+	})
+	setting.PayPalTestMode = false
+	setting.PayPalEnabled = enabled
+	if credsPresent {
+		setting.PayPalClientId = "test-client-id"
+		setting.PayPalClientSecret = "test-client-secret"
+	} else {
+		setting.PayPalClientId = ""
+		setting.PayPalClientSecret = ""
+	}
+}
+
+func TestPayPalTopUpEnabled(t *testing.T) {
+	t.Run("disabled flag blocks", func(t *testing.T) {
+		setPayPalConfigForTest(t, false, true, true)
+		require.False(t, isPayPalTopUpEnabled())
+	})
+	t.Run("compliance unconfirmed blocks", func(t *testing.T) {
+		setPayPalConfigForTest(t, true, false, true)
+		require.False(t, isPayPalTopUpEnabled())
+	})
+	t.Run("missing credentials block", func(t *testing.T) {
+		setPayPalConfigForTest(t, true, true, false)
+		require.False(t, isPayPalTopUpEnabled())
+	})
+	t.Run("fully configured enables", func(t *testing.T) {
+		setPayPalConfigForTest(t, true, true, true)
+		require.True(t, isPayPalTopUpEnabled())
+	})
+}
+
+func TestRequestPayPalAmount(t *testing.T) {
+	cases := []struct {
+		name                string
+		enabled             bool
+		complianceConfirmed bool
+		credsPresent        bool
+	}{
+		{"rejects when PayPal disabled", false, true, true},
+		{"rejects when compliance unconfirmed", true, false, true},
+		{"rejects when credentials missing", true, true, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			gin.SetMode(gin.TestMode)
+			setPayPalConfigForTest(t, tc.enabled, tc.complianceConfirmed, tc.credsPresent)
+
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Request = httptest.NewRequest("POST", "/api/paypal/amount", strings.NewReader(`{"amount":10,"payment_method":"paypal"}`))
+			c.Request.Header.Set("Content-Type", "application/json")
+			RequestPayPalAmount(c)
+
+			require.Equal(t, http.StatusOK, w.Code)
+			var resp map[string]interface{}
+			require.NoError(t, common.Unmarshal(w.Body.Bytes(), &resp))
+			assert.Equal(t, "error", resp["message"], "gateway must reject new checkout")
+		})
+	}
+}
+
+func TestRequestPayPalPay(t *testing.T) {
+	cases := []struct {
+		name                string
+		enabled             bool
+		complianceConfirmed bool
+		credsPresent        bool
+	}{
+		{"rejects when PayPal disabled", false, true, true},
+		{"rejects when compliance unconfirmed", true, false, true},
+		{"rejects when credentials missing", true, true, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			gin.SetMode(gin.TestMode)
+			setPayPalConfigForTest(t, tc.enabled, tc.complianceConfirmed, tc.credsPresent)
+			setupPayPalReturnTestDB(t)
+
+			// Sentinel PayPal server: the test fails if any PayPal API call escapes
+			// the gate. Token cache is primed so a stray call would still hit this
+			// server rather than the real PayPal network.
+			called := false
+			setupPayPalTestServer(t, func(w http.ResponseWriter, r *http.Request) {
+				called = true
+				w.WriteHeader(http.StatusOK)
+			})
+
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+			c.Set("id", 1)
+			c.Request = httptest.NewRequest("POST", "/api/paypal/pay", strings.NewReader(`{"amount":10,"payment_method":"paypal"}`))
+			c.Request.Header.Set("Content-Type", "application/json")
+			RequestPayPalPay(c)
+
+			require.False(t, called, "PayPal must not be called when gateway rejects checkout")
+			var resp map[string]interface{}
+			require.NoError(t, common.Unmarshal(w.Body.Bytes(), &resp))
+			assert.Equal(t, "error", resp["message"], "gateway must reject new checkout")
+			var count int64
+			require.NoError(t, model.DB.Model(&model.TopUp{}).Count(&count).Error)
+			assert.Equal(t, int64(0), count, "no order should be created when the gate rejects")
+		})
+	}
 }
