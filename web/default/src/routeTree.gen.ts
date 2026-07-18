@@ -19,6 +19,7 @@ import { Route as SetupIndexRouteImport } from './routes/setup/index'
 import { Route as SeedanceApiIndexRouteImport } from './routes/seedance-api/index'
 import { Route as RankingsIndexRouteImport } from './routes/rankings/index'
 import { Route as PricingIndexRouteImport } from './routes/pricing/index'
+import { Route as KimiK3ApiIndexRouteImport } from './routes/kimi-k3-api/index'
 import { Route as AiMediaApiIndexRouteImport } from './routes/ai-media-api/index'
 import { Route as AboutIndexRouteImport } from './routes/about/index'
 import { Route as OauthProviderRouteImport } from './routes/oauth/$provider'
@@ -118,6 +119,11 @@ const RankingsIndexRoute = RankingsIndexRouteImport.update({
 const PricingIndexRoute = PricingIndexRouteImport.update({
   id: '/pricing/',
   path: '/pricing/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KimiK3ApiIndexRoute = KimiK3ApiIndexRouteImport.update({
+  id: '/kimi-k3-api/',
+  path: '/kimi-k3-api/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AiMediaApiIndexRoute = AiMediaApiIndexRouteImport.update({
@@ -434,6 +440,7 @@ export interface FileRoutesByFullPath {
   '/oauth/$provider': typeof OauthProviderRoute
   '/about/': typeof AboutIndexRoute
   '/ai-media-api/': typeof AiMediaApiIndexRoute
+  '/kimi-k3-api/': typeof KimiK3ApiIndexRoute
   '/pricing/': typeof PricingIndexRoute
   '/rankings/': typeof RankingsIndexRoute
   '/seedance-api/': typeof SeedanceApiIndexRoute
@@ -495,6 +502,7 @@ export interface FileRoutesByTo {
   '/oauth/$provider': typeof OauthProviderRoute
   '/about': typeof AboutIndexRoute
   '/ai-media-api': typeof AiMediaApiIndexRoute
+  '/kimi-k3-api': typeof KimiK3ApiIndexRoute
   '/pricing': typeof PricingIndexRoute
   '/rankings': typeof RankingsIndexRoute
   '/seedance-api': typeof SeedanceApiIndexRoute
@@ -560,6 +568,7 @@ export interface FileRoutesById {
   '/oauth/$provider': typeof OauthProviderRoute
   '/about/': typeof AboutIndexRoute
   '/ai-media-api/': typeof AiMediaApiIndexRoute
+  '/kimi-k3-api/': typeof KimiK3ApiIndexRoute
   '/pricing/': typeof PricingIndexRoute
   '/rankings/': typeof RankingsIndexRoute
   '/seedance-api/': typeof SeedanceApiIndexRoute
@@ -624,6 +633,7 @@ export interface FileRouteTypes {
     | '/oauth/$provider'
     | '/about/'
     | '/ai-media-api/'
+    | '/kimi-k3-api/'
     | '/pricing/'
     | '/rankings/'
     | '/seedance-api/'
@@ -685,6 +695,7 @@ export interface FileRouteTypes {
     | '/oauth/$provider'
     | '/about'
     | '/ai-media-api'
+    | '/kimi-k3-api'
     | '/pricing'
     | '/rankings'
     | '/seedance-api'
@@ -749,6 +760,7 @@ export interface FileRouteTypes {
     | '/oauth/$provider'
     | '/about/'
     | '/ai-media-api/'
+    | '/kimi-k3-api/'
     | '/pricing/'
     | '/rankings/'
     | '/seedance-api/'
@@ -805,6 +817,7 @@ export interface RootRouteChildren {
   OauthProviderRoute: typeof OauthProviderRoute
   AboutIndexRoute: typeof AboutIndexRoute
   AiMediaApiIndexRoute: typeof AiMediaApiIndexRoute
+  KimiK3ApiIndexRoute: typeof KimiK3ApiIndexRoute
   PricingIndexRoute: typeof PricingIndexRoute
   RankingsIndexRoute: typeof RankingsIndexRoute
   SeedanceApiIndexRoute: typeof SeedanceApiIndexRoute
@@ -882,6 +895,13 @@ declare module '@tanstack/react-router' {
       path: '/pricing'
       fullPath: '/pricing/'
       preLoaderRoute: typeof PricingIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/kimi-k3-api/': {
+      id: '/kimi-k3-api/'
+      path: '/kimi-k3-api'
+      fullPath: '/kimi-k3-api/'
+      preLoaderRoute: typeof KimiK3ApiIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ai-media-api/': {
@@ -1398,6 +1418,7 @@ const rootRouteChildren: RootRouteChildren = {
   OauthProviderRoute: OauthProviderRoute,
   AboutIndexRoute: AboutIndexRoute,
   AiMediaApiIndexRoute: AiMediaApiIndexRoute,
+  KimiK3ApiIndexRoute: KimiK3ApiIndexRoute,
   PricingIndexRoute: PricingIndexRoute,
   RankingsIndexRoute: RankingsIndexRoute,
   SeedanceApiIndexRoute: SeedanceApiIndexRoute,

@@ -54,6 +54,7 @@ func sitemapPages() []sitemapPage {
 		{"/register", "0.5", "monthly"},
 		{"/seedance-api", "0.9", "weekly"},
 		{"/ai-media-api", "0.9", "weekly"},
+		{"/kimi-k3-api", "0.9", "weekly"},
 	}
 }
 

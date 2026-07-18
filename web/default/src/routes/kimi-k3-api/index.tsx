@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2025 QuantumNous
+Copyright (C) 2023-2026 QuantumNous
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -16,18 +16,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-/**
- * Routes that render their own header/footer inside PageLayout. On these
- * routes the global fixed HeaderBar and FooterBar must NOT render, and the
- * Content wrapper must use overflowY:'visible' so the page's own sticky
- * header is not clipped.
- */
-export const STANDALONE_LANDING_PAGES = [
-  '/seedance-api',
-  '/ai-media-api',
-  '/kimi-k3-api',
-];
+import { createFileRoute } from '@tanstack/react-router'
+import { KimiK3Api } from '@/features/kimi-k3-api'
 
-export function isStandaloneLandingPage(pathname) {
-  return STANDALONE_LANDING_PAGES.includes(pathname);
-}
+export const Route = createFileRoute('/kimi-k3-api/')({
+  component: KimiK3Api,
+})
