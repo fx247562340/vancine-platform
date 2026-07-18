@@ -55,6 +55,8 @@ func TestSitemapHandler_ContainsBothLandingPages(t *testing.T) {
 		"sitemap must contain /seedance-api")
 	assert.Contains(t, body, "https://vancine.com/ai-media-api",
 		"sitemap must contain /ai-media-api")
+	assert.Contains(t, body, "https://vancine.com/kimi-k3-api",
+		"sitemap must contain /kimi-k3-api")
 }
 
 func TestSitemapHandler_EachLandingPageAppearsExactlyOnce(t *testing.T) {
@@ -72,6 +74,8 @@ func TestSitemapHandler_EachLandingPageAppearsExactlyOnce(t *testing.T) {
 		"/seedance-api must appear exactly once")
 	assert.Equal(t, 1, strings.Count(body, "https://vancine.com/ai-media-api"),
 		"/ai-media-api must appear exactly once")
+	assert.Equal(t, 1, strings.Count(body, "https://vancine.com/kimi-k3-api"),
+		"/kimi-k3-api must appear exactly once")
 }
 
 func TestSitemapHandler_StillContainsHomepage(t *testing.T) {
@@ -121,6 +125,7 @@ func TestSitemapPages_ContainsLandingPages(t *testing.T) {
 
 	foundSeedance := false
 	foundAiMedia := false
+	foundKimiK3 := false
 	for _, p := range pages {
 		if p.Path == "/seedance-api" {
 			foundSeedance = true
@@ -132,7 +137,13 @@ func TestSitemapPages_ContainsLandingPages(t *testing.T) {
 			assert.Equal(t, "0.9", p.Priority, "/ai-media-api priority")
 			assert.Equal(t, "weekly", p.Freq, "/ai-media-api changefreq")
 		}
+		if p.Path == "/kimi-k3-api" {
+			foundKimiK3 = true
+			assert.Equal(t, "0.9", p.Priority, "/kimi-k3-api priority")
+			assert.Equal(t, "weekly", p.Freq, "/kimi-k3-api changefreq")
+		}
 	}
 	assert.True(t, foundSeedance, "sitemapPages must include /seedance-api")
 	assert.True(t, foundAiMedia, "sitemapPages must include /ai-media-api")
+	assert.True(t, foundKimiK3, "sitemapPages must include /kimi-k3-api")
 }

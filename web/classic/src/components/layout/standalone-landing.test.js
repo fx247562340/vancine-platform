@@ -28,14 +28,16 @@ const {
 } = require('./standalone-landing');
 
 describe('standalone landing page detection', () => {
-  test('includes /seedance-api and /ai-media-api', () => {
+  test('includes /seedance-api, /ai-media-api, and /kimi-k3-api', () => {
     assert.ok(STANDALONE_LANDING_PAGES.includes('/seedance-api'));
     assert.ok(STANDALONE_LANDING_PAGES.includes('/ai-media-api'));
+    assert.ok(STANDALONE_LANDING_PAGES.includes('/kimi-k3-api'));
   });
 
   test('recognizes exact standalone paths', () => {
     assert.equal(isStandaloneLandingPage('/seedance-api'), true);
     assert.equal(isStandaloneLandingPage('/ai-media-api'), true);
+    assert.equal(isStandaloneLandingPage('/kimi-k3-api'), true);
   });
 
   test('does NOT treat other routes as standalone', () => {

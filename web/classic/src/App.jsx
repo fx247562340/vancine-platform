@@ -59,6 +59,7 @@ const Waitlist = lazy(() => import('./pages/Waitlist'));
 const Docs = lazy(() => import('./pages/Docs'));
 const AiMediaApi = lazy(() => import('./pages/AiMediaApi'));
 const SeedanceApi = lazy(() => import('./pages/SeedanceApi'));
+const KimiK3Api = lazy(() => import('./pages/KimiK3Api'));
 
 function DynamicOAuth2Callback() {
   const { provider } = useParams();
@@ -410,6 +411,14 @@ function App() {
           element={
             <Suspense fallback={<Loading></Loading>} key={location.pathname}>
               <SeedanceApi />
+            </Suspense>
+          }
+        />
+        <Route
+          path='/kimi-k3-api'
+          element={
+            <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+              <KimiK3Api />
             </Suspense>
           }
         />
