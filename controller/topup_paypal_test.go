@@ -661,7 +661,7 @@ func setupPayPalReturnTestDB(t *testing.T) *gorm.DB {
 	require.NoError(t, err)
 	model.DB = db
 	model.LOG_DB = db
-	require.NoError(t, db.AutoMigrate(&model.User{}, &model.TopUp{}, &model.Log{}))
+	require.NoError(t, db.AutoMigrate(&model.User{}, &model.TopUp{}, &model.Log{}, &model.PayPalSettlementEvent{}))
 	t.Cleanup(func() {
 		// Restore the global pointers BEFORE closing the test database so any
 		// code running after this cleanup sees the original handles, and so the
@@ -1543,9 +1543,13 @@ func TestPayPalWebhook(t *testing.T) {
 // --- Refund / Reversal fixtures ---
 
 // refundEvent builds a PAYMENT.CAPTURE.REFUNDED event. resource.id is the refund
-// id; the parent capture id and order id are carried in supplementary_data.
+// id; the parent capture id and order id are carried in supplementary_data. The
+// Event ID defaults to a deterministic value derived from the refund id so
+// replays of the same event share an Event ID (settlement idempotency); tests
+// that need a distinct Event ID override ev.Id after building.
 func refundEvent(refundID, captureID, orderID, status, amount, currency string) PayPalWebhookEvent {
 	return PayPalWebhookEvent{
+		Id:        "EVT-REFUND-" + refundID,
 		EventType: "PAYMENT.CAPTURE.REFUNDED",
 		Resource: paypalWebhookResource{
 			ID:     refundID,
@@ -1559,9 +1563,11 @@ func refundEvent(refundID, captureID, orderID, status, amount, currency string) 
 }
 
 // reversalEvent builds a PAYMENT.CAPTURE.REVERSED event. resource.id is the
-// capture id being reversed.
+// capture id being reversed. The Event ID defaults to a deterministic value
+// derived from the capture id.
 func reversalEvent(captureID, orderID, amount, currency string) PayPalWebhookEvent {
 	return PayPalWebhookEvent{
+		Id:        "EVT-REVERSE-" + captureID,
 		EventType: "PAYMENT.CAPTURE.REVERSED",
 		Resource: paypalWebhookResource{
 			ID:     captureID,
@@ -1922,13 +1928,16 @@ func TestHandlePayPalReversed(t *testing.T) {
 		assert.Equal(t, int(expectedQuota), getPayPalReturnUserQuota(t, userID))
 	})
 
-	t.Run("related order only fallback succeeds", func(t *testing.T) {
+	t.Run("reversal without resource capture id fails closed", func(t *testing.T) {
 		setupPayPalReturnTestDB(t)
 		insertPayPalReturnUser(t, userID, 0)
 		insertCreditedPayPalOrderForTest(t, userID, paymentID, tradeNo, captureID, 9.99)
-		require.NoError(t, handlePayPalReversalErr(t, reversalEventFull("", "", paymentID, "9.99", "USD")))
-		assert.Equal(t, 0, getPayPalReturnUserQuota(t, userID))
-		assert.Equal(t, common.TopUpStatusRefunded, getPayPalReturnTopUp(t, tradeNo).Status)
+		// REVERSED resource.id is the capture id and the ledger Resource ID; an
+		// event carrying only an order id cannot form a valid settlement and
+		// must fail closed without deducting or changing status.
+		require.Error(t, handlePayPalReversalErr(t, reversalEventFull("", "", paymentID, "9.99", "USD")))
+		assert.Equal(t, int(expectedQuota), getPayPalReturnUserQuota(t, userID))
+		assert.Equal(t, common.TopUpStatusSuccess, getPayPalReturnTopUp(t, tradeNo).Status)
 	})
 
 	t.Run("invalid amount errors without deducting", func(t *testing.T) {
@@ -2124,5 +2133,136 @@ func TestGetPayPalToken(t *testing.T) {
 		restoredToken := tokenCache.accessToken
 		tokenCache.mu.RUnlock()
 		assert.Equal(t, origToken, restoredToken, "token cache must be restored")
+	})
+}
+
+// --- P0-2B1 settlement ledger webhook integration ---
+
+// settlementLedgerCount returns the number of settlement ledger rows bound to a
+// top-up, so webhook integration tests can assert idempotency at the DB layer.
+func settlementLedgerCount(t *testing.T, topUpID int) int64 {
+	t.Helper()
+	count, err := model.CountPayPalSettlementEventsForOrder(topUpID)
+	require.NoError(t, err)
+	return count
+}
+
+// webhookRefundBody stands up an enabled webhook + signature seam + credited
+// order and returns the marshalled refund event body.
+func webhookRefundBody(t *testing.T, ev PayPalWebhookEvent, userID int, paymentID, tradeNo, captureID string) []byte {
+	t.Helper()
+	enablePayPalWebhookForTest(t)
+	setPayPalSignatureVerifierForTest(t, true)
+	insertPayPalReturnUser(t, userID, 0)
+	insertCreditedPayPalOrderForTest(t, userID, paymentID, tradeNo, captureID, 9.99)
+	body, err := common.Marshal(ev)
+	require.NoError(t, err)
+	return body
+}
+
+func TestPayPalSettlementWebhookIntegration(t *testing.T) {
+	withPayPalCurrencyForTest(t, "USD")
+	webhookHeaders := map[string]string{
+		paypalSignatureHeader:          "t-id",
+		paypalSignatureSigHeader:       "sig",
+		paypalSignatureCertUrlHeader:   "https://example.com/cert",
+		paypalSignatureTimestampHeader: "2026-07-18T00:00:00Z",
+		"paypal-auth-algo":             "SHA256withRSA",
+	}
+
+	t.Run("refund event id replay is idempotent at webhook layer", func(t *testing.T) {
+		setupPayPalReturnTestDB(t)
+		const userID, paymentID, tradeNo, captureID = 90, "ORDER90", "trade-set-wh-001", "CAP90"
+		ev := refundEvent("REFUND90", captureID, paymentID, "COMPLETED", "9.99", "USD")
+		body := webhookRefundBody(t, ev, userID, paymentID, tradeNo, captureID)
+
+		require.Equal(t, http.StatusOK, invokePayPalWebhook(t, body, webhookHeaders))
+		require.Equal(t, http.StatusOK, invokePayPalWebhook(t, body, webhookHeaders))
+
+		assert.Equal(t, 0, getPayPalReturnUserQuota(t, userID))
+		assert.Equal(t, common.TopUpStatusRefunded, getPayPalReturnTopUp(t, tradeNo).Status)
+		assert.EqualValues(t, 1, settlementLedgerCount(t, getPayPalReturnTopUp(t, tradeNo).Id))
+	})
+
+	t.Run("refund resource key replay with different event id is idempotent", func(t *testing.T) {
+		setupPayPalReturnTestDB(t)
+		const userID, paymentID, tradeNo, captureID = 91, "ORDER91", "trade-set-wh-002", "CAP91"
+		first := refundEvent("REFUND91", captureID, paymentID, "COMPLETED", "9.99", "USD")
+		body := webhookRefundBody(t, first, userID, paymentID, tradeNo, captureID)
+		require.Equal(t, http.StatusOK, invokePayPalWebhook(t, body, webhookHeaders))
+
+		// Same refund id (resource key), different Event ID, identical content.
+		second := refundEvent("REFUND91", captureID, paymentID, "COMPLETED", "9.99", "USD")
+		second.Id = "EVT-REFUND-91-REPLAY"
+		body2, err := common.Marshal(second)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, invokePayPalWebhook(t, body2, webhookHeaders))
+
+		assert.Equal(t, 0, getPayPalReturnUserQuota(t, userID))
+		assert.EqualValues(t, 1, settlementLedgerCount(t, getPayPalReturnTopUp(t, tradeNo).Id))
+	})
+
+	t.Run("refund event id reused across orders returns 500", func(t *testing.T) {
+		setupPayPalReturnTestDB(t)
+		const userID = 92
+		enablePayPalWebhookForTest(t)
+		setPayPalSignatureVerifierForTest(t, true)
+		insertPayPalReturnUser(t, userID, 0)
+		insertCreditedPayPalOrderForTest(t, userID, "ORDER92A", "trade-92a", "CAP92A", 9.99)
+		insertCreditedPayPalOrderForTest(t, userID, "ORDER92B", "trade-92b", "CAP92B", 9.99)
+
+		first := refundEvent("REFUND92A", "CAP92A", "ORDER92A", "COMPLETED", "9.99", "USD")
+		first.Id = "EVT-SHARED-WH"
+		body, _ := common.Marshal(first)
+		require.Equal(t, http.StatusOK, invokePayPalWebhook(t, body, webhookHeaders))
+
+		// Same Event ID pointed at a different order -> hard conflict -> 500.
+		second := refundEvent("REFUND92B", "CAP92B", "ORDER92B", "COMPLETED", "9.99", "USD")
+		second.Id = "EVT-SHARED-WH"
+		body2, _ := common.Marshal(second)
+		require.Equal(t, http.StatusInternalServerError, invokePayPalWebhook(t, body2, webhookHeaders))
+
+		// Order B untouched.
+		assert.Equal(t, common.TopUpStatusSuccess, getPayPalReturnTopUp(t, "trade-92b").Status)
+		assert.EqualValues(t, 0, settlementLedgerCount(t, getPayPalReturnTopUp(t, "trade-92b").Id))
+	})
+
+	t.Run("refund then reversal both recorded deduct once", func(t *testing.T) {
+		setupPayPalReturnTestDB(t)
+		const userID, paymentID, tradeNo, captureID = 93, "ORDER93", "trade-set-wh-003", "CAP93"
+		enablePayPalWebhookForTest(t)
+		setPayPalSignatureVerifierForTest(t, true)
+		insertPayPalReturnUser(t, userID, 0)
+		insertCreditedPayPalOrderForTest(t, userID, paymentID, tradeNo, captureID, 9.99)
+
+		refundBody, _ := common.Marshal(refundEvent("REFUND93", captureID, paymentID, "COMPLETED", "9.99", "USD"))
+		require.Equal(t, http.StatusOK, invokePayPalWebhook(t, refundBody, webhookHeaders))
+		reversalBody, _ := common.Marshal(reversalEvent(captureID, paymentID, "9.99", "USD"))
+		require.Equal(t, http.StatusOK, invokePayPalWebhook(t, reversalBody, webhookHeaders))
+
+		assert.Equal(t, 0, getPayPalReturnUserQuota(t, userID))
+		assert.Equal(t, common.TopUpStatusRefunded, getPayPalReturnTopUp(t, tradeNo).Status)
+		assert.EqualValues(t, 2, settlementLedgerCount(t, getPayPalReturnTopUp(t, tradeNo).Id))
+	})
+
+	t.Run("repeated duplicate webhook refund deliveries deduct once", func(t *testing.T) {
+		setupPayPalReturnTestDB(t)
+		const userID, paymentID, tradeNo, captureID = 94, "ORDER94", "trade-set-wh-004", "CAP94"
+		ev := refundEvent("REFUND94", captureID, paymentID, "COMPLETED", "9.99", "USD")
+		body := webhookRefundBody(t, ev, userID, paymentID, tradeNo, captureID)
+
+		// Concurrent idempotency of the settlement core is proven at the model
+		// layer under -race (TestApplyPayPalSettlement_ConcurrentSameEventDeductsOnce).
+		// Here we prove the webhook layer deduplicates repeated same-event
+		// deliveries: every delivery returns 200, but quota is deducted exactly
+		// once and exactly one ledger row survives.
+		for i := 0; i < 8; i++ {
+			require.Equal(t, http.StatusOK, invokePayPalWebhook(t, body, webhookHeaders),
+				"delivery %d must be accepted", i)
+		}
+
+		assert.Equal(t, 0, getPayPalReturnUserQuota(t, userID), "quota must be deducted exactly once")
+		assert.Equal(t, common.TopUpStatusRefunded, getPayPalReturnTopUp(t, tradeNo).Status)
+		assert.EqualValues(t, 1, settlementLedgerCount(t, getPayPalReturnTopUp(t, tradeNo).Id))
 	})
 }

@@ -1047,17 +1047,22 @@ func tradeNoLookup(src string) func(string) (*model.TopUp, error) {
 	return func(s string) (*model.TopUp, error) { return model.GetTopUpByTradeNo(s), nil }
 }
 
-// handlePayPalRefund handles PAYMENT.CAPTURE.REFUNDED webhook events. Only a
-// full refund with status=COMPLETED, amount equal to the original order amount
-// (2-decimal decimal equality), and currency equal to the configured currency
-// is processed; partial/zero/over/invalid amounts, wrong or empty currency, and
-// non-completed statuses are rejected without touching quota or order state.
-// Every non-empty identifier - related_ids.capture_id, the rel="up" link
-// capture id, related_ids.order_id, and invoice_id - must resolve to the same
-// PayPal order; none is a silent fallback. A fully-valid duplicate on an
-// already-refunded order is an idempotent no-op; any other already-refunded
-// event is an error.
+// handlePayPalRefund handles PAYMENT.CAPTURE.REFUNDED webhook events by routing
+// them through the atomic settlement ledger (model.ApplyPayPalSettlement). The
+// ledger enforces, inside a single transaction: PayPal provider, capture id,
+// amount, currency, and order status checks; a one-time quota deduction; and
+// idempotency by Event ID and Resource Key. The webhook Event ID and the Refund
+// ID (resource.id) become the ledger identifiers.
+//
+// Pre-settlement validation (identifier resolution, status, money) is kept here
+// so a malformed event fails fast and fail-closed before the ledger transaction
+// opens; the ledger re-validates the same bindings under the row lock as the
+// authoritative guard. A fully-valid duplicate on an already-refunded order is an
+// idempotent no-op.
 func handlePayPalRefund(ctx context.Context, event *PayPalWebhookEvent, rawPayload []byte, callerIp string) error {
+	if event == nil {
+		return fmt.Errorf("refund event is nil")
+	}
 	relatedCaptureID := strings.TrimSpace(event.Resource.SupplementaryData.RelatedIDs.CaptureID)
 	var linkCaptureID string
 	for _, link := range event.Resource.Links {
@@ -1071,7 +1076,11 @@ func handlePayPalRefund(ctx context.Context, event *PayPalWebhookEvent, rawPaylo
 	}
 	orderID := strings.TrimSpace(event.Resource.SupplementaryData.RelatedIDs.OrderID)
 	tradeNo := strings.TrimSpace(event.Resource.InvoiceID)
+	refundID := strings.TrimSpace(event.Resource.ID)
 
+	if refundID == "" {
+		return fmt.Errorf("refund missing resource id (refund id) event_id=%s", event.Id)
+	}
 	if relatedCaptureID == "" && linkCaptureID == "" && orderID == "" && tradeNo == "" {
 		return fmt.Errorf("refund missing identifiers event_id=%s", event.Id)
 	}
@@ -1086,8 +1095,8 @@ func handlePayPalRefund(ctx context.Context, event *PayPalWebhookEvent, rawPaylo
 		return fmt.Errorf("refund resolve order failed: %w", err)
 	}
 
-	// Validate the event before touching state, even if already refunded: only
-	// a fully-valid duplicate may return idempotently.
+	// Fail fast on status/money before opening the settlement transaction. The
+	// ledger re-checks these under the row lock as the authoritative guard.
 	if event.Resource.Status != "COMPLETED" {
 		return fmt.Errorf("refund status not completed trade_no=%s status=%s", topUp.TradeNo, event.Resource.Status)
 	}
@@ -1095,42 +1104,55 @@ func handlePayPalRefund(ctx context.Context, event *PayPalWebhookEvent, rawPaylo
 		return fmt.Errorf("refund validation failed trade_no=%s: %w", topUp.TradeNo, err)
 	}
 
-	LockOrder(topUp.TradeNo)
-	defer UnlockOrder(topUp.TradeNo)
-
-	if topUp.Status == common.TopUpStatusRefunded {
-		return nil
+	// The capture id bound to the order is the authoritative transaction id; a
+	// refund event must carry it (directly or via the rel="up" link) so the
+	// ledger can bind the settlement to the exact capture that was credited.
+	captureID := strings.TrimSpace(topUp.TransactionId)
+	if captureID == "" {
+		return fmt.Errorf("refund order has no captured transaction id trade_no=%s", topUp.TradeNo)
 	}
-	if topUp.Status != common.TopUpStatusSuccess {
-		return fmt.Errorf("refund order status not success trade_no=%s status=%s", topUp.TradeNo, topUp.Status)
+	if relatedCaptureID != "" && relatedCaptureID != captureID {
+		return fmt.Errorf("refund capture id mismatch trade_no=%s local=%s event=%s", topUp.TradeNo, captureID, relatedCaptureID)
+	}
+	if linkCaptureID != "" && linkCaptureID != captureID {
+		return fmt.Errorf("refund up-link capture id mismatch trade_no=%s local=%s event=%s", topUp.TradeNo, captureID, linkCaptureID)
 	}
 
-	quota := int64(topUp.Money * common.QuotaPerUnit)
-	if err := model.RefundPayPalTopUp(topUp.TradeNo, int(quota)); err != nil {
-		return fmt.Errorf("refund transaction failed trade_no=%s: %w", topUp.TradeNo, err)
+	in := model.PayPalSettlementInput{
+		EventID:          strings.TrimSpace(event.Id),
+		EventType:        model.PayPalSettlementRefunded,
+		ResourceID:       refundID,
+		TradeNo:          topUp.TradeNo,
+		CaptureID:        captureID,
+		Amount:           event.Resource.Amount.Value,
+		Currency:         event.Resource.Amount.CurrencyCode,
+		ExpectedCurrency: setting.PayPalCurrency,
+	}
+	if err := model.ApplyPayPalSettlement(in); err != nil {
+		return fmt.Errorf("refund settlement failed trade_no=%s event_id=%s: %w", topUp.TradeNo, event.Id, err)
 	}
 	if ctx != nil {
-		logger.LogInfo(ctx, fmt.Sprintf("PayPal 退款处理成功 trade_no=%s user_id=%d quota_deducted=%d", topUp.TradeNo, topUp.UserId, quota))
+		logger.LogInfo(ctx, fmt.Sprintf("PayPal 退款处理成功 trade_no=%s user_id=%d event_id=%s refund_id=%s", topUp.TradeNo, topUp.UserId, event.Id, refundID))
 	}
 	return nil
 }
 
-// handlePayPalReversal handles PAYMENT.CAPTURE.REVERSED webhook events as a full
-// reversal. It identifies the original order from resource.id AND
-// related_ids.capture_id (both retained and validated when present, never
-// silently dropping one), with related_ids.order_id and invoice_id as
-// additional bindings. Amount and currency are validated against the stored
-// order, then the existing full-refund transaction is invoked. No new status,
-// column, or event ledger is introduced; idempotency rides on RefundPayPalTopUp,
-// so refund/reversal cross-delivery never deducts twice.
+// handlePayPalReversal handles PAYMENT.CAPTURE.REVERSED webhook events by routing
+// them through the atomic settlement ledger. The webhook Event ID and the Capture
+// ID (resource.id) become the ledger identifiers. Reuse of P0-2A's identifier
+// resolution and money validation keeps the fail-closed contract; the ledger
+// applies the one-time deduction and idempotency under a row lock.
 func handlePayPalReversal(ctx context.Context, event *PayPalWebhookEvent, rawPayload []byte, callerIp string) error {
+	if event == nil {
+		return fmt.Errorf("reversal event is nil")
+	}
 	resourceCaptureID := strings.TrimSpace(event.Resource.ID)
 	relatedCaptureID := strings.TrimSpace(event.Resource.SupplementaryData.RelatedIDs.CaptureID)
 	orderID := strings.TrimSpace(event.Resource.SupplementaryData.RelatedIDs.OrderID)
 	tradeNo := strings.TrimSpace(event.Resource.InvoiceID)
 
-	if resourceCaptureID == "" && relatedCaptureID == "" && orderID == "" && tradeNo == "" {
-		return fmt.Errorf("reversal missing identifiers event_id=%s", event.Id)
+	if resourceCaptureID == "" {
+		return fmt.Errorf("reversal missing resource id (capture id) event_id=%s", event.Id)
 	}
 
 	topUp, err := findPayPalTopUpForRefund(
@@ -1147,22 +1169,34 @@ func handlePayPalReversal(ctx context.Context, event *PayPalWebhookEvent, rawPay
 		return fmt.Errorf("reversal validation failed trade_no=%s: %w", topUp.TradeNo, err)
 	}
 
-	LockOrder(topUp.TradeNo)
-	defer UnlockOrder(topUp.TradeNo)
-
-	if topUp.Status == common.TopUpStatusRefunded {
-		return nil
+	// The reversal resource.id is the capture id; it must match the order's
+	// captured transaction id so the ledger binds the settlement correctly.
+	captureID := strings.TrimSpace(topUp.TransactionId)
+	if captureID == "" {
+		return fmt.Errorf("reversal order has no captured transaction id trade_no=%s", topUp.TradeNo)
 	}
-	if topUp.Status != common.TopUpStatusSuccess {
-		return fmt.Errorf("reversal order status not success trade_no=%s status=%s", topUp.TradeNo, topUp.Status)
+	if resourceCaptureID != captureID {
+		return fmt.Errorf("reversal capture id mismatch trade_no=%s local=%s event=%s", topUp.TradeNo, captureID, resourceCaptureID)
+	}
+	if relatedCaptureID != "" && relatedCaptureID != captureID {
+		return fmt.Errorf("reversal related capture id mismatch trade_no=%s local=%s event=%s", topUp.TradeNo, captureID, relatedCaptureID)
 	}
 
-	quota := int64(topUp.Money * common.QuotaPerUnit)
-	if err := model.RefundPayPalTopUp(topUp.TradeNo, int(quota)); err != nil {
-		return fmt.Errorf("reversal transaction failed trade_no=%s: %w", topUp.TradeNo, err)
+	in := model.PayPalSettlementInput{
+		EventID:          strings.TrimSpace(event.Id),
+		EventType:        model.PayPalSettlementReversed,
+		ResourceID:       resourceCaptureID,
+		TradeNo:          topUp.TradeNo,
+		CaptureID:        captureID,
+		Amount:           event.Resource.Amount.Value,
+		Currency:         event.Resource.Amount.CurrencyCode,
+		ExpectedCurrency: setting.PayPalCurrency,
+	}
+	if err := model.ApplyPayPalSettlement(in); err != nil {
+		return fmt.Errorf("reversal settlement failed trade_no=%s event_id=%s: %w", topUp.TradeNo, event.Id, err)
 	}
 	if ctx != nil {
-		logger.LogInfo(ctx, fmt.Sprintf("PayPal 撤销处理成功 trade_no=%s user_id=%d quota_deducted=%d", topUp.TradeNo, topUp.UserId, quota))
+		logger.LogInfo(ctx, fmt.Sprintf("PayPal 撤销处理成功 trade_no=%s user_id=%d event_id=%s capture_id=%s", topUp.TradeNo, topUp.UserId, event.Id, resourceCaptureID))
 	}
 	return nil
 }
