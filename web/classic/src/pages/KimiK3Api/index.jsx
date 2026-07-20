@@ -22,10 +22,17 @@ import { useNavigate } from 'react-router-dom';
 import { trackEvent } from '../../helpers/analytics';
 import { UserContext } from '../../context/User';
 import {
+  KIMI_K3_API_COMPATIBILITY,
   KIMI_K3_CODE_EXAMPLES,
   KIMI_K3_CREDIT_DISCLAIMER,
+  KIMI_K3_EVIDENCE_STARTER_REPO,
+  KIMI_K3_EVIDENCE_URL,
+  KIMI_K3_MEASURED_USAGE,
+  KIMI_K3_MEASURED_USAGE_DISCLAIMER,
   KIMI_K3_OPENCODE_CONFIG,
+  KIMI_K3_OPENCODE_VERIFICATION,
   KIMI_K3_PORTFOLIO,
+  KIMI_K3_VERIFICATION_SCOPE,
   copyTextToClipboard,
   getKimiK3CtaDestination,
   getKimiK3Metadata,
@@ -43,6 +50,10 @@ const C = {
   accent: 'var(--vc-accent)',
   accentBg: 'var(--vc-accent-bg)',
 };
+
+const API_COMPAT = KIMI_K3_API_COMPATIBILITY;
+const AGENT_RUN = KIMI_K3_OPENCODE_VERIFICATION;
+const TOOL_CALLS = AGENT_RUN.toolCalls;
 
 const TEXT = {
   en: {
@@ -70,6 +81,35 @@ const TEXT = {
       'Set the base URL to https://vancine.com/v1 and use your VANCINE_API_KEY.',
       'Select kimi-k3 as the model ID.',
     ],
+    evidenceNav: 'Evidence',
+    evidenceEyebrow: 'Live verification',
+    evidenceTitle: 'Verified against the real Kimi K3',
+    evidenceDesc:
+      'Two live checks against the real kimi-k3 model through the Vancine endpoint: an OpenAI-compatible API probe and one completed OpenCode coding-agent run.',
+    badgeVerified: 'Verified',
+    apiCompatibilityTitle: 'API compatibility',
+    apiCompatibilityFacts: [
+      `temperature:0 request returned HTTP ${API_COMPAT.httpStatus}`,
+      `Requested model ${API_COMPAT.requestedModel}, response model ${API_COMPAT.responseModel}`,
+      `Probe budget: max_tokens ${API_COMPAT.maxTokens} · finish_reason ${API_COMPAT.finishReason}`,
+      `Usage: prompt ${API_COMPAT.usage.prompt} · completion ${API_COMPAT.usage.completion} · total ${API_COMPAT.usage.total} · reasoning ${API_COMPAT.usage.reasoning}`,
+    ],
+    apiCompatibilityNote:
+      'Visible content from this 16-token probe is inconclusive: reasoning consumed most of the token budget. This is a small compatibility probe, not a content-generation failure.',
+    openCodeAgentTitle: 'OpenCode Agent',
+    openCodeAgentFacts: [
+      `${AGENT_RUN.client} v${AGENT_RUN.clientVersion} against the real ${AGENT_RUN.model}`,
+      `${AGENT_RUN.modelSteps} completed model steps · ${AGENT_RUN.rounds} round · ${(AGENT_RUN.durationMs / 1000).toFixed(1)} s`,
+      `Tool calls: read ${TOOL_CALLS.read.completed}, edit ${TOOL_CALLS.edit.completed}, bash ${TOOL_CALLS.bash.completed} — all completed, 0 failed`,
+      `Tests passed · ${AGENT_RUN.sourceModified} modified · test file untouched · exit ${AGENT_RUN.exitStatus}`,
+    ],
+    evidenceViewVerified: 'View verified evidence',
+    measuredUsageTitle: 'Measured usage',
+    measuredUsageBadge: 'One controlled run',
+    measuredUsageTokensLabel: 'Agent telemetry tokens',
+    measuredUsageAmountLabel: 'Vancine measured usage',
+    evidenceRunPlayground: 'Run K3 in Playground',
+    evidenceViewStarter: 'View starter repository',
     portfolio: 'One key, a focused China AI portfolio',
     portfolioDesc:
       'Switch models as your task changes. Features, availability, and pricing are model-specific.',
@@ -115,6 +155,35 @@ const TEXT = {
       '将 Base URL 设为 https://vancine.com/v1，并使用 VANCINE_API_KEY。',
       '选择 kimi-k3 作为模型 ID。',
     ],
+    evidenceNav: '兼容性验证',
+    evidenceEyebrow: '实测验证',
+    evidenceTitle: '真实 Kimi K3 实测验证',
+    evidenceDesc:
+      '通过 Vancine 端点对真实 kimi-k3 模型完成的两项实测：OpenAI 兼容 API 探测，以及一次完整完成的 OpenCode 编程 Agent 运行。',
+    badgeVerified: '已验证',
+    apiCompatibilityTitle: 'API 兼容性',
+    apiCompatibilityFacts: [
+      `temperature:0 请求返回 HTTP ${API_COMPAT.httpStatus}`,
+      `请求模型 ${API_COMPAT.requestedModel}，响应模型 ${API_COMPAT.responseModel}`,
+      `探测预算：max_tokens ${API_COMPAT.maxTokens} · finish_reason ${API_COMPAT.finishReason}`,
+      `用量：prompt ${API_COMPAT.usage.prompt} · completion ${API_COMPAT.usage.completion} · total ${API_COMPAT.usage.total} · reasoning ${API_COMPAT.usage.reasoning}`,
+    ],
+    apiCompatibilityNote:
+      '该 16 token 探测的可见内容无法定论：推理过程占用了大部分 Token 预算。这是一个小型兼容性探测，并非内容生成失败。',
+    openCodeAgentTitle: 'OpenCode 编程 Agent',
+    openCodeAgentFacts: [
+      `${AGENT_RUN.client} v${AGENT_RUN.clientVersion}，调用真实 ${AGENT_RUN.model}`,
+      `${AGENT_RUN.modelSteps} 个已完成模型步骤 · ${AGENT_RUN.rounds} 轮 · ${(AGENT_RUN.durationMs / 1000).toFixed(1)} 秒`,
+      `工具调用：read ${TOOL_CALLS.read.completed} 次、edit ${TOOL_CALLS.edit.completed} 次、bash ${TOOL_CALLS.bash.completed} 次，全部完成，0 次失败`,
+      `测试通过 · ${AGENT_RUN.sourceModified} 已修改 · 测试文件未改动 · exit ${AGENT_RUN.exitStatus}`,
+    ],
+    evidenceViewVerified: '查看验证证据',
+    measuredUsageTitle: '实测用量',
+    measuredUsageBadge: '单次受控运行',
+    measuredUsageTokensLabel: 'Agent 遥测 Token',
+    measuredUsageAmountLabel: 'Vancine 实测用量',
+    evidenceRunPlayground: '在操练场运行 K3',
+    evidenceViewStarter: '查看 Starter 仓库',
     portfolio: '一个密钥，连接精选中国 AI 模型',
     portfolioDesc: '按任务切换模型；能力、可用性与价格均以实时页面为准。',
     faq: '常见问题',
@@ -247,6 +316,56 @@ function PrimaryLink({ href, children, onClick, inverse = false }) {
     >
       {children}
     </a>
+  );
+}
+
+function EvidenceCard({ title, badge, facts, note, children }) {
+  return (
+    <article
+      className='flex h-full flex-col rounded-2xl border p-6 text-left'
+      style={{ borderColor: C.border }}
+    >
+      <div className='flex items-center justify-between gap-3'>
+        <p
+          className='text-sm font-semibold uppercase'
+          style={{ color: C.accent }}
+        >
+          {title}
+        </p>
+        <span
+          className='shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-semibold'
+          style={{
+            color: C.accent,
+            borderColor: C.border,
+            background: C.accentBg,
+          }}
+        >
+          {badge}
+        </span>
+      </div>
+      <ul
+        className='mt-4 space-y-2.5 text-sm leading-6'
+        style={{ color: C.body }}
+      >
+        {facts.map((fact) => (
+          <li key={fact} className='flex gap-2'>
+            <span aria-hidden='true' style={{ color: C.accent }}>
+              ·
+            </span>
+            <span className='min-w-0'>{fact}</span>
+          </li>
+        ))}
+      </ul>
+      {children}
+      {note && (
+        <p
+          className='mt-4 border-t pt-3 text-xs leading-5'
+          style={{ color: C.muted, borderColor: C.border }}
+        >
+          {note}
+        </p>
+      )}
+    </article>
   );
 }
 
@@ -497,6 +616,144 @@ const KimiK3Api = () => {
                 ))}
               </ol>
             </article>
+          </div>
+        </section>
+
+        <section
+          id='evidence'
+          className='px-5 py-20'
+          style={{ borderTop: `1px solid ${C.border}` }}
+        >
+          <div className='mx-auto max-w-5xl'>
+            <div className='text-center'>
+              <p
+                className='text-sm font-semibold uppercase'
+                style={{ color: C.accent }}
+              >
+                {text.evidenceEyebrow}
+              </p>
+              <h2
+                className='mt-3 text-3xl font-bold'
+                style={{ color: C.strong }}
+              >
+                {text.evidenceTitle}
+              </h2>
+              <p
+                className='mx-auto mt-4 max-w-2xl leading-7'
+                style={{ color: C.body }}
+              >
+                {text.evidenceDesc}
+              </p>
+            </div>
+            <div className='mt-10 grid gap-4 md:grid-cols-3'>
+              <EvidenceCard
+                title={text.apiCompatibilityTitle}
+                badge={text.badgeVerified}
+                facts={text.apiCompatibilityFacts}
+                note={text.apiCompatibilityNote}
+              />
+              <EvidenceCard
+                title={text.openCodeAgentTitle}
+                badge={text.badgeVerified}
+                facts={text.openCodeAgentFacts}
+              >
+                <a
+                  href={KIMI_K3_EVIDENCE_URL}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  onClick={() =>
+                    trackEvent('developer_resource_clicked', {
+                      resource: 'verified_evidence',
+                      location: 'evidence',
+                    })
+                  }
+                  className='mt-4 inline-block text-sm font-semibold'
+                  style={{ color: C.accent }}
+                >
+                  {text.evidenceViewVerified}
+                </a>
+              </EvidenceCard>
+              <EvidenceCard
+                title={text.measuredUsageTitle}
+                badge={text.measuredUsageBadge}
+                facts={[]}
+              >
+                <dl className='mt-4 space-y-4'>
+                  <div>
+                    <dt
+                      className='text-xs font-semibold uppercase tracking-wide'
+                      style={{ color: C.muted }}
+                    >
+                      {text.measuredUsageTokensLabel}
+                    </dt>
+                    <dd
+                      className='mt-1 text-2xl font-bold'
+                      style={{ color: C.strong }}
+                    >
+                      {KIMI_K3_MEASURED_USAGE.agentTelemetryTokens.toLocaleString(
+                        'en-US',
+                      )}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt
+                      className='text-xs font-semibold uppercase tracking-wide'
+                      style={{ color: C.muted }}
+                    >
+                      {text.measuredUsageAmountLabel}
+                    </dt>
+                    <dd
+                      className='mt-1 text-2xl font-bold'
+                      style={{ color: C.strong }}
+                    >
+                      ${KIMI_K3_MEASURED_USAGE.amount.toFixed(2)}{' '}
+                      <span
+                        className='text-sm font-semibold'
+                        style={{ color: C.muted }}
+                      >
+                        {KIMI_K3_MEASURED_USAGE.currency}
+                      </span>
+                    </dd>
+                  </div>
+                </dl>
+                <p
+                  className='mt-4 border-t pt-3 text-xs leading-5'
+                  style={{ color: C.muted, borderColor: C.border }}
+                >
+                  {isZh
+                    ? KIMI_K3_MEASURED_USAGE_DISCLAIMER.zh
+                    : KIMI_K3_MEASURED_USAGE_DISCLAIMER.en}
+                </p>
+              </EvidenceCard>
+            </div>
+            <p
+              className='mx-auto mt-8 max-w-3xl text-center text-xs leading-5'
+              style={{ color: C.muted }}
+            >
+              {isZh
+                ? KIMI_K3_VERIFICATION_SCOPE.zh
+                : KIMI_K3_VERIFICATION_SCOPE.en}
+            </p>
+            <div className='mt-8 flex flex-wrap justify-center gap-3'>
+              <PrimaryLink href={destination} onClick={go('kimi_k3_evidence')}>
+                {text.evidenceRunPlayground}
+              </PrimaryLink>
+              <a
+                href={KIMI_K3_EVIDENCE_STARTER_REPO}
+                target='_blank'
+                rel='noopener noreferrer'
+                onClick={() =>
+                  trackEvent('developer_resource_clicked', {
+                    resource: 'starter_repo',
+                    location: 'evidence',
+                  })
+                }
+                className='inline-flex min-h-[42px] items-center justify-center rounded-[10px] border px-[18px] font-semibold no-underline'
+                style={{ color: C.strong, borderColor: C.border }}
+              >
+                {text.evidenceViewStarter}
+              </a>
+            </div>
           </div>
         </section>
 

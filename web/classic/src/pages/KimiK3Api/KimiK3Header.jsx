@@ -155,6 +155,7 @@ const KimiK3Header = ({ labels }) => {
             {[
               { href: '#quickstart', label: labels.quickstartLink },
               { href: '#agents', label: labels.agents },
+              { href: '#evidence', label: labels.evidenceNav },
               {
                 href: 'https://vancine.com/docs',
                 label: labels.docs,

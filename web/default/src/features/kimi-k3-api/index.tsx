@@ -27,10 +27,16 @@ import { LanguageSwitcher } from '@/components/language-switcher'
 import { Footer } from '@/components/layout/components/footer'
 import { HeaderLogo } from '@/components/layout/components/header-logo'
 import {
+  KIMI_K3_API_COMPATIBILITY_EVIDENCE,
   KIMI_K3_CODE_EXAMPLES,
   KIMI_K3_CTA_EVENT,
   KIMI_K3_CTA_LOCATIONS,
+  KIMI_K3_EVIDENCE_FILE_URL,
+  KIMI_K3_EVIDENCE_STARTER_REPO,
+  KIMI_K3_EVIDENCE_STATUS,
   KIMI_K3_FAQ,
+  KIMI_K3_MEASURED_USAGE_EVIDENCE,
+  KIMI_K3_OPENCODE_AGENT_EVIDENCE,
   KIMI_K3_OPENCODE_CONFIG,
   KIMI_K3_PORTFOLIO,
   KIMI_K3_RESOURCE_EVENT,
@@ -135,6 +141,87 @@ function CopyableCode({ code }: { code: string }) {
   )
 }
 
+interface EvidenceRow {
+  label: string
+  value: string
+}
+
+function EvidenceBadge({
+  tone,
+  label,
+}: {
+  tone: 'verified' | 'measured'
+  label: string
+}) {
+  const toneClass =
+    tone === 'verified'
+      ? 'border-primary/25 bg-primary/10 text-primary'
+      : 'border-border bg-muted text-muted-foreground'
+  const dotClass = tone === 'verified' ? 'bg-primary' : 'bg-muted-foreground/60'
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${toneClass}`}
+    >
+      <span className={`size-1.5 rounded-full ${dotClass}`} aria-hidden='true' />
+      {label}
+    </span>
+  )
+}
+
+function EvidenceFacts({ rows }: { rows: readonly EvidenceRow[] }) {
+  return (
+    <dl className='mt-4'>
+      {rows.map((row) => (
+        <div
+          key={row.label}
+          className='border-border/60 flex items-start justify-between gap-4 border-b border-dashed py-2 last:border-b-0'
+        >
+          <dt className='text-muted-foreground text-sm leading-5'>
+            {row.label}
+          </dt>
+          <dd className='min-w-0 text-right font-mono text-[11px] font-semibold leading-5 break-all sm:text-xs'>
+            {row.value}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  )
+}
+
+function EvidencePanel({
+  title,
+  tone,
+  badgeLabel,
+  rows,
+  note,
+  footer,
+  className = '',
+}: {
+  title: string
+  tone: 'verified' | 'measured'
+  badgeLabel: string
+  rows: readonly EvidenceRow[]
+  note: string
+  footer?: React.ReactNode
+  className?: string
+}) {
+  return (
+    <article
+      className={`border-border bg-background hover:border-primary/40 rounded-xl border p-6 transition-colors ${className}`}
+    >
+      <header className='flex flex-wrap items-center justify-between gap-3'>
+        <h3 className='text-lg font-semibold'>{title}</h3>
+        <EvidenceBadge tone={tone} label={badgeLabel} />
+      </header>
+      <EvidenceFacts rows={rows} />
+      {footer}
+      <p className='border-border/60 text-muted-foreground mt-4 border-t pt-4 text-xs leading-relaxed'>
+        {note}
+      </p>
+    </article>
+  )
+}
+
 export function KimiK3Api() {
   const { t, i18n } = useTranslation()
   const { auth } = useAuthStore()
@@ -146,6 +233,66 @@ export function KimiK3Api() {
   const activeCode =
     KIMI_K3_CODE_EXAMPLES.find((example) => example.id === activeExample) ??
     KIMI_K3_CODE_EXAMPLES[0]
+
+  const compatibility = KIMI_K3_API_COMPATIBILITY_EVIDENCE
+  const agent = KIMI_K3_OPENCODE_AGENT_EVIDENCE
+  const telemetry = agent.telemetryTokens
+  const usage = KIMI_K3_MEASURED_USAGE_EVIDENCE
+
+  const compatibilityRows: readonly EvidenceRow[] = [
+    {
+      label: t('temperature:0 probe accepted'),
+      value: `HTTP ${compatibility.httpStatus}`,
+    },
+    { label: t('Requested model'), value: compatibility.requestedModel },
+    { label: t('Response model'), value: compatibility.responseModel },
+    {
+      label: t('Usage (prompt / completion / total tokens)'),
+      value: `${compatibility.usagePromptTokens} / ${compatibility.usageCompletionTokens} / ${compatibility.usageTotalTokens}`,
+    },
+    {
+      label: t('Reasoning tokens'),
+      value: `${compatibility.usageReasoningTokens}`,
+    },
+    { label: t('Completion stop reason'), value: compatibility.finishReason },
+  ]
+
+  const agentRows: readonly EvidenceRow[] = [
+    { label: t('Agent client'), value: `${agent.client} ${agent.clientVersion}` },
+    { label: t('Execution environment'), value: agent.executor },
+    {
+      label: t('Model steps completed'),
+      value: `${agent.modelStepsCompleted}`,
+    },
+    {
+      label: t('Tool calls completed (read / edit / bash)'),
+      value: `${agent.toolCalls.read.completed} / ${agent.toolCalls.edit.completed} / ${agent.toolCalls.bash.completed}`,
+    },
+    {
+      label: t('Tool calls failed'),
+      value: `${agent.toolCalls.read.failed + agent.toolCalls.edit.failed + agent.toolCalls.bash.failed}`,
+    },
+    { label: t('Tests'), value: agent.testsPassed ? 'PASS' : 'FAIL' },
+    { label: t('Run duration'), value: `${agent.durationMs} ms` },
+    { label: t('Run ID'), value: agent.runId },
+  ]
+
+  const usageRows: readonly EvidenceRow[] = [
+    {
+      label: t('Agent telemetry tokens (total)'),
+      value: `${telemetry.total}`,
+    },
+    {
+      label: t(
+        'Token breakdown (input / output / reasoning / cache read / cache write)'
+      ),
+      value: `${telemetry.input} / ${telemetry.output} / ${telemetry.reasoning} / ${telemetry.cacheRead} / ${telemetry.cacheWrite}`,
+    },
+    {
+      label: t('Measured Vancine usage'),
+      value: `$${usage.amount.toFixed(2)} ${usage.currency}`,
+    },
+  ]
 
   useEffect(() => {
     const metadata = getKimiK3Metadata(i18n.language)
@@ -240,6 +387,12 @@ export function KimiK3Api() {
               className='text-muted-foreground hover:text-foreground'
             >
               {t('Agent setup')}
+            </a>
+            <a
+              href='#evidence'
+              className='text-muted-foreground hover:text-foreground'
+            >
+              {t('Evidence')}
             </a>
             <a
               href='https://vancine.com/docs'
@@ -407,6 +560,110 @@ export function KimiK3Api() {
                 <li>{t('Select kimi-k3 as the model ID.')}</li>
               </ol>
             </article>
+          </div>
+        </section>
+
+        <section
+          id='evidence'
+          data-evidence-status={KIMI_K3_EVIDENCE_STATUS}
+          className='border-border/40 border-t px-4 py-18 md:px-6'
+        >
+          <div className='mx-auto max-w-6xl'>
+            <div className='mx-auto max-w-3xl text-center'>
+              <h2 className='text-3xl font-bold'>
+                {t('Live verification evidence')}
+              </h2>
+              <p className='text-muted-foreground mt-4 leading-relaxed'>
+                {t(
+                  'Three recorded checks against the real kimi-k3 model through the Vancine endpoint: API compatibility, a completed OpenCode coding-agent run, and the measured usage of that run.'
+                )}
+              </p>
+            </div>
+            <div className='mt-10 grid gap-4 lg:grid-cols-5'>
+              <EvidencePanel
+                className='lg:col-span-3'
+                title={t('OpenCode coding agent')}
+                tone='verified'
+                badgeLabel={t('Verified')}
+                rows={agentRows}
+                footer={
+                  <a
+                    href={KIMI_K3_EVIDENCE_FILE_URL}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='text-primary mt-4 inline-block text-sm font-medium hover:underline'
+                    onClick={() =>
+                      trackEvent(KIMI_K3_RESOURCE_EVENT, {
+                        resource: KIMI_K3_RESOURCE_VALUES[2],
+                        location: KIMI_K3_RESOURCE_LOCATIONS[3],
+                      })
+                    }
+                  >
+                    {t('View public evidence file')}
+                  </a>
+                }
+                note={t(
+                  'Only OpenCode v1.18.3 has a live coding-agent verification so far. Cline and Roo Code configurations are provided in the starter repository but have not been independently live-verified.'
+                )}
+              />
+              <div className='flex flex-col gap-4 lg:col-span-2'>
+                <EvidencePanel
+                  title={t('API compatibility')}
+                  tone='verified'
+                  badgeLabel={t('Verified')}
+                  rows={compatibilityRows}
+                  note={t(
+                    'The probe used a 16-token completion budget that was mostly consumed by reasoning, so its visible content is inconclusive. This small reasoning-heavy response is not a content-generation failure.'
+                  )}
+                />
+                <EvidencePanel
+                  title={t('Measured usage')}
+                  tone='measured'
+                  badgeLabel={t('Measured')}
+                  rows={usageRows}
+                  note={t(
+                    'This controlled OpenCode verification run incurred $0.19 in measured Vancine usage for one controlled task only. Pricing and token usage vary by task, and this result does not guarantee that $1 credit will complete another coding-agent run.'
+                  )}
+                />
+              </div>
+            </div>
+            <div className='mt-10 flex flex-wrap justify-center gap-3'>
+              <Button
+                size='lg'
+                render={<Link to={destination} />}
+                onClick={() =>
+                  trackEvent(KIMI_K3_CTA_EVENT, {
+                    location: KIMI_K3_CTA_LOCATIONS[2],
+                  })
+                }
+              >
+                {t('Run K3 in Playground')}
+              </Button>
+              <Button
+                variant='outline'
+                size='lg'
+                render={
+                  <a
+                    href={KIMI_K3_EVIDENCE_STARTER_REPO}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                  />
+                }
+                onClick={() =>
+                  trackEvent(KIMI_K3_RESOURCE_EVENT, {
+                    resource: KIMI_K3_RESOURCE_VALUES[2],
+                    location: KIMI_K3_RESOURCE_LOCATIONS[3],
+                  })
+                }
+              >
+                {t('View starter repository')}
+              </Button>
+            </div>
+            <p className='text-muted-foreground mx-auto mt-6 max-w-2xl text-center text-xs leading-relaxed'>
+              {t(
+                'Vancine is an independent third-party API aggregation platform, not an official Moonshot AI or Kimi service.'
+              )}
+            </p>
           </div>
         </section>
 

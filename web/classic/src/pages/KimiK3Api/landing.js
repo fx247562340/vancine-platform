@@ -152,3 +152,97 @@ export const KIMI_K3_PORTFOLIO = Object.freeze([
   'Qwen 3.7',
   'MiniMax',
 ]);
+
+/**
+ * Evidence section status. Live verification against the real Kimi K3 model
+ * has been completed: an OpenAI-compatible API probe (HTTP 200 with
+ * temperature:0) and one completed OpenCode v1.18.3 coding-agent run. The
+ * page renders three evidence sections — API compatibility, OpenCode agent,
+ * and measured usage — using only the values recorded below.
+ *
+ * Only OpenCode has a live coding-agent verification; Cline and Roo Code
+ * configs are available but NOT independently live verified, and the copy
+ * must never expand the claim to "all coding agents verified". Do NOT use an
+ * agent event cost of 0 as a price, and do NOT show upstream/Kimi costs.
+ *
+ * KIMI_K3_EVIDENCE_STARTER_REPO is the public starter repository. The internal
+ * verification kit is deliberately not linked from the public page.
+ */
+export const KIMI_K3_EVIDENCE_STATUS = 'verified';
+
+export const KIMI_K3_EVIDENCE_STARTER_REPO =
+  'https://github.com/VancineAI/kimi-k3-api-starter';
+
+export const KIMI_K3_EVIDENCE_URL =
+  'https://github.com/VancineAI/kimi-k3-api-starter/blob/main/results/opencode-agent.verified.json?utm_source=vancine&utm_medium=developer_resource&utm_campaign=kimi_k3_launch&utm_content=opencode_verified_evidence';
+
+/**
+ * Live API compatibility probe against the real kimi-k3 model. The 16-token
+ * budget was mostly consumed by reasoning, so visible content is recorded as
+ * inconclusive — this must NOT be described as a content-generation failure.
+ */
+export const KIMI_K3_API_COMPATIBILITY = Object.freeze({
+  status: 'verified',
+  temperature: 0,
+  httpStatus: 200,
+  requestedModel: 'kimi-k3',
+  responseModel: 'kimi-k3',
+  maxTokens: 16,
+  usage: Object.freeze({
+    prompt: 92,
+    completion: 16,
+    total: 108,
+    reasoning: 13,
+  }),
+  finishReason: 'length',
+  visibleContent: 'inconclusive',
+});
+
+/**
+ * Live OpenCode coding-agent verification (real kimi-k3, run completed).
+ * Public evidence artifact: results/opencode-agent.verified.json in the
+ * starter repository (KIMI_K3_EVIDENCE_URL).
+ */
+export const KIMI_K3_OPENCODE_VERIFICATION = Object.freeze({
+  status: 'verified',
+  client: 'OpenCode',
+  clientVersion: '1.18.3',
+  model: 'kimi-k3',
+  runStatus: 'completed',
+  durationMs: 84345,
+  rounds: 1,
+  modelSteps: 6,
+  toolCalls: Object.freeze({
+    read: Object.freeze({ completed: 5, failed: 0 }),
+    edit: Object.freeze({ completed: 1, failed: 0 }),
+    bash: Object.freeze({ completed: 1, failed: 0 }),
+  }),
+  testsPassed: true,
+  sourceModified: 'src/leap-year.js',
+  testFileModified: false,
+  unexpectedFiles: 0,
+  exitStatus: 0,
+  runId: 'e52f78b7-0bfa-430f-b8b0-1ad813ea0695',
+});
+
+/**
+ * Operator-verified console record for the single controlled OpenCode run
+ * above. Amount is Vancine-measured usage only — never an upstream cost.
+ */
+export const KIMI_K3_MEASURED_USAGE = Object.freeze({
+  agentTelemetryTokens: 28707,
+  amount: 0.19,
+  currency: 'USD',
+});
+
+export const KIMI_K3_MEASURED_USAGE_DISCLAIMER = Object.freeze({
+  en: 'This controlled OpenCode verification run incurred $0.19 in measured Vancine usage. Pricing and token usage vary by task, and this result does not guarantee that $1 credit will complete another coding-agent run.',
+  zh: '本次受控 OpenCode 验证在 Vancine 产生了 0.19 美元的实测用量。价格和 Token 消耗会随任务变化，该结果不保证 1 美元额度能够完成另一次编程 Agent 任务。',
+});
+
+export const KIMI_K3_VERIFICATION_SCOPE = Object.freeze({
+  liveVerifiedAgents: Object.freeze(['OpenCode']),
+  configOnlyAgents: Object.freeze(['Cline', 'Roo Code']),
+  en: 'Only OpenCode v1.18.3 has a live coding-agent verification. Cline and Roo Code configurations are available but have not been independently live verified. Vancine is a third-party API aggregation platform, not the official Moonshot/Kimi API service.',
+  zh: '目前仅 OpenCode v1.18.3 完成了实测编程 Agent 验证。Cline 与 Roo Code 配置可用，但尚未经过独立实测验证。Vancine 是第三方 API 聚合平台，并非 Moonshot/Kimi 官方服务。',
+});

@@ -20,6 +20,7 @@ export const KIMI_K3_CTA_EVENT = 'get_started_clicked'
 export const KIMI_K3_CTA_LOCATIONS = Object.freeze([
   'kimi_k3_hero',
   'kimi_k3_quickstart',
+  'kimi_k3_evidence',
   'kimi_k3_final_cta',
 ] as const)
 
@@ -27,11 +28,13 @@ export const KIMI_K3_RESOURCE_EVENT = 'developer_resource_clicked'
 export const KIMI_K3_RESOURCE_VALUES = Object.freeze([
   'docs',
   'pricing',
+  'starter_repo',
 ] as const)
 export const KIMI_K3_RESOURCE_LOCATIONS = Object.freeze([
   'header',
   'quickstart',
   'faq',
+  'evidence',
 ] as const)
 
 export const KIMI_K3_CANONICAL = 'https://vancine.com/kimi-k3-api'
@@ -194,6 +197,151 @@ export const KIMI_K3_PORTFOLIO = Object.freeze([
   'Qwen 3.7',
   'MiniMax',
 ])
+
+/**
+ * Evidence section status. Live verification HAS been completed against the
+ * real kimi-k3 model through the Vancine endpoint:
+ *
+ * 1. API compatibility probe (temperature:0) — HTTP 200, requested and
+ *    response model kimi-k3. The probe used a 16-token completion budget that
+ *    was mostly consumed by reasoning, so visible content is inconclusive;
+ *    this is NOT a content-generation failure.
+ * 2. OpenCode v1.18.3 coding-agent run — completed with 6 model steps,
+ *    read/edit/bash tool calls, passing tests, and no provider errors. This
+ *    is the only live coding-agent verification; Cline and Roo Code configs
+ *    are provided but have not been independently live verified.
+ * 3. Measured usage for that single controlled run — 28707 agent telemetry
+ *    tokens and $0.19 USD measured Vancine usage. This figure is
+ *    task-specific: pricing and token usage vary, and it does NOT guarantee
+ *    that $1 credit completes another run. Upstream provider costs are
+ *    deliberately never displayed.
+ *
+ * KIMI_K3_EVIDENCE_STARTER_REPO is the public starter repository;
+ * KIMI_K3_EVIDENCE_FILE_URL is the public agent-verification artifact inside
+ * that repository (with attribution parameters). The internal ops kit is
+ * deliberately not linked.
+ */
+export const KIMI_K3_EVIDENCE_STATUS = 'verified' as const
+
+export const KIMI_K3_EVIDENCE_STARTER_REPO =
+  'https://github.com/VancineAI/kimi-k3-api-starter'
+
+export const KIMI_K3_EVIDENCE_FILE_URL =
+  'https://github.com/VancineAI/kimi-k3-api-starter/blob/main/results/opencode-agent.verified.json?utm_source=vancine&utm_medium=developer_resource&utm_campaign=kimi_k3_launch&utm_content=opencode_verified_evidence'
+
+export interface KimiK3ApiCompatibilityEvidence {
+  readonly status: 'passed'
+  readonly visibleContentStatus: 'inconclusive'
+  readonly requestTemperature: number
+  readonly requestMaxTokens: number
+  readonly httpStatus: number
+  readonly requestedModel: string
+  readonly responseModel: string
+  readonly usagePromptTokens: number
+  readonly usageCompletionTokens: number
+  readonly usageTotalTokens: number
+  readonly usageReasoningTokens: number
+  readonly finishReason: string
+}
+
+export const KIMI_K3_API_COMPATIBILITY_EVIDENCE: KimiK3ApiCompatibilityEvidence =
+  Object.freeze({
+    status: 'passed',
+    visibleContentStatus: 'inconclusive',
+    requestTemperature: 0,
+    requestMaxTokens: 16,
+    httpStatus: 200,
+    requestedModel: 'kimi-k3',
+    responseModel: 'kimi-k3',
+    usagePromptTokens: 92,
+    usageCompletionTokens: 16,
+    usageTotalTokens: 108,
+    usageReasoningTokens: 13,
+    finishReason: 'length',
+  } as const)
+
+export interface KimiK3AgentToolCallStats {
+  readonly completed: number
+  readonly failed: number
+}
+
+export interface KimiK3AgentTelemetryTokens {
+  readonly total: number
+  readonly input: number
+  readonly output: number
+  readonly reasoning: number
+  readonly cacheRead: number
+  readonly cacheWrite: number
+}
+
+export interface KimiK3OpenCodeAgentEvidence {
+  readonly status: 'verified'
+  readonly client: string
+  readonly clientVersion: string
+  readonly model: string
+  readonly executor: string
+  readonly runStatus: 'completed'
+  readonly durationMs: number
+  readonly rounds: number
+  readonly modelStepsCompleted: number
+  readonly toolCalls: {
+    readonly read: KimiK3AgentToolCallStats
+    readonly edit: KimiK3AgentToolCallStats
+    readonly bash: KimiK3AgentToolCallStats
+  }
+  readonly testsPassed: true
+  readonly sourceFileModified: string
+  readonly testFileModified: false
+  readonly unexpectedFiles: number
+  readonly exitStatus: number
+  readonly telemetryTokens: KimiK3AgentTelemetryTokens
+  readonly runId: string
+}
+
+export const KIMI_K3_OPENCODE_AGENT_EVIDENCE: KimiK3OpenCodeAgentEvidence =
+  Object.freeze({
+    status: 'verified',
+    client: 'OpenCode',
+    clientVersion: 'v1.18.3',
+    model: 'kimi-k3',
+    executor: 'Docker Linux ARM64',
+    runStatus: 'completed',
+    durationMs: 84345,
+    rounds: 1,
+    modelStepsCompleted: 6,
+    toolCalls: Object.freeze({
+      read: Object.freeze({ completed: 5, failed: 0 } as const),
+      edit: Object.freeze({ completed: 1, failed: 0 } as const),
+      bash: Object.freeze({ completed: 1, failed: 0 } as const),
+    }),
+    testsPassed: true,
+    sourceFileModified: 'src/leap-year.js',
+    testFileModified: false,
+    unexpectedFiles: 0,
+    exitStatus: 0,
+    telemetryTokens: Object.freeze({
+      total: 28707,
+      input: 3746,
+      output: 1019,
+      reasoning: 902,
+      cacheRead: 23040,
+      cacheWrite: 0,
+    } as const),
+    runId: 'e52f78b7-0bfa-430f-b8b0-1ad813ea0695',
+  } as const)
+
+export interface KimiK3MeasuredUsageEvidence {
+  readonly scope: 'one_controlled_task'
+  readonly amount: number
+  readonly currency: 'USD'
+}
+
+export const KIMI_K3_MEASURED_USAGE_EVIDENCE: KimiK3MeasuredUsageEvidence =
+  Object.freeze({
+    scope: 'one_controlled_task',
+    amount: 0.19,
+    currency: 'USD',
+  } as const)
 
 export const KIMI_K3_FAQ = Object.freeze([
   {
