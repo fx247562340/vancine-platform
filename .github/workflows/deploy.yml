@@ -1,35 +1,115 @@
 name: Deploy to Production
 
+# Manual dispatch only. A push to main must never deploy.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+    inputs:
+      deploy_sha:
+        description: Full 40-character commit SHA from main
+        required: true
+        type: string
+      reason:
+        description: Non-secret release note (max 200 chars, printable ASCII only)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vancine-production
+  cancel-in-progress: false
 
 jobs:
   deploy:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: production
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Pull latest changes
-        run: git pull origin main
-
-      - name: Build and restart services
-        run: docker compose up -d --build
-
-      - name: Wait for services to start
-        run: sleep 10
-
-      - name: Health check
+      - name: Validate deployment SHA
+        id: validate
+        env:
+          # inputs.* appear ONLY in this step env block. The run block below
+          # reads only env vars, never ${{ inputs.* }} directly, so a crafted
+          # dispatch payload cannot inject shell syntax via the input value.
+          RAW_SHA: ${{ inputs.deploy_sha }}
+          RAW_REASON: ${{ inputs.reason }}
         run: |
-          curl -f http://localhost:3000/api/status || exit 1
-          echo "Health check passed"
+          set -euo pipefail
+          # Strict SHA validation as ONE whole-string bash regex test. This
+          # rejects a trailing LF/CR, a second line, or any GITHUB_OUTPUT
+          # injection because =~ anchors the ENTIRE variable value.
+          sha_re='^[0-9a-f]{40}$'
+          if [[ ! "$RAW_SHA" =~ $sha_re ]]; then
+            echo "::error::deploy_sha must be exactly 40 lowercase hex characters"
+            exit 1
+          fi
+          # Reject embedded newlines/carriage returns explicitly (defense in
+          # depth against multi-line input that could split the value).
+          case "$RAW_SHA" in
+            *$'\n'*|*$'\r'*) echo "::error::deploy_sha contains a newline"; exit 1 ;;
+          esac
+          echo "sha=$RAW_SHA" >> "$GITHUB_OUTPUT"
+          echo "Deploying SHA: $RAW_SHA"
 
-      - name: Notify deployment
-        if: success()
-        run: echo "✅ Deployment successful at $(date)"
+          # Reason validation: reject control characters and cap length.
+          if [ -n "$RAW_REASON" ]; then
+            len="${#RAW_REASON}"
+            if [ "$len" -gt 200 ]; then
+              echo "::error::reason must be at most 200 characters (got $len)"
+              exit 1
+            fi
+            # Reject any non-printable or control character (ASCII 0x00-0x1F, 0x7F).
+            if printf '%s' "$RAW_REASON" | grep -qP '[\x00-\x1F\x7F]'; then
+              echo "::error::reason contains control characters"
+              exit 1
+            fi
+            echo "Reason: $RAW_REASON"
+          fi
 
-      - name: Notify failure
-        if: failure()
-        run: echo "❌ Deployment failed at $(date)"
+      - name: Dispatch production deployment over SSH
+        env:
+          PRODUCTION_SSH_HOST: ${{ secrets.PRODUCTION_SSH_HOST }}
+          PRODUCTION_SSH_PRIVATE_KEY: ${{ secrets.PRODUCTION_SSH_PRIVATE_KEY }}
+          PRODUCTION_SSH_KNOWN_HOSTS: ${{ secrets.PRODUCTION_SSH_KNOWN_HOSTS }}
+          TARGET_SHA: ${{ steps.validate.outputs.sha }}
+        run: |
+          set -euo pipefail
+          # The SSH account is fixed to the dedicated non-root deploy user.
+          # It is NOT read from a secret so a misconfigured secret can never
+          # silently switch the login to root.
+          ssh_user="vancine-deploy"
+
+          # Pinned known-hosts only; keys are never discovered dynamically.
+          known_hosts="$RUNNER_TEMP/known_hosts"
+          printf '%s\n' "$PRODUCTION_SSH_KNOWN_HOSTS" > "$known_hosts"
+          chmod 600 "$known_hosts"
+
+          # Start a fresh ssh-agent and load only the deployment key over
+          # stdin. Since the agent only holds this one key, ssh will use it
+          # for the connection without any extra identity filtering.
+          eval "$(ssh-agent -s)"
+          printf '%s\n' "$PRODUCTION_SSH_PRIVATE_KEY" | ssh-add -
+
+          # Single strict, non-interactive SSH invocation. The server-side
+          # forced command accepts only `deploy <SHA>`.
+          ssh -o BatchMode=yes \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile="$known_hosts" \
+              -p 22 \
+              "$ssh_user@$PRODUCTION_SSH_HOST" "deploy $TARGET_SHA"
+
+          # Verify the public endpoint. The response body is consumed only by
+          # grep and is never printed or logged.
+          for _ in $(seq 1 30); do
+            body=$(curl -fsS --max-time 10 https://vancine.com/api/status 2>/dev/null) || true
+            if printf '%s' "$body" | grep -q '"success":[[:space:]]*true'; then
+              echo "Public health check passed"
+              unset body
+              exit 0
+            fi
+            unset body
+            sleep 5
+          done
+          echo "::error::public health check failed"
+          exit 1

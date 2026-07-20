@@ -8,10 +8,9 @@ The current version is tracked in the root `VERSION` file.
 
 ```bash
 cat VERSION
-# 1.0.6
 ```
 
-The application exposes this version through `/api/status` as `version: "v1.0.7"`.
+The application exposes this version through `/api/status` as `version: "v<VERSION>"`.
 
 ## Version policy
 
@@ -96,19 +95,26 @@ Before deploying:
 
 ## Deploy
 
-Deploy from the local checkout:
+Deploy an exact full 40-character commit SHA through the restricted deploy
+account. A push to `main` never deploys.
+
+From the local checkout:
 
 ```bash
-./deploy.sh
+./deploy.sh <40-character-commit-SHA>
 ```
 
-Or commit tracked changes and deploy in one step:
+Or dispatch the GitHub `Deploy to Production` workflow with the `deploy_sha`
+input. The client validates the SHA, confirms it is reachable from
+`origin/main`, then requests exactly one `deploy <SHA>` over strict SSH to the
+`vancine-deploy` account. It never commits, pushes, resets, builds, restarts,
+cleans, or logs in as root.
 
-```bash
-./deploy.sh "release: v1.0.5"
-```
-
-The script deploys `origin/main` to `27.124.22.102` and builds the Docker image on the server.
+The root-owned production orchestrator then runs the predeploy backup, builds
+the immutable image `vancine-custom:<version>-<sha12>`, replaces only the
+`vancine` container, verifies health, and rolls back the application
+automatically on failure. See [`ops/deploy/README.md`](../ops/deploy/README.md)
+for the full transaction and audit commands.
 
 ## Post-release verification
 
@@ -116,8 +122,9 @@ Run:
 
 ```bash
 curl -s https://vancine.com/api/status
-ssh root@27.124.22.102 'cd /opt/vancine-platform && docker compose ps'
-ssh root@27.124.22.102 'docker logs vancine --tail 80'
+ssh root@27.124.22.102 'cat /var/lib/vancine-deploy/state.json'
+ssh root@27.124.22.102 'docker inspect -f "{{.Config.Image}}" vancine'
+ssh root@27.124.22.102 'docker inspect -f "{{.Id}} {{.State.StartedAt}}" postgres redis'
 ```
 
 Expected status fields:
@@ -128,26 +135,32 @@ Expected status fields:
   "setup": true,
   "system_name": "Vancine",
   "server_address": "https://vancine.com",
-  "version": "v1.0.7"
+  "version": "v<VERSION>"
 }
 ```
 
-For a new release, replace `v1.0.7` with the value from `VERSION`.
+For a new release, replace `v<VERSION>` with the actual value from `VERSION`. Confirm
+PostgreSQL and Redis container IDs and `StartedAt` are unchanged by the
+release.
 
 ## Rollback
 
-Preferred rollback is forward-fix and redeploy from GitHub. If the new build is bad but the server is healthy:
+Application rollback is automatic and application-only. When a new release
+fails its health gates after replacement, the orchestrator restores the prior
+code SHA, recreates only `vancine` from the prior image, re-verifies health,
+and exits non-zero (`ROLLBACK_OK` or `ROLLBACK_FAILED`). It never restores or
+restarts PostgreSQL or Redis, and never deletes images, backups, containers,
+volumes, or worktrees.
 
-```bash
-ssh root@27.124.22.102
-cd /opt/vancine-platform
-git log --oneline -5
-git reset --hard <previous-good-commit>
-docker compose build vancine
-docker compose up -d
-```
+Prefer fixing forward and redeploying an exact SHA. Do not run
+`git reset --hard`, whole-stack restart, or image deletion as a manual
+rollback; the orchestrator handles application rollback safely. Database
+restore is a separate, explicit, human-approved procedure (see
+[`ops/backup/README.md`](../ops/backup/README.md)).
 
-Emergency rollback to the old Japan server is only available while `64.83.35.21` is retained as cold backup. See [Deployment Reference](deployment.md#rollback).
+Emergency DNS-based rollback to the old Japan server is only available while
+`64.83.35.21` is retained as cold backup. See
+[Deployment Reference](deployment.md#rollback).
 
 ## Notes on npm and lockfiles
 

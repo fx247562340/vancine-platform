@@ -27,10 +27,10 @@ The current version is stored in the repository root:
 cat VERSION
 ```
 
-Current value:
+Current value (see the `VERSION` file):
 
 ```text
-1.0.7
+$(cat VERSION)
 ```
 
 The Docker build passes this value into the Go binary:
@@ -39,13 +39,13 @@ The Docker build passes this value into the Go binary:
 -X 'github.com/QuantumNous/new-api/common.Version=$(cat VERSION)'
 ```
 
-⚠️ **Important**: `docker-compose.yml` also sets a `VERSION` environment variable on the container (`- VERSION=vX.Y.Z`). At runtime `common/init.go` reads this env var and **overrides** the binary-embedded version. So both must be kept in sync, or the banner / `/api/status` will show a stale version.
+⚠️ **Important**: `docker-compose.yml` exposes the runtime version through the `APP_VERSION` environment variable (`VERSION=${APP_VERSION:-}`). At runtime `common/init.go` reads this env var and **overrides** the binary-embedded version. The production orchestrator always exports `APP_VERSION=v<VERSION>` so the banner / `/api/status` show the deployed version. For local use the variable defaults to empty and the Dockerfile-embedded version remains the source of truth.
 
 Release rule:
 
-1. Update `VERSION` (root file) **and** the `VERSION` env var in `docker-compose.yml` to the same value before a release.
-2. Commit both version changes with the release changes.
-3. Deploy from `origin/main` on the production server.
+1. Update `VERSION` (root file) before a release.
+2. Commit the version change with the release changes.
+3. Deploy an exact full 40-character SHA through the restricted deploy account (see [Release Process](release-process.md)).
 4. Verify `/api/status` returns the expected version.
 
 ## Development-to-release workflow
@@ -97,56 +97,61 @@ http://127.0.0.1:3000
 
 The user verifies behavior against this local Docker instance. If changes are needed, repeat local build/start and verification before committing.
 
-Stop local services when done:
+⚠️ **Stopping or removing local services, containers, networks, volumes, or
+images must receive explicit approval before execution.** Do not run
+`docker compose down`, `docker compose down -v`, `docker volume rm`,
+`docker system prune`, or similar destructive commands without prior sign-off.
+Leave the local stack running until the user confirms verification is complete.
+
+## Production deployment (exact-SHA, application-only)
+
+Production releases are triggered by an exact 40-character commit SHA, never by
+a push. There is one authoritative root-owned orchestrator; GitHub Actions and
+the local `deploy.sh` are thin clients that send the SHA through the restricted
+`vancine-deploy` SSH account. See [`ops/deploy/README.md`](../ops/deploy/README.md)
+for the full component map, bootstrap, and audit commands.
+
+Deploy a specific commit from the local checkout:
 
 ```bash
-docker compose down
+./deploy.sh <40-character-commit-SHA>
 ```
 
-Reset local test data when needed:
+Or dispatch the GitHub `Deploy to Production` workflow with the `deploy_sha`
+input. The client validates the SHA, confirms it is reachable from
+`origin/main`, then requests exactly one `deploy <SHA>` over strict SSH. It
+never commits, pushes, resets, builds, restarts, cleans, or logs in as root.
 
-```bash
-docker compose down -v
-```
-
-
-
-```bash
-cd /Users/xin/ClaudeProject/vancine-platform
-./deploy.sh
-```
-
-The script deploys the current `origin/main` to `27.124.22.102`. If local `HEAD` is not pushed, the script stops before touching production.
-
-To commit tracked local changes and deploy in one command:
-
-```bash
-./deploy.sh "release: short description"
-```
-
-The script stages only tracked files with `git add -u`. It refuses to commit `.env`, keys, PEM files, or files whose names include `secret` or `password`.
-
-## What the deploy script does
+## What the production orchestrator does
 
 ```text
-local git status
+acquire non-blocking deploy lock
   ↓
-optional commit + push
+validate SHA syntax + reachability from origin/main
   ↓
-ssh root@27.124.22.102
+validate target VERSION; reject a numeric downgrade (equal allowed)
   ↓
-git fetch origin main
+run ops/backup/postgres-backup.sh predeploy   (fail closed)
   ↓
-git reset --hard origin/main
+record prior SHA + image tag + rollback tag
   ↓
-docker compose build vancine
+git checkout --detach <SHA>   (no reset --hard, no clean)
   ↓
-docker tag vancine-custom:latest vancine-custom:<VERSION>
+docker compose build vancine   (immutable image, running container untouched)
   ↓
-docker compose up -d
+docker compose up -d --no-deps --force-recreate vancine   (only the app)
   ↓
-local and HTTPS health checks
+wait for Docker health; require success=true + exact version (internal + public)
+  ↓
+confirm running container uses the expected image
+  ↓
+atomically publish successful state
 ```
+
+On any failure after application replacement, the orchestrator performs exactly
+one application rollback (restore prior code SHA, recreate only `vancine` from
+the prior image, re-verify health) and exits non-zero. PostgreSQL, Redis,
+volumes, images, backups, and worktrees are never touched.
 
 ## Server-side compose override
 
@@ -191,7 +196,7 @@ Expected fields:
   "setup": true,
   "system_name": "Vancine",
   "server_address": "https://vancine.com",
-  "version": "v1.0.7"
+  "version": "v<VERSION>"
 }
 ```
 
@@ -246,13 +251,18 @@ installation, timer verification, and recovery procedures.
 
 ## Rollback
 
-Rollback to the old server is only for emergencies while `64.83.35.21` is retained.
+Application rollback is automatic: when a new release fails its health gates
+after replacement, the orchestrator restores the prior code SHA and recreates
+only the `vancine` container from the prior image, then re-verifies health.
+It prints `ROLLBACK_OK` or `ROLLBACK_FAILED` and exits non-zero either way.
 
-1. Change DNS records back to `64.83.35.21`.
-2. Start the old app container:
+Rollback **never** restores or restarts PostgreSQL or Redis, and never deletes
+images, backups, files, directories, containers, volumes, or worktrees.
+Database restore is always a separate, explicit, human-approved procedure (see
+[`ops/backup/README.md`](../ops/backup/README.md)).
 
-   ```bash
-   ssh root@64.83.35.21 'cd /opt/vancine-platform && docker compose up -d vancine'
-   ```
-
-Data written on the new server after migration will not exist on the old server. Prefer fixing forward on `27.124.22.102` unless the new server is unavailable.
+The old Japan server `64.83.35.21` is retained only as a temporary cold
+backup. DNS-based rollback to it is an emergency option only when the Hong
+Kong server is unavailable, not the normal application rollback path. Data
+written on the new server after migration will not exist on the old server.
+Prefer fixing forward on `27.124.22.102`.

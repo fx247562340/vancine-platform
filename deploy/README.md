@@ -23,10 +23,10 @@ The previous Japan server `64.83.35.21` is now only a short-term cold backup. It
 
 The current application version is stored in the root [`VERSION`](../VERSION) file.
 
-Current version:
+Current version (see the `VERSION` file):
 
 ```text
-1.0.6
+$(cat VERSION)
 ```
 
 The Docker build injects this value into the Go binary with:
@@ -39,29 +39,32 @@ Before a release, update `VERSION` in a dedicated commit or as part of the relea
 
 ## Standard deploy process
 
-The standard production deploy happens on the production server. Do not build locally and copy a binary unless the production server is unavailable.
+Production releases are triggered by an exact 40-character commit SHA, never
+by a push. The local `deploy.sh` and the GitHub `Deploy to Production` workflow
+are thin clients that send the SHA through the restricted `vancine-deploy` SSH
+account. All privileged work happens server-side under the root-owned
+orchestrator. See [`ops/deploy/README.md`](../ops/deploy/README.md) for the
+full component map, bootstrap, and audit commands.
+
+Deploy a specific commit from the local checkout:
 
 ```bash
 cd /Users/xin/ClaudeProject/vancine-platform
-./deploy.sh
-```
-
-If you want the script to commit tracked local changes first:
-
-```bash
-./deploy.sh "release: describe the change"
+./deploy.sh <40-character-commit-SHA>
 ```
 
 What `deploy.sh` does:
 
-1. Confirms local `HEAD` matches `origin/main` unless a commit message is provided.
-2. SSHes to `root@27.124.22.102`.
-3. Runs `git fetch origin main` and `git reset --hard origin/main` in `/opt/vancine-platform`.
-4. Builds the image on the server with `docker compose build vancine`.
-5. Tags the image as both `vancine-custom:latest` and `vancine-custom:<VERSION>`.
-6. Restarts the stack with `docker compose up -d`.
-7. Verifies local and HTTPS health checks.
-8. Removes old version tags, keeping the latest three.
+1. Validates the SHA is exactly 40 lowercase hex characters.
+2. Runs `git fetch origin main` (no pruning or ref deletion).
+3. Confirms the commit exists and is an ancestor of `origin/main`.
+4. Sends exactly one `deploy <SHA>` command to `vancine-deploy@27.124.22.102`
+   over strict, non-interactive SSH.
+
+It never commits, pushes, resets, builds, restarts, cleans, deletes images, or
+logs in as root. The server-side orchestrator runs the predeploy backup, builds
+the immutable image, replaces only the `vancine` container, verifies health,
+and rolls back the application automatically on failure.
 
 ## Server-side compose override
 
@@ -116,28 +119,29 @@ The current config:
 
 ## Backup and restore
 
-The production server has `backup.sh` in `/opt/vancine-platform`.
+Production backup is managed by the P0 tooling in [`ops/backup/`](../ops/backup/README.md).
+It runs via systemd timers (not cron):
 
-Expected backup schedule:
-
-```cron
-30 2 * * * /opt/vancine-platform/backup.sh daily >> /opt/vancine-platform/backups/cron.log 2>&1
-30 3 * * 0 /opt/vancine-platform/backup.sh weekly >> /opt/vancine-platform/backups/cron.log 2>&1
+```text
+Daily:  02:30 Asia/Shanghai  (vancine-backup-daily.timer)
+Weekly: Sunday 03:30 Asia/Shanghai  (vancine-backup-weekly.timer)
 ```
 
-Manual PostgreSQL backup:
+The backup script creates PostgreSQL custom archives, validates required
+table data, atomically publishes the dump, and writes a SHA-256 checksum.
+A predeploy backup is also run automatically before every production
+deployment (see [`ops/deploy/README.md`](../ops/deploy/README.md)).
+
+Manual backup:
 
 ```bash
-ssh root@27.124.22.102 'docker exec postgres pg_dump -U root -Fc new-api > /tmp/vancine.dump'
+ssh root@27.124.22.102 'cd /opt/vancine-platform && ops/backup/postgres-backup.sh manual'
 ```
 
-Manual restore into an already running PostgreSQL container:
-
-```bash
-cat /tmp/vancine.dump | docker exec -i postgres pg_restore \
-  -h 127.0.0.1 -U root -d new-api \
-  --clean --if-exists --no-owner --no-acl
-```
+⚠️ **Database restore is always a separate, explicit, human-approved
+procedure.** See [`ops/backup/README.md`](../ops/backup/README.md) for the
+restore drill. The deployment orchestrator never performs or triggers a
+database restore.
 
 ## Health checks
 
@@ -157,20 +161,21 @@ Expected key fields:
   "setup": true,
   "system_name": "Vancine",
   "server_address": "https://vancine.com",
-  "version": "v1.0.6"
+  "version": "v<VERSION>"
 }
 ```
 
 ## Rollback
 
-Short-term rollback to the old Japan server is possible only while the old disk is retained.
+Application rollback is automatic and application-only. When a new release
+fails its health gates after replacement, the server-side orchestrator restores
+the prior code SHA, recreates only the `vancine` container from the prior
+image, re-verifies health, and exits non-zero. It never restores or restarts
+PostgreSQL or Redis, and never deletes images, backups, containers, volumes, or
+worktrees. Database restore is a separate, explicit, human-approved procedure
+(see [`ops/backup/README.md`](../ops/backup/README.md)).
 
-1. Change DNS back to `64.83.35.21`.
-2. On the old server:
-
-   ```bash
-   cd /opt/vancine-platform
-   docker compose up -d vancine
-   ```
-
-Data written to the new Hong Kong server after the DNS switch will not automatically exist on the old server. Treat rollback as an emergency option only.
+Do not run `git reset --hard`, whole-stack restart, or image deletion as a
+manual rollback; redeploy an exact good SHA instead. Emergency DNS-based
+rollback to the old Japan server is only available while `64.83.35.21` is
+retained as cold backup.
