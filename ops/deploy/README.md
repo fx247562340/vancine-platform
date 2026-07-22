@@ -104,6 +104,17 @@ installs the single narrow sudoers rule:
 vancine-deploy ALL=(root) NOPASSWD: /usr/local/sbin/vancine-production-deploy *
 ```
 
+The SSH read-only permission model uses `root:<primary-group>` ownership so
+the deploy user can traverse and read `authorized_keys` but cannot modify it:
+
+| Path | Owner | Mode | Purpose |
+|------|-------|------|---------|
+| `/home/vancine-deploy` | `root:<primary-group>` | `0750` | Deploy user can traverse into `.ssh` |
+| `.ssh` | `root:<primary-group>` | `0750` | Deploy user can list and read |
+| `authorized_keys` | `root:<primary-group>` | `0640` | Deploy user can read, cannot modify |
+| State dir | `root:root` | `0700` | Deploy user never accesses |
+| `state.json` | `root:root` | `0600` | Deploy user never accesses |
+
 Neither the public nor the private key is committed.
 
 ## GitHub production environment

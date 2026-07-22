@@ -758,10 +758,32 @@ test_strict () {
   # --- missing flock tool -> fail closed ---
   case_runner "strict missing flock" 1.0.12 1.0.13
   upgrade=$(UPGRADE_SHA)
-  # Remove the fake flock so require_tools detects it missing.
+  # Shadow the fake flock with a non-executable file so command -v skips it.
   : > "$FAKEBIN/flock"; chmod -x "$FAKEBIN/flock" 2>/dev/null || true
+  # Build a minimal PATH that has bash and python3 but NOT flock. Use symlinks
+  # into a temp dir so no system directory (which may contain the real flock)
+  # is on PATH. This works on both macOS (no flock) and Linux (has flock).
+  MINI_BIN="$STATE_DIR/mini-bin"
+  mkdir -p "$MINI_BIN"
+  ln -sf "$(which bash)" "$MINI_BIN/bash" 2>/dev/null || true
+  ln -sf "$(which python3)" "$MINI_BIN/python3" 2>/dev/null || true
+  # Also link sh since bash may exec via /bin/sh
+  ln -sf /bin/sh "$MINI_BIN/sh" 2>/dev/null || true
+  MISSING_FLOCK_PATH="$FAKEBIN:$MINI_BIN"
   STATUS_VERSION="v1.0.13"; STATUS_SUCCESS=1
-  RUN "$upgrade"; echo "$RUN_OUTPUT" | grep -q "DEPLOY_FAILED" && pass "missing flock => DEPLOY_FAILED" || fail "missing flock (exit=$RUN_EXIT out=$RUN_OUTPUT)"
+  RUN_EXIT=0
+  RUN_OUTPUT=$(VANCINE_DEPLOY_TEST_MODE=1 \
+  VANCINE_DEPLOY_REPO="$REPO" \
+  VANCINE_DEPLOY_STATE_DIR="$STATE_DIR" \
+  VANCINE_DEPLOY_LOCK_FILE="$LOCK_FILE" \
+  VANCINE_DEPLOY_BACKUP_SCRIPT="postgres-backup.sh" \
+  VANCINE_DEPLOY_HEALTH_ATTEMPTS=2 \
+  VANCINE_DEPLOY_HEALTH_INTERVAL=1 \
+  PATH="$MISSING_FLOCK_PATH" \
+  STATUS_VERSION="${STATUS_VERSION:-}" \
+  STATUS_SUCCESS="${STATUS_SUCCESS:-0}" \
+  "$MINI_BIN/bash" "$ORCHESTRATOR" "$upgrade" 2>&1) || RUN_EXIT=$?
+  echo "$RUN_OUTPUT" | grep -q "DEPLOY_FAILED" && pass "missing flock => DEPLOY_FAILED" || fail "missing flock (exit=$RUN_EXIT out=$RUN_OUTPUT)"
 
   # --- checkout restore failure -> explicit DEPLOY_FAILED ---
   # Move the working checkout to base (1.0.12) so deploying the upgrade
@@ -940,6 +962,112 @@ test_state_safety () {
   echo "$RUN_OUTPUT" | grep -q "ROLLBACK_FAILED" && pass "ROLLBACK_FAILED marker asserted" || fail "no ROLLBACK_FAILED (out=$RUN_OUTPUT)"
   [ "$(state_field last_attempt.outcome)" = "ROLLBACK_FAILED" ] && pass "ROLLBACK_FAILED state outcome asserted" || fail "ROLLBACK_FAILED state outcome (got $(state_field last_attempt.outcome))"
   CURL_FAIL_AFTER=""; CURL_COUNT_FILE=""
+
+  # --- rollback cd failure -> ROLLBACK_FAILED, no recursion, state recorded ---
+  # Strategy: The fake docker stub's "up" call (in replace_application)
+  # renames the real REPO directory to a retained backup path. When
+  # rollback_application tries `cd "$DEPLOY_REPO"`, the original path no
+  # longer exists and cd genuinely fails. No production test hooks are used.
+  case_runner "state rollback cd fail" 1.0.12 1.0.13
+  base=$(BASE_SHA); upgrade=$(UPGRADE_SHA)
+  ( cd "$REPO" && git checkout -q --detach "$base" )
+  # Set up a custom docker stub that renames REPO after "up"
+  ROLLBACK_RENO_REPO="$REPO"
+  ROLLBACK_RENO_TARGET="$STATE_DIR/repo-moved-$$_$(date -u +%s 2>/dev/null || echo 0)"
+  cat > "$FAKEBIN/docker" <<DOCKERSTUB
+#!/usr/bin/env bash
+printf '%s\n' "docker \$*" >> "$DOCKER_LOG"
+PREV_ID="sha256:previmageid000000000000000000000000000000000000000000000000000"
+TARGET_ID="sha256:targetimageid000000000000000000000000000000000000000000000000"
+LABELS_FILE="$STATE_DIR/image-labels"
+case "\$1" in
+  compose)
+    sub="\${2:-}"; shift 2 || true
+    case "\$sub" in
+      build)
+        printf 'docker compose build %s\n' "\$*" >> "$DOCKER_LOG"
+        rev=""; ver=""
+        for a in \$*; do
+          case "\$a" in TARGET_SHA=*) rev="\${a#TARGET_SHA=}" ;; TARGET_VERSION=*) ver="\${a#TARGET_VERSION=}" ;;
+          esac
+        done
+        printf 'revision=%s\nversion=%s\n' "\$rev" "\$ver" > "\$LABELS_FILE"
+        exit 0 ;;
+      config) exit 0 ;;
+      up)
+        printf 'docker compose up %s\n' "\$*" >> "$DOCKER_LOG"
+        printf '%s\n' "\${VANCINE_IMAGE_TAG:-}" > "$STATE_DIR/current-image-tag"
+        if [ -n "$ROLLBACK_RENO_REPO" ] && [ -d "$ROLLBACK_RENO_REPO" ]; then
+          mv "$ROLLBACK_RENO_REPO" "$ROLLBACK_RENO_TARGET" 2>/dev/null || true
+        fi
+        exit 0 ;;
+      *) exit 0 ;;
+    esac ;;
+  tag) printf 'docker tag %s %s\n' "\$2" "\$3" >> "$DOCKER_TAG_LOG"; exit 0 ;;
+  image)
+    fmt=""; ref=""; shift; [ "\${1:-}" = "inspect" ] && shift
+    while [ \$# -gt 0 ]; do case "\$1" in -f) fmt="\$2"; shift 2 ;; *) ref="\$1"; shift ;; esac; done
+    case "\$ref" in
+      vancine-custom:rollback-*)
+        if grep -q "docker tag .* \$ref" "$DOCKER_TAG_LOG" 2>/dev/null; then echo "\$PREV_ID"; exit 0; fi
+        exit 1 ;;
+      sha256:previmageid*) echo "\$PREV_ID"; exit 0 ;;
+      *)
+        if [ "\${DOCKER_IMAGE_EXISTS:-0}" = "0" ] && ! grep -q "docker compose build" "$DOCKER_LOG" 2>/dev/null; then exit 1; fi
+        case "\$fmt" in
+          *image.revision*) rev=\$(grep '^revision=' "\$LABELS_FILE" 2>/dev/null | cut -d= -f2-); printf '%s\n' "\${rev:-}"; exit 0 ;;
+          *image.version*) ver=\$(grep '^version=' "\$LABELS_FILE" 2>/dev/null | cut -d= -f2-); printf '%s\n' "\${ver:-}"; exit 0 ;;
+          *) echo "\$TARGET_ID"; exit 0 ;;
+        esac ;;
+    esac ;;
+  inspect)
+    if [ "\${DOCKER_INSPECT_FAIL:-0}" = "1" ]; then exit 1; fi
+    fmt=""
+    while [ \$# -gt 0 ]; do case "\$1" in -f) fmt="\$2"; shift 2 ;; *) shift ;; esac; done
+    case "\$fmt" in
+      *State.Health*) echo "healthy" ;;
+      *Config.Image*) echo "vancine-custom:\${VANCINE_IMAGE_TAG:-test}" ;;
+      *.Image*)
+        if [ "\${DOCKER_NO_PREV_IMAGE:-0}" = "1" ]; then echo ""; else
+          cur_tag=\$(cat "$STATE_DIR/current-image-tag" 2>/dev/null || echo "")
+          case "\$cur_tag" in rollback-*) echo "\$PREV_ID" ;; ?*) echo "\$TARGET_ID" ;; *) echo "\$PREV_ID" ;; esac
+        fi ;;
+      *) echo "healthy" ;;
+    esac; exit 0 ;;
+  *) exit 0 ;;
+esac
+DOCKERSTUB
+  chmod +x "$FAKEBIN/docker"
+  STATUS_VERSION="v1.0.12"; STATUS_SUCCESS=1
+  CURL_COUNT_FILE="$STATE_DIR/curl-count"; CURL_FAIL_AFTER=1
+  RUN_EXIT=0
+  RUN_OUTPUT=$(VANCINE_DEPLOY_TEST_MODE=1 \
+    VANCINE_DEPLOY_REPO="$REPO" \
+    VANCINE_DEPLOY_STATE_DIR="$STATE_DIR" \
+    VANCINE_DEPLOY_LOCK_FILE="$LOCK_FILE" \
+    VANCINE_DEPLOY_BACKUP_SCRIPT="postgres-backup.sh" \
+    VANCINE_DEPLOY_HEALTH_ATTEMPTS=2 \
+    VANCINE_DEPLOY_HEALTH_INTERVAL=1 \
+    VANCINE_ROLLBACK_RENO_REPO="$ROLLBACK_RENO_REPO" \
+    VANCINE_ROLLBACK_RENO_TARGET="$ROLLBACK_RENO_TARGET" \
+    PATH="$FAKEBIN:$PATH" \
+    STATUS_VERSION="v1.0.12" \
+    STATUS_SUCCESS="1" \
+    CURL_FAIL_AFTER=1 \
+    CURL_COUNT_FILE="$STATE_DIR/curl-count" \
+    bash "$ORCHESTRATOR" "$upgrade" 2>&1) || RUN_EXIT=$?
+  echo "$RUN_OUTPUT" | grep -q "ROLLBACK_FAILED" && pass "rollback cd fail => ROLLBACK_FAILED" || fail "rollback cd fail (out=$RUN_OUTPUT)"
+  echo "$RUN_OUTPUT" | grep -q "ROLLBACK_START" && pass "rollback started" || fail "no ROLLBACK_START"
+  n=$(echo "$RUN_OUTPUT" | grep -c "ROLLBACK_START")
+  [ "$n" -eq 1 ] && pass "single rollback (no recursion)" || fail "rollback count=$n (recursion)"
+  echo "$RUN_OUTPUT" | grep -q "Traceback" && fail "Python traceback leaked" || pass "no traceback"
+  [ "$RUN_EXIT" -ne 0 ] && pass "rollback cd fail non-zero exit" || fail "rollback cd fail zero exit"
+  [ "$(state_field last_attempt.outcome)" = "ROLLBACK_FAILED" ] && pass "state outcome=ROLLBACK_FAILED" || fail "state outcome=$(state_field last_attempt.outcome)"
+  # Verify the moved repo is retained
+  [ -d "$ROLLBACK_RENO_TARGET" ] && pass "moved repo retained at $ROLLBACK_RENO_TARGET" || fail "moved repo not found"
+  CURL_FAIL_AFTER=""; CURL_COUNT_FILE=""
+  # Restore normal docker stub for subsequent tests
+  setup_docker_stub
 }
 
 SUITE="${1:-all}"

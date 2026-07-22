@@ -44,6 +44,72 @@ ORCHESTRATOR_DST="$SBIN_DIR/vancine-production-deploy"
 FORCED_PREFIX='no-agent-forwarding,no-port-forwarding,no-pty,no-user-rc,no-X11-forwarding,command="/usr/local/sbin/vancine-deploy-gateway"'
 SUDOERS_RULE="vancine-deploy ALL=(root) NOPASSWD: /usr/local/sbin/vancine-production-deploy *"
 
+# Portable path/permission inspection helpers.
+#
+# GNU/Linux stat and BSD/macOS stat disagree on flags and on what -f means:
+#   - GNU: stat -c '%a' /path  -> mode; stat -f prints *filesystem* info with exit 0
+#   - BSD:  stat -f '%Lp' /path -> mode; stat -c is an illegal-option error
+#
+# A macOS-first fallback (stat -f ... || stat -c ...) appears to work on BSD but
+# SILENTLY breaks on GNU, because stat -f succeeds there: the perms variable ends
+# up holding filesystem metadata while execution continues as if we had a valid
+# mode. That class of bug is exactly what bit the original installer on Ubuntu.
+#
+# The robust order is GNU-first: try stat -c, and only if it does not produce a
+# 1-/2-/3-digit octal token fall back to stat -f. Any format anomaly fails closed.
+
+# get_mode <path>: prints the octal file mode (e.g. "750", "640", "600").
+# Prints nothing on failure so callers fail closed when the result is empty.
+get_mode () {
+  local path="$1" raw=""
+  # GNU stat -c works on Linux; BSD stat -f works on macOS. Try GNU first
+  # because on Linux stat -f returns 0 but prints filesystem info (the bug).
+  if raw=$(stat -c '%a' "$path" 2>/dev/null); then
+    if [[ "$raw" =~ ^[0-7]{3,4}$ ]]; then
+      while [ "${#raw}" -lt 4 ]; do raw="0$raw"; done
+      printf '%s' "$raw"
+      return 0
+    fi
+  fi
+  # BSD fallback.
+  if raw=$(stat -f '%Lp' "$path" 2>/dev/null); then
+    if [[ "$raw" =~ ^[0-7]{3,4}$ ]]; then
+      while [ "${#raw}" -lt 4 ]; do raw="0$raw"; done
+      printf '%s' "$raw"
+      return 0
+    fi
+  fi
+  return 1
+}
+
+# get_group_name <user>: prints the user's primary group name.
+get_group_name () {
+  local user="$1" g=""
+  if g=$(id -gn "$user" 2>/dev/null); then
+    if [ -n "$g" ]; then printf '%s' "$g"; return 0; fi
+  fi
+  return 1
+}
+
+# get_owner <path>: prints the owning user name (e.g. "root").
+# Returns 1 if the owner cannot be determined (caller must handle with `if !`).
+get_owner () {
+  local path="$1" raw=""
+  if raw=$(stat -c '%U' "$path" 2>/dev/null); then
+    if [ -n "$raw" ] && [[ "$raw" != *" "* ]]; then
+      printf '%s' "$raw"
+      return 0
+    fi
+  fi
+  if raw=$(stat -f '%Su' "$path" 2>/dev/null); then
+    if [ -n "$raw" ] && [[ "$raw" != *" "* ]]; then
+      printf '%s' "$raw"
+      return 0
+    fi
+  fi
+  return 1
+}
+
 die () {
   printf 'INSTALL_FAILED: %s\n' "$*" >&2
   exit 1
@@ -77,15 +143,17 @@ prepare_state_dir () {
   fi
   [ -d "$d" ] || die "state path is not a directory: $d"
   chmod 0700 "$d" || die "failed to chmod state directory 0700: $d"
+  # Verify the mode even in test mode (tests run as non-root and cannot chown).
+  # The root-owner chown + check is a production-only gate.
   if [ "${VANCINE_INSTALL_TEST_MODE:-0}" != "1" ]; then
     chown root:root "$d" || die "failed to chown state directory root:root: $d"
     local owner
-    owner=$(stat -c '%U' "$d" 2>/dev/null || stat -f '%Su' "$d" 2>/dev/null || echo "")
-    [ "$owner" = "root" ] || die "state directory not root-owned: $d (owner=${owner:-unknown})"
+    if ! owner=$(get_owner "$d"); then die "cannot determine state directory owner: $d"; fi
+    if [ "$owner" != "root" ]; then die "state directory not root-owned: $d (owner=${owner:-unknown})"; fi
   fi
   local perms
-  perms=$(stat -f '%Lp' "$d" 2>/dev/null || stat -c '%a' "$d" 2>/dev/null || echo "000")
-  [ "$perms" = "700" ] || die "state directory mode is not 0700: $d (mode=$perms)"
+  if ! perms=$(get_mode "$d"); then die "cannot determine state directory mode: $d"; fi
+  if [ "$perms" != "0700" ]; then die "state directory mode is not 0700: $d (mode=${perms:-empty})"; fi
 }
 
 validate_pubkey_path () {
@@ -104,13 +172,13 @@ validate_pubkey_path () {
   # still apply, so the production safety logic is not weakened).
   if [ "${VANCINE_INSTALL_TEST_MODE:-0}" != "1" ]; then
     local owner
-    owner=$(stat -c '%U' "$keyfile" 2>/dev/null || stat -f '%Su' "$keyfile" 2>/dev/null || echo "")
+    if ! owner=$(get_owner "$keyfile"); then die "cannot determine public key owner: $keyfile"; fi
     [ "$owner" = "root" ] || \
       die "public key file must be owned by root in production: $keyfile (owner=${owner:-unknown})"
   fi
   # Safe ownership: reject if EITHER the group OR world write bit is set.
   local perms group_perm world_perm
-  perms=$(stat -f '%Lp' "$keyfile" 2>/dev/null || stat -c '%a' "$keyfile" 2>/dev/null || echo "000")
+  if ! perms=$(get_mode "$keyfile"); then die "cannot determine public key mode: $keyfile"; fi
   group_perm="${perms: -2:1}"
   world_perm="${perms: -1}"
   case "$group_perm" in
@@ -145,11 +213,16 @@ validate_pubkey_content () {
 }
 
 ensure_account () {
+  # Per-user primary group name (e.g. "vancine-deploy"). The deploy user must be
+  # able to read its forced-command authorized_keys, so we locate it explicitly.
+  local deploy_primary_group=""
+
   if id "$DEPLOY_USER" >/dev/null 2>&1; then
     echo "account $DEPLOY_USER already exists"
+    # Locate the primary group via the portable helper.
+    if ! deploy_primary_group=$(get_group_name "$DEPLOY_USER"); then deploy_primary_group=""; fi
     # Verify the existing account is safe: not in the docker group, shell is
-    # exactly /bin/bash, and home matches the expected path. nologin (or any
-    # other shell) is rejected.
+    # exactly /bin/bash, and home matches the expected path.
     if id -nG "$DEPLOY_USER" 2>/dev/null | grep -qw docker; then
       die "account $DEPLOY_USER is in the docker group (must be removed)"
     fi
@@ -161,20 +234,44 @@ ensure_account () {
     [ "$current_home" = "$DEPLOY_HOME" ] || \
       die "account $DEPLOY_USER home must be $DEPLOY_HOME (got ${current_home:-<empty>})"
   else
-    # /bin/bash login shell. Interactive access is blocked by the forced-command
-    # authorized_keys prefix; the shell is needed for the forced command to run.
+    # useradd --system creates a matching primary group (e.g. vancine-deploy).
     useradd --system --create-home --home-dir "$DEPLOY_HOME" --shell /bin/bash "$DEPLOY_USER"
     echo "created account $DEPLOY_USER (shell=/bin/bash)"
+    if ! deploy_primary_group=$(get_group_name "$DEPLOY_USER"); then deploy_primary_group=""; fi
   fi
-  # Never add the deploy account to the docker group. Tighten the home, .ssh,
-  # and (later) authorized_keys to root:root with restrictive modes. Every
-  # chmod/chown failure is fatal so a partially-hardened account is never left
-  # behind.
+
+  if [ -z "$deploy_primary_group" ]; then
+    die "could not determine primary group for $DEPLOY_USER (required for read-only authorized_keys)"
+  fi
+
+  # Permission model: the deploy user must READ its forced-command
+  # authorized_keys, but MUST NOT modify it. root:root 0700 (home/.) /
+  # 0600 (authorized_keys) would make authorized_keys unreadable to the deploy
+  # user, breaking SSH public-key auth. Instead we use root:<primary-group>
+  # with group-read (and NO group-write):
+  #   home   root:<group> 0750   -> deploy user can traverse into .ssh
+  #   .ssh   root:<group> 0750   -> deploy user can list/read
+  #   auth   root:<group> 0640   -> deploy user can read, cannot modify
+  #   state  root:root    0700   -> untouched (deploy never accesses it)
   mkdir -p "$SSH_DIR"
-  chmod 0700 "$DEPLOY_HOME" || die "failed to chmod $DEPLOY_HOME"
-  chown root:root "$DEPLOY_HOME" || die "failed to chown $DEPLOY_HOME to root:root"
-  chmod 0700 "$SSH_DIR" || die "failed to chmod $SSH_DIR"
-  chown root:root "$SSH_DIR" || die "failed to chown $SSH_DIR to root:root"
+  chmod 0750 "$DEPLOY_HOME" || die "failed to chmod $DEPLOY_HOME 0750"
+  chmod 0750 "$SSH_DIR" || die "failed to chmod $SSH_DIR 0750"
+  # Production-only: chown to root:<group> and verify ownership. Tests run as
+  # non-root and cannot chown, so they verify only the mode.
+  if [ "${VANCINE_INSTALL_TEST_MODE:-0}" != "1" ]; then
+    chown "root:$deploy_primary_group" "$DEPLOY_HOME" || die "failed to chown $DEPLOY_HOME root:$deploy_primary_group"
+    chown "root:$deploy_primary_group" "$SSH_DIR" || die "failed to chown $SSH_DIR root:$deploy_primary_group"
+    local home_owner ssh_owner
+    if ! home_owner=$(get_owner "$DEPLOY_HOME"); then die "cannot verify $DEPLOY_HOME owner"; fi
+    if ! ssh_owner=$(get_owner "$SSH_DIR"); then die "cannot verify $SSH_DIR owner"; fi
+    if [ "$home_owner" != "root" ]; then die "$DEPLOY_HOME owner $home_owner != root"; fi
+    if [ "$ssh_owner" != "root" ]; then die "$SSH_DIR owner $ssh_owner != root"; fi
+  fi
+  local home_mode ssh_mode
+  if ! home_mode=$(get_mode "$DEPLOY_HOME"); then die "cannot verify $DEPLOY_HOME mode"; fi
+  if ! ssh_mode=$(get_mode "$SSH_DIR"); then die "cannot verify $SSH_DIR mode"; fi
+  if [ "$home_mode" != "0750" ]; then die "$DEPLOY_HOME mode $home_mode != 0750"; fi
+  if [ "$ssh_mode" != "0750" ]; then die "$SSH_DIR mode $ssh_mode != 0750"; fi
 }
 
 install_script () {
@@ -192,25 +289,47 @@ install_script () {
 
 write_authorized_keys () {
   local keyfile="$1"
+  # Resolve the deploy user's primary group for group-readable permissions.
+  local deploy_primary_group=""
+  if ! deploy_primary_group=$(get_group_name "$DEPLOY_USER"); then deploy_primary_group=""; fi
+  if [ -z "$deploy_primary_group" ]; then
+    die "could not determine primary group for $DEPLOY_USER when writing authorized_keys"
+  fi
+
   local desired
   desired=$(printf '%s ' "$FORCED_PREFIX"; cat "$keyfile")
+  local ak_mode ak_owner
   if [ -f "$AUTH_KEYS" ]; then
     local existing
     existing=$(cat "$AUTH_KEYS")
     if [ "$existing" = "$desired" ]; then
-      # Content matches, but do NOT return early: re-verify and tighten the
-      # owner and mode so a previously-loosened file is re-hardened.
-      chmod 0600 "$AUTH_KEYS" || die "failed to chmod $AUTH_KEYS"
-      chown root:root "$AUTH_KEYS" || die "failed to chown $AUTH_KEYS to root:root"
-      echo "authorized_keys content unchanged; owner/mode re-verified (root:root 0600)"
+      chmod 0640 "$AUTH_KEYS" || die "failed to chmod $AUTH_KEYS 0640"
+      if [ "${VANCINE_INSTALL_TEST_MODE:-0}" != "1" ]; then
+        chown "root:$deploy_primary_group" "$AUTH_KEYS" || die "failed to chown $AUTH_KEYS root:$deploy_primary_group"
+        local ak_owner
+        if ! ak_owner=$(get_owner "$AUTH_KEYS"); then die "cannot verify authorized_keys owner"; fi
+        if [ "$ak_owner" != "root" ]; then die "authorized_keys owner $ak_owner != root"; fi
+      fi
+      local ak_mode
+      if ! ak_mode=$(get_mode "$AUTH_KEYS"); then die "cannot verify authorized_keys mode"; fi
+      if [ "$ak_mode" != "0640" ]; then die "authorized_keys mode $ak_mode != 0640"; fi
+      echo "authorized_keys content unchanged; mode re-verified (0640)"
       return 0
     fi
     die "authorized_keys already exists and differs from desired content (manual review required)"
   fi
   printf '%s\n' "$desired" > "$AUTH_KEYS"
-  chmod 0600 "$AUTH_KEYS" || die "failed to chmod $AUTH_KEYS"
-  chown root:root "$AUTH_KEYS" || die "failed to chown $AUTH_KEYS to root:root"
-  echo "wrote $AUTH_KEYS"
+  chmod 0640 "$AUTH_KEYS" || die "failed to chmod $AUTH_KEYS 0640"
+  if [ "${VANCINE_INSTALL_TEST_MODE:-0}" != "1" ]; then
+    chown "root:$deploy_primary_group" "$AUTH_KEYS" || die "failed to chown $AUTH_KEYS root:$deploy_primary_group"
+    local ak_owner
+    if ! ak_owner=$(get_owner "$AUTH_KEYS"); then die "cannot verify authorized_keys owner"; fi
+    if [ "$ak_owner" != "root" ]; then die "authorized_keys owner $ak_owner != root"; fi
+  fi
+  local ak_mode
+  if ! ak_mode=$(get_mode "$AUTH_KEYS"); then die "cannot verify authorized_keys mode"; fi
+  if [ "$ak_mode" != "0640" ]; then die "authorized_keys mode $ak_mode != 0640"; fi
+  echo "wrote $AUTH_KEYS (0640)"
 }
 
 install_sudoers () {

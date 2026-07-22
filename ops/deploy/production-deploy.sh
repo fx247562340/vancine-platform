@@ -102,6 +102,61 @@ semver_not_lower () {
   return 0
 }
 
+# Portable path/permission inspection helpers (see install-production-access.sh
+# for the detailed rationale: GNU stat -c vs BSD stat -f and why -c must be
+# tried first on Linux).
+#
+# GNU/Linux:  stat -c '%a' returns mode, stat -f '%Lp' returns filesystem info
+#             with exit 0 (the trap).  Always try -c first.
+# BSD/macOS:  stat -f '%Lp' returns mode, stat -c is an illegal-option error.
+#             The -c failure falls through to the -f branch.
+#
+# Mode is normalized to a canonical 4-digit octal string (e.g. 0700, 0750,
+# 0640) for stable comparison regardless of platform quirks.
+
+# get_mode <path>: print the 4-digit octal mode.  Returns 1 if the mode
+# cannot be determined (caller must handle with `if !`).
+get_mode () {
+  local path="$1" raw=""
+  # GNU form first.  The `if raw=$(...)` idiom keeps set -e from firing on
+  # a failing stat; the exit code becomes the branch condition instead.
+  if raw=$(stat -c '%a' "$path" 2>/dev/null); then
+    if [[ "$raw" =~ ^[0-7]{3,4}$ ]]; then
+      while [ "${#raw}" -lt 4 ]; do raw="0$raw"; done
+      printf '%s' "$raw"
+      return 0
+    fi
+  fi
+  # BSD fallback.
+  if raw=$(stat -f '%Lp' "$path" 2>/dev/null); then
+    if [[ "$raw" =~ ^[0-7]{3,4}$ ]]; then
+      while [ "${#raw}" -lt 4 ]; do raw="0$raw"; done
+      printf '%s' "$raw"
+      return 0
+    fi
+  fi
+  return 1
+}
+
+# get_owner <path>: print the owning user name.  Returns 1 if the owner
+# cannot be determined (caller must handle with `if !`).
+get_owner () {
+  local path="$1" raw=""
+  if raw=$(stat -c '%U' "$path" 2>/dev/null); then
+    if [ -n "$raw" ] && [[ "$raw" != *" "* ]]; then
+      printf '%s' "$raw"
+      return 0
+    fi
+  fi
+  if raw=$(stat -f '%Su' "$path" 2>/dev/null); then
+    if [ -n "$raw" ] && [[ "$raw" != *" "* ]]; then
+      printf '%s' "$raw"
+      return 0
+    fi
+  fi
+  return 1
+}
+
 require_tools () {
   local missing=()
   for t in git docker curl python3 flock; do
@@ -378,16 +433,17 @@ prepare_state_dir () {
   fi
   [ -d "$d" ] || die "state path is not a directory: $d"
   chmod 0700 "$d" || die "failed to chmod state directory 0700: $d"
+  # Production: verify root ownership.  Test mode skips ownership (tests run
+  # as non-root and cannot chown), but mode is still verified.
   if [ "${VANCINE_DEPLOY_TEST_MODE:-0}" != "1" ]; then
     chown root:root "$d" || die "failed to chown state directory root:root: $d"
     local owner
-    owner=$(stat -c '%U' "$d" 2>/dev/null || stat -f '%Su' "$d" 2>/dev/null || echo "")
-    [ "$owner" = "root" ] || die "state directory not root-owned: $d (owner=${owner:-unknown})"
+    if ! owner=$(get_owner "$d"); then die "cannot determine state directory owner: $d"; fi
+    if [ "$owner" != "root" ]; then die "state directory not root-owned: $d (owner=${owner:-unknown})"; fi
   fi
-  # Verify the mode is exactly 0700 via stat (defense in depth).
   local perms
-  perms=$(stat -f '%Lp' "$d" 2>/dev/null || stat -c '%a' "$d" 2>/dev/null || echo "000")
-  [ "$perms" = "700" ] || die "state directory mode is not 0700: $d (mode=$perms)"
+  if ! perms=$(get_mode "$d"); then die "cannot determine state directory mode: $d"; fi
+  if [ "$perms" != "0700" ]; then die "state directory mode is not 0700: $d (mode=${perms:-empty})"; fi
   # state.json must not be a symlink; if present it must be valid JSON + object.
   # Harden it to 0600 (root:root in production) and re-verify the mode.
   local sf="$d/state.json"
@@ -399,10 +455,13 @@ prepare_state_dir () {
     chmod 0600 "$sf" || die "failed to chmod state.json 0600: $sf"
     if [ "${VANCINE_DEPLOY_TEST_MODE:-0}" != "1" ]; then
       chown root:root "$sf" || die "failed to chown state.json root:root: $sf"
+      local sf_owner
+      if ! sf_owner=$(get_owner "$sf"); then die "cannot determine state.json owner: $sf"; fi
+      if [ "$sf_owner" != "root" ]; then die "state.json not root-owned: $sf (owner=${sf_owner:-unknown})"; fi
     fi
     local sf_perms
-    sf_perms=$(stat -f '%Lp' "$sf" 2>/dev/null || stat -c '%a' "$sf" 2>/dev/null || echo "000")
-    [ "$sf_perms" = "600" ] || die "state.json mode is not 0600: $sf (mode=$sf_perms)"
+    if ! sf_perms=$(get_mode "$sf"); then die "cannot determine state.json mode: $sf"; fi
+    if [ "$sf_perms" != "0600" ]; then die "state.json mode is not 0600: $sf (mode=${sf_perms:-empty})"; fi
   fi
   _STATE_DIR_READY=1
 }
@@ -486,11 +545,15 @@ restore_previous_checkout () {
 rollback_application () {
   echo "ROLLBACK_START"
   # Disable error trap during rollback to avoid recursion.
-  set +e
-  cd "$DEPLOY_REPO"
+  trap - ERR
   local rollback_ok=1
+  # 0. cd to deploy repo. Failure here means ROLLBACK_FAILED.
+  if ! cd "$DEPLOY_REPO" 2>/dev/null; then
+    echo "ROLLBACK_FAILED: could not cd to $DEPLOY_REPO"
+    rollback_ok=0
+  fi
   # 1. Checkout back to the prior code SHA. Failure here means ROLLBACK_FAILED.
-  if [ "$CHECKOUT_CHANGED" = "1" ] && [ -n "$PREV_SHA" ]; then
+  if [ "$rollback_ok" = "1" ] && [ "$CHECKOUT_CHANGED" = "1" ] && [ -n "$PREV_SHA" ]; then
     if ! git checkout --detach "$PREV_SHA" 2>/dev/null; then
       echo "ROLLBACK_FAILED: could not checkout prior SHA $PREV_SHA"
       rollback_ok=0
