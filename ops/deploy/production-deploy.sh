@@ -52,6 +52,12 @@ _DEPLOY_OUTCOME="DEPLOY_FAILED"
 _ON_ERROR_ENTERED=0
 # Set to 1 once prepare_state_dir has verified the state directory is safe.
 _STATE_DIR_READY=0
+# probe_status output slots. probe_status runs in the current shell (no
+# subshell, no command substitution) and writes the parsed version here on
+# success or a one-line reason on failure. Using globals avoids any temp file
+# creation/deletion and keeps probe_status reentrant across the two callers.
+PROBE_VERSION=""
+PROBE_ERROR=""
 
 validate_sha () {
   local sha="$1"
@@ -117,44 +123,54 @@ semver_not_lower () {
 # get_mode <path>: print the 4-digit octal mode.  Returns 1 if the mode
 # cannot be determined (caller must handle with `if !`).
 get_mode () {
-  local path="$1" raw=""
-  # GNU form first.  The `if raw=$(...)` idiom keeps set -e from firing on
-  # a failing stat; the exit code becomes the branch condition instead.
-  if raw=$(stat -c '%a' "$path" 2>/dev/null); then
-    if [[ "$raw" =~ ^[0-7]{3,4}$ ]]; then
-      while [ "${#raw}" -lt 4 ]; do raw="0$raw"; done
-      printf '%s' "$raw"
-      return 0
+  local path="$1" result
+  # Run stat probes in a subshell with ERR trap disabled. The subshell
+  # exit code is handled by `|| return 1`, preventing the parent shell
+  # ERR trap from firing on stat failures (macOS stat -c, etc.).
+  result=$(
+    trap - ERR
+    raw=""
+    if raw=$(stat -c '%a' "$path" 2>/dev/null); then
+      if [[ "$raw" =~ ^[0-7]{3,4}$ ]]; then
+        while [ "${#raw}" -lt 4 ]; do raw="0$raw"; done
+        printf '%s' "$raw"
+        exit 0
+      fi
     fi
-  fi
-  # BSD fallback.
-  if raw=$(stat -f '%Lp' "$path" 2>/dev/null); then
-    if [[ "$raw" =~ ^[0-7]{3,4}$ ]]; then
-      while [ "${#raw}" -lt 4 ]; do raw="0$raw"; done
-      printf '%s' "$raw"
-      return 0
+    if raw=$(stat -f '%Lp' "$path" 2>/dev/null); then
+      if [[ "$raw" =~ ^[0-7]{3,4}$ ]]; then
+        while [ "${#raw}" -lt 4 ]; do raw="0$raw"; done
+        printf '%s' "$raw"
+        exit 0
+      fi
     fi
-  fi
-  return 1
+    exit 1
+  ) || return 1
+  printf '%s' "$result"
 }
 
 # get_owner <path>: print the owning user name.  Returns 1 if the owner
 # cannot be determined (caller must handle with `if !`).
 get_owner () {
-  local path="$1" raw=""
-  if raw=$(stat -c '%U' "$path" 2>/dev/null); then
-    if [ -n "$raw" ] && [[ "$raw" != *" "* ]]; then
-      printf '%s' "$raw"
-      return 0
+  local path="$1" result
+  result=$(
+    trap - ERR
+    raw=""
+    if raw=$(stat -c '%U' "$path" 2>/dev/null); then
+      if [ -n "$raw" ] && [[ "$raw" != *" "* ]]; then
+        printf '%s' "$raw"
+        exit 0
+      fi
     fi
-  fi
-  if raw=$(stat -f '%Su' "$path" 2>/dev/null); then
-    if [ -n "$raw" ] && [[ "$raw" != *" "* ]]; then
-      printf '%s' "$raw"
-      return 0
+    if raw=$(stat -f '%Su' "$path" 2>/dev/null); then
+      if [ -n "$raw" ] && [[ "$raw" != *" "* ]]; then
+        printf '%s' "$raw"
+        exit 0
+      fi
     fi
-  fi
-  return 1
+    exit 1
+  ) || return 1
+  printf '%s' "$result"
 }
 
 require_tools () {
@@ -211,20 +227,174 @@ read_target_version () {
   validate_semver "$TARGET_VERSION"
 }
 
+# Shared status probe: fetches headers + body in a single GET, validates the
+# real Vancine /api/status contract, and prints the version on stdout.
+# Returns 0 on success, 1 on failure (error reason on stderr).
+# Contract:
+#   - HTTP/curl success
+#   - JSON body valid
+#   - top-level success == true
+#   - data is an object
+#   - data.version non-empty
+#   - X-New-Api-Version header non-empty
+#   - header version == data.version
+probe_status () {
+  # Shared status probe: fetches headers + body in a single GET, validates the
+  # real Vancine /api/status contract, and writes the result to the globals
+  # PROBE_VERSION (success) or PROBE_ERROR (failure). Returns 0 on success,
+  # 1 on failure.
+  #
+  # Runs in the current shell (no subshell): callers invoke it directly as
+  #   if probe_status "$url"; then ... $PROBE_VERSION ... else ... $PROBE_ERROR ... fi
+  # so its exit status is never buried inside a command substitution. That
+  # matters because under `set -e` a subshell function returning non-zero from
+  # inside $(...) trips the ERR trap even under `if !`, firing on_error before
+  # the intended `die`. Keeping probe_status in the current shell avoids that.
+  #
+  # Contract:
+  #   - HTTP/curl success
+  #   - JSON body valid
+  #   - top-level root is an object
+  #   - success == true
+  #   - data is an object
+  #   - data.version is a non-empty string
+  #   - X-New-Api-Version header non-empty
+  #   - header version == data.version
+  #
+  # The function never touches the caller's ERR trap: it only reads set -e
+  # (to fail fast on unexpected errors) and relies on explicit `if` checks for
+  # each expected failure path.
+  local url="$1" raw parse_out
+  PROBE_VERSION=""
+  PROBE_ERROR=""
+
+  if ! raw=$(curl -fsS --max-time 5 -D - "$url" 2>/dev/null); then
+    PROBE_ERROR="unreachable: $url"
+    return 1
+  fi
+
+  # Parse + validate using an explicit OK:/ERROR: protocol, capturing BOTH the
+  # parser output and its real exit code.
+  #
+  # Structure: `if parse_out=$(...python3... 2>&1); then parse_rc=0; else
+  # parse_rc=$?; fi`. The `if` condition (without `!`) suppresses set -e for
+  # the command substitution, so a non-zero python3 exit does NOT trip the ERR
+  # trap - unlike `if ! cmd` or `cmd || handler`, which under set -e fire ERR
+  # inside the substitution's sub-context where the `_ON_ERROR_ENTERED`
+  # reentrance guard does not propagate (causing on_error to double-fire).
+  #
+  # parse_rc != 0 means python3 itself failed (crash, OOM, missing binary).
+  # That is a hard failure: we discard parse_out entirely, set a generic
+  # PROBE_ERROR, and return 1 - we never inspect parse_out for an OK: line in
+  # that case (a half-written success line followed by a crash must not be
+  # accepted). No traceback is relayed (stderr is captured but only used when
+  # parse_rc == 0 and the output is not a valid OK: line).
+  #
+  # No temp file, no ERR-trap manipulation, no `|| true`.
+  local parse_rc=0
+  if parse_out=$(printf '%s' "$raw" | python3 -c '
+import json, sys, re
+raw = sys.stdin.read()
+# Split headers and body at first blank line (CRLF or LF)
+parts = re.split(r"\r?\n\r?\n", raw, maxsplit=1)
+if len(parts) < 2:
+    print("ERROR: no header/body separator")
+    sys.exit(0)
+headers, body = parts
+# Parse X-New-Api-Version from headers (case-insensitive)
+header_ver = ""
+for line in headers.split("\n"):
+    line = line.strip()
+    if line.lower().startswith("x-new-api-version:"):
+        header_ver = line.split(":", 1)[1].strip()
+        break
+# Parse JSON body
+try:
+    d = json.loads(body)
+except Exception:
+    print("ERROR: invalid JSON")
+    sys.exit(0)
+# Root must be an object: a top-level array/list has no .get and would raise.
+if not isinstance(d, dict):
+    print("ERROR: root is not an object")
+    sys.exit(0)
+# success must be the JSON boolean true. `is not True` rejects 1, "true", null
+# and any other truthy-but-not-bool value (identity check, not equality).
+if d.get("success") is not True:
+    print("ERROR: success!=true")
+    sys.exit(0)
+data = d.get("data")
+if not isinstance(data, dict):
+    print("ERROR: data is not an object")
+    sys.exit(0)
+# data.version must be a non-empty string. Numbers/lists/null fail here
+# (previously a number slipped through to a confusing header mismatch).
+data_ver = data.get("version")
+if not isinstance(data_ver, str) or not data_ver:
+    print("ERROR: data.version empty")
+    sys.exit(0)
+if not header_ver:
+    print("ERROR: X-New-Api-Version missing")
+    sys.exit(0)
+if header_ver != data_ver:
+    print("ERROR: header=%s data.version=%s mismatch" % (header_ver, data_ver))
+    sys.exit(0)
+# Success: emit the explicit OK: protocol line.
+print("OK:" + data_ver)
+' 2>&1); then
+    parse_rc=0
+  else
+    parse_rc=$?
+  fi
+
+  # Hard failure: python3 itself exited non-zero. Discard output, fail closed.
+  if [ "$parse_rc" -ne 0 ]; then
+    PROBE_VERSION=""
+    PROBE_ERROR="probe parser execution failed"
+    return 1
+  fi
+
+  # Fail-closed validation of the protocol output. Only a single-line,
+  # non-empty "OK:<version>" is accepted. Empty / unknown / multi-line / ERROR:
+  # all set PROBE_ERROR and return 1.
+  case "$parse_out" in
+    OK:*)
+      local ver="${parse_out#OK:}"
+      if [ -z "$ver" ]; then
+        PROBE_ERROR="empty OK version"
+        return 1
+      fi
+      # Reject multi-line version (e.g. trailing newlines leaking extra output).
+      if [ "$(printf '%s' "$ver" | wc -l)" -gt 0 ]; then
+        PROBE_ERROR="multi-line version output"
+        return 1
+      fi
+      PROBE_VERSION="$ver"
+      return 0
+      ;;
+    ERROR:*)
+      PROBE_ERROR="$parse_out"
+      return 1
+      ;;
+    "")
+      PROBE_ERROR="empty parser output"
+      return 1
+      ;;
+    *)
+      PROBE_ERROR="unexpected parser output: [$parse_out]"
+      return 1
+      ;;
+  esac
+}
+
 read_current_status () {
   # Fail closed: if the current status endpoint is unreachable, returns
   # invalid JSON, reports success!=true, or has an invalid version, abort
   # the deployment. This prevents deploying on top of a broken baseline.
-  local body ok
-  body=$(curl -fsS --max-time 5 "$DEPLOY_HEALTH_INTERNAL" 2>/dev/null) || \
-    die "current internal status unreachable: $DEPLOY_HEALTH_INTERNAL"
-  [ -n "$body" ] || die "current internal status returned empty body"
-  ok=$(printf '%s' "$body" | python3 -c 'import json,sys; print("true" if json.load(sys.stdin).get("success")==True else "false")' 2>/dev/null) || \
-    die "current internal status invalid JSON"
-  [ "$ok" = "true" ] || die "current internal status success!=true"
-  CURRENT_VERSION=$(printf '%s' "$body" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("version",""))' 2>/dev/null) || \
-    die "current internal status: could not extract version"
-  [ -n "$CURRENT_VERSION" ] || die "current internal status: version empty"
+  if ! probe_status "$DEPLOY_HEALTH_INTERNAL"; then
+    die "current internal status: $PROBE_ERROR"
+  fi
+  CURRENT_VERSION="$PROBE_VERSION"
 }
 
 require_root_or_test () {
@@ -233,15 +403,15 @@ require_root_or_test () {
 }
 
 parse_status () {
-  # verify_status_url helper
+  # Verify a status URL using the real API contract (header + data.version).
+  # If $2 is provided, the version must match it exactly.
   local url="$1"
-  local body ok version
-  body=$(curl -fsS --max-time 5 "$url" 2>/dev/null) || { echo "FAIL: $url unreachable"; return 1; }
-  ok=$(printf '%s' "$body" | python3 -c 'import json,sys; print("true" if json.load(sys.stdin).get("success")==True else "false")' 2>/dev/null) || ok="false"
-  version=$(printf '%s' "$body" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("version",""))' 2>/dev/null) || version=""
-  if [ "$ok" != "true" ]; then echo "FAIL: $url success!=true"; return 1; fi
-  if [ -n "$2" ] && [ "$version" != "$2" ]; then
-    printf 'FAIL: %s version expected=%s got=%s\n' "$url" "$2" "$version"
+  if ! probe_status "$url"; then
+    printf 'FAIL: %s %s\n' "$url" "$PROBE_ERROR"
+    return 1
+  fi
+  if [ -n "$2" ] && [ "$PROBE_VERSION" != "$2" ]; then
+    printf 'FAIL: %s version expected=%s got=%s\n' "$url" "$2" "$PROBE_VERSION"
     return 1
   fi
   return 0
@@ -677,6 +847,11 @@ require_clean_tracked_tree
 acquire_deploy_lock
 fetch_and_validate_target
 read_target_version
+
+# Prepare (and validate) the root-only state directory BEFORE read_current_status
+# so that a status preflight failure can be atomically recorded as DEPLOY_FAILED.
+prepare_state_dir
+
 read_current_status
 if [ -n "$CURRENT_VERSION" ]; then
   # The API reports version with a v prefix (e.g. v1.2.3). Normalize before
@@ -687,10 +862,6 @@ if [ -n "$CURRENT_VERSION" ]; then
     die "refusing version downgrade: current=$cur_normalized target=$TARGET_VERSION"
   fi
 fi
-
-# Prepare (and validate) the root-only state directory BEFORE any state, backup
-# log, or build.env write. This also validates any existing state.json.
-prepare_state_dir
 
 run_predeploy_backup
 capture_previous_release

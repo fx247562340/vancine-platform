@@ -51,6 +51,31 @@ guard_forbidden_commands () {
     echo "$bad"
     return 1
   fi
+  # Production must not create/delete temp files for the status probe: no
+  # rm/rmdir/unlink, no mktemp/PROBE_TMP, no EXIT cleanup trap. These would
+  # either delete files without approval or create state before preflight.
+  # Strip comment lines BEFORE numbering so `grep -n` prefixes do not defeat
+  # the comment filter.
+  local probe_bad
+  probe_bad=$(grep -v '^[[:space:]]*#' "$script" 2>/dev/null | grep -nE '\brm\b|\brmdir\b|\bunlink\b|mktemp|PROBE_TMP|trap .* EXIT|trap - EXIT' || true)
+  if [ -n "$probe_bad" ]; then
+    echo "FAIL guard: probe temp-file/delete primitives present in $script:"
+    echo "$probe_bad"
+    return 1
+  fi
+  # probe_status must not swallow python3 failures with `|| true`. A non-zero
+  # python3 exit must be captured as a real exit code (parse_rc) so a half-written
+  # OK: line followed by a crash is never accepted. Check the probe_status body
+  # only (comments are allowed to mention the pattern). Strip comment lines
+  # BEFORE numbering so `grep -n` line prefixes do not defeat the comment filter.
+  local probe_true
+  probe_true=$(awk '/^probe_status \(\) \{/{f=1} f{print} /^\}$/{if(f)exit}' "$script" 2>/dev/null \
+    | grep -v '^[[:space:]]*#' | grep -nE '\|\| true' || true)
+  if [ -n "$probe_true" ]; then
+    echo "FAIL guard: \`|| true\` present in probe_status body:"
+    echo "$probe_true"
+    return 1
+  fi
   return 0
 }
 
@@ -296,16 +321,25 @@ EOF
 setup_curl_stub () {
   cat > "$FAKEBIN/curl" <<EOF
 #!/usr/bin/env bash
-# Returns a JSON line that PARSES TO EOF without blocking parsers.
-# CURL_FAIL=1 simulates unreachable endpoint (non-zero exit, no body).
-# STATUS_INVALID=1 returns malformed JSON.
-# CURL_FAIL_AFTER=N: first N calls succeed, subsequent calls fail.
+# Simulates the real Vancine /api/status contract:
+#   HTTP headers (including X-New-Api-Version) followed by a blank line
+#   and a JSON body with {"success":true,"data":{"version":"vX.Y.Z"}}
+#
+# The orchestrator uses 'curl -fsS -D -' to capture both headers and body.
+# This stub outputs headers + CRLF blank line + JSON body to stdout.
+#
+# Env vars:
+#   CURL_FAIL=1         -> exit 1 (unreachable)
+#   STATUS_INVALID=1    -> malformed JSON body
+#   STATUS_SUCCESS=1    -> success=true in body
+#   STATUS_VERSION=...  -> version string for both header and data.version
+#   CURL_FAIL_AFTER=N   -> first N calls succeed, subsequent fail
+#   NO_HEADER=1         -> omit X-New-Api-Version header
+#   TOPLEVEL_VERSION=1  -> put version at top level, not in data.version
+#   MISMATCH_VERSION=... -> set header to this, data.version to STATUS_VERSION
+#   CUSTOM_BODY=...     -> emit this exact body (after the header)
 if [ "\${CURL_FAIL:-0}" = "1" ]; then
   exit 1
-fi
-if [ "\${STATUS_INVALID:-0}" = "1" ]; then
-  printf 'not valid json\n'
-  exit 0
 fi
 # Track call count for phased failure simulation.
 count_file="\${CURL_COUNT_FILE:-/dev/null}"
@@ -317,13 +351,41 @@ fi
 n=\$((n + 1))
 printf '%s' "\$n" > "\$count_file"
 if [ -n "\${CURL_FAIL_AFTER:-}" ] && [ "\$n" -gt "\${CURL_FAIL_AFTER}" ]; then
-  printf '{"success": false, "version": "%s"}\n' "\$STATUS_VERSION"
+  # Phased failure: return success=false
+  printf 'HTTP/1.1 200 OK\r\n'
+  if [ "\${NO_HEADER:-0}" != "1" ]; then
+    printf 'X-New-Api-Version: %s\r\n' "\${STATUS_VERSION:-v1.0.0}"
+  fi
+  printf '\r\n'
+  printf '{"success": false, "data": {"version": "%s"}}\n' "\${STATUS_VERSION:-v1.0.0}"
   exit 0
 fi
-if [ "\$STATUS_SUCCESS" = "1" ]; then
-  printf '{"success": true, "version": "%s"}\n' "\$STATUS_VERSION"
+# Build the response
+printf 'HTTP/1.1 200 OK\r\n'
+if [ "\${NO_HEADER:-0}" != "1" ]; then
+  if [ -n "\${MISMATCH_VERSION:-}" ]; then
+    printf 'X-New-Api-Version: %s\r\n' "\${MISMATCH_VERSION}"
+  else
+    printf 'X-New-Api-Version: %s\r\n' "\${STATUS_VERSION:-v1.0.0}"
+  fi
+fi
+printf '\r\n'
+if [ -n "\${CUSTOM_BODY:-}" ]; then
+  printf '%s' "\$CUSTOM_BODY"
+  exit 0
+fi
+if [ "\${STATUS_INVALID:-0}" = "1" ]; then
+  printf 'not valid json\n'
+  exit 0
+fi
+if [ "\${STATUS_SUCCESS:-0}" = "1" ]; then
+  if [ "\${TOPLEVEL_VERSION:-0}" = "1" ]; then
+    printf '{"success": true, "version": "%s"}\n' "\${STATUS_VERSION:-v1.0.0}"
+  else
+    printf '{"success": true, "message": "", "data": {"version": "%s"}}\n' "\${STATUS_VERSION:-v1.0.0}"
+  fi
 else
-  printf '{"success": false, "version": "%s"}\n' "\$STATUS_VERSION"
+  printf '{"success": false, "message": "", "data": {"version": "%s"}}\n' "\${STATUS_VERSION:-v1.0.0}"
 fi
 EOF
   chmod +x "$FAKEBIN/curl"
@@ -441,6 +503,10 @@ RUN () {
   DOCKER_UP_FAIL="${DOCKER_UP_FAIL:-0}" \
   DOCKER_CONFIG_FAIL="${DOCKER_CONFIG_FAIL:-0}" \
   DOCKER_INSPECT_FAIL="${DOCKER_INSPECT_FAIL:-0}" \
+  NO_HEADER="${NO_HEADER:-0}" \
+  TOPLEVEL_VERSION="${TOPLEVEL_VERSION:-0}" \
+  MISMATCH_VERSION="${MISMATCH_VERSION:-}" \
+  CUSTOM_BODY="${CUSTOM_BODY:-}" \
   DOCKER_TAG_COLLISION="${DOCKER_TAG_COLLISION:-0}" \
   DOCKER_IMAGE_EXISTS="${DOCKER_IMAGE_EXISTS:-1}" \
   DOCKER_CHECKOUT_FAIL="${DOCKER_CHECKOUT_FAIL:-0}" \
@@ -1070,6 +1136,293 @@ DOCKERSTUB
   setup_docker_stub
 }
 
+# ============== STATUS CONTRACT TESTS ==============
+test_status_contract () {
+  echo "== status contract =="
+
+  local base upgrade
+
+  # --- 1. Real contract: data.version + X-New-Api-Version header -> DEPLOY_OK ---
+  case_runner "contract real api" 1.0.12 1.0.13
+  upgrade=$(UPGRADE_SHA)
+  STATUS_VERSION="v1.0.13"; STATUS_SUCCESS=1
+  RUN "$upgrade"
+  echo "$RUN_OUTPUT" | grep -q "DEPLOY_OK" && pass "real contract (data.version + header) => DEPLOY_OK" || fail "real contract (out=$RUN_OUTPUT)"
+
+  # --- 2. Top-level version only (no data.version) -> DEPLOY_FAILED ---
+  case_runner "contract toplevel only" 1.0.12 1.0.13
+  upgrade=$(UPGRADE_SHA)
+  STATUS_VERSION="v1.0.13"; STATUS_SUCCESS=1; TOPLEVEL_VERSION=1
+  RUN "$upgrade"
+  echo "$RUN_OUTPUT" | grep -q "DEPLOY_FAILED" && pass "toplevel-only version rejected" || fail "toplevel-only accepted (out=$RUN_OUTPUT)"
+  TOPLEVEL_VERSION=0
+
+  # --- 3. Missing X-New-Api-Version header -> DEPLOY_FAILED ---
+  case_runner "contract no header" 1.0.12 1.0.13
+  upgrade=$(UPGRADE_SHA)
+  STATUS_VERSION="v1.0.13"; STATUS_SUCCESS=1; NO_HEADER=1
+  RUN "$upgrade"
+  echo "$RUN_OUTPUT" | grep -q "DEPLOY_FAILED" && pass "missing X-New-Api-Version rejected" || fail "missing header accepted (out=$RUN_OUTPUT)"
+  NO_HEADER=0
+
+  # --- 4. Header != data.version -> DEPLOY_FAILED ---
+  case_runner "contract mismatch" 1.0.12 1.0.13
+  upgrade=$(UPGRADE_SHA)
+  STATUS_VERSION="v1.0.13"; STATUS_SUCCESS=1; MISMATCH_VERSION="v9.9.9"
+  RUN "$upgrade"
+  echo "$RUN_OUTPUT" | grep -q "DEPLOY_FAILED" && pass "header != data.version rejected" || fail "mismatch accepted (out=$RUN_OUTPUT)"
+  MISMATCH_VERSION=""
+
+  # --- 5. success=false -> DEPLOY_FAILED ---
+  case_runner "contract success false" 1.0.12 1.0.13
+  upgrade=$(UPGRADE_SHA)
+  STATUS_VERSION="v1.0.13"; STATUS_SUCCESS=0
+  RUN "$upgrade"
+  echo "$RUN_OUTPUT" | grep -q "DEPLOY_FAILED" && pass "success=false rejected" || fail "success=false accepted (out=$RUN_OUTPUT)"
+
+  # --- 6. Invalid JSON -> DEPLOY_FAILED ---
+  case_runner "contract invalid json" 1.0.12 1.0.13
+  upgrade=$(UPGRADE_SHA)
+  STATUS_VERSION="v1.0.13"; STATUS_SUCCESS=1; STATUS_INVALID=1
+  RUN "$upgrade"
+  echo "$RUN_OUTPUT" | grep -q "DEPLOY_FAILED" && pass "invalid JSON rejected" || fail "invalid JSON accepted (out=$RUN_OUTPUT)"
+  STATUS_INVALID=0
+
+  # --- 7. Unreachable -> DEPLOY_FAILED ---
+  case_runner "contract unreachable" 1.0.12 1.0.13
+  upgrade=$(UPGRADE_SHA)
+  STATUS_VERSION="v1.0.13"; STATUS_SUCCESS=1; CURL_FAIL=1
+  RUN "$upgrade"
+  echo "$RUN_OUTPUT" | grep -q "DEPLOY_FAILED" && pass "unreachable rejected" || fail "unreachable accepted (out=$RUN_OUTPUT)"
+  CURL_FAIL=0
+
+  # --- 8. Preflight failure records DEPLOY_FAILED in state.json ---
+  case_runner "contract preflight state" 1.0.12 1.0.13
+  upgrade=$(UPGRADE_SHA)
+  STATUS_VERSION="v1.0.13"; STATUS_SUCCESS=1; CURL_FAIL=1
+  RUN "$upgrade"
+  echo "$RUN_OUTPUT" | grep -q "DEPLOY_FAILED" && pass "preflight failure => DEPLOY_FAILED" || fail "preflight failure (out=$RUN_OUTPUT)"
+  # state.json must exist with last_attempt.outcome=DEPLOY_FAILED
+  [ -f "$STATE_DIR/state.json" ] && pass "state.json exists after preflight failure" || fail "state.json missing"
+  [ "$(state_field last_attempt.outcome)" = "DEPLOY_FAILED" ] && pass "state outcome=DEPLOY_FAILED" || fail "state outcome=$(state_field last_attempt.outcome)"
+  # No backup/build/up should have run
+  ! grep -q "backup predeploy" "$BACKUP_LOG" 2>/dev/null && pass "no backup after preflight failure" || fail "backup ran"
+  ! grep -q "docker compose build" "$DOCKER_LOG" 2>/dev/null && pass "no build after preflight failure" || fail "build ran"
+  ! grep -q "docker compose up" "$DOCKER_LOG" 2>/dev/null && pass "no up after preflight failure" || fail "up ran"
+  # No traceback in output
+  echo "$RUN_OUTPUT" | grep -q "Traceback" && fail "traceback leaked" || pass "no traceback"
+  CURL_FAIL=0
+
+  # --- 9. Header case insensitivity ---
+  case_runner "contract header case" 1.0.12 1.0.13
+  upgrade=$(UPGRADE_SHA)
+  STATUS_VERSION="v1.0.13"; STATUS_SUCCESS=1
+  # Create a custom curl stub that outputs lowercase header
+  cat > "$FAKEBIN/curl" <<CURLCASE
+#!/usr/bin/env bash
+printf 'HTTP/1.1 200 OK\r\n'
+printf 'x-new-api-version: %s\r\n' "\${STATUS_VERSION:-v1.0.0}"
+printf '\r\n'
+printf '{"success": true, "message": "", "data": {"version": "%s"}}\n' "\${STATUS_VERSION:-v1.0.0}"
+CURLCASE
+  chmod +x "$FAKEBIN/curl"
+  RUN "$upgrade"
+  echo "$RUN_OUTPUT" | grep -q "DEPLOY_OK" && pass "lowercase header accepted" || fail "lowercase header rejected (out=$RUN_OUTPUT)"
+  setup_curl_stub
+}
+
+# ============== STATUS CONTRACT PARSE-VALIDATION TESTS ==============
+# RED tests for probe_status rejecting valid-but-wrong-type JSON.
+# Covers: body [], data:[], data.version as number/list/null, no traceback,
+# exact contract error (not SemVer), DEPLOY_FAILED state, no backup/build/up,
+# and caller ERR trap unchanged.
+test_status_contract_parse () {
+  echo "== status contract parse validation =="
+
+  # Run the orchestrator preflight with a CUSTOM_BODY and return RUN_OUTPUT.
+  probe_case () {
+    local body="$1"
+    case_runner "contract parse" 1.0.12 1.0.13
+    local upgrade
+    upgrade=$(UPGRADE_SHA)
+    STATUS_VERSION="v1.0.13"; STATUS_SUCCESS=1
+    CUSTOM_BODY="$body"
+    RUN "$upgrade"
+    CUSTOM_BODY=""
+  }
+
+  # Assert a probe case fails closed with the expected contract error.
+  # $1 = body, $2 = expected contract-error substring. RUN sets the global
+  # RUN_OUTPUT, so assert against that (probe_case's own stdout is only the
+  # case_runner label and must be ignored).
+  assert_reject () {
+    local body="$1" expect="$2"
+    probe_case "$body"
+
+    # Must fail closed
+    echo "$RUN_OUTPUT" | grep -q "DEPLOY_FAILED" && pass "reject [$expect]: DEPLOY_FAILED" || fail "reject [$expect]: no DEPLOY_FAILED (out=$RUN_OUTPUT)"
+    # Exact contract error, not a later SemVer error
+    echo "$RUN_OUTPUT" | grep -q "$expect" && pass "reject [$expect]: exact contract error" || fail "reject [$expect]: missing '$expect' (out=$RUN_OUTPUT)"
+    echo "$RUN_OUTPUT" | grep -qi "semver" && fail "reject [$expect]: leaked SemVer error (out=$RUN_OUTPUT)" || pass "reject [$expect]: no SemVer leak"
+    # No traceback
+    echo "$RUN_OUTPUT" | grep -q "Traceback" && fail "reject [$expect]: traceback leaked (out=$RUN_OUTPUT)" || pass "reject [$expect]: no traceback"
+    # No traceback-style python noise
+    echo "$RUN_OUTPUT" | grep -q "AttributeError" && fail "reject [$expect]: AttributeError leaked (out=$RUN_OUTPUT)" || pass "reject [$expect]: no AttributeError"
+    # state outcome recorded
+    [ "$(state_field last_attempt.outcome)" = "DEPLOY_FAILED" ] && pass "reject [$expect]: state outcome=DEPLOY_FAILED" || fail "reject [$expect]: state outcome=$(state_field last_attempt.outcome)"
+    # No backup/build/up ran
+    ! grep -q "backup predeploy" "$BACKUP_LOG" 2>/dev/null && pass "reject [$expect]: no backup" || fail "reject [$expect]: backup ran"
+    ! grep -q "docker compose build" "$DOCKER_LOG" 2>/dev/null && pass "reject [$expect]: no build" || fail "reject [$expect]: build ran"
+    ! grep -q "docker compose up" "$DOCKER_LOG" 2>/dev/null && pass "reject [$expect]: no up" || fail "reject [$expect]: up ran"
+  }
+
+  # --- body is a JSON array, not an object ---
+  assert_reject '[]' "root is not an object"
+  # --- data is an array, not an object ---
+  assert_reject '{"success":true,"data":[]}' "data is not an object"
+  # --- data.version is a number ---
+  assert_reject '{"success":true,"data":{"version":123}}' "data.version empty"
+  # --- data.version is a list ---
+  assert_reject '{"success":true,"data":{"version":[1,2]}}' "data.version empty"
+  # --- data.version is null ---
+  assert_reject '{"success":true,"data":{"version":null}}' "data.version empty"
+  # --- success=1 (number, not bool) -> rejected; `is not True` catches it ---
+  assert_reject '{"success":1,"data":{"version":"v1.0.13"}}' "success!=true"
+  # --- success="true" (string) -> rejected ---
+  assert_reject '{"success":"true","data":{"version":"v1.0.13"}}' "success!=true"
+  # --- success=null -> rejected ---
+  assert_reject '{"success":null,"data":{"version":"v1.0.13"}}' "success!=true"
+
+  # --- probe_status fail-closed on abnormal python3 output (behavior) ---
+  # Load the real probe_status via eval (no temp file) and exercise its
+  # protocol validation directly against controllable stubs. A successful curl
+  # stub feeds a fixed body so we reach the python3 parse step; a controllable
+  # python3 stub then exercises the fail-closed paths the real /api/status body
+  # cannot trigger: empty output, unknown text, non-zero exit (with and without
+  # an OK: line printed first).
+  eval "$(awk '/^probe_status \(\) \{/{f=1} f{print} /^\}$/{if(f)exit}' "$ORCHESTRATOR")"
+  local _fakebin
+  _fakebin="$STATE_DIR/fakebin2"; mkdir -p "$_fakebin"
+  # curl stub: always returns a valid header+body so probe_status reaches python3.
+  cat > "$_fakebin/curl" <<'CURLSTUB'
+#!/usr/bin/env bash
+printf 'HTTP/1.1 200 OK\r\nX-New-Api-Version: v1.0.13\r\n\r\n{"success":true,"data":{"version":"v1.0.13"}}'
+CURLSTUB
+  chmod +x "$_fakebin/curl"
+  _probe_fc () {
+    # $1 = label, $2 = python3 stub content, $3 = expected-error substring
+    local label="$1" stub="$2" expect="$3"
+    printf '%s' "$stub" > "$_fakebin/python3"
+    chmod +x "$_fakebin/python3"
+    PROBE_VERSION=""; PROBE_ERROR=""
+    PATH="$_fakebin:$PATH" probe_status "http://127.0.0.1:3999/api/status" || true
+    if [ -n "$PROBE_ERROR" ] && [ -z "$PROBE_VERSION" ]; then
+      pass "fail-closed [$label]: PROBE_ERROR set, no version"
+    else
+      fail "fail-closed [$label]: version=[$PROBE_VERSION] error=[$PROBE_ERROR]"
+    fi
+    echo "$PROBE_ERROR" | grep -q "$expect" && pass "fail-closed [$label]: error matches '$expect'" || fail "fail-closed [$label]: error [$PROBE_ERROR] missing '$expect'"
+  }
+  # python3 exit 0, empty output -> protocol validation rejects (empty parser output)
+  _probe_fc "empty-output" '#!/usr/bin/env bash
+exit 0' "empty parser output"
+  # python3 exit 0, unknown text (no OK:/ERROR: prefix) -> unexpected parser output
+  _probe_fc "unknown-output" '#!/usr/bin/env bash
+printf "garbage text\n"
+exit 0' "unexpected parser output"
+  # python3 prints OK: line then exits non-zero (2) -> must reject, discard OK:
+  # A half-written success line followed by a crash must NOT be accepted.
+  _probe_fc "ok-then-crash" '#!/usr/bin/env bash
+printf "OK:v1.0.13\n"
+exit 2' "probe parser execution failed"
+  # python3 prints nothing then exits non-zero (2) -> generic execution failure
+  _probe_fc "silent-crash" '#!/usr/bin/env bash
+exit 2' "probe parser execution failed"
+  unset -f probe_status
+
+  # --- caller ERR trap remains unchanged after a probe failure (behavior) ---
+  # probe_status must not modify, disable, or restore the caller's ERR trap.
+  # Load the real probe_status into the current shell via eval (no temp file),
+  # record the current ERR trap, call probe_status against an unreachable URL,
+  # and assert the trap is byte-for-byte unchanged afterwards. This is the
+  # behavioral guard that replaces the old source-grep check: it proves
+  # probe_status executes without touching the trap at all.
+  eval "$(awk '/^probe_status \(\) \{/{f=1} f{print} /^\}$/{if(f)exit}' "$ORCHESTRATOR")"
+  local _trap_before _trap_after
+  _trap_before=$(trap -p ERR 2>/dev/null || echo "NONE")
+  PROBE_VERSION=""; PROBE_ERROR=""
+  probe_status "http://127.0.0.1:3999/api/status" || true
+  _trap_after=$(trap -p ERR 2>/dev/null || echo "NONE")
+  if [ "$_trap_before" = "$_trap_after" ]; then
+    pass "probe_status does not modify caller ERR trap (behavior)"
+  else
+    fail "probe_status modified caller ERR trap (before=[$_trap_before] after=[$_trap_after])"
+  fi
+}
+
+# ============== STATUS CONTRACT POST-REPLACEMENT ROLLBACK ==============
+# Verifies that when probe_status fails AFTER the application container has
+# been replaced, the orchestrator performs EXACTLY ONE rollback: the on_error
+# reentrance guard holds, ROLLBACK_START appears once, exit is non-zero, and
+# the state outcome is recorded correctly. This is the regression guard for the
+# set -e + subshell-command-substitution ERR-trap double-fire bug.
+test_status_contract_rollback () {
+  echo "== status contract post-replacement rollback =="
+
+  # Run the full orchestrator with a post-replacement health failure. The
+  # running version (STATUS_VERSION) matches the target so read_current_status
+  # and the baseline check both pass; CURL_FAIL_AFTER=1 makes the first curl
+  # (read_current_status) succeed but the health-gate curl fail, so the failure
+  # happens after replace_application — exactly the path that double-fired
+  # on_error under the old subshell probe_status.
+  case_runner "contract rollback single" 1.0.12 1.0.13
+  local upgrade
+  upgrade=$(UPGRADE_SHA)
+  STATUS_VERSION="v1.0.13"; STATUS_SUCCESS=1
+  CURL_COUNT_FILE="$STATE_DIR/curl-count"; CURL_FAIL_AFTER=1
+  RUN_EXIT=0
+  RUN_OUTPUT=$(VANCINE_DEPLOY_TEST_MODE=1 \
+  VANCINE_DEPLOY_REPO="$REPO" \
+  VANCINE_DEPLOY_STATE_DIR="$STATE_DIR" \
+  VANCINE_DEPLOY_LOCK_FILE="$LOCK_FILE" \
+  VANCINE_DEPLOY_BACKUP_SCRIPT="postgres-backup.sh" \
+  VANCINE_DEPLOY_HEALTH_ATTEMPTS=2 \
+  VANCINE_DEPLOY_HEALTH_INTERVAL=1 \
+  PATH="$FAKEBIN:$PATH" \
+  STATUS_VERSION="v1.0.13" \
+  STATUS_SUCCESS="1" \
+  CURL_FAIL_AFTER=1 \
+  CURL_COUNT_FILE="$STATE_DIR/curl-count" \
+  bash "$ORCHESTRATOR" "$upgrade" 2>&1) || RUN_EXIT=$?
+
+  # --- Exactly one rollback (on_error reentrance guard holds) ---
+  local n
+  n=$(echo "$RUN_OUTPUT" | grep -c "ROLLBACK_START")
+  [ "$n" -eq 1 ] && pass "post-replacement: exactly one ROLLBACK_START (no reentry)" || fail "post-replacement: ROLLBACK_START count=$n (expected 1)"
+  # No duplicate DEPLOY_FAILED markers from a premature ERR-trap on_error
+  local failed_count
+  failed_count=$(echo "$RUN_OUTPUT" | grep -c "DEPLOY_FAILED")
+  [ "$failed_count" -le 1 ] && pass "post-replacement: no duplicate DEPLOY_FAILED (guard held)" || fail "post-replacement: DEPLOY_FAILED count=$failed_count (premature on_error fired)"
+
+  # --- Non-zero exit ---
+  [ "$RUN_EXIT" -ne 0 ] && pass "post-replacement: non-zero exit" || fail "post-replacement: zero exit (exit=$RUN_EXIT)"
+
+  # --- Correct state outcome. The preflight/baseline checks pass (running
+  # version matches target), so the failure is a post-replacement health gate
+  # failure. APP_REPLACED=1 means on_error runs rollback_application; with
+  # CURL_FAIL_AFTER=1 the rollback-phase curls also fail, so the rollback
+  # health check fails and the outcome is exactly ROLLBACK_FAILED. ---
+  local _rb_outcome
+  _rb_outcome="$(state_field last_attempt.outcome)"
+  [ "$_rb_outcome" = "ROLLBACK_FAILED" ] && pass "post-replacement: state outcome=ROLLBACK_FAILED" || fail "post-replacement: state outcome=$_rb_outcome (expected ROLLBACK_FAILED)"
+
+  # --- No traceback / python noise ---
+  echo "$RUN_OUTPUT" | grep -q "Traceback" && fail "post-replacement: traceback leaked" || pass "post-replacement: no traceback"
+  echo "$RUN_OUTPUT" | grep -q "AttributeError" && fail "post-replacement: AttributeError leaked" || pass "post-replacement: no AttributeError"
+
+  CURL_FAIL_AFTER=""; CURL_COUNT_FILE=""
+}
+
 SUITE="${1:-all}"
 if [ "$SUITE" = "stub_guard" ] || [ "$SUITE" = "all" ]; then test_stub_generation_guard; fi
 if [ "$SUITE" = "preflight" ] || [ "$SUITE" = "all" ]; then test_preflight; fi
@@ -1077,6 +1430,9 @@ if [ "$SUITE" = "transaction" ] || [ "$SUITE" = "all" ]; then test_transaction; 
 if [ "$SUITE" = "strict" ] || [ "$SUITE" = "all" ]; then test_strict; fi
 if [ "$SUITE" = "state" ] || [ "$SUITE" = "all" ]; then test_state_audit; fi
 if [ "$SUITE" = "state_safety" ] || [ "$SUITE" = "all" ]; then test_state_safety; fi
+if [ "$SUITE" = "status_contract" ] || [ "$SUITE" = "all" ]; then test_status_contract; fi
+if [ "$SUITE" = "status_contract_parse" ] || [ "$SUITE" = "all" ]; then test_status_contract_parse; fi
+if [ "$SUITE" = "status_contract_rollback" ] || [ "$SUITE" = "all" ]; then test_status_contract_rollback; fi
 if [ "$SUITE" = "all" ]; then
   if guard_forbidden_commands "$ORCHESTRATOR"; then pass "no forbidden destructive commands"; else fail "forbidden commands present"; fi
 fi

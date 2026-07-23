@@ -197,7 +197,7 @@ docker cp "$REPO_ROOT/ops/backup/postgres-backup.sh" "$CONTAINER:/tmp/tests/ops/
 docker cp "$REPO_ROOT/tests/test_models_test.sh" "$CONTAINER:/tmp/tests/tests/test_models_test.sh" 2>/dev/null || true
 LINUX_RESULT=$(docker exec "$CONTAINER" bash -c 'cd /tmp/tests && VANCINE_DEPLOY_TEST_MODE=1 bash ops/deploy/tests/test-production-deploy.sh all 2>&1 | grep "TOTAL passed"' 2>&1 || true)
 echo "Linux: $LINUX_RESULT"
-echo "$LINUX_RESULT" | grep -q "TOTAL passed=85 failed=0" && pass "Linux production-deploy 85/85" || fail "Linux: $LINUX_RESULT"
+echo "$LINUX_RESULT" | grep -q "TOTAL passed=187 failed=0" && pass "Linux production-deploy 187/187" || fail "Linux: $LINUX_RESULT"
 
 # --- 13. Static guards on Dockerfile and entrypoint ---
 echo "== Static guards =="
