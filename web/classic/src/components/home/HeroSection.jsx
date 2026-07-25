@@ -101,15 +101,40 @@ const HeroSection = ({
     typeof window !== 'undefined' &&
     window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || prefersReduced) return undefined;
+    // 延迟到浏览器空闲再播放，避免与首屏关键资源竞争带宽
+    const start = () => {
+      video.play().catch(() => {});
+    };
+    let id;
+    if ('requestIdleCallback' in window) {
+      id = window.requestIdleCallback(start, { timeout: 1500 });
+    } else {
+      id = setTimeout(start, 300);
+    }
+    return () => {
+      if ('requestIdleCallback' in window) {
+        window.cancelIdleCallback(id);
+      } else {
+        clearTimeout(id);
+      }
+    };
+  }, [prefersReduced]);
+
   return (
     <section className='relative w-full h-screen min-h-[600px] flex items-center justify-center overflow-hidden'>
       {/* Video Background */}
       <video
-        autoPlay
+        ref={videoRef}
         loop
         muted
         playsInline
-        preload='auto'
+        poster='/hero-poster.jpg'
+        preload='metadata'
         className='absolute inset-0 w-full h-full object-cover'
         style={{ filter: 'var(--vc-hero-video-filter)' }}
       >
