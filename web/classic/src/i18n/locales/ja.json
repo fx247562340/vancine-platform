@@ -3792,6 +3792,17 @@
     "Power developer tools and agents that chain text, image, video, and audio tasks.": "Power developer tools and agents that chain text, image, video, and audio tasks.",
     "seedance.nav.workflow": "Workflow",
     "seedance.nav.codeExamples": "Code Examples",
-    "seedance.nav.freeCredit": "Free $1 Credit"
+    "seedance.nav.freeCredit": "Free $1 Credit",
+    "快速上手": "クイックスタート",
+    "试用 Playground": "Playgroundを試す",
+    "无需配置，直接在浏览器中对话测试模型效果": "設定不要 - ブラウザで直接モデルをテスト",
+    "开始对话": "チャット開始",
+    "获取 API Key": "APIキーを取得",
+    "创建令牌，用于 SDK 或应用集成调用": "SDKやアプリ連携用のトークンを作成",
+    "创建令牌": "トークン作成",
+    "发起第一次请求": "最初のリクエストを送信",
+    "兼容 OpenAI SDK，复制下方命令即可运行": "OpenAI SDK互換 - 以下のコマンドをコピーして実行",
+    "复制命令": "コマンドをコピー",
+    "关闭引导": "ガイドを閉じる"
   }
 }

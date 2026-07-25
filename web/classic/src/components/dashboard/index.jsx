@@ -23,6 +23,7 @@ import { UserContext } from '../../context/User';
 import { StatusContext } from '../../context/Status';
 
 import DashboardHeader from './DashboardHeader';
+import GettingStartedCard from './GettingStartedCard';
 import StatsCards from './StatsCards';
 import ChartsPanel from './ChartsPanel';
 import ApiInfoPanel from './ApiInfoPanel';
@@ -173,6 +174,16 @@ const Dashboard = () => {
         handleInputChange={dashboardData.handleInputChange}
         t={dashboardData.t}
       />
+
+      {/* 新用户引导卡片，仅普通用户可见 */}
+      {userState?.user?.role < 10 && (
+        <GettingStartedCard
+          CARD_PROPS={CARD_PROPS}
+          FLEX_CENTER_GAP2={FLEX_CENTER_GAP2}
+          t={dashboardData.t}
+          userId={userState?.user?.id}
+        />
+      )}
 
       <StatsCards
         groupedStatsData={groupedStatsData}

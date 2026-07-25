@@ -3819,6 +3819,17 @@
     "Power developer tools and agents that chain text, image, video, and audio tasks.": "为开发工具和智能体提供文本、图片、视频、音频的串联能力。",
     "seedance.nav.workflow": "工作流",
     "seedance.nav.codeExamples": "代码示例",
-    "seedance.nav.freeCredit": "1 美元免费额度"
+    "seedance.nav.freeCredit": "1 美元免费额度",
+    "快速上手": "快速上手",
+    "试用 Playground": "試用 Playground",
+    "无需配置，直接在浏览器中对话测试模型效果": "無需配置，直接在瀏覽器中對話測試模型效果",
+    "开始对话": "開始對話",
+    "获取 API Key": "獲取 API Key",
+    "创建令牌，用于 SDK 或应用集成调用": "創建令牌，用於 SDK 或應用集成調用",
+    "创建令牌": "創建令牌",
+    "发起第一次请求": "發起第一次請求",
+    "兼容 OpenAI SDK，复制下方命令即可运行": "兼容 OpenAI SDK，複製下方命令即可運行",
+    "复制命令": "複製命令",
+    "关闭引导": "關閉引導"
   }
 }

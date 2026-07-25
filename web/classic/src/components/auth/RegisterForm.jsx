@@ -244,12 +244,15 @@ const RegisterForm = () => {
           `/api/user/register?turnstile=${turnstileToken}`,
           inputs,
         );
-        const { success, message } = res.data;
+        const { success, message, data } = res.data;
         if (success) {
-          // Record a successful registration before redirecting to login.
+          // Record a successful registration then auto-login.
           trackEvent('signup_completed');
-          navigate('/login');
+          userDispatch({ type: 'login', payload: data });
+          setUserData(data);
+          updateAPI();
           showSuccess(t('注册成功！'));
+          navigate('/console');
         } else {
           showError(message);
         }

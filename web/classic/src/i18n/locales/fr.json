@@ -3823,6 +3823,17 @@
     "Power developer tools and agents that chain text, image, video, and audio tasks.": "Power developer tools and agents that chain text, image, video, and audio tasks.",
     "seedance.nav.workflow": "Workflow",
     "seedance.nav.codeExamples": "Code Examples",
-    "seedance.nav.freeCredit": "Free $1 Credit"
+    "seedance.nav.freeCredit": "Free $1 Credit",
+    "快速上手": "Démarrage rapide",
+    "试用 Playground": "Essayer le Playground",
+    "无需配置，直接在浏览器中对话测试模型效果": "Aucune configuration nécessaire - testez les modèles directement dans votre navigateur",
+    "开始对话": "Démarrer",
+    "获取 API Key": "Obtenir une clé API",
+    "创建令牌，用于 SDK 或应用集成调用": "Créez un jeton pour l'intégration SDK ou applicative",
+    "创建令牌": "Créer un jeton",
+    "发起第一次请求": "Effectuez votre première requête",
+    "兼容 OpenAI SDK，复制下方命令即可运行": "Compatible SDK OpenAI - copiez et exécutez la commande ci-dessous",
+    "复制命令": "Copier la commande",
+    "关闭引导": "Fermer le guide"
   }
 }

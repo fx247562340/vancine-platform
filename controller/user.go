@@ -227,11 +227,8 @@ func Register(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "",
-	})
-	return
+	// 注册成功后自动登录，建立 session
+	setupLogin(&insertedUser, c)
 }
 
 func GetAllUsers(c *gin.Context) {

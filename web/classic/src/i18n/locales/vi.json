@@ -4357,6 +4357,17 @@
     "Power developer tools and agents that chain text, image, video, and audio tasks.": "Power developer tools and agents that chain text, image, video, and audio tasks.",
     "seedance.nav.workflow": "Workflow",
     "seedance.nav.codeExamples": "Code Examples",
-    "seedance.nav.freeCredit": "Free $1 Credit"
+    "seedance.nav.freeCredit": "Free $1 Credit",
+    "快速上手": "Bắt đầu nhanh",
+    "试用 Playground": "Dùng thử Playground",
+    "无需配置，直接在浏览器中对话测试模型效果": "Không cần cấu hình - kiểm tra mô hình trực tiếp trong trình duyệt",
+    "开始对话": "Bắt đầu chat",
+    "获取 API Key": "Lấy API Key",
+    "创建令牌，用于 SDK 或应用集成调用": "Tạo token để tích hợp SDK hoặc ứng dụng",
+    "创建令牌": "Tạo token",
+    "发起第一次请求": "Thực hiện yêu cầu đầu tiên",
+    "兼容 OpenAI SDK，复制下方命令即可运行": "Tương thích OpenAI SDK - sao chép và chạy lệnh bên dưới",
+    "复制命令": "Sao chép lệnh",
+    "关闭引导": "Ẩn hướng dẫn"
   }
 }
