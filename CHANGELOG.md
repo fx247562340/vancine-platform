@@ -2,6 +2,25 @@
 
 All notable Vancine platform release and operations changes are tracked here.
 
+## 1.0.13 - 2026-07-25
+
+### 注册自动登录 + Dashboard 快速上手引导（P0-1）
+
+- 注册成功后自动登录：`controller/user.go` 的 `Register` 注册成功后改为调用 `setupLogin` 建立 session，返回与登录一致的用户数据；前端 `RegisterForm` 注册成功直接跳 `/console`，不再重定向 `/login` 二次输入密码。
+- 新增 `GettingStartedCard` 三步引导卡片（试用 Playground -> 获取 API Key -> 发起第一次请求），仅 role<10 普通用户可见、可关闭、关闭状态按 userId 独立记忆；布局为紧凑等高卡片 + 全宽 curl 代码块（bash 标签 + 复制按钮）。
+- curl 示例使用平台实际可用模型 `deepseek-v4-flash`。
+- i18n：11 个新 key 补入实际加载的 6 个语言文件（zh-CN/zh-TW/fr/ja/ru/vi）。Classic i18n 用 `load:'currentOnly'`，zh.json 未被 import。
+- 注册自动生成初始令牌由 `GENERATE_DEFAULT_TOKEN` 控制，本地开发 compose 已开启；生产需在 .env 手动加 `GENERATE_DEFAULT_TOKEN=true`。
+
+### 首屏性能（P0-2）
+
+- 首页 Hero 背景视频从 4K(3840x2160, 26MB, 10.9Mbps) 压缩到 1080p(1920x1080, 4.8MB, 2.0Mbps, H.264 CRF28 faststart)，-81%。
+- 新增首帧 poster `hero-poster.jpg`(102KB) 首屏秒显；`HeroSection` 移除 `autoPlay`，改为浏览器空闲（requestIdleCallback，Safari 降级 setTimeout）后 `play()` 延迟播放；`preload` 改 `metadata`；`prefers-reduced-motion` 时仅显示 poster 不播放。
+
+### Notes
+
+- 主包 9MB 路由级代码分割与 @lobehub/icons 通配符导入治理本次未做，后续迭代。
+
 ## 1.0.8 - 2026-07-13
 
 ### New Channel: LongCat
