@@ -2,6 +2,15 @@
 
 All notable Vancine platform release and operations changes are tracked here.
 
+## 1.0.15 - 2026-07-26
+
+### 文档模型清单与生产平台对齐
+
+- 文本模型清单更新为生产实际的 21 个（下线 Doubao-Seed-2.0-lite/mini、MiniMax-M2.5；新增 Seed-2.1 系列、kimi-k3/k2.7-code 系列、glm-5.2、MiniMax-M2.7/M3、LongCat-2.0）。
+- 图片模型更新：下线 Seedream-4.0/4.5，新增 Doubao-Seedream-5.0-pro 与 wan2.7-image/wan2.7-image-pro。
+- 修正 Seedream 尺寸说明：5.0-pro 最小 921,600 像素（1024x1024 可用、仅支持单图）；5.0-lite 最小 3,686,400 像素（依据火山方舟官方文档）。
+- 文本模型标题数量改为动态计数（i18next {{count}} 插值），随清单自动更新。
+
 ## 1.0.14 - 2026-07-26
 
 ### 文档多页重建
