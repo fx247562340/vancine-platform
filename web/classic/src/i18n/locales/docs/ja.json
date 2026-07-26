@@ -105,7 +105,7 @@
     "examplesTitle": "例",
     "colWorkingSize": "動作確認済みサイズ",
     "defaultSizeSupported": "デフォルトサイズ対応",
-    "sizeWarning": "Doubao-Seedream-4.5 と Doubao-Seedream-5.0-lite は最低 3,686,400 ピクセルが必要です。1024x1024 は「image size must be at least 3686400 pixels」エラーになります。2048x2048 を使用してください。",
+    "sizeWarning": "Doubao-Seedream-5.0-lite は最低 3,686,400 ピクセルが必要です。1024x1024 は「image size must be at least 3686400 pixels」エラーになります。2048x2048 を使用してください。Doubao-Seedream-5.0-pro にこの制限はなく、最低 921,600 ピクセル（1024x1024 可）ですが、単一画像のみ生成でき、組図は非対応です。どちらも 1K/2K（lite は 3K/4K も）解像度ティアを使え、最終サイズはモデルが決めます。",
     "params": {
       "model": "画像モデル名",
       "prompt": "画像のテキストプロンプト",
@@ -229,7 +229,7 @@
     "title": "モデルと価格",
     "desc": "公開価格エンドポイントを呼び出して、モデル名、対応エンドポイント、レシオ、価格を読み取ることができます。",
     "fetchPricing": "モデル価格を取得",
-    "textModelsTitle": "テキストモデル（14）",
+    "textModelsTitle": "テキストモデル（{{count}}）",
     "multimodalTitle": "マルチモーダル生成モデル",
     "colType": "タイプ",
     "colUsageNotes": "使用上の注意",
@@ -313,8 +313,8 @@
         "a": "TTS呼び出しが成功すると、Content-Type audio/mpegでバイナリMP3音声が直接返されます。"
       },
       "seedreamSize": {
-        "q": "Seedream 4.5が画像サイズを拒否するのはなぜ？",
-        "a": "最低3,686,400ピクセルが必要です。sizeを2048x2048に設定してください。"
+        "q": "なぜ Seedream が画像サイズを拒否するのですか？",
+        "a": "Doubao-Seedream-5.0-lite は最低 3,686,400 ピクセルが必要です（2048x2048 を推奨）。Doubao-Seedream-5.0-pro にこの制限はなく、最低 921,600 ピクセル（1024x1024 可）。使用するモデルに合わせて size を設定するか、1K/2K などの解像度ティアを渡してモデルに決定させてください。"
       }
     }
   },

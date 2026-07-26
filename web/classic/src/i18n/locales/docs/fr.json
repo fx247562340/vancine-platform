@@ -105,7 +105,7 @@
     "examplesTitle": "Exemples",
     "colWorkingSize": "Taille fonctionnelle",
     "defaultSizeSupported": "Taille par défaut prise en charge",
-    "sizeWarning": "Doubao-Seedream-4.5 et Doubao-Seedream-5.0-lite nécessitent au moins 3 686 400 pixels. 1024x1024 renvoie « image size must be at least 3686400 pixels » ; utilisez 2048x2048.",
+    "sizeWarning": "Doubao-Seedream-5.0-lite exige au moins 3 686 400 pixels. 1024x1024 renvoie « image size must be at least 3686400 pixels » ; utilisez 2048x2048. Doubao-Seedream-5.0-pro n’a pas cette limite : minimum 921 600 pixels (1024x1024 fonctionne), mais ne génère que des images unitaires (pas de groupes d’images). Les deux acceptent les paliers 1K/2K (lite accepte aussi 3K/4K) ; le modèle décide de la taille finale.",
     "params": {
       "model": "Nom du modèle d'image",
       "prompt": "Description textuelle de l'image",
@@ -229,7 +229,7 @@
     "title": "Modèles et tarification",
     "desc": "Appelez le point de terminaison public de tarification pour lire les noms de modèles, les points de terminaison pris en charge, les ratios et les prix.",
     "fetchPricing": "Récupérer la tarification des modèles",
-    "textModelsTitle": "Modèles de texte (14)",
+    "textModelsTitle": "Modèles de texte ({{count}})",
     "multimodalTitle": "Modèles de génération multimodaux",
     "colType": "Type",
     "colUsageNotes": "Notes d'utilisation",
@@ -313,8 +313,8 @@
         "a": "Les appels TTS réussis renvoient directement un flux audio MP3 binaire avec Content-Type audio/mpeg."
       },
       "seedreamSize": {
-        "q": "Pourquoi Seedream 4.5 rejette-t-il ma taille d'image ?",
-        "a": "Il nécessite au moins 3 686 400 pixels. Utilisez size 2048x2048."
+        "q": "Pourquoi Seedream rejette-t-il ma taille d’image ?",
+        "a": "Doubao-Seedream-5.0-lite exige au moins 3 686 400 pixels (utilisez 2048x2048). Doubao-Seedream-5.0-pro n’a pas cette limite : minimum 921 600 pixels (1024x1024 fonctionne). Définissez size selon le modèle, ou passez un palier 1K/2K et laissez le modèle décider."
       }
     }
   },

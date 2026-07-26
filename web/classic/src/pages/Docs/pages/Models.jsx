@@ -29,13 +29,20 @@ const TEXT_MODELS = [
   'deepseek-v4-flash',
   'deepseek-v4-pro',
   'Doubao-Seed-2.0-Code',
-  'Doubao-Seed-2.0-lite',
-  'Doubao-Seed-2.0-mini',
   'Doubao-Seed-2.0-pro',
+  'Doubao-Seed-2.1-pro',
+  'Doubao-Seed-2.1-turbo',
   'glm-5.1',
+  'glm-5.2',
   'kimi-k2.5',
   'kimi-k2.6',
-  'MiniMax-M2.5',
+  'kimi-k2.7-code',
+  'kimi-k2.7-code-highspeed',
+  'kimi-k3',
+  'LongCat-2.0',
+  'MiniMax-M2.7',
+  'MiniMax-M2.7-highspeed',
+  'MiniMax-M3',
   'qwen3.5-omni-flash',
   'qwen3.6-plus',
   'qwen3.7-max',
@@ -44,10 +51,11 @@ const TEXT_MODELS = [
 
 const IMAGE_MODELS = [
   ['qwen-image-2.0', '1024x1024', ''],
-  ['qwen-image-2.0-pro', '1024x1024', ''],
-  ['Doubao-Seedream-4.0', '1024x1024', ''],
-  ['Doubao-Seedream-4.5', '2048x2048', '≥ 3,686,400 px'],
-  ['Doubao-Seedream-5.0-lite', '2048x2048', '≥ 3,686,400 px'],
+  ['qwen-image-2.0-pro', '1024x1024', '2K'],
+  ['Doubao-Seedream-5.0-pro', '1K / 2K / WxH', '921,600 ~ 4,624,220 px'],
+  ['Doubao-Seedream-5.0-lite', '2K / 3K / 4K / WxH', '≥ 3,686,400 px'],
+  ['wan2.7-image', 'WxH', ''],
+  ['wan2.7-image-pro', 'WxH', ''],
 ];
 
 const VIDEO_MODELS = [
@@ -82,7 +90,7 @@ const Models = ({ baseUrl }) => {
       <P>{t('models.desc')}</P>
       <CodeBlock code={`curl ${pricingUrl}`} title={t('models.fetchPricing')} language="bash" />
 
-      <H3 id="models-text">{t('models.textModelsTitle')}</H3>
+      <H3 id="models-text">{t('models.textModelsTitle', { count: TEXT_MODELS.length })}</H3>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '24px' }}>
         {TEXT_MODELS.map((model) => <Badge key={model} color="blue">{model}</Badge>)}
       </div>

@@ -31,10 +31,11 @@ import Badge from '../components/Badge';
 
 const IMAGE_MODELS = [
   ['qwen-image-2.0', '1024x1024', ''],
-  ['qwen-image-2.0-pro', '1024x1024', ''],
-  ['Doubao-Seedream-4.0', '1024x1024', ''],
-  ['Doubao-Seedream-4.5', '2048x2048', '≥ 3,686,400 px'],
-  ['Doubao-Seedream-5.0-lite', '2048x2048', '≥ 3,686,400 px'],
+  ['qwen-image-2.0-pro', '1024x1024', '2K'],
+  ['Doubao-Seedream-5.0-pro', '1K / 2K / WxH', '921,600 ~ 4,624,220 px'],
+  ['Doubao-Seedream-5.0-lite', '2K / 3K / 4K / WxH', '≥ 3,686,400 px'],
+  ['wan2.7-image', 'WxH', ''],
+  ['wan2.7-image-pro', 'WxH', ''],
 ];
 
 const Image = ({ baseUrl }) => {

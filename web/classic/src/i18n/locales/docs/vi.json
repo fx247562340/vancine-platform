@@ -105,7 +105,7 @@
     "examplesTitle": "Ví dụ",
     "colWorkingSize": "Kích thước hoạt động",
     "defaultSizeSupported": "Kích thước mặc định được hỗ trợ",
-    "sizeWarning": "Doubao-Seedream-4.5 và Doubao-Seedream-5.0-lite yêu cầu tối thiểu 3,686,400 pixel. 1024x1024 trả về \"image size must be at least 3686400 pixels\"; hãy dùng 2048x2048.",
+    "sizeWarning": "Doubao-Seedream-5.0-lite yêu cầu tối thiểu 3,686,400 pixel. 1024x1024 trả về “image size must be at least 3686400 pixels”; hãy dùng 2048x2048. Doubao-Seedream-5.0-pro không có giới hạn này: tối thiểu 921,600 pixel (1024x1024 dùng được), nhưng chỉ hỗ trợ tạo một ảnh (không hỗ trợ nhóm ảnh). Cả hai đều hỗ trợ bậc 1K/2K (lite còn hỗ trợ 3K/4K); mô hình quyết định kích thước cuối.",
     "params": {
       "model": "Tên mô hình hình ảnh",
       "prompt": "Mô tả văn bản cho hình ảnh",
@@ -229,7 +229,7 @@
     "title": "Mô hình và giá",
     "desc": "Gọi endpoint giá công khai để đọc tên mô hình, endpoint được hỗ trợ, tỷ lệ và giá.",
     "fetchPricing": "Lấy giá mô hình",
-    "textModelsTitle": "Mô hình văn bản (14)",
+    "textModelsTitle": "Mô hình văn bản ({{count}})",
     "multimodalTitle": "Mô hình tạo đa phương thức",
     "colType": "Loại",
     "colUsageNotes": "Ghi chú sử dụng",
@@ -313,8 +313,8 @@
         "a": "Gọi TTS thành công trả về trực tiếp luồng âm thanh MP3 nhị phân với Content-Type audio/mpeg."
       },
       "seedreamSize": {
-        "q": "Tại sao Seedream 4.5 từ chối kích thước hình ảnh?",
-        "a": "Yêu cầu tối thiểu 3,686,400 pixel. Dùng size 2048x2048."
+        "q": "Tại sao Seedream từ chối kích thước hình ảnh?",
+        "a": "Doubao-Seedream-5.0-lite yêu cầu tối thiểu 3,686,400 pixel (nên dùng 2048x2048). Doubao-Seedream-5.0-pro không có giới hạn này: tối thiểu 921,600 pixel (1024x1024 dùng được). Hãy đặt size theo mô hình đang dùng, hoặc truyền bậc 1K/2K để mô hình tự quyết định."
       }
     }
   },

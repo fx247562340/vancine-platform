@@ -105,7 +105,7 @@
     "examplesTitle": "Examples",
     "colWorkingSize": "Working size",
     "defaultSizeSupported": "Default size supported",
-    "sizeWarning": "Doubao-Seedream-4.5 and Doubao-Seedream-5.0-lite require at least 3,686,400 pixels. 1024x1024 returns “image size must be at least 3686400 pixels”; use 2048x2048.",
+    "sizeWarning": "Doubao-Seedream-5.0-lite requires at least 3,686,400 pixels. 1024x1024 returns “image size must be at least 3686400 pixels”; use 2048x2048. Doubao-Seedream-5.0-pro has no such limit: minimum 921,600 pixels (1024x1024 works), but it only supports single-image generation (no image groups). Both support 1K/2K resolution tiers (lite also supports 3K/4K); the model decides the final size.",
     "params": {
       "model": "Image model name",
       "prompt": "Text prompt for the image",
@@ -229,7 +229,7 @@
     "title": "Models & Pricing",
     "desc": "Call the public pricing endpoint to read model names, supported endpoints, ratios, and prices.",
     "fetchPricing": "Fetch model pricing",
-    "textModelsTitle": "Text models (14)",
+    "textModelsTitle": "Text models ({{count}})",
     "multimodalTitle": "Multimodal generation models",
     "colType": "Type",
     "colUsageNotes": "Usage notes",
@@ -313,8 +313,8 @@
         "a": "Successful TTS calls return binary MP3 audio directly with Content-Type audio/mpeg."
       },
       "seedreamSize": {
-        "q": "Why does Seedream 4.5 reject my image size?",
-        "a": "It requires at least 3,686,400 pixels. Use size 2048x2048."
+        "q": "Why does Seedream reject my image size?",
+        "a": "Doubao-Seedream-5.0-lite requires at least 3,686,400 pixels (use 2048x2048). Doubao-Seedream-5.0-pro has no such limit: minimum 921,600 pixels (1024x1024 works). Set size for the model you use, or pass a 1K/2K tier and let the model decide."
       }
     }
   },

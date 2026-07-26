@@ -105,7 +105,7 @@
     "examplesTitle": "範例",
     "colWorkingSize": "可用尺寸",
     "defaultSizeSupported": "預設尺寸可用",
-    "sizeWarning": "Doubao-Seedream-4.5 和 Doubao-Seedream-5.0-lite 要求最小 3,686,400 像素。1024x1024 會報 image size must be at least 3686400 pixels，建議使用 2048x2048。",
+    "sizeWarning": "Doubao-Seedream-5.0-lite 要求最小 3,686,400 像素，1024x1024 會報 image size must be at least 3686400 pixels，建議使用 2048x2048。Doubao-Seedream-5.0-pro 無此限制，最小 921,600 像素（1024x1024 可用），但只支援生成單圖（不支援組圖）。兩者都支援用 1K/2K（lite 還支援 3K/4K）解析度檔位，由模型決定最終尺寸。",
     "params": {
       "model": "圖片模型名稱",
       "prompt": "圖片文字描述",
@@ -229,7 +229,7 @@
     "title": "模型與定價",
     "desc": "呼叫公開定價介面可讀取模型名稱、支援端點、倍率和價格。",
     "fetchPricing": "取得模型價格",
-    "textModelsTitle": "文字模型（14 個）",
+    "textModelsTitle": "文字模型（{{count}} 個）",
     "multimodalTitle": "多媒體模型",
     "colType": "類型",
     "colUsageNotes": "呼叫說明",
@@ -313,8 +313,8 @@
         "a": "TTS 成功時直接回傳 MP3 二進位音訊流，Content-Type 為 audio/mpeg。"
       },
       "seedreamSize": {
-        "q": "為什麼 Seedream 4.5 圖片尺寸報錯？",
-        "a": "它要求至少 3,686,400 像素。建議把 size 設定為 2048x2048。"
+        "q": "為什麼 Seedream 圖片尺寸報錯？",
+        "a": "Doubao-Seedream-5.0-lite 要求最小 3,686,400 像素（建議 2048x2048）；Doubao-Seedream-5.0-pro 無此限制，最小 921,600 像素（1024x1024 可用）。請按所用模型設定 size，或直接用 1K/2K 等解析度檔位讓模型自行決定。"
       }
     }
   },
