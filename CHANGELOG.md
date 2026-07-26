@@ -2,6 +2,17 @@
 
 All notable Vancine platform release and operations changes are tracked here.
 
+## 1.0.14 - 2026-07-26
+
+### 文档多页重建
+
+- 文档重建为多页站点：/docs/:slug 路由 + DocsLayout 三栏（sticky 分组侧边栏 + 右侧「在此页面」TOC）+ registry 懒加载 14 个页面。
+- i18next docs namespace，7 语言全文翻译（en/zh-CN/zh-TW/fr/ja/ru/vi），正文走 locale JSON。
+- 代码块 highlight.js 语法高亮（深浅色作用域主题）+ curl/Python/Node 语言 tab + 复制按钮。
+- 14 页内容从原单页完整迁移（模型/音色/状态表等技术细节无丢失）。
+- 新增文档搜索（标题优先 + 内容片段）、上下篇导航、页面反馈、public/llms.txt（14 链接英文索引）。
+- 修复 3 个交互 bug：sticky 被 .semi-layout-content overflow 破坏、highlight.js 双主题全局冲突、agents 页 baseUrl 插值泄漏。
+
 ## 1.0.13 - 2026-07-25
 
 ### 注册自动登录 + Dashboard 快速上手引导（P0-1）
