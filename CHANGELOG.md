@@ -2,6 +2,15 @@
 
 All notable Vancine platform release and operations changes are tracked here.
 
+## 1.0.16 - 2026-07-26
+
+### 文档参数补全
+
+- 图片生成参数补全至 8 个（新增 response_format/output_format/image/watermark），并注明 Seedream 高级参数（组图 sequential_image_generation、提示词优化 optimize_prompt_options）需渠道开启 PassThrough 才透传。
+- 视频生成参数补全至 7 个（新增 image/images/duration/metadata），附 metadata 扩展参数说明（resolution/ratio/frames/seed/watermark/camera_fixed/generate_audio）。
+- 音频 TTS 参数补全至 5 个（新增 response_format 六种格式、speed 语速）。
+- 3D 生成明确异步任务流程（提交拿 task_id，轮询 GET /v1/video/generations/{task_id}，从 metadata.url 取 3D 模型文件），注明 Doubao-Seed3D-2.0 需至少一张参考图。
+
 ## 1.0.15 - 2026-07-26
 
 ### 文档模型清单与生产平台对齐
