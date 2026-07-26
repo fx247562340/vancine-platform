@@ -28,6 +28,16 @@ import zhTWTranslation from './locales/zh-TW.json';
 import ruTranslation from './locales/ru.json';
 import jaTranslation from './locales/ja.json';
 import viTranslation from './locales/vi.json';
+
+// Docs namespace translations
+import enDocs from './locales/docs/en.json';
+import zhCNDocs from './locales/docs/zh-CN.json';
+import zhTWDocs from './locales/docs/zh-TW.json';
+import frDocs from './locales/docs/fr.json';
+import jaDocs from './locales/docs/ja.json';
+import ruDocs from './locales/docs/ru.json';
+import viDocs from './locales/docs/vi.json';
+
 import { supportedLanguages, getDetectionConfig } from './language';
 
 // Pure init-options factory shared with the i18n test so the test can
@@ -38,13 +48,13 @@ export function getI18nInitOptions() {
     load: 'currentOnly',
     supportedLngs: supportedLanguages,
     resources: {
-      en: enTranslation,
-      'zh-CN': zhCNTranslation,
-      'zh-TW': zhTWTranslation,
-      fr: frTranslation,
-      ru: ruTranslation,
-      ja: jaTranslation,
-      vi: viTranslation,
+      en: { translation: enTranslation, docs: enDocs },
+      'zh-CN': { translation: zhCNTranslation, docs: zhCNDocs },
+      'zh-TW': { translation: zhTWTranslation, docs: zhTWDocs },
+      fr: { translation: frTranslation, docs: frDocs },
+      ru: { translation: ruTranslation, docs: ruDocs },
+      ja: { translation: jaTranslation, docs: jaDocs },
+      vi: { translation: viTranslation, docs: viDocs },
     },
     fallbackLng: 'en',
     nsSeparator: false,

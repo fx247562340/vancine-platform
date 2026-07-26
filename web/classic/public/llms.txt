@@ -1,0 +1,24 @@
+# Vancine API Documentation
+
+> Vancine is an OpenAI-compatible API gateway for Chinese AI models. One API key, unified billing, and developer-friendly endpoints for text, image, video, audio/TTS, and 3D generation.
+
+Base URL: `https://vancine.com/v1`
+Auth: `Authorization: Bearer sk-your-api-key`
+Public pricing: `GET https://vancine.com/api/pricing`
+
+## Docs
+
+- [Quick Start](https://vancine.com/docs/quickstart): Get from zero to your first successful API call in about 3 minutes.
+- [Migrate from OpenAI](https://vancine.com/docs/migrate): Switch existing OpenAI SDK code by changing only base_url and api_key.
+- [Models & Pricing](https://vancine.com/docs/models): Browse available text, image, video, 3D, and audio models plus public pricing.
+- [Chat Completions](https://vancine.com/docs/chat): Call POST /v1/chat/completions with OpenAI-compatible messages.
+- [Image Generation](https://vancine.com/docs/image): Generate images via POST /v1/images/generations with model size notes.
+- [Video Generation](https://vancine.com/docs/video): Submit async video jobs and poll task status with task_id.
+- [3D Generation](https://vancine.com/docs/td): Generate 3D assets through the async video endpoint with optional images.
+- [Audio / TTS](https://vancine.com/docs/audio): Synthesize speech to MP3 via POST /v1/audio/speech and voice lists.
+- [SDKs & Tools](https://vancine.com/docs/sdks): Use OpenAI Python/Node SDKs, HTTP clients, or cURL with Vancine.
+- [Agent Integration](https://vancine.com/docs/agents): Connect Codex, OpenCode, OpenClaw, Hermes, Cursor, Cline, and Cherry Studio.
+- [Authentication](https://vancine.com/docs/auth): Authenticate all /v1 requests with a Bearer API key.
+- [Capabilities](https://vancine.com/docs/capabilities): Overview of chat, TTS, image, video, and 3D endpoints.
+- [Error Handling](https://vancine.com/docs/errors): HTTP status meanings and error response JSON format.
+- [FAQ](https://vancine.com/docs/faq): Common questions about keys, async results, TTS, and image sizes.

@@ -1,0 +1,371 @@
+{
+  "quickstart": {
+    "title": "Быстрый старт",
+    "subtitle": "От нуля до первого успешного вызова API примерно за 3 минуты.",
+    "step1": {
+      "title": "Получите API-ключ",
+      "desc": "После регистрации начальный токен генерируется автоматически. Перейдите в Консоль → Управление токенами, чтобы скопировать его.",
+      "cta": "Перейти к управлению токенами",
+      "security": "Никогда не раскрывайте свой API-ключ в клиентском коде, публичных репозиториях или клиентских приложениях. Всегда считывайте его из серверных переменных окружения."
+    },
+    "step2": {
+      "title": "Выберите модель",
+      "desc": "Мы рекомендуем deepseek-v4-flash для первого вызова — быстрый, доступный и отлично подходит для тестирования.",
+      "viewAll": "Посмотреть все доступные модели"
+    },
+    "step3": {
+      "title": "Выберите способ вызова",
+      "desc": "Vancine совместим с OpenAI. Вы можете вызывать его напрямую через HTTP или использовать официальный SDK OpenAI.",
+      "httpDesc": "Используйте curl, fetch или любой HTTP-клиент для прямого вызова REST API.",
+      "sdkDesc": "Простая замена: измените только base_url и api_key в существующем коде SDK OpenAI."
+    },
+    "step4": {
+      "title": "Сделайте первый вызов",
+      "desc": "Скопируйте код ниже, замените sk-your-api-key на ваш реальный ключ и запустите.",
+      "expectedResponse": "Ожидаемый ответ"
+    },
+    "infoTable": {
+      "title": "Основная информация",
+      "baseUrl": "Базовый URL",
+      "auth": "Аутентификация",
+      "modelList": "Список моделей",
+      "pricing": "Публичные цены",
+      "tip": "GET /v1/models требует API-ключ и выводит список моделей, доступных для текущего токена. GET /api/pricing является публичным и предоставляет информацию о поддерживаемых конечных точках и метаданных цен."
+    },
+    "exploreMore": {
+      "title": "Исследуйте больше",
+      "desc": "Теперь, когда вы запустили API, посмотрите, что ещё может Vancine:",
+      "chat": "Чат-дополнения",
+      "image": "Генерация изображений",
+      "video": "Генерация видео",
+      "migrate": "Миграция с OpenAI"
+    }
+  },
+  "migrate": {
+    "title": "Миграция с OpenAI",
+    "hook": "Vancine полностью совместим с API OpenAI. Существующий код обычно требует лишь двух изменений — base_url и api_key — всё остальное (SDK, конечные точки, структура ответа, потоковая передача, function calling) остаётся без изменений.",
+    "twoChanges": {
+      "title": "Только 2 изменения",
+      "desc": "Возьмите ваш существующий код OpenAI, измените базовый URL и API-ключ, и он заработает."
+    },
+    "fullExamples": {
+      "title": "Полные примеры",
+      "desc": "Полные рабочие примеры на Python, Node.js и cURL."
+    },
+    "whatStaysSame": {
+      "title": "Что остаётся без изменений",
+      "desc": "Всё остальное в вашем коде работает без модификаций:"
+    },
+    "sameItems": {
+      "endpoint": "Та же конечная точка /v1/chat/completions",
+      "sdk": "Тот же SDK openai Python / Node.js — без новых зависимостей",
+      "response": "Та же структура ответа (choices, usage и т.д.)",
+      "streaming": "Потоковая передача (SSE) работает идентично",
+      "functionCalling": "Поддерживается function calling / tool use"
+    },
+    "comparison": {
+      "title": "Сравнение миграции",
+      "colField": "Поле",
+      "colOpenai": "OpenAI",
+      "colVancine": "Vancine",
+      "colNote": "Примечание",
+      "baseUrlOpenai": "https://api.openai.com/v1",
+      "baseUrlNote": "Замените на конечную точку Vancine",
+      "apiKeyOpenai": "sk-xxx (ключ OpenAI)",
+      "apiKeyNote": "Используйте токен Vancine из Консоль → Токены",
+      "modelOpenai": "gpt-4o, gpt-4o-mini и т.д.",
+      "modelNote": "Используйте поддерживаемую Vancine модель (напр. deepseek-v4-flash)"
+    },
+    "nextSteps": {
+      "title": "Следующие шаги",
+      "desc": "Готовы узнать больше? Ознакомьтесь с этими страницами:",
+      "models": "Модели и цены",
+      "quickstart": "Получить API-ключ"
+    }
+  },
+  "chat": {
+    "title": "Чат-дополнения",
+    "desc": "Отправьте совместимый с OpenAI массив messages языковой модели и получите синхронный JSON-ответ.",
+    "paramsTitle": "Параметры",
+    "examplesTitle": "Примеры",
+    "reasoningCallout": "deepseek-v4-flash и deepseek-v4-pro — модели с рассуждением. content может быть пустым, пока рассуждение появляется в reasoning_content; finish_reason: length часто означает, что бюджет токенов был израсходован на рассуждение, а не на сбой API.",
+    "params": {
+      "model": "Имя модели, например glm-5.1",
+      "messages": "Массив объектов сообщений",
+      "maxTokens": "Максимум сгенерированных токенов; для моделей с рассуждением используйте большее значение",
+      "stream": "Включить потоковую передачу SSE",
+      "temperature": "Температура выборки"
+    }
+  },
+  "image": {
+    "title": "Генерация изображений",
+    "desc": "Генерируйте изображения из текстовых описаний. Ответ — синхронный JSON с временными URL изображений в массиве data.",
+    "paramsTitle": "Параметры",
+    "sizesTitle": "Рабочие размеры",
+    "examplesTitle": "Примеры",
+    "colWorkingSize": "Рабочий размер",
+    "defaultSizeSupported": "Поддерживается размер по умолчанию",
+    "sizeWarning": "Doubao-Seedream-4.5 и Doubao-Seedream-5.0-lite требуют минимум 3 686 400 пикселей. 1024x1024 возвращает «image size must be at least 3686400 pixels»; используйте 2048x2048.",
+    "params": {
+      "model": "Имя модели изображения",
+      "prompt": "Текстовое описание изображения",
+      "n": "Количество изображений",
+      "size": "Размер в формате ШИРИНАxВЫСОТА"
+    }
+  },
+  "video": {
+    "title": "Генерация видео",
+    "desc": "Генерация видео асинхронна. Сохраните task_id из ответа отправки, затем опрашивайте тот же путь /v1/video/generations/{task_id}.",
+    "endpointSubmit": "Отправить асинхронную задачу генерации",
+    "endpointPoll": "Опрашивать статус и результат задачи",
+    "paramsTitle": "Параметры",
+    "statusTitle": "Статус задачи",
+    "examplesTitle": "Примеры",
+    "params": {
+      "model": "Имя модели видео",
+      "prompt": "Текстовое описание видео",
+      "size": "Разрешение, например 1280x720"
+    },
+    "status": {
+      "queued": "Задача в очереди",
+      "inProgress": "Генерация выполняется",
+      "success": "Готово; читать data.result_url или data.data.content.video_url",
+      "failure": "Сбой; проверьте data.fail_reason"
+    }
+  },
+  "td": {
+    "title": "3D-генерация",
+    "desc": "3D-модели используют тот же формат асинхронной задачи. Отправьте задачу, затем опрашивайте с task_id для получения результата.",
+    "endpointSubmit": "3D также отправляет через видео асинхронную конечную точку",
+    "endpointPoll": "Опрашивать результаты 3D-задачи",
+    "modelsTitle": "3D-модели",
+    "paramsTitle": "Параметры",
+    "examplesTitle": "Примеры запросов",
+    "colImagesParam": "Параметр images",
+    "withoutImage": "Без изображения",
+    "withImage": "С эталонным изображением",
+    "imagesWarning": "Doubao-Seed3D-2.0 требует images. Не используйте поле image_data; шлюз Vancine преобразует images в формат content[].image_url, требуемый upstream.",
+    "params": {
+      "model": "Имя 3D-модели",
+      "prompt": "Описание 3D-актива",
+      "images": "Массив эталонных изображений. Обязателен для Doubao-Seed3D-2.0; необязателен для других 3D-моделей. Поддерживает публичные URL или data:image/...;base64,..."
+    }
+  },
+  "audio": {
+    "title": "Аудио / TTS",
+    "desc": "Конечная точка TTS использует совместимое с OpenAI тело запроса, но ответ — бинарный MP3-аудиопоток, а не JSON.",
+    "paramsTitle": "Параметры",
+    "ttsExamplesTitle": "Пример Doubao-tts (голоса 1.0)",
+    "tts2ExamplesTitle": "Пример Doubao-tts2.0 (голоса 2.0)",
+    "voicesTitle": "Доступные голоса",
+    "endpointWarning": "TTS не использует /v1/chat/completions. Использование неверной конечной точки может вернуть вводящий в заблуждение 401, похожий на отсутствующий API-ключ; обычная причина — неправильный путь.",
+    "voiceSuffixCallout": "Суффикс ID голоса определяет версию модели: суффикс uranus — для Doubao-tts2.0, суффикс mars — для Doubao-tts. Несоответствие голос/модель возвращает ошибку resource mismatch.",
+    "colVoiceId": "ID голоса",
+    "colName": "Имя",
+    "colModel": "Модель",
+    "colUseCase": "Язык / случай использования",
+    "params": {
+      "model": "Doubao-tts или Doubao-tts2.0",
+      "input": "Текст для синтеза",
+      "voice": "ID голоса, см. список ниже"
+    },
+    "voices": {
+      "vivi": "Vivi",
+      "nadia": "Nadia",
+      "jane": "Jane",
+      "rachel": "Rachel",
+      "david": "David",
+      "alex": "Alex",
+      "kevin": "Kevin",
+      "stokie": "Stokie",
+      "spanishFemale": "Испанский, женский",
+      "frenchFemale": "Французский, женский",
+      "germanFemale": "Немецкий, женский",
+      "arabicFemale": "Арабский, женский",
+      "cancan": "Cancan",
+      "wenhao": "Wenhao",
+      "amanda": "Amanda",
+      "emily": "Emily",
+      "adam": "Adam",
+      "jackson": "Jackson",
+      "sarah": "Sarah",
+      "smith": "Smith",
+      "anna": "Anna",
+      "dryw": "Dryw",
+      "zhFemaleGentle": "Китайский, женский, нежный (многоязычный)",
+      "enFemale": "Английский, женский",
+      "enMale": "Английский, мужской",
+      "enUkFemale": "Английский (UK), женский",
+      "espanol": "Español",
+      "francais": "Français",
+      "deutsch": "Deutsch",
+      "arabic": "العربية",
+      "zhFemaleBright": "Китайский, женский, яркий",
+      "zhMaleSteady": "Китайский, мужской, стабильный"
+    }
+  },
+  "auth": {
+    "title": "Аутентификация",
+    "desc": "Все запросы /v1 требуют API-ключа в заголовке Authorization.",
+    "securityWarning": "Не помещайте API-ключи в клиентский код, публичные репозитории или клиентские приложения. Считывайте ключ из серверных переменных окружения перед вызовом Vancine."
+  },
+  "capabilities": {
+    "title": "Возможности",
+    "desc": "Vancine предоставляет различные возможности генерации через совместимые с OpenAI конечные точки и конечные точки асинхронных задач.",
+    "rows": {
+      "chat": "Чат",
+      "tts": "Синтез речи",
+      "image": "Генерация изображений",
+      "video": "Генерация видео",
+      "td": "Генерация 3D-активов",
+      "chatNote": "Совместимое с OpenAI тело запроса messages",
+      "ttsNote": "Возвращает бинарный MP3-аудиопоток",
+      "imageNote": "Возвращает URL изображений",
+      "videoNote": "Асинхронная задача, опрос с task_id",
+      "tdNote": "Асинхронная задача с поддержкой prompt и images"
+    }
+  },
+  "models": {
+    "title": "Модели и цены",
+    "desc": "Вызовите публичную конечную точку цен для получения имён моделей, поддерживаемых конечных точек, коэффициентов и цен.",
+    "fetchPricing": "Получить цены моделей",
+    "textModelsTitle": "Текстовые модели (14)",
+    "multimodalTitle": "Мультимодальные модели генерации",
+    "colType": "Тип",
+    "colUsageNotes": "Примечания по использованию",
+    "returnsValidMp3": "Возвращает корректный MP3"
+  },
+  "errors": {
+    "title": "Обработка ошибок",
+    "colHttpStatus": "HTTP-статус",
+    "colTypicalCause": "Типичная причина",
+    "formatTitle": "Формат ответа об ошибке",
+    "asyncCallout": "При сбоях асинхронных задач читайте подробности из поля data.fail_reason в ответе опроса.",
+    "codes": {
+      "badRequest": "Некорректный запрос",
+      "badRequestCause": "Неверный размер, отсутствует prompt или несоответствие модели/конечной точки",
+      "unauthorized": "Не авторизован",
+      "unauthorizedCause": "Неверный ключ или неправильная конечная точка, например отправка TTS в chat",
+      "notFound": "Путь не найден",
+      "notFoundCause": "Проверьте правильность написания пути URL",
+      "noChannel": "Нет доступных каналов",
+      "noChannelCause": "Нет доступного upstream-канала для этой модели в текущей группе"
+    }
+  },
+  "sdks": {
+    "title": "SDK и инструменты",
+    "desc": "Текстовые конечные точки Vancine совместимы с SDK OpenAI. Мультимедийные конечные точки также можно вызывать любым HTTP-клиентом.",
+    "requestsDesc": "Подходит для изображений, видео, 3D и TTS",
+    "curlDesc": "Встроен или установите через пакетный менеджер"
+  },
+  "agents": {
+    "title": "Интеграция агентов",
+    "desc": "Перед подключением инструмента агента проверьте, использует ли он Chat Completions или Responses. Большинство OpenAI Compatible инструментов используют /v1/chat/completions; официальная конфигурация Codex CLI использует /v1/responses.",
+    "universalTip": "Универсальные настройки: Base URL = {{baseUrl}}, API Key = sk-your-api-key, Model = glm-5.1 или deepseek-v4-flash.",
+    "configExample": "Пример конфигурации",
+    "guiTitle": "GUI-инструменты",
+    "cli": {
+      "codex": "Официальная конфигурация Codex использует ~/.codex/config.toml. Текущая документация показывает протокол Responses, поэтому wire_api должен быть responses.",
+      "opencode": "OpenCode использует opencode.json уровня проекта. Кастомные OpenAI-совместимые провайдеры используют @ai-sdk/openai-compatible с options.baseURL и options.apiKey.",
+      "openclaw": "Клиенты типа OpenClaw обычно требуют OpenAI-совместимые base URL, API-ключ и имя модели. Имена полей различаются; выберите OpenAI Compatible если доступно.",
+      "hermes": "OpenAI-совместимые плагины Hermes Agent обычно используют config.yaml или переменные окружения для base_url и api_key. Используйте точные поля установленного плагина."
+    },
+    "gui": {
+      "cursor": {
+        "title": "Cursor",
+        "step1": "Открыть Settings → Models",
+        "step2": "Выбрать OpenAI Compatible или кастомный OpenAI API",
+        "step3": "Установить Base URL = {{baseUrl}}",
+        "step4": "Ввести API-ключ Vancine",
+        "step5": "Использовать текстовую модель, например glm-5.1 или deepseek-v4-flash"
+      },
+      "cline": {
+        "title": "Cline / Roo Code",
+        "step1": "Выбрать Provider: OpenAI Compatible",
+        "step2": "Установить Base URL = {{baseUrl}}",
+        "step3": "Ввести API-ключ",
+        "step4": "Ввести имя текстовой модели",
+        "step5": "Сохранить и отправить простое сообщение для подтверждения подключения"
+      },
+      "cherryStudio": {
+        "title": "Cherry Studio",
+        "step1": "Открыть Настройки → Службы моделей → Добавить",
+        "step2": "Выбрать OpenAI Compatible",
+        "step3": "Установить API URL = {{baseUrl}}",
+        "step4": "Ввести API-ключ",
+        "step5": "Синхронизировать или вручную добавить модели"
+      }
+    }
+  },
+  "faq": {
+    "title": "Часто задаваемые вопросы",
+    "items": {
+      "verifyKey": {
+        "q": "Как проверить API-ключ?",
+        "a": "Вызовите GET {{baseUrl}}/models. HTTP 200 со списком моделей означает, что ключ действителен и имеет доступ в текущей группе."
+      },
+      "video3dResults": {
+        "q": "Где читать результаты видео и 3D?",
+        "a": "Опрашивайте GET /v1/video/generations/{task_id}. При успехе читайте data.result_url или data.data.content.video_url."
+      },
+      "ttsNotJson": {
+        "q": "Почему TTS не возвращает JSON?",
+        "a": "Успешные вызовы TTS возвращают бинарный MP3-аудиопоток напрямую с Content-Type audio/mpeg."
+      },
+      "seedreamSize": {
+        "q": "Почему Seedream 4.5 отклоняет размер изображения?",
+        "a": "Требуется минимум 3 686 400 пикселей. Используйте size 2048x2048."
+      }
+    }
+  },
+  "nav": {
+    "gettingStarted": "Начало работы",
+    "apiCapabilities": "Возможности API",
+    "integrationGuide": "Руководство по интеграции",
+    "reference": "Справочник",
+    "quickstart": "Быстрый старт",
+    "migrate": "Миграция с OpenAI",
+    "models": "Модели и цены",
+    "chat": "Чат-дополнения",
+    "image": "Генерация изображений",
+    "video": "Генерация видео",
+    "td": "3D-генерация",
+    "audio": "Аудио / TTS",
+    "sdks": "SDK и инструменты",
+    "agents": "Интеграция агентов",
+    "auth": "Аутентификация",
+    "capabilities": "Возможности",
+    "errors": "Обработка ошибок",
+    "faq": "Часто задаваемые вопросы"
+  },
+  "common": {
+    "copy": "Копировать",
+    "copied": "✓ Скопировано",
+    "yes": "Да",
+    "no": "Нет",
+    "parameter": "Параметр",
+    "type": "Тип",
+    "required": "Обязательный",
+    "description": "Описание",
+    "model": "Модель",
+    "category": "Категория",
+    "endpoint": "Конечная точка",
+    "result": "Результат",
+    "notes": "Примечания",
+    "status": "Статус",
+    "meaning": "Значение",
+    "action": "Действие",
+    "onThisPage": "На этой странице",
+    "navigation": "Навигация",
+    "comingSoon": "Скоро будет",
+    "pageNotReady": "Эта страница ещё не готова. Загляните позже!",
+    "prevPage": "Предыдущая",
+    "nextPage": "Следующая",
+    "feedbackQuestion": "Была ли эта страница полезной?",
+    "feedbackYes": "Да",
+    "feedbackNo": "Нет",
+    "feedbackThanks": "Спасибо за отзыв!",
+    "searchPlaceholder": "Поиск по документации...",
+    "searchNoResults": "Нет совпадений"
+  }
+}
