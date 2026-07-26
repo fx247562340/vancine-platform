@@ -28,6 +28,30 @@ export const supportedLanguages = [
 ];
 
 /**
+ * Native-language display names for every entry in `supportedLanguages`.
+ * Used by every language switcher (main header, landing pages) so the list
+ * stays in one place.
+ */
+export const LANGUAGE_NAMES = {
+  en: 'English',
+  'zh-CN': '简体中文',
+  'zh-TW': '繁體中文',
+  fr: 'Français',
+  ru: 'Русский',
+  ja: '日本語',
+  vi: 'Tiếng Việt',
+};
+
+/**
+ * Render-ready language switcher options, derived from `LANGUAGE_NAMES`
+ * in the order defined above. Order: en (default fallback) → Simplified
+ * Chinese → Traditional Chinese → Japanese → French → Russian → Vietnamese.
+ */
+export const LANGUAGE_OPTIONS = Object.entries(LANGUAGE_NAMES).map(
+  ([code, label]) => ({ code, label }),
+);
+
+/**
  * Pure copy of the production LanguageDetector config used by i18n.js.
  * Shared with the i18n test so the test can assert against the real config
  * without copying it. Exported separately from i18n.js so the test does not

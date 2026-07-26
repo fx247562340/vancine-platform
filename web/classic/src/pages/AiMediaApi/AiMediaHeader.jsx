@@ -26,6 +26,10 @@ import { getLogo, getSystemName } from '../../helpers';
 import { UserContext } from '../../context/User';
 import { VANCINE_DOCS_URL } from './landing';
 import { useLanguagePreference } from '../../hooks/common/useLanguagePreference';
+import {
+  LANGUAGE_OPTIONS,
+  normalizeLanguage,
+} from '../../i18n/language';
 import { MOBILE_MAX, DESKTOP_NAV_MIN } from '../../constants/breakpoints';
 
 // Whether the horizontal nav should be visible (>= DESKTOP_NAV_MIN).
@@ -56,11 +60,6 @@ function useIsMobile() {
   return isMobile;
 }
 
-const LANGUAGES = [
-  { code: 'en', label: 'English' },
-  { code: 'zh-CN', label: '简体中文' },
-];
-
 /* ──────────────────── Color constants ──────────────────── */
 const C = {
   text: {
@@ -82,7 +81,7 @@ const AiMediaHeader = () => {
   const isAuthenticated = !!user;
   const systemName = getSystemName();
   const logo = getLogo();
-  const currentLang = i18n.language?.startsWith('zh') ? 'zh-CN' : 'en';
+  const currentLang = normalizeLanguage(i18n.language);
   const { handleLanguageChange } = useLanguagePreference();
   const showDesktopNav = useIsDesktopNavVisible();
   const isMobile = useIsMobile();
@@ -193,7 +192,7 @@ const AiMediaHeader = () => {
             position='bottomRight'
             render={
               <Dropdown.Menu>
-                {LANGUAGES.map((l) => (
+                {LANGUAGE_OPTIONS.map((l) => (
                   <Dropdown.Item
                     key={l.code}
                     onClick={() => handleLanguageChange(l.code)}

@@ -20,6 +20,7 @@ For commercial licensing, please contact support@quantumnous.com
 import React from 'react';
 import { Button, Dropdown } from '@douyinfe/semi-ui';
 import { Languages } from 'lucide-react';
+import { LANGUAGE_OPTIONS } from '../../../i18n/language';
 
 const LanguageSelector = ({ currentLang, onLanguageChange, t }) => {
   return (
@@ -27,18 +28,15 @@ const LanguageSelector = ({ currentLang, onLanguageChange, t }) => {
       position='bottomRight'
       render={
         <Dropdown.Menu className='!bg-semi-color-bg-overlay !border-semi-color-border !shadow-lg !rounded-lg dark:!bg-gray-700 dark:!border-gray-600'>
-          <Dropdown.Item
-            onClick={() => onLanguageChange('en')}
-            className={`!px-3 !py-1.5 !text-sm !text-semi-color-text-0 dark:!text-gray-200 ${currentLang === 'en' ? '!bg-semi-color-primary-light-default dark:!bg-blue-600 !font-semibold' : 'hover:!bg-semi-color-fill-1 dark:hover:!bg-gray-600'}`}
-          >
-            English
-          </Dropdown.Item>
-          <Dropdown.Item
-            onClick={() => onLanguageChange('zh-CN')}
-            className={`!px-3 !py-1.5 !text-sm !text-semi-color-text-0 dark:!text-gray-200 ${currentLang === 'zh-CN' ? '!bg-semi-color-primary-light-default dark:!bg-blue-600 !font-semibold' : 'hover:!bg-semi-color-fill-1 dark:hover:!bg-gray-600'}`}
-          >
-            简体中文
-          </Dropdown.Item>
+          {LANGUAGE_OPTIONS.map((lang) => (
+            <Dropdown.Item
+              key={lang.code}
+              onClick={() => onLanguageChange(lang.code)}
+              className={`!px-3 !py-1.5 !text-sm !text-semi-color-text-0 dark:!text-gray-200 ${currentLang === lang.code ? '!bg-semi-color-primary-light-default dark:!bg-blue-600 !font-semibold' : 'hover:!bg-semi-color-fill-1 dark:hover:!bg-gray-600'}`}
+            >
+              {lang.label}
+            </Dropdown.Item>
+          ))}
         </Dropdown.Menu>
       }
     >

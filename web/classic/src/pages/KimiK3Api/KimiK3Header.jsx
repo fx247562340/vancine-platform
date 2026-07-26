@@ -25,6 +25,10 @@ import { trackEvent } from '../../helpers/analytics';
 import { getLogo, getSystemName } from '../../helpers';
 import { UserContext } from '../../context/User';
 import { useLanguagePreference } from '../../hooks/common/useLanguagePreference';
+import {
+  LANGUAGE_OPTIONS,
+  normalizeLanguage,
+} from '../../i18n/language';
 import { MOBILE_MAX, DESKTOP_NAV_MIN } from '../../constants/breakpoints';
 import { getKimiK3CtaDestination } from './landing';
 
@@ -56,11 +60,6 @@ function useIsDesktopNavVisible() {
   return visible;
 }
 
-const LANGUAGES = [
-  { code: 'en', label: 'English' },
-  { code: 'zh-CN', label: '简体中文' },
-];
-
 const C = {
   text: {
     strong: 'var(--vc-text-strong)',
@@ -80,7 +79,7 @@ const KimiK3Header = ({ labels }) => {
   const isAuthenticated = !!user;
   const systemName = getSystemName();
   const logo = getLogo();
-  const currentLang = i18n.language?.startsWith('zh') ? 'zh-CN' : 'en';
+  const currentLang = normalizeLanguage(i18n.language);
   const showDesktopNav = useIsDesktopNavVisible();
   const isMobile = useIsMobile();
   const { handleLanguageChange } = useLanguagePreference();
@@ -194,7 +193,7 @@ const KimiK3Header = ({ labels }) => {
             position='bottomRight'
             render={
               <Dropdown.Menu>
-                {LANGUAGES.map((lang) => (
+                {LANGUAGE_OPTIONS.map((lang) => (
                   <Dropdown.Item
                     key={lang.code}
                     onClick={() => handleLanguageChange(lang.code)}
