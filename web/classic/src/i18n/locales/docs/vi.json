@@ -110,8 +110,13 @@
       "model": "Tên mô hình hình ảnh",
       "prompt": "Mô tả văn bản cho hình ảnh",
       "n": "Số lượng hình ảnh",
-      "size": "Kích thước định dạng RỘNGxCAO"
-    }
+      "size": "Kích thước định dạng RỘNGxCAO (xem bảng kích thước bên dưới)",
+      "response_format": "Định dạng trả về: url (mặc định, liên kết tạm thời hiệu lực 24 giờ) hoặc b64_json",
+      "output_format": "Định dạng đầu ra: png hoặc jpeg (mặc định jpeg). Chỉ Seedream 5.0 pro/lite hỗ trợ",
+      "image": "URL hoặc Base64 hình ảnh tham chiếu cho hình-đến-hình / hòa trộn đa hình ảnh (5.0 pro: tối đa 10, lite: tối đa 14)",
+      "watermark": "Có thêm hình mờ không. Seedream mặc định false"
+    },
+    "advancedParamsCallout": "Các tham số nâng cao của Seedream như sequential_image_generation (nhóm ảnh) và optimize_prompt_options (tối ưu prompt) yêu cầu bật PassThrough trên kênh. Mặc định không được chuyển tiếp."
   },
   "video": {
     "title": "Tạo video",
@@ -124,8 +129,13 @@
     "params": {
       "model": "Tên mô hình video",
       "prompt": "Mô tả văn bản cho video",
-      "size": "Độ phân giải, ví dụ 1280x720"
+      "image": "URL hoặc Base64 một hình ảnh tham chiếu (hình-đến-video)",
+      "images": "Mảng URL hình ảnh tham chiếu (đầu vào đa hình ảnh)",
+      "size": "Độ phân giải, ví dụ 1280x720",
+      "duration": "Thời lượng video (giây)",
+      "metadata": "Đối tượng tham số mở rộng (xem bên dưới)"
     },
+    "metadataCallout": "Tham số con của metadata: resolution (độ phân giải vd 1080p), ratio (tỷ lệ khung vd 16:9), frames (số khung hình), seed (hạt ngẫu nhiên), watermark (hình mờ bool), camera_fixed (camera cố định bool), generate_audio (tạo âm thanh bool). Các tham số này được chuyển tiếp đến nhà cung cấp upstream.",
     "status": {
       "queued": "Tác vụ đang xếp hàng",
       "inProgress": "Đang tạo",
@@ -147,9 +157,10 @@
     "imagesWarning": "Doubao-Seed3D-2.0 yêu cầu images. Không sử dụng trường image_data; gateway Vancine sẽ chuyển images sang định dạng content[].image_url mà upstream yêu cầu.",
     "params": {
       "model": "Tên mô hình 3D",
-      "prompt": "Mô tả tài sản 3D",
-      "images": "Mảng hình ảnh tham chiếu. Bắt buộc cho Doubao-Seed3D-2.0; tùy chọn cho các mô hình 3D khác. Hỗ trợ URL công khai hoặc data:image/...;base64,..."
-    }
+      "prompt": "Mô tả văn bản tài sản 3D（tùy chọn cho hình-đến-3D）",
+      "images": "Mảng URL hình ảnh tham chiếu cho hình-đến-3D. Doubao-Seed3D-2.0 yêu cầu ít nhất một hình ảnh. Hỗ trợ URL công khai hoặc data:image/...;base64,..."
+    },
+    "asyncCallout": "Tạo 3D là tác vụ bất đồng bộ. Sau khi gửi, lưu task_id từ phản hồi, rồi poll GET /v1/video/generations/{task_id}. Khi thành công, đọc liên kết tệp mô hình 3D từ metadata.url trong kết quả."
   },
   "audio": {
     "title": "Âm thanh / TTS",
@@ -167,7 +178,9 @@
     "params": {
       "model": "Doubao-tts hoặc Doubao-tts2.0",
       "input": "Văn bản cần tổng hợp",
-      "voice": "ID giọng, xem danh sách bên dưới"
+      "voice": "ID giọng, xem danh sách bên dưới",
+      "response_format": "Định dạng âm thanh đầu ra：mp3（mặc định）、opus、aac、flac、wav、pcm",
+      "speed": "Tốc độ nói 0.25–4.0, mặc định 1.0"
     },
     "voices": {
       "vivi": "Vivi",

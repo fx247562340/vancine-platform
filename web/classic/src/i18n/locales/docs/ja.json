@@ -110,8 +110,13 @@
       "model": "画像モデル名",
       "prompt": "画像のテキストプロンプト",
       "n": "生成する画像数",
-      "size": "サイズ（WIDTHxHEIGHT形式）"
-    }
+      "size": "サイズ（WIDTHxHEIGHT形式、下記サイズ表を参照）",
+      "response_format": "返却形式：url（デフォルト、24時間有効な一時リンク）または b64_json",
+      "output_format": "出力形式：png または jpeg（デフォルト jpeg）。Seedream 5.0 pro/lite のみ対応",
+      "image": "参照画像の URL または Base64。画像→画像/複数画像融合に使用（5.0 pro：最大10枚、lite：最大14枚）",
+      "watermark": "透かしを追加するか。Seedream のデフォルトは false"
+    },
+    "advancedParamsCallout": "組圖（sequential_image_generation）、プロンプト最適化（optimize_prompt_options）などの Seedream 高度パラメータは、チャネルで PassThrough を有効にした場合のみ使用可能です。デフォルトでは転送されません。"
   },
   "video": {
     "title": "動画生成",
@@ -124,8 +129,13 @@
     "params": {
       "model": "動画モデル名",
       "prompt": "動画のテキストプロンプト",
-      "size": "解像度（例：1280x720）"
+      "image": "参照画像1枚の URL または Base64（画像→動画）",
+      "images": "参照画像 URL の配列（複数画像入力）",
+      "size": "解像度（例：1280x720）",
+      "duration": "動画の長さ（秒）",
+      "metadata": "拡張パラメータオブジェクト（下記参照）"
     },
+    "metadataCallout": "metadata サブパラメータ：resolution（解像度 例：1080p）、ratio（アスペクト比 例：16:9）、frames（フレーム数）、seed（乱数シード）、watermark（透かし bool）、camera_fixed（カメラ固定 bool）、generate_audio（音声生成 bool）。これらはアップストリームプロバイダーに転送されます。",
     "status": {
       "queued": "タスクがキューに入っています",
       "inProgress": "生成が実行中",
@@ -147,9 +157,10 @@
     "imagesWarning": "Doubao-Seed3D-2.0 は images が必須です。image_data フィールドは使用しないでください。Vancineゲートウェイが images を上游の content[].image_url 形式に変換します。",
     "params": {
       "model": "3Dモデル名",
-      "prompt": "3Dアセットの説明",
-      "images": "参照画像配列。Doubao-Seed3D-2.0 では必須、他の3Dモデルでは省略可能。公開URLまたはdata:image/...;base64,...に対応"
-    }
+      "prompt": "3Dアセットのテキスト説明（画像→3Dの場合は省略可能）",
+      "images": "画像→3D用の参照画像URL配列。Doubao-Seed3D-2.0 は最低1枚の画像が必要。公開URLまたはdata:image/...;base64,...に対応"
+    },
+    "asyncCallout": "3D生成は非同期タスクです。送信後、レスポンスからtask_idを保存し、GET /v1/video/generations/{task_id} をポーリングします。成功時、結果の metadata.url から3Dモデルファイルのリンクを取得します。"
   },
   "audio": {
     "title": "オーディオ / TTS",
@@ -167,7 +178,9 @@
     "params": {
       "model": "Doubao-tts または Doubao-tts2.0",
       "input": "合成するテキスト",
-      "voice": "音色ID、下記の音色リストを参照"
+      "voice": "音色ID、下記の音色リストを参照",
+      "response_format": "出力音声フォーマット：mp3（デフォルト）、opus、aac、flac、wav、pcm",
+      "speed": "話速 0.25–4.0、デフォルト 1.0"
     },
     "voices": {
       "vivi": "Vivi",

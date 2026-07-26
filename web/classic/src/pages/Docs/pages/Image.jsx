@@ -107,6 +107,10 @@ console.log(data.data[0].url);`,
     ['prompt', 'string', true, t('image.params.prompt')],
     ['n', 'integer', false, t('image.params.n')],
     ['size', 'string', false, t('image.params.size')],
+    ['response_format', 'string', false, t('image.params.response_format')],
+    ['output_format', 'string', false, t('image.params.output_format')],
+    ['image', 'string/array', false, t('image.params.image')],
+    ['watermark', 'boolean', false, t('image.params.watermark')],
   ];
 
   return (
@@ -132,6 +136,8 @@ console.log(data.data[0].url);`,
       />
 
       <Callout type="warning">{t('image.sizeWarning')}</Callout>
+
+      <Callout type="info">{t('image.advancedParamsCallout')}</Callout>
 
       <H3 id="image-examples">{t('image.examplesTitle')}</H3>
       <Tabs tabs={codeTabs} active={codeTab} onChange={setCodeTab} />

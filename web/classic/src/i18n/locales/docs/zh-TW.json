@@ -110,8 +110,13 @@
       "model": "圖片模型名稱",
       "prompt": "圖片文字描述",
       "n": "生成數量",
-      "size": "尺寸，格式為 WIDTHxHEIGHT"
-    }
+      "size": "尺寸，格式為 WIDTHxHEIGHT（見下方尺寸表）",
+      "response_format": "回傳格式：url（預設，臨時連結 24 小時有效）或 b64_json",
+      "output_format": "輸出格式：png 或 jpeg（預設 jpeg），僅 Seedream 5.0 pro/lite 支援",
+      "image": "參考圖 URL 或 Base64，用於圖生圖/多圖融合（5.0 pro 最多 10 張，lite 最多 14 張）",
+      "watermark": "是否加浮水印，Seedream 預設 false"
+    },
+    "advancedParamsCallout": "組圖（sequential_image_generation）、提示詞最佳化（optimize_prompt_options）等 Seedream 進階參數需在渠道開啟透傳（PassThrough）時可用，預設不透傳。"
   },
   "video": {
     "title": "影片生成",
@@ -124,8 +129,13 @@
     "params": {
       "model": "影片模型名稱",
       "prompt": "影片文字描述",
-      "size": "解析度，例如 1280x720"
+      "image": "單張參考圖 URL 或 Base64（圖生影片）",
+      "images": "多張參考圖 URL 陣列",
+      "size": "解析度，例如 1280x720",
+      "duration": "影片時長（秒）",
+      "metadata": "擴充參數物件（見下方說明）"
     },
+    "metadataCallout": "metadata 子參數：resolution（解析度如 1080p）、ratio（寬高比如 16:9）、frames（幀數）、seed（隨機種子）、watermark（浮水印 bool）、camera_fixed（固定鏡頭 bool）、generate_audio（生成音訊 bool）。這些參數會透傳到上游供應商。",
     "status": {
       "queued": "任務已排隊",
       "inProgress": "生成中",
@@ -147,9 +157,10 @@
     "imagesWarning": "Doubao-Seed3D-2.0 必須傳 images。不要使用 image_data 欄位；Vancine 閘道會把 images 轉成上游需要的 content[].image_url 格式。",
     "params": {
       "model": "3D 模型名稱",
-      "prompt": "3D 資產描述",
-      "images": "參考圖陣列。Doubao-Seed3D-2.0 必填；其他 3D 模型可不傳或按效果需要傳。支援公網 URL 或 data:image/...;base64,..."
-    }
+      "prompt": "3D 資產文字描述（圖生 3D 時可省略）",
+      "images": "參考圖 URL 陣列，用於圖生 3D。Doubao-Seed3D-2.0 需至少一張參考圖。支援公網 URL 或 data:image/...;base64,..."
+    },
+    "asyncCallout": "3D 生成是非同步任務。提交後儲存 task_id，輪詢 GET /v1/video/generations/{task_id}，成功後從結果的 metadata.url 取得 3D 模型檔案連結。"
   },
   "audio": {
     "title": "音訊 / TTS",
@@ -167,7 +178,9 @@
     "params": {
       "model": "Doubao-tts 或 Doubao-tts2.0",
       "input": "待合成文字",
-      "voice": "音色 ID，見下方音色列表"
+      "voice": "音色 ID，見下方音色列表",
+      "response_format": "輸出音訊格式：mp3（預設）、opus、aac、flac、wav、pcm",
+      "speed": "語速 0.25–4.0，預設 1.0"
     },
     "voices": {
       "vivi": "Vivi",

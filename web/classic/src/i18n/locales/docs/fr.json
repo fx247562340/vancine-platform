@@ -110,8 +110,13 @@
       "model": "Nom du modèle d'image",
       "prompt": "Description textuelle de l'image",
       "n": "Nombre d'images",
-      "size": "Taille au format LARGEURxHAUTEUR"
-    }
+      "size": "Taille au format LARGEURxHAUTEUR (voir le tableau ci-dessous)",
+      "response_format": "Format de retour : url (par défaut, lien temporaire valide 24 heures) ou b64_json",
+      "output_format": "Format de sortie : png ou jpeg (jpeg par défaut). Seuls Seedream 5.0 pro/lite le prennent en charge",
+      "image": "URL ou Base64 d'une image de référence pour image-à-image / fusion multi-images (5.0 pro : max 10, lite : max 14)",
+      "watermark": "Ajouter un filigrane. Seedream utilise false par défaut"
+    },
+    "advancedParamsCallout": "Les paramètres avancés de Seedream tels que sequential_image_generation (groupes d'images) et optimize_prompt_options (optimisation du prompt) nécessitent l'activation de PassThrough sur le canal. Ils ne sont pas transmis par défaut."
   },
   "video": {
     "title": "Génération de vidéos",
@@ -124,8 +129,13 @@
     "params": {
       "model": "Nom du modèle vidéo",
       "prompt": "Description textuelle de la vidéo",
-      "size": "Résolution, par exemple 1280x720"
+      "image": "URL ou Base64 d'une image de référence unique (image-à-vidéo)",
+      "images": "Tableau d'URL d'images de référence (entrée multi-images)",
+      "size": "Résolution, par exemple 1280x720",
+      "duration": "Durée de la vidéo en secondes",
+      "metadata": "Objet de paramètres étendus (voir ci-dessous)"
     },
+    "metadataCallout": "Sous-paramètres de metadata : resolution (ex. 1080p), ratio (rapport d'aspect ex. 16:9), frames (nombre d'images), seed (graine aléatoire), watermark (booléen), camera_fixed (caméra fixe, booléen), generate_audio (générer l'audio, booléen). Ces paramètres sont transmis au fournisseur amont.",
     "status": {
       "queued": "La tâche est en file d'attente",
       "inProgress": "La génération est en cours",
@@ -147,9 +157,10 @@
     "imagesWarning": "Doubao-Seed3D-2.0 nécessite images. N'utilisez pas le champ image_data ; la passerelle Vancine convertit images au format content[].image_url requis par l'amont.",
     "params": {
       "model": "Nom du modèle 3D",
-      "prompt": "Description de l'actif 3D",
-      "images": "Tableau d'images de référence. Obligatoire pour Doubao-Seed3D-2.0 ; facultatif pour les autres modèles 3D. Prend en charge les URL publiques ou data:image/...;base64,..."
-    }
+      "prompt": "Description textuelle de l'actif 3D (facultatif pour image-à-3D)",
+      "images": "Tableau d'URL d'images de référence pour image-à-3D. Doubao-Seed3D-2.0 nécessite au moins une image. Prend en charge les URL publiques ou data:image/...;base64,..."
+    },
+    "asyncCallout": "La génération 3D est asynchrone. Après soumission, enregistrez le task_id de la réponse, puis interrogez GET /v1/video/generations/{task_id}. En cas de succès, lisez le lien du fichier modèle 3D depuis metadata.url dans le résultat."
   },
   "audio": {
     "title": "Audio / TTS",
@@ -167,7 +178,9 @@
     "params": {
       "model": "Doubao-tts ou Doubao-tts2.0",
       "input": "Texte à synthétiser",
-      "voice": "ID de voix, voir la liste ci-dessous"
+      "voice": "ID de voix, voir la liste ci-dessous",
+      "response_format": "Format audio de sortie : mp3 (par défaut), opus, aac, flac, wav, pcm",
+      "speed": "Vitesse de parole 0.25–4.0, par défaut 1.0"
     },
     "voices": {
       "vivi": "Vivi",

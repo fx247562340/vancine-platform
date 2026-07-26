@@ -110,8 +110,13 @@
       "model": "Image model name",
       "prompt": "Text prompt for the image",
       "n": "Number of images",
-      "size": "Size in WIDTHxHEIGHT format"
-    }
+      "size": "Size in WIDTHxHEIGHT format (see size table below)",
+      "response_format": "Return format: url (default, temporary link valid for 24 hours) or b64_json",
+      "output_format": "Output format: png or jpeg (default jpeg). Only Seedream 5.0 pro/lite support this",
+      "image": "Reference image URL or Base64 for image-to-image / multi-image fusion (5.0 pro: max 10, lite: max 14)",
+      "watermark": "Whether to add watermark. Seedream defaults to false"
+    },
+    "advancedParamsCallout": "Advanced Seedream parameters such as sequential_image_generation (image groups) and optimize_prompt_options (prompt optimization) require PassThrough to be enabled on the channel. They are not forwarded by default."
   },
   "video": {
     "title": "Video Generation",
@@ -124,8 +129,13 @@
     "params": {
       "model": "Video model name",
       "prompt": "Text prompt for the video",
-      "size": "Resolution, for example 1280x720"
+      "image": "Single reference image URL or Base64 (image-to-video)",
+      "images": "Array of reference image URLs (multi-image input)",
+      "size": "Resolution, for example 1280x720",
+      "duration": "Video duration in seconds",
+      "metadata": "Extended parameters object (see below)"
     },
+    "metadataCallout": "metadata sub-parameters: resolution (e.g. 1080p), ratio (aspect ratio e.g. 16:9), frames (frame count), seed (random seed), watermark (boolean), camera_fixed (fixed camera, boolean), generate_audio (generate audio, boolean). These are forwarded to the upstream provider.",
     "status": {
       "queued": "Task is queued",
       "inProgress": "Generation is running",
@@ -147,9 +157,10 @@
     "imagesWarning": "Doubao-Seed3D-2.0 requires images. Do not use an image_data field; the Vancine gateway converts images into the upstream content[].image_url format.",
     "params": {
       "model": "3D model name",
-      "prompt": "3D asset description",
-      "images": "Reference image array. Required for Doubao-Seed3D-2.0; optional for other 3D models. Supports public URLs or data:image/...;base64,..."
-    }
+      "prompt": "Text description of the 3D asset (optional for image-to-3D)",
+      "images": "Reference image URL array for image-to-3D. Doubao-Seed3D-2.0 requires at least one image. Supports public URLs or data:image/...;base64,..."
+    },
+    "asyncCallout": "3D generation is asynchronous. After submitting, save the task_id from the response, then poll GET /v1/video/generations/{task_id}. On success, read the 3D model file link from metadata.url in the result."
   },
   "audio": {
     "title": "Audio / TTS",
@@ -167,7 +178,9 @@
     "params": {
       "model": "Doubao-tts or Doubao-tts2.0",
       "input": "Text to synthesize",
-      "voice": "Voice ID, see voice list below"
+      "voice": "Voice ID, see voice list below",
+      "response_format": "Output audio format: mp3 (default), opus, aac, flac, wav, pcm",
+      "speed": "Speech speed 0.25–4.0, default 1.0"
     },
     "voices": {
       "vivi": "Vivi",

@@ -110,8 +110,13 @@
       "model": "图片模型名称",
       "prompt": "图片文字描述",
       "n": "生成数量",
-      "size": "尺寸，格式为 WIDTHxHEIGHT"
-    }
+      "size": "尺寸，格式为 WIDTHxHEIGHT（见下方尺寸表）",
+      "response_format": "返回格式：url（默认，临时链接 24 小时有效）或 b64_json",
+      "output_format": "输出格式：png 或 jpeg（默认 jpeg），仅 Seedream 5.0 pro/lite 支持",
+      "image": "参考图 URL 或 Base64，用于图生图/多图融合（5.0 pro 最多 10 张，lite 最多 14 张）",
+      "watermark": "是否加水印，Seedream 默认 false"
+    },
+    "advancedParamsCallout": "组图（sequential_image_generation）、提示词优化（optimize_prompt_options）等 Seedream 高级参数需在渠道开启透传（PassThrough）时可用，默认不透传。"
   },
   "video": {
     "title": "视频生成",
@@ -124,8 +129,13 @@
     "params": {
       "model": "视频模型名称",
       "prompt": "视频文字描述",
-      "size": "分辨率，例如 1280x720"
+      "image": "单张参考图 URL 或 Base64（图生视频）",
+      "images": "多张参考图 URL 数组",
+      "size": "分辨率，例如 1280x720",
+      "duration": "视频时长（秒）",
+      "metadata": "扩展参数对象（见下方说明）"
     },
+    "metadataCallout": "metadata 子参数：resolution（分辨率如 1080p）、ratio（宽高比如 16:9）、frames（帧数）、seed（随机种子）、watermark（水印 bool）、camera_fixed（固定镜头 bool）、generate_audio（生成音频 bool）。这些参数会透传到上游供应商。",
     "status": {
       "queued": "任务已排队",
       "inProgress": "生成中",
@@ -147,9 +157,10 @@
     "imagesWarning": "Doubao-Seed3D-2.0 必须传 images。不要使用 image_data 字段；Vancine 网关会把 images 转成上游需要的 content[].image_url 格式。",
     "params": {
       "model": "3D 模型名称",
-      "prompt": "3D 资产描述",
-      "images": "参考图数组。Doubao-Seed3D-2.0 必填；其他 3D 模型可不传或按效果需要传。支持公网 URL 或 data:image/...;base64,..."
-    }
+      "prompt": "3D 资产文本描述（图生 3D 时可省略）",
+      "images": "参考图 URL 数组，用于图生 3D。Doubao-Seed3D-2.0 需至少一张参考图。支持公网 URL 或 data:image/...;base64,..."
+    },
+    "asyncCallout": "3D 生成是异步任务。提交后保存 task_id，轮询 GET /v1/video/generations/{task_id}，成功后从结果的 metadata.url 获取 3D 模型文件链接。"
   },
   "audio": {
     "title": "音频 / TTS",
@@ -167,7 +178,9 @@
     "params": {
       "model": "Doubao-tts 或 Doubao-tts2.0",
       "input": "待合成文本",
-      "voice": "音色 ID，见下方音色列表"
+      "voice": "音色 ID，见下方音色列表",
+      "response_format": "输出音频格式：mp3（默认）、opus、aac、flac、wav、pcm",
+      "speed": "语速 0.25–4.0，默认 1.0"
     },
     "voices": {
       "vivi": "Vivi",

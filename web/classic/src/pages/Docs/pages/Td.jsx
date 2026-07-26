@@ -39,7 +39,7 @@ const Td = ({ baseUrl }) => {
 
   const params = [
     ['model', 'string', true, t('td.params.model')],
-    ['prompt', 'string', true, t('td.params.prompt')],
+    ['prompt', 'string', false, t('td.params.prompt')],
     ['images', 'array', false, t('td.params.images')],
   ];
 
@@ -86,6 +86,7 @@ const Td = ({ baseUrl }) => {
       />
 
       <Callout type="warning">{t('td.imagesWarning')}</Callout>
+      <Callout type="info">{t('td.asyncCallout')}</Callout>
     </div>
   );
 };

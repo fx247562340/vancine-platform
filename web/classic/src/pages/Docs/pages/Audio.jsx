@@ -188,6 +188,8 @@ await writeFile("speech.mp3", audio);`,
     ['model', 'string', true, t('audio.params.model')],
     ['input', 'string', true, t('audio.params.input')],
     ['voice', 'string', true, t('audio.params.voice')],
+    ['response_format', 'string', false, t('audio.params.response_format')],
+    ['speed', 'number', false, t('audio.params.speed')],
   ];
 
   return (

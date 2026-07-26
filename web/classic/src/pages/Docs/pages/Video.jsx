@@ -25,6 +25,7 @@ import CodeBlock from '../components/CodeBlock';
 import Tabs from '../components/Tabs';
 import ParamTable from '../components/ParamTable';
 import Endpoint from '../components/Endpoint';
+import Callout from '../components/Callout';
 import { Table, Td, Tr } from '../components/Table';
 import Badge from '../components/Badge';
 
@@ -139,7 +140,11 @@ while (true) {
   const params = [
     ['model', 'string', true, t('video.params.model')],
     ['prompt', 'string', true, t('video.params.prompt')],
+    ['image', 'string', false, t('video.params.image')],
+    ['images', 'array', false, t('video.params.images')],
     ['size', 'string', false, t('video.params.size')],
+    ['duration', 'integer', false, t('video.params.duration')],
+    ['metadata', 'object', false, t('video.params.metadata')],
   ];
 
   const statusRows = [
@@ -158,6 +163,7 @@ while (true) {
 
       <H3 id="video-params">{t('video.paramsTitle')}</H3>
       <ParamTable params={params} />
+      <Callout type="info">{t('video.metadataCallout')}</Callout>
 
       <H3 id="video-status">{t('video.statusTitle')}</H3>
       <Table
