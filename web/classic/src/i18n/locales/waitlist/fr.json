@@ -1,0 +1,111 @@
+{
+  "hero": {
+    "badge": "Accès anticipé",
+    "title": "Modèles d'IA chinois, accessibles dans le monde entier",
+    "sub1": "Accédez à DeepSeek, Qwen, Seedream, Seedance et plus via une seule API compatible OpenAI",
+    "sub2": "Pas de numéro chinois requis · Pas d'Alipay · Paiement en USD · Moins cher que d'appeler directement les API chinoises",
+    "joinedMsg": "Vous êtes sur la liste d'attente ! Nous vous préviendrons quand ce sera votre tour.",
+    "placeholder": "Saisissez votre e-mail",
+    "button": "Rejoindre la liste",
+    "countText": "{{count}} développeurs ont rejoint la liste d'attente",
+    "toastValid": "Veuillez saisir une adresse e-mail valide",
+    "toastSuccess": "Vous avez rejoint la liste d'attente avec succès !",
+    "toastFail": "Échec de l'inscription"
+  },
+  "pricing": {
+    "title": "Pourquoi choisir Vancine ?",
+    "subtitle": "Difficultés à appeler les API chinoises directement vs l'expérience Vancine",
+    "headers": {
+      "model": "Modèle",
+      "direct": "API chinoise directe",
+      "vancine": "Vancine",
+      "advantage": "Avantage"
+    },
+    "cheaper": "{{saving}} moins cher",
+    "comparisons": [
+      {
+        "category": "Génération de texte",
+        "direct": "DeepSeek officiel, compte chinois requis",
+        "note": "Aucun compte chinois nécessaire"
+      },
+      {
+        "category": "Génération de texte",
+        "direct": "Alibaba Cloud exige une authentification entreprise",
+        "note": "Disponible pour les particuliers"
+      },
+      {
+        "category": "Génération de texte",
+        "direct": "Moonshot, compte chinois requis",
+        "note": "Accès mondial direct"
+      },
+      {
+        "category": "Génération d'image",
+        "direct": "Volcengine, vérification d'identité requise",
+        "note": "Pas de vérification d'identité"
+      },
+      {
+        "category": "Génération vidéo",
+        "direct": "Volcengine, authentification entreprise requise",
+        "note": "Accès direct pour les particuliers"
+      },
+      {
+        "category": "Génération vidéo",
+        "direct": "MiniMax, compte chinois requis",
+        "note": "Aucune identité chinoise requise"
+      },
+      {
+        "category": "Génération 3D",
+        "direct": "Volcengine, authentification entreprise requise",
+        "note": "Disponible pour les particuliers"
+      }
+    ],
+    "sellingPoints": [
+      {
+        "title": "Pas d'identité chinoise requise",
+        "desc": "Pas besoin de téléphone chinois, de carte d'identité ni d'authentification entreprise"
+      },
+      {
+        "title": "Paiement en USD",
+        "desc": "PayPal / Stripe acceptés, pas d'Alipay ni WeChat Pay"
+      },
+      {
+        "title": "Compatible OpenAI",
+        "desc": "Une API pour tous les modèles, aucune courbe d'apprentissage"
+      },
+      {
+        "title": "Réseau mondial",
+        "desc": "Faible latence, pas besoin de repasser par la Chine"
+      }
+    ]
+  },
+  "showcase": {
+    "title": "Couvre les principaux modèles d'IA chinois",
+    "subtitle": "Une seule clé API pour accéder aux derniers modèles des principaux fournisseurs chinois",
+    "modelTypes": [
+      {
+        "title": "Modèles LLM",
+        "desc": "Meilleurs LLM chinois via le protocole OpenAI unifié"
+      },
+      {
+        "title": "Génération d'image",
+        "desc": "Texte vers image, édition d'image"
+      },
+      {
+        "title": "Génération vidéo",
+        "desc": "Texte vers vidéo et image vers vidéo"
+      },
+      {
+        "title": "Génération 3D",
+        "desc": "Texte/image vers modèle 3D"
+      },
+      {
+        "title": "Audio & Musique",
+        "desc": "Génération musicale, synthèse vocale, clonage de voix"
+      },
+      {
+        "title": "Modèles internationaux",
+        "desc": "Inclut aussi les principaux modèles internationaux, une seule API"
+      }
+    ]
+  }
+}

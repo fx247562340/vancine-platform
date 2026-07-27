@@ -1,0 +1,72 @@
+{
+  "hero": {
+    "tag": "À propos de Vancine",
+    "title": "Une passerelle pratique vers les modèles d'IA chinois",
+    "sub": "Vancine aide les développeurs à appeler des modèles chinois de texte, d'image, de vidéo, d'audio et de 3D via une API unique compatible OpenAI, avec facturation et routage unifiés."
+  },
+  "mission": {
+    "title": "Ce que nous construisons",
+    "body": "Nous nous concentrons sur le travail ingrat qui rend l'accès aux modèles réellement exploitable : routage d'API stable, tarification claire, formats de requête cohérents, documentation utile, et assistance quand une intégration casse."
+  },
+  "what": {
+    "title": "Ce que fait Vancine",
+    "items": [
+      {
+        "title": "API unifiée",
+        "desc": "Utilisez un seul point d'accès compatible OpenAI pour le chat, l'image, la vidéo, l'audio et la 3D, au lieu de câbler chaque fournisseur séparément."
+      },
+      {
+        "title": "Routage des modèles",
+        "desc": "Répartissez les requêtes entre les canaux configurés par groupe, priorité et pondération, avec saut automatique des canaux défaillants si nécessaire."
+      },
+      {
+        "title": "Facturation à l'usage",
+        "desc": "Consultez la tarification et la consommation des modèles au même endroit. Payez les appels réels au lieu de gérer plusieurs soldes fournisseurs."
+      },
+      {
+        "title": "Outils développeur",
+        "desc": "Documentation, exemples, journaux de requêtes et playground aident les équipes à tester les prompts et à déboguer plus vite les appels d'API réels."
+      }
+    ]
+  },
+  "models": {
+    "title": "Couverture des modèles",
+    "items": [
+      {
+        "name": "LLM",
+        "desc": "DeepSeek, Qwen, Doubao, Kimi, GLM, MiniMax"
+      },
+      {
+        "name": "Image",
+        "desc": "Doubao Seedream, Qwen Image"
+      },
+      {
+        "name": "Vidéo",
+        "desc": "Doubao Seedance et autres routes vidéo"
+      },
+      {
+        "name": "Audio",
+        "desc": "Doubao TTS, MiniMax Speech, Qwen Omni"
+      },
+      {
+        "name": "3D",
+        "desc": "Hyper3D, Hitem3D, Doubao Seed3D"
+      }
+    ]
+  },
+  "story": {
+    "title": "Pourquoi Vancine existe",
+    "paragraphs": [
+      "Les modèles d'IA chinois évoluent vite, surtout en génération de texte, d'image et de vidéo à coût maîtrisé. Pour de nombreux développeurs hors de Chine, la vraie difficulté n'est pas l'intérêt pour ces modèles — c'est l'accès fiable, la documentation, la facturation et le temps d'intégration.",
+      "Vancine regroupe ces modèles derrière une forme d'API familière, pour que les équipes puissent tester et changer de modèle sans réécrire leur application pour chaque fournisseur. L'objectif n'est pas de cacher l'écosystème, mais de le rendre plus simple à utiliser en production.",
+      "Nous continuons d'améliorer la plateforme grâce aux retours du terrain. Si un routage, un prix, une documentation ou un format de réponse pose problème, dites-le-nous. Ces signalements déterminent directement ce que nous corrigeons ensuite."
+    ]
+  },
+  "contact": {
+    "title": "Contact",
+    "email": "support@vancine.com"
+  },
+  "footer": {
+    "tagline": "Rendre les modèles d'IA chinois plus accessibles aux développeurs du monde entier"
+  }
+}

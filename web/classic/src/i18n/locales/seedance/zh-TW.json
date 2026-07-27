@@ -1,0 +1,9 @@
+{
+  "footer": "透過一個 API 接入 Seedance 影片生成能力",
+  "meta": {
+    "title": "Seedance 影片生成 API | Vancine",
+    "description": "使用一個 API 金鑰接入支援的 Seedance 文生影片與圖生影片工作流。註冊即贈 1 美元免費額度，無需信用卡。",
+    "ogTitle": "透過一個 API 接入 Seedance",
+    "ogDescription": "透過 Vancine 已文件化的 API 提交非同步影片任務、輪詢狀態並取得結果。"
+  }
+}

@@ -86,11 +86,11 @@ function prepareElement(snapshot, tag, identityAttr, identityValue) {
 }
 
 const SeedanceApi = () => {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation('seedance');
   const language = i18n.language;
 
   useEffect(() => {
-    const meta = getSeedanceMetadata(language);
+    const meta = getSeedanceMetadata();
 
     // Snapshot BEFORE any mutation so the cleanup phase can distinguish
     // "pre-existing" from "Seedance-created".
@@ -178,9 +178,7 @@ const SeedanceApi = () => {
           }}
         >
           © {currentYear} Vancine ·{' '}
-          {language?.startsWith('zh')
-            ? '通过一个 API 接入 Seedance 视频生成能力'
-            : 'Access Seedance video generation through one API'}
+          {t('footer')}
         </p>
       </div>
     </div>

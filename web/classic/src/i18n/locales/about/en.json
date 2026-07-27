@@ -1,0 +1,72 @@
+{
+  "hero": {
+    "tag": "About Vancine",
+    "title": "A practical gateway to Chinese AI models",
+    "sub": "Vancine helps developers call Chinese text, image, video, audio, and 3D models through one OpenAI-compatible API, with unified billing and routing."
+  },
+  "mission": {
+    "title": "What we are building",
+    "body": "We focus on the unglamorous work that makes model access usable: stable API routing, clear pricing, consistent request formats, usable documentation, and support when an integration breaks."
+  },
+  "what": {
+    "title": "What Vancine does",
+    "items": [
+      {
+        "title": "Unified API surface",
+        "desc": "Use one OpenAI-compatible endpoint for chat, image, video, audio, and 3D workflows instead of wiring each provider separately."
+      },
+      {
+        "title": "Model routing",
+        "desc": "Route requests across configured channels by group, priority, and weight, with failed channels automatically skipped when needed."
+      },
+      {
+        "title": "Usage-based billing",
+        "desc": "See model pricing and usage in one place. Pay for actual calls instead of managing separate provider balances."
+      },
+      {
+        "title": "Developer tooling",
+        "desc": "Docs, examples, request logs, and playground tools help teams test prompts and debug real API calls faster."
+      }
+    ]
+  },
+  "models": {
+    "title": "Model coverage",
+    "items": [
+      {
+        "name": "LLM",
+        "desc": "DeepSeek, Qwen, Doubao, Kimi, GLM, MiniMax"
+      },
+      {
+        "name": "Image",
+        "desc": "Doubao Seedream, Qwen Image"
+      },
+      {
+        "name": "Video",
+        "desc": "Doubao Seedance and other video routes"
+      },
+      {
+        "name": "Audio",
+        "desc": "Doubao TTS, MiniMax Speech, Qwen Omni"
+      },
+      {
+        "name": "3D",
+        "desc": "Hyper3D, Hitem3D, Doubao Seed3D"
+      }
+    ]
+  },
+  "story": {
+    "title": "Why Vancine exists",
+    "paragraphs": [
+      "Chinese AI models are moving quickly, especially in cost-effective text, image, and video generation. For many developers outside China, the hard part is not interest in these models — it is reliable access, documentation, billing, and integration time.",
+      "Vancine packages these models behind a familiar API shape so teams can test and switch models without rewriting their application for every provider. The goal is not to hide the model ecosystem, but to make it easier to use in production.",
+      "We are still improving the platform with real usage feedback. If a model route, price, document, or response format is confusing, tell us. Those reports directly shape what we fix next."
+    ]
+  },
+  "contact": {
+    "title": "Contact",
+    "email": "support@vancine.com"
+  },
+  "footer": {
+    "tagline": "Making Chinese AI models easier for global developers to use"
+  }
+}

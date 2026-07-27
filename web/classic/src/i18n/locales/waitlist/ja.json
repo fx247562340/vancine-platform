@@ -1,0 +1,111 @@
+{
+  "hero": {
+    "badge": "先行アクセス",
+    "title": "中国 AI モデルを、世界中で利用可能に",
+    "sub1": "単一の OpenAI 互換 API で DeepSeek、Qwen、Seedream、Seedance などの中国トップ AI モデルにアクセス",
+    "sub2": "中国の電話番号不要 · Alipay 不要 · USD 直接決済 · 中国 API 直接呼び出しより安価",
+    "joinedMsg": "待機リストに登録されました！順番が来たらお知らせします。",
+    "placeholder": "メールアドレスを入力",
+    "button": "待機リストに登録",
+    "countText": "{{count}} 人の開発者が待機リストに参加しました",
+    "toastValid": "有効なメールアドレスを入力してください",
+    "toastSuccess": "待機リストへの登録が完了しました！",
+    "toastFail": "登録に失敗しました"
+  },
+  "pricing": {
+    "title": "なぜ Vancine を選ぶのか？",
+    "subtitle": "中国 AI API を直接呼び出す際の課題 vs Vancine の利用体験",
+    "headers": {
+      "model": "モデル",
+      "direct": "中国 API 直接呼び出し",
+      "vancine": "Vancine",
+      "advantage": "優位性"
+    },
+    "cheaper": "{{saving}} お得",
+    "comparisons": [
+      {
+        "category": "テキスト生成",
+        "direct": "DeepSeek 公式、中国アカウントが必要",
+        "note": "中国アカウント不要"
+      },
+      {
+        "category": "テキスト生成",
+        "direct": "Alibaba Cloud は企業認証が必要",
+        "note": "個人でも利用可能"
+      },
+      {
+        "category": "テキスト生成",
+        "direct": "Moonshot、中国アカウントが必要",
+        "note": "世界中から直接アクセス"
+      },
+      {
+        "category": "画像生成",
+        "direct": "Volcengine、本人確認が必要",
+        "note": "本人確認不要"
+      },
+      {
+        "category": "動画生成",
+        "direct": "Volcengine、企業認証が必要",
+        "note": "個人でも直接呼び出し"
+      },
+      {
+        "category": "動画生成",
+        "direct": "MiniMax、中国アカウントが必要",
+        "note": "中国の身份証明不要"
+      },
+      {
+        "category": "3D 生成",
+        "direct": "Volcengine、企業認証が必要",
+        "note": "個人でも利用可能"
+      }
+    ],
+    "sellingPoints": [
+      {
+        "title": "中国の身分証不要",
+        "desc": "中国の電話番号・身分証・企業認証は一切不要"
+      },
+      {
+        "title": "USD 直接決済",
+        "desc": "PayPal / Stripe 対応、Alipay や WeChat Pay 不要"
+      },
+      {
+        "title": "OpenAI 互換",
+        "desc": "単一 API ですべてのモデルを呼び出し、学習コストゼロ"
+      },
+      {
+        "title": "グローバルエッジ",
+        "desc": "低遅延、中国への迂回不要"
+      }
+    ]
+  },
+  "showcase": {
+    "title": "中国の主要 AI モデルを網羅",
+    "subtitle": "1 つの API Key で、主要な中国 AI プロバイダの最新モデルにアクセス",
+    "modelTypes": [
+      {
+        "title": "LLM モデル",
+        "desc": "OpenAI 互換プロトコルで中国のトップ LLM を統合"
+      },
+      {
+        "title": "画像生成",
+        "desc": "テキストから画像、画像編集"
+      },
+      {
+        "title": "動画生成",
+        "desc": "テキストから動画、画像から動画"
+      },
+      {
+        "title": "3D 生成",
+        "desc": "テキスト/画像から 3D モデルを生成"
+      },
+      {
+        "title": "音声 & 音楽",
+        "desc": "音楽生成、音声合成、ボイスクローン"
+      },
+      {
+        "title": "国際モデル",
+        "desc": "主要国際モデルも 1 つの API でカバー"
+      }
+    ]
+  }
+}

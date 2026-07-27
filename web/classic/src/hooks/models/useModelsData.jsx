@@ -393,7 +393,10 @@ export const useModelsData = () => {
           successCount++;
         } else {
           showError(
-            `删除模型 ${selectedKeys[index].model_name} 失败: ${res.data.message}`,
+            t('删除模型 {{name}} 失败: {{error}}', {
+              name: selectedKeys[index].model_name,
+              error: res.data.message,
+            }),
           );
         }
       });

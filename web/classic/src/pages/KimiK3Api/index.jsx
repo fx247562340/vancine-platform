@@ -24,15 +24,12 @@ import { UserContext } from '../../context/User';
 import {
   KIMI_K3_API_COMPATIBILITY,
   KIMI_K3_CODE_EXAMPLES,
-  KIMI_K3_CREDIT_DISCLAIMER,
   KIMI_K3_EVIDENCE_STARTER_REPO,
   KIMI_K3_EVIDENCE_URL,
   KIMI_K3_MEASURED_USAGE,
-  KIMI_K3_MEASURED_USAGE_DISCLAIMER,
   KIMI_K3_OPENCODE_CONFIG,
   KIMI_K3_OPENCODE_VERIFICATION,
   KIMI_K3_PORTFOLIO,
-  KIMI_K3_VERIFICATION_SCOPE,
   copyTextToClipboard,
   getKimiK3CtaDestination,
   getKimiK3Metadata,
@@ -54,158 +51,6 @@ const C = {
 const API_COMPAT = KIMI_K3_API_COMPATIBILITY;
 const AGENT_RUN = KIMI_K3_OPENCODE_VERIFICATION;
 const TOOL_CALLS = AGENT_RUN.toolCalls;
-
-const TEXT = {
-  en: {
-    eyebrow: 'China frontier AI, one developer path',
-    title: 'Kimi K3 API for Coding Agents',
-    intro:
-      'Connect OpenCode, Cline, Roo Code, and OpenAI-compatible tools to Kimi K3 with one Vancine API key.',
-    start: 'Start free',
-    playground: 'Go to Playground',
-    quickstartLink: 'View quickstart',
-    quickstart: 'OpenAI-compatible quickstart',
-    quickstartDesc:
-      'Send your first Kimi K3 chat completion with an environment variable, not a pasted secret.',
-    copy: 'Copy',
-    copied: 'Copied',
-    copyError: 'Unable to copy',
-    docs: 'Documentation',
-    pricing: 'Live pricing',
-    agents: 'Coding agent setup',
-    agentsDesc:
-      'Use the OpenAI-compatible provider, the Vancine base URL, and an environment-backed key.',
-    clineTitle: 'Cline and Roo Code',
-    clineSteps: [
-      'Choose OpenAI Compatible as the API provider.',
-      'Set the base URL to https://vancine.com/v1 and use your VANCINE_API_KEY.',
-      'Select kimi-k3 as the model ID.',
-    ],
-    evidenceNav: 'Evidence',
-    evidenceEyebrow: 'Live verification',
-    evidenceTitle: 'Verified against the real Kimi K3',
-    evidenceDesc:
-      'Two live checks against the real kimi-k3 model through the Vancine endpoint: an OpenAI-compatible API probe and one completed OpenCode coding-agent run.',
-    badgeVerified: 'Verified',
-    apiCompatibilityTitle: 'API compatibility',
-    apiCompatibilityFacts: [
-      `temperature:0 request returned HTTP ${API_COMPAT.httpStatus}`,
-      `Requested model ${API_COMPAT.requestedModel}, response model ${API_COMPAT.responseModel}`,
-      `Probe budget: max_tokens ${API_COMPAT.maxTokens} · finish_reason ${API_COMPAT.finishReason}`,
-      `Usage: prompt ${API_COMPAT.usage.prompt} · completion ${API_COMPAT.usage.completion} · total ${API_COMPAT.usage.total} · reasoning ${API_COMPAT.usage.reasoning}`,
-    ],
-    apiCompatibilityNote:
-      'Visible content from this 16-token probe is inconclusive: reasoning consumed most of the token budget. This is a small compatibility probe, not a content-generation failure.',
-    openCodeAgentTitle: 'OpenCode Agent',
-    openCodeAgentFacts: [
-      `${AGENT_RUN.client} v${AGENT_RUN.clientVersion} against the real ${AGENT_RUN.model}`,
-      `${AGENT_RUN.modelSteps} completed model steps · ${AGENT_RUN.rounds} round · ${(AGENT_RUN.durationMs / 1000).toFixed(1)} s`,
-      `Tool calls: read ${TOOL_CALLS.read.completed}, edit ${TOOL_CALLS.edit.completed}, bash ${TOOL_CALLS.bash.completed} — all completed, 0 failed`,
-      `Tests passed · ${AGENT_RUN.sourceModified} modified · test file untouched · exit ${AGENT_RUN.exitStatus}`,
-    ],
-    evidenceViewVerified: 'View verified evidence',
-    measuredUsageTitle: 'Measured usage',
-    measuredUsageBadge: 'One controlled run',
-    measuredUsageTokensLabel: 'Agent telemetry tokens',
-    measuredUsageAmountLabel: 'Vancine measured usage',
-    evidenceRunPlayground: 'Run K3 in Playground',
-    evidenceViewStarter: 'View starter repository',
-    portfolio: 'One key, a focused China AI portfolio',
-    portfolioDesc:
-      'Switch models as your task changes. Features, availability, and pricing are model-specific.',
-    faq: 'Frequently asked questions',
-    faqs: [
-      [
-        'Where can I confirm Kimi K3 availability and pricing?',
-        'Check live pricing and your authenticated model list. Availability, pricing, and limits can change, and those live sources are authoritative.',
-      ],
-      ['What does the free credit include?', KIMI_K3_CREDIT_DISCLAIMER],
-      [
-        'Which developer tools work with this API?',
-        'OpenCode, Cline, Roo Code, and tools that support OpenAI-compatible chat completions can use the same base URL and API key.',
-      ],
-    ],
-    finalTitle: 'Put Kimi K3 in your coding agent today',
-    finalDesc:
-      'Start with a documented OpenAI-compatible request, then choose the model that fits the work.',
-    footer: 'Access leading Chinese AI models through one developer API',
-  },
-  zh: {
-    eyebrow: '中国前沿 AI，一个开发者入口',
-    title: '面向编程智能体的 Kimi K3 API',
-    intro:
-      '使用一个 Vancine API 密钥，将 OpenCode、Cline、Roo Code 和兼容 OpenAI 的工具接入 Kimi K3。',
-    start: '免费开始',
-    playground: '前往体验中心',
-    quickstartLink: '查看快速开始',
-    quickstart: '兼容 OpenAI 的快速开始',
-    quickstartDesc:
-      '通过环境变量发送第一条 Kimi K3 对话请求，不要直接粘贴密钥。',
-    copy: '复制',
-    copied: '已复制',
-    copyError: '复制失败',
-    docs: '开发文档',
-    pricing: '实时定价',
-    agents: '编程智能体配置',
-    agentsDesc:
-      '使用兼容 OpenAI 的 Provider、Vancine Base URL 和环境变量中的密钥。',
-    clineTitle: 'Cline 与 Roo Code',
-    clineSteps: [
-      '选择 OpenAI Compatible 作为 API Provider。',
-      '将 Base URL 设为 https://vancine.com/v1，并使用 VANCINE_API_KEY。',
-      '选择 kimi-k3 作为模型 ID。',
-    ],
-    evidenceNav: '兼容性验证',
-    evidenceEyebrow: '实测验证',
-    evidenceTitle: '真实 Kimi K3 实测验证',
-    evidenceDesc:
-      '通过 Vancine 端点对真实 kimi-k3 模型完成的两项实测：OpenAI 兼容 API 探测，以及一次完整完成的 OpenCode 编程 Agent 运行。',
-    badgeVerified: '已验证',
-    apiCompatibilityTitle: 'API 兼容性',
-    apiCompatibilityFacts: [
-      `temperature:0 请求返回 HTTP ${API_COMPAT.httpStatus}`,
-      `请求模型 ${API_COMPAT.requestedModel}，响应模型 ${API_COMPAT.responseModel}`,
-      `探测预算：max_tokens ${API_COMPAT.maxTokens} · finish_reason ${API_COMPAT.finishReason}`,
-      `用量：prompt ${API_COMPAT.usage.prompt} · completion ${API_COMPAT.usage.completion} · total ${API_COMPAT.usage.total} · reasoning ${API_COMPAT.usage.reasoning}`,
-    ],
-    apiCompatibilityNote:
-      '该 16 token 探测的可见内容无法定论：推理过程占用了大部分 Token 预算。这是一个小型兼容性探测，并非内容生成失败。',
-    openCodeAgentTitle: 'OpenCode 编程 Agent',
-    openCodeAgentFacts: [
-      `${AGENT_RUN.client} v${AGENT_RUN.clientVersion}，调用真实 ${AGENT_RUN.model}`,
-      `${AGENT_RUN.modelSteps} 个已完成模型步骤 · ${AGENT_RUN.rounds} 轮 · ${(AGENT_RUN.durationMs / 1000).toFixed(1)} 秒`,
-      `工具调用：read ${TOOL_CALLS.read.completed} 次、edit ${TOOL_CALLS.edit.completed} 次、bash ${TOOL_CALLS.bash.completed} 次，全部完成，0 次失败`,
-      `测试通过 · ${AGENT_RUN.sourceModified} 已修改 · 测试文件未改动 · exit ${AGENT_RUN.exitStatus}`,
-    ],
-    evidenceViewVerified: '查看验证证据',
-    measuredUsageTitle: '实测用量',
-    measuredUsageBadge: '单次受控运行',
-    measuredUsageTokensLabel: 'Agent 遥测 Token',
-    measuredUsageAmountLabel: 'Vancine 实测用量',
-    evidenceRunPlayground: '在操练场运行 K3',
-    evidenceViewStarter: '查看 Starter 仓库',
-    portfolio: '一个密钥，连接精选中国 AI 模型',
-    portfolioDesc: '按任务切换模型；能力、可用性与价格均以实时页面为准。',
-    faq: '常见问题',
-    faqs: [
-      [
-        '在哪里确认 Kimi K3 的可用性与价格？',
-        '请查看实时定价页和登录后的模型列表。可用性、价格和限制可能变化，以实时信息为准。',
-      ],
-      [
-        '免费额度包含什么？',
-        '新账号有 1 美元免费额度，无需信用卡。实际用量取决于模型和请求。',
-      ],
-      [
-        '哪些开发工具可以使用？',
-        'OpenCode、Cline、Roo Code 以及支持 OpenAI Chat Completions 的工具均可使用相同 Base URL 和 API 密钥。',
-      ],
-    ],
-    finalTitle: '今天就把 Kimi K3 接入编程智能体',
-    finalDesc: '从标准请求开始，再按实际任务选择合适的模型。',
-    footer: '通过一个开发者 API 接入领先的中国 AI 模型',
-  },
-};
 
 function snapshot(selector, attribute) {
   const element = document.head.querySelector(selector);
@@ -370,11 +215,9 @@ function EvidenceCard({ title, badge, facts, note, children }) {
 }
 
 const KimiK3Api = () => {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation('kimi');
   const [userState] = useContext(UserContext);
   const navigate = useNavigate();
-  const isZh = i18n.language?.toLowerCase().startsWith('zh');
-  const text = isZh ? TEXT.zh : TEXT.en;
   const [activeExample, setActiveExample] = useState('curl');
   const isAuthenticated = Boolean(userState?.user);
   const destination = getKimiK3CtaDestination(
@@ -388,8 +231,63 @@ const KimiK3Api = () => {
     [activeExample],
   );
 
+  // Dynamic fact arrays — interpolated per index from live evidence data.
+  const apiCompatibilityFacts = [
+    t('evidence.apiCompatibilityFacts.0', { httpStatus: API_COMPAT.httpStatus }),
+    t('evidence.apiCompatibilityFacts.1', {
+      requestedModel: API_COMPAT.requestedModel,
+      responseModel: API_COMPAT.responseModel,
+    }),
+    t('evidence.apiCompatibilityFacts.2', {
+      maxTokens: API_COMPAT.maxTokens,
+      finishReason: API_COMPAT.finishReason,
+    }),
+    t('evidence.apiCompatibilityFacts.3', {
+      prompt: API_COMPAT.usage.prompt,
+      completion: API_COMPAT.usage.completion,
+      total: API_COMPAT.usage.total,
+      reasoning: API_COMPAT.usage.reasoning,
+    }),
+  ];
+
+  const openCodeAgentFacts = [
+    t('evidence.openCodeAgentFacts.0', {
+      client: AGENT_RUN.client,
+      clientVersion: AGENT_RUN.clientVersion,
+      model: AGENT_RUN.model,
+    }),
+    t('evidence.openCodeAgentFacts.1', {
+      modelSteps: AGENT_RUN.modelSteps,
+      rounds: AGENT_RUN.rounds,
+      durationSec: (AGENT_RUN.durationMs / 1000).toFixed(1),
+    }),
+    t('evidence.openCodeAgentFacts.2', {
+      readCompleted: TOOL_CALLS.read.completed,
+      editCompleted: TOOL_CALLS.edit.completed,
+      bashCompleted: TOOL_CALLS.bash.completed,
+    }),
+    t('evidence.openCodeAgentFacts.3', {
+      sourceModified: AGENT_RUN.sourceModified,
+      exitStatus: AGENT_RUN.exitStatus,
+    }),
+  ];
+
+  // faq.items is a 2D array [question, answer] — returnObjects preserves shape.
+  const faqs = t('faq.items', { returnObjects: true }) || [];
+
+  // Flat label bag expected by KimiK3Header + CopyBlock (preserves prior API).
+  const labels = {
+    quickstartLink: t('hero.quickstartLink'),
+    agents: t('agents.title'),
+    evidenceNav: t('evidence.nav'),
+    docs: t('hero.docs'),
+    copy: t('hero.copy'),
+    copied: t('hero.copied'),
+    copyError: t('hero.copyError'),
+  };
+
   useEffect(() => {
-    const meta = getKimiK3Metadata(i18n.language);
+    const meta = getKimiK3Metadata();
     const previousTitle = document.title;
     const states = {
       description: snapshot('meta[name="description"]', 'content'),
@@ -432,7 +330,7 @@ const KimiK3Api = () => {
       meta.canonical,
     );
     setHeadValue(
-      states.canonical,
+      states.ogUrl,
       'link',
       'rel',
       'canonical',
@@ -446,7 +344,7 @@ const KimiK3Api = () => {
       restore(states.ogTitle, 'content');
       restore(states.ogDescription, 'content');
       restore(states.ogUrl, 'content');
-      restore(states.canonical, 'href');
+      restore(states.ogUrl, 'href');
     };
   }, [i18n.language]);
 
@@ -465,7 +363,7 @@ const KimiK3Api = () => {
         overflowWrap: 'break-word',
       }}
     >
-      <KimiK3Header labels={text} />
+      <KimiK3Header labels={labels} />
 
       <main>
         <section className='relative overflow-hidden px-5 py-24 text-center md:py-32'>
@@ -479,19 +377,19 @@ const KimiK3Api = () => {
               className='mb-4 text-sm font-semibold uppercase tracking-wider'
               style={{ color: C.accent }}
             >
-              {text.eyebrow}
+              {t('hero.eyebrow')}
             </p>
             <h1
               className='text-4xl font-bold tracking-tight md:text-6xl'
               style={{ color: C.strong }}
             >
-              {text.title}
+              {t('hero.title')}
             </h1>
             <p
               className='mx-auto mt-6 max-w-3xl text-lg leading-8'
               style={{ color: C.body }}
             >
-              {text.intro}
+              {t('hero.intro')}
             </p>
             <p
               className='mt-5 inline-flex rounded-full border px-3 py-1 text-sm font-medium'
@@ -501,20 +399,18 @@ const KimiK3Api = () => {
                 background: C.accentBg,
               }}
             >
-              {isZh
-                ? '新账号有 1 美元免费额度，无需信用卡。实际用量取决于模型和请求。'
-                : KIMI_K3_CREDIT_DISCLAIMER}
+              {t('hero.creditDisclaimer')}
             </p>
             <div className='mt-8 flex flex-wrap justify-center gap-3'>
               <PrimaryLink href={destination} onClick={go('kimi_k3_hero')}>
-                {text.start}
+                {t('hero.start')}
               </PrimaryLink>
               <a
                 href='#quickstart'
                 className='inline-flex min-h-[42px] items-center justify-center rounded-[10px] border px-[18px] font-semibold no-underline'
                 style={{ color: C.strong, borderColor: C.border }}
               >
-                {text.quickstartLink}
+                {t('hero.quickstartLink')}
               </a>
             </div>
           </div>
@@ -528,10 +424,10 @@ const KimiK3Api = () => {
           <div className='mx-auto max-w-5xl'>
             <div className='mb-8 text-center'>
               <h2 className='text-3xl font-bold' style={{ color: C.strong }}>
-                {text.quickstart}
+                {t('hero.quickstart')}
               </h2>
               <p className='mt-3' style={{ color: C.body }}>
-                {text.quickstartDesc}
+                {t('hero.quickstartDesc')}
               </p>
             </div>
             <div
@@ -558,20 +454,20 @@ const KimiK3Api = () => {
                 </button>
               ))}
             </div>
-            <CopyBlock code={activeCode.code} labels={text} />
+            <CopyBlock code={activeCode.code} labels={labels} />
             <div className='mt-5 flex flex-wrap justify-between gap-3'>
               <a
                 href='https://vancine.com/docs'
                 target='_blank'
                 rel='noopener noreferrer'
               >
-                {text.docs}
+                {t('hero.docs')}
               </a>
               <PrimaryLink
                 href={destination}
                 onClick={go('kimi_k3_quickstart')}
               >
-                {isAuthenticated ? text.playground : text.start}
+                {isAuthenticated ? t('hero.playground') : t('hero.start')}
               </PrimaryLink>
             </div>
           </div>
@@ -590,13 +486,13 @@ const KimiK3Api = () => {
                 className='mt-3 text-3xl font-bold'
                 style={{ color: C.strong }}
               >
-                {text.agents}
+                {t('agents.title')}
               </h2>
               <p className='mt-4 leading-7' style={{ color: C.body }}>
-                {text.agentsDesc}
+                {t('agents.desc')}
               </p>
             </div>
-            <CopyBlock code={KIMI_K3_OPENCODE_CONFIG} labels={text} />
+            <CopyBlock code={KIMI_K3_OPENCODE_CONFIG} labels={labels} />
             <article
               className='rounded-2xl border p-6 lg:col-span-2'
               style={{ borderColor: C.border }}
@@ -605,13 +501,13 @@ const KimiK3Api = () => {
                 className='text-sm font-semibold uppercase'
                 style={{ color: C.accent }}
               >
-                {text.clineTitle}
+                {t('agents.clineTitle')}
               </p>
               <ol
                 className='mt-4 list-decimal space-y-2 pl-5 leading-7'
                 style={{ color: C.body }}
               >
-                {text.clineSteps.map((step) => (
+                {clineSteps(t).map((step) => (
                   <li key={step}>{step}</li>
                 ))}
               </ol>
@@ -630,32 +526,32 @@ const KimiK3Api = () => {
                 className='text-sm font-semibold uppercase'
                 style={{ color: C.accent }}
               >
-                {text.evidenceEyebrow}
+                {t('evidence.eyebrow')}
               </p>
               <h2
                 className='mt-3 text-3xl font-bold'
                 style={{ color: C.strong }}
               >
-                {text.evidenceTitle}
+                {t('evidence.title')}
               </h2>
               <p
                 className='mx-auto mt-4 max-w-2xl leading-7'
                 style={{ color: C.body }}
               >
-                {text.evidenceDesc}
+                {t('evidence.desc')}
               </p>
             </div>
             <div className='mt-10 grid gap-4 md:grid-cols-3'>
               <EvidenceCard
-                title={text.apiCompatibilityTitle}
-                badge={text.badgeVerified}
-                facts={text.apiCompatibilityFacts}
-                note={text.apiCompatibilityNote}
+                title={t('evidence.apiCompatibilityTitle')}
+                badge={t('evidence.badgeVerified')}
+                facts={apiCompatibilityFacts}
+                note={t('evidence.apiCompatibilityNote')}
               />
               <EvidenceCard
-                title={text.openCodeAgentTitle}
-                badge={text.badgeVerified}
-                facts={text.openCodeAgentFacts}
+                title={t('evidence.openCodeAgentTitle')}
+                badge={t('evidence.badgeVerified')}
+                facts={openCodeAgentFacts}
               >
                 <a
                   href={KIMI_K3_EVIDENCE_URL}
@@ -670,12 +566,12 @@ const KimiK3Api = () => {
                   className='mt-4 inline-block text-sm font-semibold'
                   style={{ color: C.accent }}
                 >
-                  {text.evidenceViewVerified}
+                  {t('evidence.viewVerified')}
                 </a>
               </EvidenceCard>
               <EvidenceCard
-                title={text.measuredUsageTitle}
-                badge={text.measuredUsageBadge}
+                title={t('evidence.measuredUsageTitle')}
+                badge={t('evidence.measuredUsageBadge')}
                 facts={[]}
               >
                 <dl className='mt-4 space-y-4'>
@@ -684,7 +580,7 @@ const KimiK3Api = () => {
                       className='text-xs font-semibold uppercase tracking-wide'
                       style={{ color: C.muted }}
                     >
-                      {text.measuredUsageTokensLabel}
+                      {t('evidence.measuredUsageTokensLabel')}
                     </dt>
                     <dd
                       className='mt-1 text-2xl font-bold'
@@ -700,7 +596,7 @@ const KimiK3Api = () => {
                       className='text-xs font-semibold uppercase tracking-wide'
                       style={{ color: C.muted }}
                     >
-                      {text.measuredUsageAmountLabel}
+                      {t('evidence.measuredUsageAmountLabel')}
                     </dt>
                     <dd
                       className='mt-1 text-2xl font-bold'
@@ -720,9 +616,7 @@ const KimiK3Api = () => {
                   className='mt-4 border-t pt-3 text-xs leading-5'
                   style={{ color: C.muted, borderColor: C.border }}
                 >
-                  {isZh
-                    ? KIMI_K3_MEASURED_USAGE_DISCLAIMER.zh
-                    : KIMI_K3_MEASURED_USAGE_DISCLAIMER.en}
+                  {t('evidence.measuredUsageDisclaimer')}
                 </p>
               </EvidenceCard>
             </div>
@@ -730,13 +624,11 @@ const KimiK3Api = () => {
               className='mx-auto mt-8 max-w-3xl text-center text-xs leading-5'
               style={{ color: C.muted }}
             >
-              {isZh
-                ? KIMI_K3_VERIFICATION_SCOPE.zh
-                : KIMI_K3_VERIFICATION_SCOPE.en}
+              {t('evidence.verificationScope')}
             </p>
             <div className='mt-8 flex flex-wrap justify-center gap-3'>
               <PrimaryLink href={destination} onClick={go('kimi_k3_evidence')}>
-                {text.evidenceRunPlayground}
+                {t('evidence.runPlayground')}
               </PrimaryLink>
               <a
                 href={KIMI_K3_EVIDENCE_STARTER_REPO}
@@ -751,7 +643,7 @@ const KimiK3Api = () => {
                 className='inline-flex min-h-[42px] items-center justify-center rounded-[10px] border px-[18px] font-semibold no-underline'
                 style={{ color: C.strong, borderColor: C.border }}
               >
-                {text.evidenceViewStarter}
+                {t('evidence.viewStarter')}
               </a>
             </div>
           </div>
@@ -760,10 +652,10 @@ const KimiK3Api = () => {
         <section className='px-5 py-20' style={{ background: C.card }}>
           <div className='mx-auto max-w-6xl text-center'>
             <h2 className='text-3xl font-bold' style={{ color: C.strong }}>
-              {text.portfolio}
+              {t('portfolio.title')}
             </h2>
             <p className='mx-auto mt-3 max-w-2xl' style={{ color: C.body }}>
-              {text.portfolioDesc}
+              {t('portfolio.desc')}
             </p>
             <div className='mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-5'>
               {KIMI_K3_PORTFOLIO.map((model) => (
@@ -782,7 +674,7 @@ const KimiK3Api = () => {
               target='_blank'
               rel='noopener noreferrer'
             >
-              {text.pricing}
+              {t('hero.pricing')}
             </a>
           </div>
         </section>
@@ -793,12 +685,12 @@ const KimiK3Api = () => {
               className='text-center text-3xl font-bold'
               style={{ color: C.strong }}
             >
-              {text.faq}
+              {t('faq.title')}
             </h2>
             <div className='mt-8 space-y-3'>
-              {text.faqs.map(([question, answer]) => (
+              {faqs.map(([question, answer], idx) => (
                 <details
-                  key={question}
+                  key={question || idx}
                   className='rounded-xl border p-5'
                   style={{ borderColor: C.border }}
                 >
@@ -822,15 +714,15 @@ const KimiK3Api = () => {
           style={{ background: C.accent, color: '#fff' }}
         >
           <div className='mx-auto max-w-3xl'>
-            <h2 className='text-3xl font-bold'>{text.finalTitle}</h2>
-            <p className='mt-4 opacity-80'>{text.finalDesc}</p>
+            <h2 className='text-3xl font-bold'>{t('final.title')}</h2>
+            <p className='mt-4 opacity-80'>{t('final.desc')}</p>
             <div className='mt-7'>
               <PrimaryLink
                 href={destination}
                 onClick={go('kimi_k3_final_cta')}
                 inverse
               >
-                {text.start}
+                {t('hero.start')}
               </PrimaryLink>
             </div>
           </div>
@@ -851,11 +743,17 @@ const KimiK3Api = () => {
             lineHeight: 2,
           }}
         >
-          © {new Date().getFullYear()} Vancine · {text.footer}
+          © {new Date().getFullYear()} Vancine · {t('footer')}
         </p>
       </div>
     </div>
   );
 };
+
+// Helper: clineSteps is a nested array — fetch with returnObjects and pass
+// straight to the <ol>.
+function clineSteps(t) {
+  return t('agents.clineSteps', { returnObjects: true }) || [];
+}
 
 export default KimiK3Api;

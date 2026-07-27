@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import i18n from '../../i18n/i18n';
 /**
  * Pure, dependency-free landing-page contract for the Classic theme.
  *
@@ -81,44 +82,18 @@ export function getAiMediaDocsUrl(section) {
   return `${VANCINE_DOCS_URL}${anchor}`;
 }
 
-const AI_MEDIA_METADATA = {
-  en: {
-    title: 'Chinese AI Media APIs for Developers | Vancine',
-    description:
-      'Access Seedance, Seedream, Doubao TTS, Qwen Image, and more through one developer-friendly API. Start with $1 in free credits.',
-    ogTitle: 'Build AI Media Products with One API',
-    ogDescription:
-      'Video, image, speech, text, and 3D generation with one API key and unified billing.',
+// Returns the route-specific SEO/social metadata from the `aimedia`
+// namespace at runtime. Callers invoke this inside an effect (i18n has
+// been initialized by then) and refresh on language change.
+export function getAiMediaMetadata() {
+  const tt = (key) => i18n.t(key, { ns: 'aimedia' });
+  return {
+    title: tt('meta.title'),
+    description: tt('meta.description'),
+    ogTitle: tt('meta.ogTitle'),
+    ogDescription: tt('meta.ogDescription'),
     canonical: AI_MEDIA_CANONICAL,
-  },
-  zh: {
-    title: '面向开发者的中国 AI 多媒体 API | Vancine',
-    description:
-      '通过一个开发者友好的 API 接入 Seedance、Seedream、Doubao TTS、Qwen Image 等模型，注册即得 1 美元免费额度。',
-    ogTitle: '使用一个 API 构建 AI 多媒体产品',
-    ogDescription:
-      '一个 API 密钥，统一使用视频、图片、语音、文本和 3D 生成能力。',
-    canonical: AI_MEDIA_CANONICAL,
-  },
-};
-
-/**
- * Returns the route-specific SEO/social metadata for the given language.
- *
- * Chinese is selected for `zh` and any `zh-*` tag (e.g. `zh-CN`, `zh-TW`).
- * Every other language falls back to English.
- *
- * @param {string} language an i18next language tag (e.g. 'en', 'zh-CN')
- * @returns {{title: string, description: string, ogTitle: string, ogDescription: string, canonical: string}}
- */
-export function getAiMediaMetadata(language) {
-  const normalized = String(language ?? '')
-    .trim()
-    .toLowerCase();
-  if (normalized === 'zh' || normalized.startsWith('zh-')) {
-    return AI_MEDIA_METADATA.zh;
-  }
-  return AI_MEDIA_METADATA.en;
+  };
 }
 
 /**

@@ -1,0 +1,72 @@
+{
+  "hero": {
+    "tag": "关于 Vancine",
+    "title": "一个实用的中国 AI 模型网关",
+    "sub": "Vancine 帮助开发者用一个 OpenAI 兼容 API 调用中国文本、图片、视频、音频和 3D 模型，并统一处理计费与路由。"
+  },
+  "mission": {
+    "title": "我们在做什么",
+    "body": "我们专注解决模型接入里最实际的问题：稳定的 API 路由、清晰的价格、统一的请求格式、可用的文档，以及集成出问题时能排查的工具和支持。"
+  },
+  "what": {
+    "title": "Vancine 提供什么",
+    "items": [
+      {
+        "title": "统一 API 接口",
+        "desc": "用一个 OpenAI 兼容端点处理对话、图片、视频、音频和 3D 工作流，不必分别对接每个供应商。"
+      },
+      {
+        "title": "模型路由",
+        "desc": "按分组、优先级和权重在已配置渠道间路由请求，失败渠道可自动跳过，降低单点故障影响。"
+      },
+      {
+        "title": "按量计费",
+        "desc": "在一个平台查看模型价格和用量，按实际调用付费，不需要分别管理多个供应商余额。"
+      },
+      {
+        "title": "开发者工具",
+        "desc": "文档、示例、请求日志和操练场帮助团队更快测试提示词、排查真实 API 调用。"
+      }
+    ]
+  },
+  "models": {
+    "title": "模型覆盖范围",
+    "items": [
+      {
+        "name": "LLM",
+        "desc": "DeepSeek、Qwen、Doubao、Kimi、GLM、MiniMax"
+      },
+      {
+        "name": "图片",
+        "desc": "Doubao Seedream、Qwen Image"
+      },
+      {
+        "name": "视频",
+        "desc": "Doubao Seedance 等视频路由"
+      },
+      {
+        "name": "音频",
+        "desc": "Doubao TTS、MiniMax Speech、Qwen Omni"
+      },
+      {
+        "name": "3D",
+        "desc": "Hyper3D、Hitem3D、Doubao Seed3D"
+      }
+    ]
+  },
+  "story": {
+    "title": "为什么做 Vancine",
+    "paragraphs": [
+      "中国 AI 模型迭代很快，尤其在高性价比文本、图片和视频生成上。对很多海外开发者来说，真正困难的不是有没有兴趣，而是稳定访问、文档、计费和集成成本。",
+      "Vancine 把这些模型整理到熟悉的 API 形态后面，让团队可以测试和切换模型，而不必为了每个供应商重写应用。我们的目标不是隐藏模型生态，而是让它更容易进入生产环境。",
+      "平台还在持续改进。如果某个模型路由、价格、文档或响应格式让你困惑，请告诉我们。这些真实反馈会直接决定我们下一步修什么。"
+    ]
+  },
+  "contact": {
+    "title": "联系 Vancine",
+    "email": "support@vancine.com"
+  },
+  "footer": {
+    "tagline": "让中国 AI 模型更容易被全球开发者使用"
+  }
+}

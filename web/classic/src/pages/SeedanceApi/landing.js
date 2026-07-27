@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import i18n from '../../i18n/i18n';
 /**
  * Pure, dependency-free landing-page contract for the Classic theme's
  * Seedance API page.
@@ -122,44 +123,18 @@ export const SEEDANCE_POSTMAN_TRACKING = Object.freeze({
   location: SEEDANCE_RESOURCE_LOCATIONS[1],
 });
 
-const SEEDANCE_METADATA = {
-  en: {
-    title: 'Seedance API for Video Generation | Vancine',
-    description:
-      'Integrate supported Seedance text-to-video and image-to-video workflows with one API key. Start with $1 in free credit and no card required.',
-    ogTitle: 'Build with Seedance Through One API',
-    ogDescription:
-      "Submit an async video task, poll its status, and retrieve the result through Vancine's documented API.",
+// Returns the route-specific SEO/social metadata from the `seedance`
+// namespace at runtime. Callers invoke this inside an effect (i18n has
+// been initialized by then) and refresh on language change.
+export function getSeedanceMetadata() {
+  const tt = (key) => i18n.t(key, { ns: 'seedance' });
+  return {
+    title: tt('meta.title'),
+    description: tt('meta.description'),
+    ogTitle: tt('meta.ogTitle'),
+    ogDescription: tt('meta.ogDescription'),
     canonical: SEEDANCE_CANONICAL,
-  },
-  zh: {
-    title: 'Seedance 视频生成 API | Vancine',
-    description:
-      '使用一个 API 密钥接入受支持的 Seedance 文生视频和图生视频工作流。注册即得 1 美元免费额度，无需信用卡。',
-    ogTitle: '通过一个 API 接入 Seedance',
-    ogDescription:
-      '通过 Vancine 文档化的 API 提交异步视频任务、轮询状态并获取结果。',
-    canonical: SEEDANCE_CANONICAL,
-  },
-};
-
-/**
- * Returns the route-specific SEO/social metadata for the given language.
- *
- * Chinese is selected for `zh` and any `zh-*` tag (e.g. `zh-CN`, `zh-TW`).
- * Every other language falls back to English.
- *
- * @param {string} language an i18next language tag (e.g. 'en', 'zh-CN')
- * @returns {{title: string, description: string, ogTitle: string, ogDescription: string, canonical: string}}
- */
-export function getSeedanceMetadata(language) {
-  const normalized = String(language ?? '')
-    .trim()
-    .toLowerCase();
-  if (normalized === 'zh' || normalized.startsWith('zh-')) {
-    return SEEDANCE_METADATA.zh;
-  }
-  return SEEDANCE_METADATA.en;
+  };
 }
 
 /**

@@ -1,0 +1,72 @@
+{
+  "hero": {
+    "tag": "Giới thiệu Vancine",
+    "title": "Một cổng thực tế tới các mô hình AI Trung Quốc",
+    "sub": "Vancine giúp các nhà phát triển gọi các mô hình văn bản, hình ảnh, video, âm thanh và 3D của Trung Quốc thông qua một API tương thích OpenAI duy nhất, với thanh toán và định tuyến thống nhất."
+  },
+  "mission": {
+    "title": "Những gì chúng tôi xây dựng",
+    "body": "Chúng tôi tập trung vào công việc khiêm tốn giúp việc truy cập mô hình thực sự dùng được: định tuyến API ổn định, bảng giá rõ ràng, định dạng yêu cầu nhất quán, tài liệu thực dụng và hỗ trợ khi tích hợp bị lỗi."
+  },
+  "what": {
+    "title": "Vancine cung cấp gì",
+    "items": [
+      {
+        "title": "API thống nhất",
+        "desc": "Dùng một endpoint tương thích OpenAI cho chat, hình ảnh, video, âm thanh và 3D thay vì nối riêng từng nhà cung cấp."
+      },
+      {
+        "title": "Định tuyến mô hình",
+        "desc": "Phân phối yêu cầu giữa các kênh đã cấu hình theo nhóm, độ ưu tiên và trọng số, với khả năng tự bỏ qua các kênh lỗi khi cần."
+      },
+      {
+        "title": "Thanh toán theo lượng dùng",
+        "desc": "Xem giá và lượng sử dụng mô hình tại một nơi. Trả tiền theo lượng gọi thực tế thay vì quản lý số dư của nhiều nhà cung cấp."
+      },
+      {
+        "title": "Công cụ cho nhà phát triển",
+        "desc": "Tài liệu, ví dụ, nhật ký yêu cầu và playground giúp đội ngũ kiểm thử prompt và gỡ lỗi các lệnh gọi API thực tế nhanh hơn."
+      }
+    ]
+  },
+  "models": {
+    "title": "Phạm vi mô hình",
+    "items": [
+      {
+        "name": "LLM",
+        "desc": "DeepSeek, Qwen, Doubao, Kimi, GLM, MiniMax"
+      },
+      {
+        "name": "Hình ảnh",
+        "desc": "Doubao Seedream, Qwen Image"
+      },
+      {
+        "name": "Video",
+        "desc": "Doubao Seedance và các tuyến video khác"
+      },
+      {
+        "name": "Âm thanh",
+        "desc": "Doubao TTS, MiniMax Speech, Qwen Omni"
+      },
+      {
+        "name": "3D",
+        "desc": "Hyper3D, Hitem3D, Doubao Seed3D"
+      }
+    ]
+  },
+  "story": {
+    "title": "Vì sao Vancine tồn tại",
+    "paragraphs": [
+      "Các mô hình AI Trung Quốc đang tiến rất nhanh, đặc biệt trong việc tạo văn bản, hình ảnh và video với chi phí hợp lý. Với nhiều nhà phát triển ngoài Trung Quốc, khó khăn thật sự không phải là sự quan tâm mà là truy cập ổn định, tài liệu, thanh toán và thời gian tích hợp.",
+      "Vancine đóng gói các mô hình này phía sau một hình thức API quen thuộc để các đội ngũ có thể thử và chuyển đổi mô hình mà không phải viết lại ứng dụng cho từng nhà cung cấp. Mục tiêu không phải là che giấu hệ sinh thái mô hình, mà là làm cho nó dễ sử dụng hơn trong môi trường production.",
+      "Chúng tôi vẫn đang cải thiện nền tảng dựa trên phản hồi thực tế từ người dùng. Nếu một tuyến mô hình, mức giá, tài liệu hoặc định dạng phản hồi nào đó gây khó hiểu, hãy cho chúng tôi biết. Những báo cáo đó trực tiếp định hình những gì chúng tôi sửa tiếp theo."
+    ]
+  },
+  "contact": {
+    "title": "Liên hệ",
+    "email": "support@vancine.com"
+  },
+  "footer": {
+    "tagline": "Giúp các nhà phát triển toàn cầu dễ dàng tiếp cận các mô hình AI Trung Quốc hơn"
+  }
+}

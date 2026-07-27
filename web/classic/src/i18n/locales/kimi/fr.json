@@ -1,0 +1,91 @@
+{
+  "hero": {
+    "eyebrow": "IA de pointe en Chine, un seul chemin pour les développeurs",
+    "title": "API Kimi K3 pour agents de code",
+    "intro": "Connectez OpenCode, Cline, Roo Code et les outils compatibles OpenAI à Kimi K3 avec une seule clé API Vancine.",
+    "start": "Commencer gratuitement",
+    "playground": "Aller au Playground",
+    "quickstartLink": "Voir le quickstart",
+    "quickstart": "Quickstart compatible OpenAI",
+    "quickstartDesc": "Envoyez votre première complétion de chat Kimi K3 avec une variable d'environnement, pas un secret collé.",
+    "copy": "Copier",
+    "copied": "Copié",
+    "copyError": "Copie impossible",
+    "docs": "Documentation",
+    "pricing": "Tarifs en direct",
+    "creditDisclaimer": "1 $ de crédit offert. Aucune carte bancaire requise. La consommation varie selon le modèle et la requête."
+  },
+  "agents": {
+    "title": "Configuration de l'agent de code",
+    "desc": "Utilisez le fournisseur compatible OpenAI, l'URL de base Vancine et une clé issue d'une variable d'environnement.",
+    "clineTitle": "Cline et Roo Code",
+    "clineSteps": [
+      "Choisissez OpenAI Compatible comme fournisseur d'API.",
+      "Définissez l'URL de base sur https://vancine.com/v1 et utilisez votre VANCINE_API_KEY.",
+      "Sélectionnez kimi-k3 comme ID de modèle."
+    ]
+  },
+  "evidence": {
+    "nav": "Preuves",
+    "eyebrow": "Vérification réelle",
+    "title": "Vérifié sur le vrai Kimi K3",
+    "desc": "Deux contrôles réels sur le vrai modèle kimi-k3 via le endpoint Vancine : une sonde d'API compatible OpenAI et une exécution d'agent de code OpenCode terminée.",
+    "badgeVerified": "Vérifié",
+    "apiCompatibilityTitle": "Compatibilité API",
+    "apiCompatibilityFacts": [
+      "Requête temperature:0 a renvoyé HTTP {{httpStatus}}",
+      "Modèle demandé {{requestedModel}}, modèle reçu {{responseModel}}",
+      "Budget de sonde : max_tokens {{maxTokens}} · finish_reason {{finishReason}}",
+      "Usage : prompt {{prompt}} · completion {{completion}} · total {{total}} · reasoning {{reasoning}}"
+    ],
+    "apiCompatibilityNote": "Le contenu visible de cette sonde de 16 tokens est non concluant : le raisonnement a consommé la majeure partie du budget. Il s'agit d'une petite sonde de compatibilité, pas d'un échec de génération.",
+    "openCodeAgentTitle": "Agent OpenCode",
+    "openCodeAgentFacts": [
+      "{{client}} v{{clientVersion}} contre le vrai {{model}}",
+      "{{modelSteps}} étapes de modèle terminées · {{rounds}} round · {{durationSec}} s",
+      "Appels d'outils : read {{readCompleted}}, edit {{editCompleted}}, bash {{bashCompleted}} — tous réussis, 0 échec",
+      "Tests réussis · {{sourceModified}} modifié · fichier de test inchangé · exit {{exitStatus}}"
+    ],
+    "viewVerified": "Voir la preuve vérifiée",
+    "measuredUsageTitle": "Usage mesuré",
+    "measuredUsageBadge": "Une exécution contrôlée",
+    "measuredUsageTokensLabel": "Tokens de télémétrie de l'agent",
+    "measuredUsageAmountLabel": "Usage mesuré Vancine",
+    "measuredUsageDisclaimer": "Cette exécution OpenCode contrôlée a généré 0,19 $ d'usage mesuré sur Vancine. Le prix et la consommation de tokens varient selon la tâche, et ce résultat ne garantit pas qu'un crédit de 1 $ suffira pour une autre exécution d'agent de code.",
+    "runPlayground": "Lancer K3 dans le Playground",
+    "viewStarter": "Voir le dépôt de démarrage",
+    "verificationScope": "Seul OpenCode v1.18.3 dispose d'une vérification réelle d'agent de code. Les configurations Cline et Roo Code sont disponibles mais n'ont pas été vérifiées indépendamment. Vancine est une plateforme tierce d'agrégation d'API, et non le service officiel Moonshot/Kimi."
+  },
+  "portfolio": {
+    "title": "Une clé, un portefeuille ciblé d'IA chinoise",
+    "desc": "Changez de modèle selon la tâche. Fonctionnalités, disponibilité et tarifs sont spécifiques à chaque modèle."
+  },
+  "faq": {
+    "title": "Questions fréquentes",
+    "items": [
+      [
+        "Où vérifier la disponibilité et le tarif de Kimi K3 ?",
+        "Consultez la page de tarifs en direct et la liste de modèles authentifiés. Disponibilité, tarifs et limites peuvent changer ; ces sources en direct font foi."
+      ],
+      [
+        "Que comprend le crédit gratuit ?",
+        "1 $ de crédit offert. Aucune carte bancaire requise. La consommation varie selon le modèle et la requête."
+      ],
+      [
+        "Quels outils développeur sont compatibles ?",
+        "OpenCode, Cline, Roo Code et tout outil supportant les complétions de chat compatibles OpenAI peuvent utiliser la même URL de base et la même clé API."
+      ]
+    ]
+  },
+  "final": {
+    "title": "Intégrez Kimi K3 à votre agent de code dès aujourd'hui",
+    "desc": "Commencez par une requête OpenAI-compatible documentée, puis choisissez le modèle qui convient au travail."
+  },
+  "footer": "Accédez aux principaux modèles d'IA chinois via une seule API développeur",
+  "meta": {
+    "title": "API Kimi K3 pour agents de code | Vancine",
+    "description": "Connectez OpenCode, Cline, Roo Code et les outils compatibles OpenAI à Kimi K3 avec une seule clé API via Vancine.",
+    "ogTitle": "Kimi K3 pour les agents de code",
+    "ogDescription": "Utilisez une seule clé API compatible OpenAI pour connecter vos agents de code à Kimi K3 et aux autres modèles chinois de pointe."
+  }
+}

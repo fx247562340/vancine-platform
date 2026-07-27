@@ -17,9 +17,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 
+import i18n from '../../i18n/i18n';
+
 export const KIMI_K3_CANONICAL = 'https://vancine.com/kimi-k3-api';
-export const KIMI_K3_CREDIT_DISCLAIMER =
-  '$1 free credit. No credit card required. Usage varies by model and request.';
 
 const UTM_KEYS = new Set([
   'utm_source',
@@ -47,32 +47,21 @@ export function getKimiK3CtaDestination(isAuthenticated, search = '') {
   return `${destination}${destination.includes('?') ? '&' : '?'}${query}`;
 }
 
-const METADATA = {
-  en: {
-    title: 'Kimi K3 API for Coding Agents | Vancine',
-    description:
-      'Connect OpenCode, Cline, Roo Code, and OpenAI-compatible tools to Kimi K3 with one API key through Vancine.',
-    ogTitle: 'Kimi K3 for Coding Agents',
-    ogDescription:
-      'Use one OpenAI-compatible API key to connect coding agents to Kimi K3 and other frontier Chinese models.',
+// SEO metadata is now sourced from the `kimi` namespace at runtime. The
+// caller is expected to invoke this inside a useEffect (i18n has been
+// initialized by then) and refresh on language change. Other landing
+// constants (copyTextToClipboard, KIMI_K3_CODE_EXAMPLES, KIMI_K3_OPENCODE_CONFIG,
+// KIMI_K3_PORTFOLIO, KIMI_K3_EVIDENCE_*, KIMI_K3_API_COMPATIBILITY,
+// KIMI_K3_OPENCODE_VERIFICATION, KIMI_K3_MEASURED_USAGE) are still pure data.
+export function getKimiK3Metadata() {
+  const tt = (key) => i18n.t(key, { ns: 'kimi' });
+  return {
+    title: tt('meta.title'),
+    description: tt('meta.description'),
+    ogTitle: tt('meta.ogTitle'),
+    ogDescription: tt('meta.ogDescription'),
     canonical: KIMI_K3_CANONICAL,
-  },
-  zh: {
-    title: 'Kimi K3 编程智能体 API | Vancine',
-    description:
-      '通过 Vancine 的一个 API 密钥，将 OpenCode、Cline、Roo Code 和兼容 OpenAI 的工具连接至 Kimi K3。',
-    ogTitle: '面向编程智能体的 Kimi K3',
-    ogDescription:
-      '使用一个兼容 OpenAI 的 API 密钥，将编程智能体接入 Kimi K3 和其他中国前沿模型。',
-    canonical: KIMI_K3_CANONICAL,
-  },
-};
-
-export function getKimiK3Metadata(language = '') {
-  const normalized = language.trim().toLowerCase();
-  return normalized === 'zh' || normalized.startsWith('zh-')
-    ? METADATA.zh
-    : METADATA.en;
+  };
 }
 
 export async function copyTextToClipboard(text, clipboard) {
@@ -235,14 +224,7 @@ export const KIMI_K3_MEASURED_USAGE = Object.freeze({
   currency: 'USD',
 });
 
-export const KIMI_K3_MEASURED_USAGE_DISCLAIMER = Object.freeze({
-  en: 'This controlled OpenCode verification run incurred $0.19 in measured Vancine usage. Pricing and token usage vary by task, and this result does not guarantee that $1 credit will complete another coding-agent run.',
-  zh: '本次受控 OpenCode 验证在 Vancine 产生了 0.19 美元的实测用量。价格和 Token 消耗会随任务变化，该结果不保证 1 美元额度能够完成另一次编程 Agent 任务。',
-});
-
 export const KIMI_K3_VERIFICATION_SCOPE = Object.freeze({
   liveVerifiedAgents: Object.freeze(['OpenCode']),
   configOnlyAgents: Object.freeze(['Cline', 'Roo Code']),
-  en: 'Only OpenCode v1.18.3 has a live coding-agent verification. Cline and Roo Code configurations are available but have not been independently live verified. Vancine is a third-party API aggregation platform, not the official Moonshot/Kimi API service.',
-  zh: '目前仅 OpenCode v1.18.3 完成了实测编程 Agent 验证。Cline 与 Roo Code 配置可用，但尚未经过独立实测验证。Vancine 是第三方 API 聚合平台，并非 Moonshot/Kimi 官方服务。',
 });

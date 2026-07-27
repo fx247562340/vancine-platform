@@ -37,12 +37,12 @@ const ensureMeta = (selector, attr) => {
 };
 
 const AiMediaApi = () => {
-  const { t, i18n } = useTranslation();
+  const { t, i18n } = useTranslation('aimedia');
   const [userState] = useContext(UserContext);
   const language = i18n.language;
 
   useEffect(() => {
-    const meta = getAiMediaMetadata(language);
+    const meta = getAiMediaMetadata();
     const prev = {
       title: document.title,
       description:
@@ -149,9 +149,7 @@ const AiMediaApi = () => {
           }}
         >
           © {currentYear} Vancine ·{' '}
-          {language?.startsWith('zh')
-            ? '通过一个 API 接入领先的中国 AI 多媒体模型'
-            : 'Access leading Chinese AI media models through one API'}
+          {t('footer')}
         </p>
       </div>
     </div>

@@ -1,0 +1,91 @@
+{
+  "hero": {
+    "eyebrow": "中国最先端 AI、1 つの開発者入口",
+    "title": "コーディングエージェント向け Kimi K3 API",
+    "intro": "Vancine の API キー 1 つで OpenCode、Cline、Roo Code、OpenAI 互換ツールを Kimi K3 に接続。",
+    "start": "無料で開始",
+    "playground": "Playground へ",
+    "quickstartLink": "クイックスタートを見る",
+    "quickstart": "OpenAI 互換クイックスタート",
+    "quickstartDesc": "Kimi K3 の最初のチャット補完は、貼り付けた秘密鍵ではなく環境変数で送信。",
+    "copy": "コピー",
+    "copied": "コピーしました",
+    "copyError": "コピーできません",
+    "docs": "ドキュメント",
+    "pricing": "リアルタイム料金",
+    "creditDisclaimer": "1 ドル相当の無料クレジット。クレジットカード不要。消費量はモデルとリクエストにより変動します。"
+  },
+  "agents": {
+    "title": "コーディングエージェント設定",
+    "desc": "OpenAI 互換プロバイダー、Vancine の Base URL、環境変数管理のキーを使用。",
+    "clineTitle": "Cline と Roo Code",
+    "clineSteps": [
+      "API プロバイダーとして OpenAI Compatible を選択。",
+      "Base URL を https://vancine.com/v1 に設定し、VANCINE_API_KEY を使用。",
+      "モデル ID に kimi-k3 を選択。"
+    ]
+  },
+  "evidence": {
+    "nav": "検証",
+    "eyebrow": "実機検証",
+    "title": "本物の Kimi K3 で検証済み",
+    "desc": "Vancine エンドポイント経由の kimi-k3 実機に対する 2 つの検証：OpenAI 互換 API プローブと、完了した OpenCode コーディングエージェント実行。",
+    "badgeVerified": "検証済み",
+    "apiCompatibilityTitle": "API 互換性",
+    "apiCompatibilityFacts": [
+      "temperature:0 リクエストが HTTP {{httpStatus}} を返却",
+      "要求モデル {{requestedModel}}、応答モデル {{responseModel}}",
+      "プローブ予算: max_tokens {{maxTokens}} · finish_reason {{finishReason}}",
+      "使用量: prompt {{prompt}} · completion {{completion}} · total {{total}} · reasoning {{reasoning}}"
+    ],
+    "apiCompatibilityNote": "16 token プローブの可視コンテンツは結論不能：推論が予算の大半を消費しました。これは小さな互換性プローブであり、コンテンツ生成の失敗ではありません。",
+    "openCodeAgentTitle": "OpenCode エージェント",
+    "openCodeAgentFacts": [
+      "{{client}} v{{clientVersion}} を本物の {{model}} で実行",
+      "{{modelSteps}} 完了モデルステップ · {{rounds}} ラウンド · {{durationSec}} 秒",
+      "ツール呼び出し: read {{readCompleted}}, edit {{editCompleted}}, bash {{bashCompleted}} — 全て成功、0 失敗",
+      "テスト合格 · {{sourceModified}} を編集 · テストファイル未変更 · exit {{exitStatus}}"
+    ],
+    "viewVerified": "検証済み証拠を見る",
+    "measuredUsageTitle": "実測使用量",
+    "measuredUsageBadge": "単一の制御された実行",
+    "measuredUsageTokensLabel": "エージェント テレメトリ トークン",
+    "measuredUsageAmountLabel": "Vancine 実測使用量",
+    "measuredUsageDisclaimer": "この制御された OpenCode 検証実行では、Vancine で 0.19 ドルの実測使用量が発生しました。料金とトークン消費はタスクにより変動し、この結果が 1 ドルクレジットで別のコーディングエージェント実行が完了できることを保証するものではありません。",
+    "runPlayground": "Playground で K3 を実行",
+    "viewStarter": "スターターリポジトリを見る",
+    "verificationScope": "OpenCode v1.18.3 のみが実機のコーディングエージェント検証を受けています。Cline と Roo Code の設定は利用可能ですが、独立した実機検証はまだ行われていません。Vancine は第三者 API 集約プラットフォームであり、Moonshot/Kimi 公式サービスではありません。"
+  },
+  "portfolio": {
+    "title": "1 つのキーで厳選中国 AI ポートフォリオ",
+    "desc": "タスクに応じてモデルを切り替え。機能・可用性・料金はモデルごとに異なります。"
+  },
+  "faq": {
+    "title": "よくある質問",
+    "items": [
+      [
+        "Kimi K3 の可用性と料金はどこで確認できますか？",
+        "リアルタイム料金ページと、ログイン後のモデル一覧をご確認ください。可用性・料金・制限は変更される場合があり、それらのライブソースが権威です。"
+      ],
+      [
+        "無料クレジットには何が含まれますか？",
+        "1 ドル相当の無料クレジット。クレジットカード不要。消費量はモデルとリクエストにより変動します。"
+      ],
+      [
+        "どの開発者ツールが使えますか？",
+        "OpenCode、Cline、Roo Code、および OpenAI 互換のチャット補完に対応するツールは同じ Base URL と API キーで利用できます。"
+      ]
+    ]
+  },
+  "final": {
+    "title": "今日、Kimi K3 をコーディングエージェントに",
+    "desc": "ドキュメント化された OpenAI 互換リクエストから始め、仕事に合ったモデルを選びましょう。"
+  },
+  "footer": "1 つの開発者 API で主要な中国 AI モデルにアクセス",
+  "meta": {
+    "title": "コーディングエージェント向け Kimi K3 API | Vancine",
+    "description": "Vancine の API キー 1 つで、OpenCode、Cline、Roo Code、OpenAI 互換ツールを Kimi K3 に接続。",
+    "ogTitle": "コーディングエージェント向け Kimi K3",
+    "ogDescription": "1 つの OpenAI 互換 API キーで、コーディングエージェントを Kimi K3 と他の中国フロンティアモデルに接続。"
+  }
+}

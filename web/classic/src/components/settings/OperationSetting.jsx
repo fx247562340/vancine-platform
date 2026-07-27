@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, Spin } from '@douyinfe/semi-ui';
 import SettingsGeneral from '../../pages/Setting/Operation/SettingsGeneral';
 import SettingsHeaderNavModules from '../../pages/Setting/Operation/SettingsHeaderNavModules';
@@ -30,6 +31,7 @@ import SettingsCheckin from '../../pages/Setting/Operation/SettingsCheckin';
 import { API, showError, toBoolean } from '../../helpers';
 
 const OperationSetting = () => {
+  const { t } = useTranslation();
   let [inputs, setInputs] = useState({
     /* 额度相关 */
     QuotaForNewUser: 0,
@@ -107,9 +109,9 @@ const OperationSetting = () => {
     try {
       setLoading(true);
       await getOptions();
-      // showSuccess('刷新成功');
+      // showSuccess(t('刷新成功'));
     } catch (error) {
-      showError('刷新失败');
+      showError(t('刷新失败'));
     } finally {
       setLoading(false);
     }
