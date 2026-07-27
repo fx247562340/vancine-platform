@@ -2,6 +2,13 @@
 
 All notable Vancine platform release and operations changes are tracked here.
 
+## 1.0.18 - 2026-07-27
+
+### 修复
+
+- 修复部署客户端 SSH 密钥问题：deploy.sh 显式指定专用部署密钥（-i + IdentitiesOnly），不再依赖 ssh-agent 或 ssh_config host 匹配，解决部署时 Permission denied (publickey)。
+- 修复 zh-TW 简繁过度转换：修正 22 处字符级误转（控製檯→控制台、控製→控制、平臺→平台、髮卡→發卡），正确繁体转换（系統/重複/發現/關係/檔案 等）未受影响。
+
 ## 1.0.17 - 2026-07-27
 
 ### Classic 主题多语言完成（7 语言全站支持）
