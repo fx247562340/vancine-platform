@@ -2,6 +2,17 @@
 
 All notable Vancine platform release and operations changes are tracked here.
 
+## 1.0.17 - 2026-07-27
+
+### Classic 主题多语言完成（7 语言全站支持）
+
+- 修复 i18n 资源双嵌套回归（注册时多包一层 translation 致所有 t() 失效），语言切换器从 2 语言扩展到全部 7 语言。
+- isZh 二值语言判断全面重构：About/Waitlist/KimiK3/Seedance/AiMedia 富内容页迁移到独立 i18next namespace（about/waitlist/kimi/seedance/aimedia），可翻译字段进 locale、非翻译字段（icon/color/模型名）留组件。
+- 主 namespace 补全：zh-TW（简繁转换+术语修正）、fr、ja、ru、vi 全部对齐 zh-CN，各 4229+ key。
+- 补全 131 个孤儿 key（代码引用但从未进任何 locale）及 en 的 39 个支付设置历史缺口。
+- 55 个硬编码中文提示（showError/showSuccess/Toast）i18n 化，动态拼接改为 i18next 插值。
+- 至此 Classic 主题 7 语言（en/zh-CN/zh-TW/fr/ja/ru/vi）全站支持。
+
 ## 1.0.16 - 2026-07-26
 
 ### 文档参数补全
