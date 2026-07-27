@@ -44,9 +44,11 @@ printf 'Requesting deployment of %s via %s\n' "$sha" "$SERVER"
 
 # Single, strict, non-interactive SSH invocation. The server-side forced
 # command accepts only `deploy <SHA>`; no shell, no PTY, no forwarding.
-# The dedicated deploy key is the only identity in the agent, so no
-# IdentitiesOnly filter is needed.
+# The dedicated deploy key is specified explicitly (-i + IdentitiesOnly) so
+# this client does not depend on ssh-agent or ssh_config host matching.
 exec ssh \
   -o BatchMode=yes \
   -o StrictHostKeyChecking=yes \
+  -o IdentitiesOnly=yes \
+  -i "$HOME/.ssh/vancine-production-deploy-ed25519" \
   "$SERVER" "deploy $sha"
