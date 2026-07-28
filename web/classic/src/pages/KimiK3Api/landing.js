@@ -17,8 +17,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 
-import i18n from '../../i18n/i18n';
-
 export const KIMI_K3_CANONICAL = 'https://vancine.com/kimi-k3-api';
 
 const UTM_KEYS = new Set([
@@ -48,13 +46,17 @@ export function getKimiK3CtaDestination(isAuthenticated, search = '') {
 }
 
 // SEO metadata is now sourced from the `kimi` namespace at runtime. The
-// caller is expected to invoke this inside a useEffect (i18n has been
-// initialized by then) and refresh on language change. Other landing
-// constants (copyTextToClipboard, KIMI_K3_CODE_EXAMPLES, KIMI_K3_OPENCODE_CONFIG,
-// KIMI_K3_PORTFOLIO, KIMI_K3_EVIDENCE_*, KIMI_K3_API_COMPATIBILITY,
-// KIMI_K3_OPENCODE_VERIFICATION, KIMI_K3_MEASURED_USAGE) are still pure data.
-export function getKimiK3Metadata() {
-  const tt = (key) => i18n.t(key, { ns: 'kimi' });
+// caller passes its own `t` function (the page supplies `i18n.t` from
+// useTranslation; tests supply a synthetic translator built from the
+// resource-loader) so this module no longer imports the i18n singleton
+// and loads cleanly under Node's test runner. Invoke inside a useEffect
+// (i18n has been initialized by then) and refresh on language change.
+// Other landing constants (copyTextToClipboard, KIMI_K3_CODE_EXAMPLES,
+// KIMI_K3_OPENCODE_CONFIG, KIMI_K3_PORTFOLIO, KIMI_K3_EVIDENCE_*,
+// KIMI_K3_API_COMPATIBILITY, KIMI_K3_OPENCODE_VERIFICATION,
+// KIMI_K3_MEASURED_USAGE) are still pure data.
+export function getKimiK3Metadata(t) {
+  const tt = (key) => t(key, { ns: 'kimi' });
   return {
     title: tt('meta.title'),
     description: tt('meta.description'),

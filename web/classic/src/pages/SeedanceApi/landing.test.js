@@ -41,6 +41,15 @@ import {
 
 const require = createRequire(import.meta.url);
 
+// Build a synthetic `t` for the `seedance` namespace from the locale JSON so
+// the metadata helper can be exercised under Node without the i18n singleton.
+// `getSeedanceMetadata` now takes a `t` function (decoupled from i18n.js).
+const seedanceT = (lang) => {
+  const bundle = require(`../../i18n/locales/seedance/${lang}.json`);
+  return (key /* , opts */) =>
+    key.split('.').reduce((o, k) => (o == null ? undefined : o[k]), bundle);
+};
+
 const FAQ_QUESTIONS = [
   'How does the Seedance API workflow work?',
   'Which Seedance models are available?',
@@ -125,7 +134,7 @@ describe('classic seedance-api landing contract', () => {
   });
 
   test('English metadata matches the exact approved copy', () => {
-    const m = getSeedanceMetadata('en');
+    const m = getSeedanceMetadata(seedanceT('en'));
     assert.equal(m.title, 'Seedance API for Video Generation | Vancine');
     assert.equal(
       m.description,
@@ -140,7 +149,7 @@ describe('classic seedance-api landing contract', () => {
   });
 
   test('Chinese metadata matches the exact approved copy', () => {
-    const m = getSeedanceMetadata('zh-CN');
+    const m = getSeedanceMetadata(seedanceT('zh-CN'));
     assert.equal(m.title, 'Seedance 视频生成 API | Vancine');
     assert.equal(
       m.description,
@@ -154,19 +163,25 @@ describe('classic seedance-api landing contract', () => {
     assert.equal(m.canonical, 'https://vancine.com/seedance-api');
   });
 
-  test('zh-TW selects Chinese metadata', () => {
+  test('zh-TW selects Traditional Chinese metadata', () => {
     assert.equal(
-      getSeedanceMetadata('zh-TW').title,
-      'Seedance 视频生成 API | Vancine',
+      getSeedanceMetadata(seedanceT('zh-TW')).title,
+      'Seedance 影片生成 API | Vancine',
     );
   });
 
-  test('French, Japanese, Russian, Vietnamese fall back to English metadata', () => {
-    for (const loc of ['fr', 'ja', 'ru', 'vi']) {
+  test('French, Japanese, Russian, Vietnamese have localized metadata', () => {
+    const expected = {
+      fr: 'API Seedance pour la génération vidéo | Vancine',
+      ja: '動画生成向け Seedance API | Vancine',
+      ru: 'Seedance API для генерации видео | Vancine',
+      vi: 'API Seedance cho tạo video | Vancine',
+    };
+    for (const [loc, title] of Object.entries(expected)) {
       assert.equal(
-        getSeedanceMetadata(loc).title,
-        'Seedance API for Video Generation | Vancine',
-        `${loc} must fall back to English metadata`,
+        getSeedanceMetadata(seedanceT(loc)).title,
+        title,
+        `${loc} must use its own localized metadata`,
       );
     }
   });
@@ -174,7 +189,7 @@ describe('classic seedance-api landing contract', () => {
   test('canonical URL is stable across languages', () => {
     for (const loc of ['en', 'zh-CN', 'zh-TW', 'fr']) {
       assert.equal(
-        getSeedanceMetadata(loc).canonical,
+        getSeedanceMetadata(seedanceT(loc)).canonical,
         'https://vancine.com/seedance-api',
         `${loc} canonical must be stable`,
       );
@@ -497,26 +512,68 @@ describe('classic seedance-api locale parity (all locales carry FAQ keys)', () =
   }
 
   for (const loc of ['fr', 'ja', 'ru', 'vi']) {
-    test(`${loc} FAQ falls back to English copy`, () => {
+    test(`${loc} FAQ is translated (not English fallback)`, () => {
       const t = require(`../../i18n/locales/${loc}.json`).translation;
       for (const q of FAQ_QUESTIONS) {
-        assert.equal(t[q], q, `${loc} question should be English: ${q}`);
+        assert.notEqual(
+          t[q],
+          q,
+          `${loc} question must be translated, not equal to the English key`,
+        );
+        assert.ok(t[q] && t[q].length > 0, `${loc} question must be non-empty`);
       }
       for (const a of FAQ_ANSWERS) {
-        assert.equal(t[a], a, `${loc} answer should be English: ${a}`);
+        assert.notEqual(
+          t[a],
+          a,
+          `${loc} answer must be translated, not equal to the English key`,
+        );
+        assert.ok(t[a] && t[a].length > 0, `${loc} answer must be non-empty`);
       }
     });
   }
 
-  for (const loc of ['zh-CN', 'zh-TW']) {
-    test(`${loc} FAQ uses Simplified Chinese copy`, () => {
-      const t = require(`../../i18n/locales/${loc}.json`).translation;
-      for (const q of FAQ_QUESTIONS) {
-        assert.notEqual(t[q], q, `${loc} question should be translated`);
-      }
-      for (const a of FAQ_ANSWERS) {
-        assert.notEqual(t[a], a, `${loc} answer should be translated`);
-      }
-    });
-  }
+  test('zh-CN FAQ uses Simplified Chinese copy', () => {
+    const t = require('../../i18n/locales/zh-CN.json').translation;
+    for (const q of FAQ_QUESTIONS) {
+      assert.notEqual(t[q], q, 'zh-CN question should be translated');
+      assert.ok(
+        t[q] && /[一-鿿]/.test(t[q]),
+        `zh-CN question must contain CJK: ${t[q]}`,
+      );
+    }
+    for (const a of FAQ_ANSWERS) {
+      assert.notEqual(t[a], a, 'zh-CN answer should be translated');
+      assert.ok(
+        t[a] && /[一-鿿]/.test(t[a]),
+        `zh-CN answer must contain CJK: ${t[a]}`,
+      );
+    }
+  });
+
+  test('zh-TW FAQ uses Traditional Chinese copy (not Simplified)', () => {
+    const tw = require('../../i18n/locales/zh-TW.json').translation;
+    const cn = require('../../i18n/locales/zh-CN.json').translation;
+    for (const q of FAQ_QUESTIONS) {
+      assert.notEqual(tw[q], q, 'zh-TW question should be translated');
+      assert.ok(
+        tw[q] && /[一-鿿]/.test(tw[q]),
+        `zh-TW question must contain CJK: ${tw[q]}`,
+      );
+    }
+    for (const a of FAQ_ANSWERS) {
+      assert.notEqual(tw[a], a, 'zh-TW answer should be translated');
+      assert.ok(
+        tw[a] && /[一-鿿]/.test(tw[a]),
+        `zh-TW answer must contain CJK: ${tw[a]}`,
+      );
+    }
+    // At least one FAQ string must differ between zh-TW and zh-CN
+    // (Traditional vs Simplified), proving zh-TW is not a Simplified clone.
+    const differs = FAQ_QUESTIONS.some((q) => tw[q] !== cn[q]);
+    assert.ok(
+      differs,
+      'zh-TW FAQ must differ from zh-CN in at least one string (Traditional)',
+    );
+  });
 });

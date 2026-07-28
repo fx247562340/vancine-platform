@@ -42,7 +42,7 @@ const AiMediaApi = () => {
   const language = i18n.language;
 
   useEffect(() => {
-    const meta = getAiMediaMetadata();
+    const meta = getAiMediaMetadata(i18n.t);
     const prev = {
       title: document.title,
       description:
@@ -148,8 +148,7 @@ const AiMediaApi = () => {
             lineHeight: 2,
           }}
         >
-          © {currentYear} Vancine ·{' '}
-          {t('footer')}
+          © {currentYear} Vancine · {t('footer')}
         </p>
       </div>
     </div>

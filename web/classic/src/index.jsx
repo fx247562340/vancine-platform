@@ -26,7 +26,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { StatusProvider } from './context/Status';
 import { ThemeProvider } from './context/Theme';
 import PageLayout from './components/layout/PageLayout';
-import './i18n/i18n';
+import { initPromise as i18nInitPromise } from './i18n/i18n';
 import './index.css';
 import { LocaleProvider } from '@douyinfe/semi-ui';
 import { useTranslation } from 'react-i18next';
@@ -57,25 +57,41 @@ function SemiLocaleWrapper({ children }) {
 }
 
 // initialization
+//
+// Wait for the first language resource (the detected language's
+// `translation` namespace) to finish loading before rendering so the UI
+// never flashes the English fallback and then switches. i18next resolves
+// initialization even if a backend chunk fails to load, so this never
+// deadlocks; the try/catch is a last-resort guard that renders anyway
+// rather than leaving the page on an infinite white-screen.
+async function bootstrap() {
+  try {
+    await i18nInitPromise;
+  } catch {
+    // Non-fatal: render with whatever resources loaded.
+  }
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-  <React.StrictMode>
-    <StatusProvider>
-      <UserProvider>
-        <BrowserRouter
-          future={{
-            v7_startTransition: true,
-            v7_relativeSplatPath: true,
-          }}
-        >
-          <ThemeProvider>
-            <SemiLocaleWrapper>
-              <PageLayout />
-            </SemiLocaleWrapper>
-          </ThemeProvider>
-        </BrowserRouter>
-      </UserProvider>
-    </StatusProvider>
-  </React.StrictMode>,
-);
+  const root = ReactDOM.createRoot(document.getElementById('root'));
+  root.render(
+    <React.StrictMode>
+      <StatusProvider>
+        <UserProvider>
+          <BrowserRouter
+            future={{
+              v7_startTransition: true,
+              v7_relativeSplatPath: true,
+            }}
+          >
+            <ThemeProvider>
+              <SemiLocaleWrapper>
+                <PageLayout />
+              </SemiLocaleWrapper>
+            </ThemeProvider>
+          </BrowserRouter>
+        </UserProvider>
+      </StatusProvider>
+    </React.StrictMode>,
+  );
+}
+
+bootstrap();

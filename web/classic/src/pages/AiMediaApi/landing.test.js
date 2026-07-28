@@ -32,6 +32,15 @@ import {
 
 const require = createRequire(import.meta.url);
 
+// Build a synthetic `t` for the `aimedia` namespace from the locale JSON so
+// the metadata helper can be exercised under Node without the i18n singleton.
+// `getAiMediaMetadata` now takes a `t` function (decoupled from i18n.js).
+const aiMediaT = (lang) => {
+  const bundle = require(`../../i18n/locales/aimedia/${lang}.json`);
+  return (key /* , opts */) =>
+    key.split('.').reduce((o, k) => (o == null ? undefined : o[k]), bundle);
+};
+
 const FAQ_QUESTIONS = [
   'Is Vancine OpenAI compatible?',
   'Which models can I access?',
@@ -72,40 +81,40 @@ describe('classic ai-media-api landing contract', () => {
 
   test('English metadata title', () => {
     assert.equal(
-      getAiMediaMetadata('en').title,
+      getAiMediaMetadata(aiMediaT('en')).title,
       'Chinese AI Media APIs for Developers | Vancine',
     );
   });
 
   test('Chinese metadata title selected for zh-CN', () => {
     assert.equal(
-      getAiMediaMetadata('zh-CN').title,
+      getAiMediaMetadata(aiMediaT('zh-CN')).title,
       '面向开发者的中国 AI 多媒体 API | Vancine',
     );
   });
 
-  test('French falls back to English metadata', () => {
+  test('French uses localized metadata', () => {
     assert.equal(
-      getAiMediaMetadata('fr').title,
-      'Chinese AI Media APIs for Developers | Vancine',
+      getAiMediaMetadata(aiMediaT('fr')).title,
+      'API IA média chinoises pour développeurs | Vancine',
     );
   });
 
   test('canonical URL is stable across languages', () => {
     assert.equal(
-      getAiMediaMetadata('zh-TW').canonical,
+      getAiMediaMetadata(aiMediaT('zh-TW')).canonical,
       'https://vancine.com/ai-media-api',
     );
     assert.equal(
-      getAiMediaMetadata('en').canonical,
+      getAiMediaMetadata(aiMediaT('en')).canonical,
       'https://vancine.com/ai-media-api',
     );
   });
 
-  test('Chinese metadata is selected for zh-TW', () => {
+  test('zh-TW uses Traditional Chinese metadata', () => {
     assert.equal(
-      getAiMediaMetadata('zh-TW').title,
-      '面向开发者的中国 AI 多媒体 API | Vancine',
+      getAiMediaMetadata(aiMediaT('zh-TW')).title,
+      '面向開發者的中國 AI 多媒體 API | Vancine',
     );
   });
 
@@ -198,26 +207,68 @@ describe('classic ai-media-api locale parity (all locales carry FAQ keys)', () =
   }
 
   for (const loc of ['fr', 'ja', 'ru', 'vi']) {
-    test(`${loc} FAQ falls back to English copy`, () => {
+    test(`${loc} FAQ is translated (not English fallback)`, () => {
       const t = require(`../../i18n/locales/${loc}.json`).translation;
       for (const q of FAQ_QUESTIONS) {
-        assert.equal(t[q], q, `${loc} question should be English: ${q}`);
+        assert.notEqual(
+          t[q],
+          q,
+          `${loc} question must be translated, not equal to the English key`,
+        );
+        assert.ok(t[q] && t[q].length > 0, `${loc} question must be non-empty`);
       }
       for (const a of FAQ_ANSWERS) {
-        assert.equal(t[a], a, `${loc} answer should be English: ${a}`);
+        assert.notEqual(
+          t[a],
+          a,
+          `${loc} answer must be translated, not equal to the English key`,
+        );
+        assert.ok(t[a] && t[a].length > 0, `${loc} answer must be non-empty`);
       }
     });
   }
 
-  for (const loc of ['zh-CN', 'zh-TW']) {
-    test(`${loc} FAQ uses Simplified Chinese copy`, () => {
-      const t = require(`../../i18n/locales/${loc}.json`).translation;
-      for (const q of FAQ_QUESTIONS) {
-        assert.notEqual(t[q], q, `${loc} question should be translated`);
-      }
-      for (const a of FAQ_ANSWERS) {
-        assert.notEqual(t[a], a, `${loc} answer should be translated`);
-      }
-    });
-  }
+  test('zh-CN FAQ uses Simplified Chinese copy', () => {
+    const t = require('../../i18n/locales/zh-CN.json').translation;
+    for (const q of FAQ_QUESTIONS) {
+      assert.notEqual(t[q], q, 'zh-CN question should be translated');
+      assert.ok(
+        t[q] && /[一-鿿]/.test(t[q]),
+        `zh-CN question must contain CJK: ${t[q]}`,
+      );
+    }
+    for (const a of FAQ_ANSWERS) {
+      assert.notEqual(t[a], a, 'zh-CN answer should be translated');
+      assert.ok(
+        t[a] && /[一-鿿]/.test(t[a]),
+        `zh-CN answer must contain CJK: ${t[a]}`,
+      );
+    }
+  });
+
+  test('zh-TW FAQ uses Traditional Chinese copy (not Simplified)', () => {
+    const tw = require('../../i18n/locales/zh-TW.json').translation;
+    const cn = require('../../i18n/locales/zh-CN.json').translation;
+    for (const q of FAQ_QUESTIONS) {
+      assert.notEqual(tw[q], q, 'zh-TW question should be translated');
+      assert.ok(
+        tw[q] && /[一-鿿]/.test(tw[q]),
+        `zh-TW question must contain CJK: ${tw[q]}`,
+      );
+    }
+    for (const a of FAQ_ANSWERS) {
+      assert.notEqual(tw[a], a, 'zh-TW answer should be translated');
+      assert.ok(
+        tw[a] && /[一-鿿]/.test(tw[a]),
+        `zh-TW answer must contain CJK: ${tw[a]}`,
+      );
+    }
+    // At least one FAQ string must differ between zh-TW and zh-CN
+    // (Traditional vs Simplified), proving zh-TW is not a Simplified clone.
+    const differs = FAQ_QUESTIONS.some((q) => tw[q] !== cn[q]);
+    assert.ok(
+      differs,
+      'zh-TW FAQ must differ from zh-CN in at least one string (Traditional)',
+    );
+  });
 });

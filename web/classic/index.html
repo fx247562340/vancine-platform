@@ -8,8 +8,16 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="google-site-verification" content="TjQLAxdEJhvU1R6OSs8s0AkoyIyGS9fwmbdE2jx9M6I" />
-    <meta name="theme-color" content="#ffffff" />
+    <meta
+      name="google-site-verification"
+      content="TjQLAxdEJhvU1R6OSs8s0AkoyIyGS9fwmbdE2jx9M6I"
+    />
+    <!--
+      Default theme-color matches ThemeProvider's default actual theme (dark).
+      The inline sync script below rewrites this before first paint when the
+      visitor has a saved light/auto preference.
+    -->
+    <meta name="theme-color" content="#090909" />
     <meta
       name="description"
       lang="zh"
@@ -22,6 +30,68 @@
     />
     <meta name="generator" content="vancine" />
     <title>Vancine</title>
+    <!--
+      Synchronous boot-theme probe. Mirrors ThemeProvider
+      (src/context/Theme/index.jsx):
+        localStorage['theme-mode'] || 'dark'
+        actual = mode === 'auto' ? prefers-color-scheme : mode
+        invalid / missing / blocked storage → dark
+      Runs in <head> with no deps/network so the first paint already matches
+      the app chrome (no white flash on a dark default site).
+    -->
+    <script>
+      (function () {
+        var DARK = '#090909';
+        var LIGHT = '#ffffff';
+        var mode = 'dark';
+        try {
+          mode = localStorage.getItem('theme-mode') || 'dark';
+        } catch (e) {
+          mode = 'dark';
+        }
+        if (mode !== 'light' && mode !== 'dark' && mode !== 'auto') {
+          mode = 'dark';
+        }
+        var actual = mode;
+        if (mode === 'auto') {
+          try {
+            actual =
+              window.matchMedia &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light';
+          } catch (e) {
+            actual = 'dark';
+          }
+        }
+        var bg = actual === 'light' ? LIGHT : DARK;
+        var root = document.documentElement;
+        root.style.backgroundColor = bg;
+        root.setAttribute('data-boot-theme', actual);
+        if (actual === 'dark') {
+          root.classList.add('dark');
+        } else {
+          root.classList.remove('dark');
+        }
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', bg);
+        // Paint body as soon as it exists (parser may not have reached it yet).
+        function paintBody() {
+          if (!document.body) return;
+          document.body.style.backgroundColor = bg;
+          if (actual === 'dark') {
+            document.body.setAttribute('theme-mode', 'dark');
+          } else {
+            document.body.removeAttribute('theme-mode');
+          }
+        }
+        if (document.body) paintBody();
+        else
+          document.addEventListener('DOMContentLoaded', paintBody, {
+            once: true,
+          });
+      })();
+    </script>
     <script
       defer
       src="https://cloud.umami.is/script.js"
@@ -34,8 +104,56 @@
   </head>
 
   <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
+    <!--
+      noscript sits ABOVE the boot layer (z-index 10000 > 9999) and is only
+      rendered when JS is disabled, so the "enable JavaScript" message is
+      never covered by #vancine-boot. When JS is on, the browser drops
+      <noscript> entirely and the plain boot layer shows until React mounts.
+    -->
+    <noscript
+      style="
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: #ffffff;
+        color: #1a1a1a;
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          'Helvetica Neue', Arial, sans-serif;
+        font-size: 16px;
+        text-align: center;
+      "
+      >You need to enable JavaScript to run this app.</noscript
+    >
+    <div id="root">
+      <!--
+        Plain boot layer shown while the JS bundle + first i18n language chunk
+        load. No logo, no spinner, no loading copy — only a full-viewport solid
+        color that matches the resolved app theme (see head sync script).
+        React's createRoot(...).render() replaces #root's contents entirely, so
+        this markup is gone the moment the app mounts. No exit animation, no
+        minimum display time.
+      -->
+      <div
+        id="vancine-boot"
+        aria-hidden="true"
+        style="position: fixed; inset: 0; background: #090909; z-index: 9999"
+      ></div>
+      <style>
+        /* When the head script resolved light, override the dark default
+           before first paint via the html[data-boot-theme] flag it sets. */
+        html[data-boot-theme='light'] #vancine-boot {
+          background: #ffffff !important;
+        }
+        html[data-boot-theme='dark'] #vancine-boot {
+          background: #090909 !important;
+        }
+      </style>
+    </div>
     <script type="module" src="/src/index.jsx"></script>
     <!-- Vancine brand theme override - must be last to override Semi Design defaults -->
     <style>

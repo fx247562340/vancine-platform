@@ -18,37 +18,27 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 import React, { lazy, Suspense, useContext, useMemo } from 'react';
-import { Route, Routes, useLocation, useParams, Navigate } from 'react-router-dom';
+import {
+  Route,
+  Routes,
+  useLocation,
+  useParams,
+  Navigate,
+} from 'react-router-dom';
 import Loading from './components/common/ui/Loading';
-import User from './pages/User';
 import { AuthRedirect, PrivateRoute, AdminRoute } from './helpers';
-import RegisterForm from './components/auth/RegisterForm';
-import LoginForm from './components/auth/LoginForm';
-import NotFound from './pages/NotFound';
-import Forbidden from './pages/Forbidden';
-import Setting from './pages/Setting';
 import { StatusContext } from './context/Status';
-
-import PasswordResetForm from './components/auth/PasswordResetForm';
-import PasswordResetConfirm from './components/auth/PasswordResetConfirm';
-import Channel from './pages/Channel';
-import Token from './pages/Token';
-import Redemption from './pages/Redemption';
-import TopUp from './pages/TopUp';
-import Log from './pages/Log';
-import Chat from './pages/Chat';
-import Chat2Link from './pages/Chat2Link';
-import Midjourney from './pages/Midjourney';
-import Pricing from './pages/Pricing';
-import Task from './pages/Task';
-import ModelPage from './pages/Model';
-import ModelDeploymentPage from './pages/ModelDeployment';
-import Playground from './pages/Playground';
-import Subscription from './pages/Subscription';
-import OAuth2Callback from './components/auth/OAuth2Callback';
-import PersonalSetting from './components/settings/PersonalSetting';
-import Setup from './pages/Setup';
 import SetupCheck from './components/layout/SetupCheck';
+
+// ---------------------------------------------------------------------------
+// Route-level code splitting (Phase 2 / CC-WEBPERF-20260727-002)
+//
+// Only the routing framework, auth guards, setup gate, status context and the
+// Loading fallback stay as static imports. Every page / form that is only
+// reached via a specific route is loaded with React.lazy so the entry bundle
+// no longer pays for admin consoles, auth forms, docs, landing pages, etc. on
+// first paint.
+// ---------------------------------------------------------------------------
 
 const Home = lazy(() => import('./pages/Home'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -61,13 +51,59 @@ const AiMediaApi = lazy(() => import('./pages/AiMediaApi'));
 const SeedanceApi = lazy(() => import('./pages/SeedanceApi'));
 const KimiK3Api = lazy(() => import('./pages/KimiK3Api'));
 
+const User = lazy(() => import('./pages/User'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+const Forbidden = lazy(() => import('./pages/Forbidden'));
+const Setting = lazy(() => import('./pages/Setting'));
+const Channel = lazy(() => import('./pages/Channel'));
+const Token = lazy(() => import('./pages/Token'));
+const Redemption = lazy(() => import('./pages/Redemption'));
+const TopUp = lazy(() => import('./pages/TopUp'));
+const Log = lazy(() => import('./pages/Log'));
+const Chat = lazy(() => import('./pages/Chat'));
+const Chat2Link = lazy(() => import('./pages/Chat2Link'));
+const Midjourney = lazy(() => import('./pages/Midjourney'));
+const Pricing = lazy(() => import('./pages/Pricing'));
+const Task = lazy(() => import('./pages/Task'));
+const ModelPage = lazy(() => import('./pages/Model'));
+const ModelDeploymentPage = lazy(() => import('./pages/ModelDeployment'));
+const Playground = lazy(() => import('./pages/Playground'));
+const Subscription = lazy(() => import('./pages/Subscription'));
+const Setup = lazy(() => import('./pages/Setup'));
+
+const RegisterForm = lazy(() => import('./components/auth/RegisterForm'));
+const LoginForm = lazy(() => import('./components/auth/LoginForm'));
+const PasswordResetForm = lazy(
+  () => import('./components/auth/PasswordResetForm'),
+);
+const PasswordResetConfirm = lazy(
+  () => import('./components/auth/PasswordResetConfirm'),
+);
+const OAuth2Callback = lazy(() => import('./components/auth/OAuth2Callback'));
+const PersonalSetting = lazy(
+  () => import('./components/settings/PersonalSetting'),
+);
+
+/**
+ * Shared Suspense boundary used by every lazy route. `key={pathname}` forces
+ * the fallback to re-show on in-app navigations so users never stare at a
+ * blank previous page while the next chunk loads.
+ */
+function LazyRoute({ children }) {
+  const location = useLocation();
+  return (
+    <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+      {children}
+    </Suspense>
+  );
+}
+
 function DynamicOAuth2Callback() {
   const { provider } = useParams();
   return <OAuth2Callback type={provider} />;
 }
 
 function App() {
-  const location = useLocation();
   const [statusState] = useContext(StatusContext);
 
   // 获取模型广场权限配置
@@ -98,25 +134,34 @@ function App() {
         <Route
           path='/'
           element={
-            <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+            <LazyRoute>
               <Home />
-            </Suspense>
+            </LazyRoute>
           }
         />
         <Route
           path='/setup'
           element={
-            <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+            <LazyRoute>
               <Setup />
-            </Suspense>
+            </LazyRoute>
           }
         />
-        <Route path='/forbidden' element={<Forbidden />} />
+        <Route
+          path='/forbidden'
+          element={
+            <LazyRoute>
+              <Forbidden />
+            </LazyRoute>
+          }
+        />
         <Route
           path='/console/models'
           element={
             <AdminRoute>
-              <ModelPage />
+              <LazyRoute>
+                <ModelPage />
+              </LazyRoute>
             </AdminRoute>
           }
         />
@@ -124,7 +169,9 @@ function App() {
           path='/console/deployment'
           element={
             <AdminRoute>
-              <ModelDeploymentPage />
+              <LazyRoute>
+                <ModelDeploymentPage />
+              </LazyRoute>
             </AdminRoute>
           }
         />
@@ -132,7 +179,9 @@ function App() {
           path='/console/subscription'
           element={
             <AdminRoute>
-              <Subscription />
+              <LazyRoute>
+                <Subscription />
+              </LazyRoute>
             </AdminRoute>
           }
         />
@@ -140,7 +189,9 @@ function App() {
           path='/console/channel'
           element={
             <AdminRoute>
-              <Channel />
+              <LazyRoute>
+                <Channel />
+              </LazyRoute>
             </AdminRoute>
           }
         />
@@ -148,7 +199,9 @@ function App() {
           path='/console/token'
           element={
             <PrivateRoute>
-              <Token />
+              <LazyRoute>
+                <Token />
+              </LazyRoute>
             </PrivateRoute>
           }
         />
@@ -156,7 +209,9 @@ function App() {
           path='/console/playground'
           element={
             <PrivateRoute>
-              <Playground />
+              <LazyRoute>
+                <Playground />
+              </LazyRoute>
             </PrivateRoute>
           }
         />
@@ -164,7 +219,9 @@ function App() {
           path='/console/redemption'
           element={
             <AdminRoute>
-              <Redemption />
+              <LazyRoute>
+                <Redemption />
+              </LazyRoute>
             </AdminRoute>
           }
         />
@@ -172,93 +229,95 @@ function App() {
           path='/console/user'
           element={
             <AdminRoute>
-              <User />
+              <LazyRoute>
+                <User />
+              </LazyRoute>
             </AdminRoute>
           }
         />
         <Route
           path='/user/reset'
           element={
-            <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+            <LazyRoute>
               <PasswordResetConfirm />
-            </Suspense>
+            </LazyRoute>
           }
         />
         <Route
           path='/login'
           element={
-            <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+            <LazyRoute>
               <AuthRedirect>
                 <LoginForm />
               </AuthRedirect>
-            </Suspense>
+            </LazyRoute>
           }
         />
         <Route
           path='/register'
           element={
-            <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+            <LazyRoute>
               <AuthRedirect>
                 <RegisterForm />
               </AuthRedirect>
-            </Suspense>
+            </LazyRoute>
           }
         />
         <Route
           path='/reset'
           element={
-            <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+            <LazyRoute>
               <PasswordResetForm />
-            </Suspense>
+            </LazyRoute>
           }
         />
         <Route
           path='/oauth/github'
           element={
-            <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+            <LazyRoute>
               <OAuth2Callback type='github'></OAuth2Callback>
-            </Suspense>
+            </LazyRoute>
           }
         />
         <Route
           path='/oauth/discord'
           element={
-            <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+            <LazyRoute>
               <OAuth2Callback type='discord'></OAuth2Callback>
-            </Suspense>
+            </LazyRoute>
           }
         />
         <Route
           path='/oauth/oidc'
           element={
-            <Suspense fallback={<Loading></Loading>}>
+            <LazyRoute>
               <OAuth2Callback type='oidc'></OAuth2Callback>
-            </Suspense>
+            </LazyRoute>
           }
         />
         <Route
           path='/oauth/linuxdo'
           element={
-            <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+            <LazyRoute>
               <OAuth2Callback type='linuxdo'></OAuth2Callback>
-            </Suspense>
+            </LazyRoute>
           }
         />
         <Route
           path='/oauth/:provider'
           element={
-            <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+            <LazyRoute>
               <DynamicOAuth2Callback />
-            </Suspense>
+            </LazyRoute>
           }
         />
         <Route
           path='/console/setting'
           element={
             <AdminRoute>
-              <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+              <LazyRoute>
                 <Setting />
-              </Suspense>
+              </LazyRoute>
             </AdminRoute>
           }
         />
@@ -266,9 +325,9 @@ function App() {
           path='/console/personal'
           element={
             <PrivateRoute>
-              <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+              <LazyRoute>
                 <PersonalSetting />
-              </Suspense>
+              </LazyRoute>
             </PrivateRoute>
           }
         />
@@ -276,9 +335,9 @@ function App() {
           path='/console/topup'
           element={
             <PrivateRoute>
-              <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+              <LazyRoute>
                 <TopUp />
-              </Suspense>
+              </LazyRoute>
             </PrivateRoute>
           }
         />
@@ -286,7 +345,9 @@ function App() {
           path='/console/log'
           element={
             <PrivateRoute>
-              <Log />
+              <LazyRoute>
+                <Log />
+              </LazyRoute>
             </PrivateRoute>
           }
         />
@@ -294,9 +355,9 @@ function App() {
           path='/console'
           element={
             <PrivateRoute>
-              <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+              <LazyRoute>
                 <Dashboard />
-              </Suspense>
+              </LazyRoute>
             </PrivateRoute>
           }
         />
@@ -304,9 +365,9 @@ function App() {
           path='/console/midjourney'
           element={
             <PrivateRoute>
-              <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+              <LazyRoute>
                 <Midjourney />
-              </Suspense>
+              </LazyRoute>
             </PrivateRoute>
           }
         />
@@ -314,9 +375,9 @@ function App() {
           path='/console/task'
           element={
             <PrivateRoute>
-              <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+              <LazyRoute>
                 <Task />
-              </Suspense>
+              </LazyRoute>
             </PrivateRoute>
           }
         />
@@ -325,50 +386,47 @@ function App() {
           element={
             pricingRequireAuth ? (
               <PrivateRoute>
-                <Suspense
-                  fallback={<Loading></Loading>}
-                  key={location.pathname}
-                >
+                <LazyRoute>
                   <Pricing />
-                </Suspense>
+                </LazyRoute>
               </PrivateRoute>
             ) : (
-              <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+              <LazyRoute>
                 <Pricing />
-              </Suspense>
+              </LazyRoute>
             )
           }
         />
         <Route
           path='/about'
           element={
-            <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+            <LazyRoute>
               <About />
-            </Suspense>
+            </LazyRoute>
           }
         />
         <Route
           path='/user-agreement'
           element={
-            <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+            <LazyRoute>
               <UserAgreement />
-            </Suspense>
+            </LazyRoute>
           }
         />
         <Route
           path='/privacy-policy'
           element={
-            <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+            <LazyRoute>
               <PrivacyPolicy />
-            </Suspense>
+            </LazyRoute>
           }
         />
         <Route
           path='/console/chat/:id?'
           element={
-            <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+            <LazyRoute>
               <Chat />
-            </Suspense>
+            </LazyRoute>
           }
         />
         {/* 方便使用chat2link直接跳转聊天... */}
@@ -376,18 +434,18 @@ function App() {
           path='/chat2link'
           element={
             <PrivateRoute>
-              <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+              <LazyRoute>
                 <Chat2Link />
-              </Suspense>
+              </LazyRoute>
             </PrivateRoute>
           }
         />
         <Route
           path='/waitlist'
           element={
-            <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+            <LazyRoute>
               <Waitlist />
-            </Suspense>
+            </LazyRoute>
           }
         />
         <Route
@@ -397,36 +455,43 @@ function App() {
         <Route
           path='/docs/:slug'
           element={
-            <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+            <LazyRoute>
               <Docs />
-            </Suspense>
+            </LazyRoute>
           }
         />
         <Route
           path='/ai-media-api'
           element={
-            <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+            <LazyRoute>
               <AiMediaApi />
-            </Suspense>
+            </LazyRoute>
           }
         />
         <Route
           path='/seedance-api'
           element={
-            <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+            <LazyRoute>
               <SeedanceApi />
-            </Suspense>
+            </LazyRoute>
           }
         />
         <Route
           path='/kimi-k3-api'
           element={
-            <Suspense fallback={<Loading></Loading>} key={location.pathname}>
+            <LazyRoute>
               <KimiK3Api />
-            </Suspense>
+            </LazyRoute>
           }
         />
-        <Route path='*' element={<NotFound />} />
+        <Route
+          path='*'
+          element={
+            <LazyRoute>
+              <NotFound />
+            </LazyRoute>
+          }
+        />
       </Routes>
     </SetupCheck>
   );

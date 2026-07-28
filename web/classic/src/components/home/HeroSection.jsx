@@ -5,6 +5,12 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { trackEvent } from '../../helpers/analytics';
+import {
+  splitHeadlineWords,
+  buildWordRevealMotion,
+  deriveWordRevealMode,
+  shouldStickWordRevealInstant,
+} from './word-reveal';
 
 /* ── Aurora blobs: slow drifting soft lights behind the hero ── */
 const AuroraBlob = ({ color, size, top, left, delay = 0 }) => (
@@ -27,26 +33,79 @@ const AuroraBlob = ({ color, size, top, left, delay = 0 }) => (
   />
 );
 
-/* ── Word-by-word reveal for headline ── */
-const WordReveal = ({ text, delay = 0, duration = 0.4 }) => {
-  const words = text.split(/(\s+)/);
+/* ── Word-by-word reveal for headline ──
+ * Entrance stagger runs once on first mount. After the component has mounted,
+ * any text change (language switch) must show every segment immediately —
+ * newly mounted spans must not inherit opacity:0 + delay (zh→en/fr/vi used
+ * to lag the tail of the title).
+ *
+ * Render is pure: refs are READ-ONLY here. Mode for the current text-change
+ * commit is derived from last-committed ref snapshots so language switches
+ * are instant in the SAME commit (no waiting for an effect). Refs + sticky
+ * state are updated in useEffect after commit. First-mount effect never
+ * setStates, so the entrance animation is not cut short.
+ */
+const WordReveal = ({
+  text,
+  delay = 0,
+  duration = 0.4,
+  reducedMotion = false,
+}) => {
+  const hasMountedRef = useRef(false);
+  const previousTextRef = useRef(text);
+  // Sticky: once a real post-mount text change commits, stay on instant
+  // forever (including switch-back to the original language).
+  const [hasCompletedEntrance, setHasCompletedEntrance] = useState(false);
+
+  // READ-ONLY derivation from last committed refs — never write ref.current here.
+  const mode = deriveWordRevealMode({
+    hasMounted: hasMountedRef.current,
+    previousText: previousTextRef.current,
+    text,
+    hasCompletedEntrance,
+  });
+
+  useEffect(() => {
+    const shouldStick = shouldStickWordRevealInstant({
+      hasMounted: hasMountedRef.current,
+      previousText: previousTextRef.current,
+      text,
+      hasCompletedEntrance,
+    });
+
+    hasMountedRef.current = true;
+    previousTextRef.current = text;
+
+    // First mount: shouldStick is false → no setState (preserve entrance).
+    if (shouldStick) {
+      setHasCompletedEntrance(true);
+    }
+  }, [text, hasCompletedEntrance]);
+
+  const words = splitHeadlineWords(text);
+
   return (
     <>
-      {words.map((word, i) => (
-        <motion.span
-          key={i}
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{
-            duration,
-            delay: delay + i * 0.06,
-            ease: [0.25, 0.46, 0.45, 0.94],
-          }}
-          style={{ display: 'inline-block' }}
-        >
-          {word === ' ' ? ' ' : word}
-        </motion.span>
-      ))}
+      {words.map((word, i) => {
+        const motionProps = buildWordRevealMotion({
+          index: i,
+          baseDelay: delay,
+          duration,
+          mode,
+          reducedMotion,
+        });
+        return (
+          <motion.span
+            key={i}
+            initial={motionProps.initial}
+            animate={motionProps.animate}
+            transition={motionProps.transition}
+            style={{ display: 'inline-block' }}
+          >
+            {word === ' ' ? ' ' : word}
+          </motion.span>
+        );
+      })}
     </>
   );
 };
@@ -216,7 +275,11 @@ const HeroSection = ({
             color: 'var(--vc-text-strong)',
           }}
         >
-          <WordReveal text={t('One API,')} delay={0.4} />
+          <WordReveal
+            text={t('One API,')}
+            delay={0.4}
+            reducedMotion={prefersReduced}
+          />
           <br />
           <span
             style={{
@@ -231,6 +294,7 @@ const HeroSection = ({
               text={t('Infinite Creativity')}
               delay={0.8}
               duration={0.45}
+              reducedMotion={prefersReduced}
             />
           </span>
         </h1>

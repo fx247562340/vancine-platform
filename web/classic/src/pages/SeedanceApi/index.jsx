@@ -90,7 +90,7 @@ const SeedanceApi = () => {
   const language = i18n.language;
 
   useEffect(() => {
-    const meta = getSeedanceMetadata();
+    const meta = getSeedanceMetadata(i18n.t);
 
     // Snapshot BEFORE any mutation so the cleanup phase can distinguish
     // "pre-existing" from "Seedance-created".
@@ -177,8 +177,7 @@ const SeedanceApi = () => {
             lineHeight: 2,
           }}
         >
-          © {currentYear} Vancine ·{' '}
-          {t('footer')}
+          © {currentYear} Vancine · {t('footer')}
         </p>
       </div>
     </div>

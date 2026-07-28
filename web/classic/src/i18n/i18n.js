@@ -19,103 +19,142 @@ For commercial licensing, please contact support@quantumnous.com
 
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import LanguageDetector from 'i18next-browser-languagedetector';
 
-import enTranslation from './locales/en.json';
-import frTranslation from './locales/fr.json';
-import zhCNTranslation from './locales/zh-CN.json';
-import zhTWTranslation from './locales/zh-TW.json';
-import ruTranslation from './locales/ru.json';
-import jaTranslation from './locales/ja.json';
-import viTranslation from './locales/vi.json';
+import { createBackend, detectInitialLanguage } from './resource-loader.js';
+import { supportedLanguages } from './language.js';
 
-// Docs namespace translations
-import enDocs from './locales/docs/en.json';
-import zhCNDocs from './locales/docs/zh-CN.json';
-import zhTWDocs from './locales/docs/zh-TW.json';
-import frDocs from './locales/docs/fr.json';
-import jaDocs from './locales/docs/ja.json';
-import ruDocs from './locales/docs/ru.json';
-import viDocs from './locales/docs/vi.json';
+// Locale JSON is no longer statically imported here. Each
+// language/namespace chunk is loaded on demand by the custom i18next
+// backend (see resource-loader.js) so the main entry no longer carries
+// all 50 locale files. The first paint waits on `initPromise` (see
+// index.jsx), which resolves once the detected language's `translation`
+// namespace has been loaded by the backend.
+//
+// Initial language is resolved SYNCHRONOUSLY via `detectInitialLanguage`
+// (localStorage `i18nextLng` first, then navigator.languages /
+// navigator.language, then `en`) and passed as an explicit `lng`. Combined
+// with `fallbackLng: false` this guarantees the first paint loads exactly
+// one translation language chunk — never the English fallback in parallel.
+// Language switching still works via `i18n.changeLanguage`, which triggers
+// a fresh backend.read for the new language.
 
-// About namespace translations
-import enAbout from './locales/about/en.json';
-import zhCNAbout from './locales/about/zh-CN.json';
-import zhTWAbout from './locales/about/zh-TW.json';
-import frAbout from './locales/about/fr.json';
-import jaAbout from './locales/about/ja.json';
-import ruAbout from './locales/about/ru.json';
-import viAbout from './locales/about/vi.json';
+/**
+ * Map an internal i18n language code to a BCP 47 tag suitable for
+ * `document.documentElement.lang`. Our internal codes already match
+ * common BCP 47 forms (`en`, `zh-CN`, `zh-TW`, `fr`, `ru`, `ja`, `vi`);
+ * this helper normalizes unknown / empty values and is the single place
+ * to adjust tags if a future locale needs a different HTML form.
+ *
+ * @param {string|undefined|null} lng
+ * @returns {string} BCP 47 language tag
+ */
+export function toBcp47(lng) {
+  if (!lng || typeof lng !== 'string') return 'en';
+  // Internal codes are already BCP 47-compatible. Strip any i18next
+  // technical suffixes (e.g. "en-US-x-foo") by taking the primary +
+  // region subtags when present.
+  const trimmed = lng.trim();
+  if (!trimmed) return 'en';
+  // Preserve well-known multi-part tags explicitly.
+  if (trimmed === 'zh-CN' || trimmed === 'zh-TW') return trimmed;
+  // For everything else, keep the tag as-is when it looks like a simple
+  // BCP 47 tag (primary, optional region). Fall back to the primary
+  // subtag only if something exotic shows up.
+  if (/^[A-Za-z]{2,3}(-[A-Za-z0-9]+)*$/.test(trimmed)) return trimmed;
+  const primary = trimmed.split(/[-_]/)[0];
+  return primary || 'en';
+}
 
-// Waitlist namespace translations
-import enWaitlist from './locales/waitlist/en.json';
-import zhCNWaitlist from './locales/waitlist/zh-CN.json';
-import zhTWWaitlist from './locales/waitlist/zh-TW.json';
-import frWaitlist from './locales/waitlist/fr.json';
-import jaWaitlist from './locales/waitlist/ja.json';
-import ruWaitlist from './locales/waitlist/ru.json';
-import viWaitlist from './locales/waitlist/vi.json';
+/**
+ * Synchronously write the active language onto <html lang="..."> so
+ * assistive tech, browser translation hints, and font selection see the
+ * correct language from the first paint and on every subsequent switch.
+ *
+ * @param {string|undefined|null} lng
+ */
+export function syncDocumentLang(lng) {
+  if (typeof document === 'undefined' || !document.documentElement) return;
+  try {
+    document.documentElement.lang = toBcp47(lng);
+  } catch {
+    // Non-fatal (e.g. frozen DOM in some test harnesses).
+  }
+}
 
-// Kimi namespace translations
-import enKimi from './locales/kimi/en.json';
-import zhCNKimi from './locales/kimi/zh-CN.json';
-import zhTWKimi from './locales/kimi/zh-TW.json';
-import frKimi from './locales/kimi/fr.json';
-import jaKimi from './locales/kimi/ja.json';
-import ruKimi from './locales/kimi/ru.json';
-import viKimi from './locales/kimi/vi.json';
-
-// Seedance namespace translations (footer + SEO meta)
-import enSeedance from './locales/seedance/en.json';
-import zhCNSeedance from './locales/seedance/zh-CN.json';
-import zhTWSeedance from './locales/seedance/zh-TW.json';
-import frSeedance from './locales/seedance/fr.json';
-import jaSeedance from './locales/seedance/ja.json';
-import ruSeedance from './locales/seedance/ru.json';
-import viSeedance from './locales/seedance/vi.json';
-
-// AiMedia namespace translations (footer + SEO meta)
-import enAiMedia from './locales/aimedia/en.json';
-import zhCNAiMedia from './locales/aimedia/zh-CN.json';
-import zhTWAiMedia from './locales/aimedia/zh-TW.json';
-import frAiMedia from './locales/aimedia/fr.json';
-import jaAiMedia from './locales/aimedia/ja.json';
-import ruAiMedia from './locales/aimedia/ru.json';
-import viAiMedia from './locales/aimedia/vi.json';
-
-import { supportedLanguages, getDetectionConfig } from './language';
-
-// Pure init-options factory shared with the i18n test so the test can
-// assert against the ACTUAL production configuration (no copy).
-// i18next calls this once at startup; the test imports the same object.
-export function getI18nInitOptions() {
+/**
+ * Pure init-options factory shared with the i18n test so the test can
+ * assert against the ACTUAL production configuration (no copy).
+ *
+ * @param {string} [lng] explicit initial language. Defaults to the result
+ *   of `detectInitialLanguage()` (production path). Tests inject a fixed
+ *   value so they can assert without a DOM.
+ * @returns {Record<string, any>} i18next init options
+ */
+export function getI18nInitOptions(lng = detectInitialLanguage()) {
   return {
+    // Explicit initial language — resolved by resolveLanguage via
+    // detectInitialLanguage. LanguageDetector is intentionally NOT used
+    // at init time so we never race a second language load.
+    lng,
     load: 'currentOnly',
     supportedLngs: supportedLanguages,
-    resources: {
-      en: { ...enTranslation, docs: enDocs, about: enAbout, waitlist: enWaitlist, kimi: enKimi, seedance: enSeedance, aimedia: enAiMedia },
-      'zh-CN': { ...zhCNTranslation, docs: zhCNDocs, about: zhCNAbout, waitlist: zhCNWaitlist, kimi: zhCNKimi, seedance: zhCNSeedance, aimedia: zhCNAiMedia },
-      'zh-TW': { ...zhTWTranslation, docs: zhTWDocs, about: zhTWAbout, waitlist: zhTWWaitlist, kimi: zhTWKimi, seedance: zhTWSeedance, aimedia: zhTWAiMedia },
-      fr: { ...frTranslation, docs: frDocs, about: frAbout, waitlist: frWaitlist, kimi: frKimi, seedance: frSeedance, aimedia: frAiMedia },
-      ru: { ...ruTranslation, docs: ruDocs, about: ruAbout, waitlist: ruWaitlist, kimi: ruKimi, seedance: ruSeedance, aimedia: ruAiMedia },
-      ja: { ...jaTranslation, docs: jaDocs, about: jaAbout, waitlist: jaWaitlist, kimi: jaKimi, seedance: jaSeedance, aimedia: jaAiMedia },
-      vi: { ...viTranslation, docs: viDocs, about: viAbout, waitlist: viWaitlist, kimi: viKimi, seedance: viSeedance, aimedia: viAiMedia },
-    },
-    fallbackLng: 'en',
+    // No static `resources`: namespaces are fetched lazily by the backend.
+    ns: ['translation'],
+    defaultNS: 'translation',
+    // Disable i18next's automatic fallback-language preload. Unsupported
+    // languages are already resolved to `en` by detectInitialLanguage;
+    // real chunk failures fall back inside loadNamespace. With this set
+    // to false, init loads exactly one translation language.
+    fallbackLng: false,
     nsSeparator: false,
     interpolation: {
       escapeValue: false,
     },
-    // Honor the visitor's saved language first (localStorage set by our
-    // language switch handlers / LanguageDetector), then fall back to the
-    // browser's reported language. Caches resolved language in
-    // localStorage so it survives reloads.
-    detection: getDetectionConfig(),
   };
 }
 
-i18n.use(LanguageDetector).use(initReactI18next).init(getI18nInitOptions());
+// Wire the lazy backend so i18next calls `read(language, namespace)` for
+// each namespace it needs instead of looking them up in a static bundle.
+// Detect the language once at module evaluation so the same value is
+// used for the init options and for any test that inspects it.
+export const initialLanguage = detectInitialLanguage();
 
-window.__i18n = i18n;
+// Apply <html lang> immediately (before initPromise resolves) so the
+// first paint already carries the correct BCP 47 tag.
+syncDocumentLang(initialLanguage);
 
+const initPromise = i18n
+  .use(createBackend())
+  .use(initReactI18next)
+  .init(getI18nInitOptions(initialLanguage));
+
+// Persist the resolved language so subsequent visits and language-switch
+// handlers stay consistent with the previous LanguageDetector cache key.
+try {
+  if (typeof localStorage !== 'undefined' && localStorage) {
+    localStorage.setItem('i18nextLng', initialLanguage);
+  }
+} catch {
+  // Private mode / blocked storage — non-fatal.
+}
+
+if (typeof window !== 'undefined') {
+  window.__i18n = i18n;
+}
+
+// Keep the chosen language in localStorage whenever the user switches,
+// matching the previous LanguageDetector `caches: ['localStorage']`
+// contract so reload restores the selection. Also re-sync <html lang>.
+i18n.on('languageChanged', (lng) => {
+  try {
+    if (typeof localStorage !== 'undefined' && localStorage && lng) {
+      localStorage.setItem('i18nextLng', lng);
+    }
+  } catch {
+    // Non-fatal.
+  }
+  syncDocumentLang(lng);
+});
+
+export { initPromise };
 export default i18n;

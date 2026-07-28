@@ -24,6 +24,12 @@ import {
   useState,
   useEffect,
 } from 'react';
+import {
+  normalizeThemeMode,
+  resolveActualTheme,
+  readStoredThemeMode,
+  THEME_STORAGE_KEY,
+} from './theme-mode.js';
 
 const ThemeContext = createContext(null);
 export const useTheme = () => useContext(ThemeContext);
@@ -45,18 +51,25 @@ const getSystemTheme = () => {
 };
 
 export const ThemeProvider = ({ children }) => {
+  // Initial preference MUST go through normalizeThemeMode / readStoredThemeMode
+  // so a legacy or garbage localStorage value never becomes state. Matches the
+  // index.html boot probe: illegal → dark (never a light flash after mount).
   const [theme, _setTheme] = useState(() => {
     try {
-      return localStorage.getItem('theme-mode') || 'dark';
+      return readStoredThemeMode(
+        typeof localStorage !== 'undefined' ? localStorage : null,
+      );
     } catch {
       return 'dark';
     }
   });
 
-  const [systemTheme, setSystemTheme] = useState(getSystemTheme());
+  const [systemTheme, setSystemTheme] = useState(getSystemTheme);
 
-  // 计算实际应用的主题
-  const actualTheme = theme === 'auto' ? systemTheme : theme;
+  // Actual painted theme via the shared helper (never the bare
+  // `theme === 'auto' ? systemTheme : theme` ternary — that leaked garbage
+  // strings into the DOM effect's light branch).
+  const actualTheme = resolveActualTheme(theme, systemTheme);
 
   // 监听系统主题变化
   useEffect(() => {
@@ -94,14 +107,19 @@ export const ThemeProvider = ({ children }) => {
       // 向后兼容原有的 boolean 参数
       themeValue = newTheme ? 'dark' : 'light';
     } else if (typeof newTheme === 'string') {
-      // 新的字符串参数支持 'light', 'dark', 'auto'
-      themeValue = newTheme;
+      // Normalize so illegal strings are never persisted or painted as light.
+      themeValue = normalizeThemeMode(newTheme);
     } else {
+      // Non-string / non-boolean keeps the historical default of 'auto'.
       themeValue = 'auto';
     }
 
     _setTheme(themeValue);
-    localStorage.setItem('theme-mode', themeValue);
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, themeValue);
+    } catch {
+      // Private mode / blocked storage — state still updates in-memory.
+    }
   }, []);
 
   return (

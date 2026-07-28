@@ -17,17 +17,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
 import { describe, test } from 'node:test';
 import {
   KIMI_K3_API_COMPATIBILITY,
   KIMI_K3_CANONICAL,
   KIMI_K3_CODE_EXAMPLES,
-  KIMI_K3_CREDIT_DISCLAIMER,
   KIMI_K3_EVIDENCE_STARTER_REPO,
   KIMI_K3_EVIDENCE_STATUS,
   KIMI_K3_EVIDENCE_URL,
   KIMI_K3_MEASURED_USAGE,
-  KIMI_K3_MEASURED_USAGE_DISCLAIMER,
   KIMI_K3_OPENCODE_CONFIG,
   KIMI_K3_OPENCODE_VERIFICATION,
   KIMI_K3_VERIFICATION_SCOPE,
@@ -35,6 +34,20 @@ import {
   getKimiK3CtaDestination,
   getKimiK3Metadata,
 } from './landing.js';
+
+const require = createRequire(import.meta.url);
+
+// Build a synthetic `t` for the `kimi` namespace from the locale JSON so the
+// metadata helper can be exercised under Node without the i18n singleton.
+// `getKimiK3Metadata` now takes a `t` function (decoupled from i18n.js).
+// Credit / measured-usage / verification-scope copy lives in the kimi
+// locale (moved out of landing.js constants during the i18n migration).
+const kimiBundle = (lang) => require(`../../i18n/locales/kimi/${lang}.json`);
+const kimiT = (lang) => {
+  const bundle = kimiBundle(lang);
+  return (key /* , opts */) =>
+    key.split('.').reduce((o, k) => (o == null ? undefined : o[k]), bundle);
+};
 
 describe('classic kimi-k3-api landing contract', () => {
   test('guest CTA retains only UTM attribution', () => {
@@ -55,10 +68,13 @@ describe('classic kimi-k3-api landing contract', () => {
   });
 
   test('metadata is localized and canonical is stable', () => {
-    assert.equal(getKimiK3Metadata('en').canonical, KIMI_K3_CANONICAL);
-    assert.equal(getKimiK3Metadata('zh-CN').canonical, KIMI_K3_CANONICAL);
-    assert.match(getKimiK3Metadata('en').title, /Coding Agents/);
-    assert.match(getKimiK3Metadata('zh-CN').title, /编程智能体/);
+    assert.equal(getKimiK3Metadata(kimiT('en')).canonical, KIMI_K3_CANONICAL);
+    assert.equal(
+      getKimiK3Metadata(kimiT('zh-CN')).canonical,
+      KIMI_K3_CANONICAL,
+    );
+    assert.match(getKimiK3Metadata(kimiT('en')).title, /Coding Agents/);
+    assert.match(getKimiK3Metadata(kimiT('zh-CN')).title, /编程智能体/);
   });
 
   test('examples use the exact public endpoint and model id', () => {
@@ -75,8 +91,10 @@ describe('classic kimi-k3-api landing contract', () => {
   });
 
   test('credit copy includes the usage disclaimer', () => {
+    // Credit disclaimer moved into the kimi locale during the i18n
+    // namespace migration; assert against the live English copy.
     assert.equal(
-      KIMI_K3_CREDIT_DISCLAIMER,
+      kimiBundle('en').hero.creditDisclaimer,
       '$1 free credit. No credit card required. Usage varies by model and request.',
     );
   });
@@ -158,7 +176,9 @@ describe('classic kimi-k3-api landing contract', () => {
     assert.equal(KIMI_K3_MEASURED_USAGE.amount, 0.19);
     assert.equal(KIMI_K3_MEASURED_USAGE.currency, 'USD');
 
-    const { en, zh } = KIMI_K3_MEASURED_USAGE_DISCLAIMER;
+    // Disclaimer copy lives in the kimi locale (en + zh-CN).
+    const en = kimiBundle('en').evidence.measuredUsageDisclaimer;
+    const zh = kimiBundle('zh-CN').evidence.measuredUsageDisclaimer;
     assert.match(en, /\$0\.19 in measured Vancine usage/);
     assert.match(en, /Pricing and token usage vary by task/);
     assert.match(
@@ -178,7 +198,9 @@ describe('classic kimi-k3-api landing contract', () => {
       'Cline',
       'Roo Code',
     ]);
-    const { en, zh } = KIMI_K3_VERIFICATION_SCOPE;
+    // Scope prose lives in the kimi locale.
+    const en = kimiBundle('en').evidence.verificationScope;
+    const zh = kimiBundle('zh-CN').evidence.verificationScope;
     assert.match(
       en,
       /Only OpenCode v1\.18\.3 has a live coding-agent verification/,
@@ -198,8 +220,11 @@ describe('classic kimi-k3-api landing contract', () => {
       KIMI_K3_API_COMPATIBILITY,
       KIMI_K3_OPENCODE_VERIFICATION,
       KIMI_K3_MEASURED_USAGE,
-      KIMI_K3_MEASURED_USAGE_DISCLAIMER,
+      kimiBundle('en').evidence.measuredUsageDisclaimer,
+      kimiBundle('zh-CN').evidence.measuredUsageDisclaimer,
       KIMI_K3_VERIFICATION_SCOPE,
+      kimiBundle('en').evidence.verificationScope,
+      kimiBundle('zh-CN').evidence.verificationScope,
     ]);
     for (const forbidden of [
       /cost=0/i,

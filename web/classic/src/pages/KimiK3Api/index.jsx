@@ -233,7 +233,9 @@ const KimiK3Api = () => {
 
   // Dynamic fact arrays — interpolated per index from live evidence data.
   const apiCompatibilityFacts = [
-    t('evidence.apiCompatibilityFacts.0', { httpStatus: API_COMPAT.httpStatus }),
+    t('evidence.apiCompatibilityFacts.0', {
+      httpStatus: API_COMPAT.httpStatus,
+    }),
     t('evidence.apiCompatibilityFacts.1', {
       requestedModel: API_COMPAT.requestedModel,
       responseModel: API_COMPAT.responseModel,
@@ -287,7 +289,7 @@ const KimiK3Api = () => {
   };
 
   useEffect(() => {
-    const meta = getKimiK3Metadata();
+    const meta = getKimiK3Metadata(i18n.t);
     const previousTitle = document.title;
     const states = {
       description: snapshot('meta[name="description"]', 'content'),

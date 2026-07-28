@@ -16,7 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import i18n from '../../i18n/i18n';
 /**
  * Pure, dependency-free landing-page contract for the Classic theme's
  * Seedance API page.
@@ -124,10 +123,14 @@ export const SEEDANCE_POSTMAN_TRACKING = Object.freeze({
 });
 
 // Returns the route-specific SEO/social metadata from the `seedance`
-// namespace at runtime. Callers invoke this inside an effect (i18n has
-// been initialized by then) and refresh on language change.
-export function getSeedanceMetadata() {
-  const tt = (key) => i18n.t(key, { ns: 'seedance' });
+// namespace at runtime. The caller passes its own `t` function (the page
+// supplies `i18n.t` from useTranslation; tests supply a synthetic
+// translator built from the resource-loader) so this module no longer
+// imports the i18n singleton and loads under Node's test runner. Invoke
+// inside an effect (i18n has been initialized by then) and refresh on
+// language change.
+export function getSeedanceMetadata(t) {
+  const tt = (key) => t(key, { ns: 'seedance' });
   return {
     title: tt('meta.title'),
     description: tt('meta.description'),
