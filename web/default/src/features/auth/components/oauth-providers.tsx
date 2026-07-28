@@ -35,6 +35,11 @@ type OAuthProvidersProps = {
   className?: string
   onWeChatLogin?: () => void
   isWeChatLoading?: boolean
+  /**
+   * Register-page-only. When set, OAuth redirect providers await this before
+   * leaving the site (first-party signup_started). Sign-in must omit it.
+   */
+  onBeforeOAuthRedirect?: () => void | Promise<void>
 }
 
 type ProviderButton = {
@@ -51,6 +56,7 @@ export function OAuthProviders({
   className,
   onWeChatLogin,
   isWeChatLoading = false,
+  onBeforeOAuthRedirect,
 }: OAuthProvidersProps) {
   const { t } = useTranslation()
   const {
@@ -63,7 +69,7 @@ export function OAuthProviders({
     handleLinuxDOLogin,
     handleTelegramLogin,
     handleCustomOAuthLogin,
-  } = useOAuthLogin(status)
+  } = useOAuthLogin(status, { onBeforeOAuthRedirect })
 
   const providerButtons: ProviderButton[] = []
 

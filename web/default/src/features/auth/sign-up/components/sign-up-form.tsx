@@ -23,6 +23,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import { reportSignupStarted } from '@/lib/acquisition'
 import { trackEvent } from '@/lib/analytics'
 import { cn } from '@/lib/utils'
 import { useStatus } from '@/hooks/use-status'
@@ -166,6 +167,10 @@ export function SignUpForm({
     // Record the funnel event before calling the register API. No user input
     // is included in the event.
     trackEvent('signup_started')
+    // Await first-party signup_started (which itself awaits landing_view) so
+    // the vancine_ft Set-Cookie lands before BindTouchToUser on register.
+    // reportSignupStarted soft-fails; attribution network errors must not block register.
+    await reportSignupStarted()
 
     setIsLoading(true)
     try {
@@ -198,11 +203,12 @@ export function SignUpForm({
   }
 
   const handleOpenWeChatDialog = () => {
+    // Only fire signup_started after legal consent passes (register intent).
     if (requiresLegalConsent && !agreedToLegal) {
       toast.error(legalConsentErrorMessage)
       return
     }
-
+    void reportSignupStarted()
     setIsWeChatDialogOpen(true)
   }
 
@@ -386,6 +392,7 @@ export function SignUpForm({
             disabled={isLoading || (requiresLegalConsent && !agreedToLegal)}
             onWeChatLogin={hasWeChatLogin ? handleOpenWeChatDialog : undefined}
             isWeChatLoading={isWeChatSubmitting}
+            onBeforeOAuthRedirect={reportSignupStarted}
             className='pt-2'
           />
         )}

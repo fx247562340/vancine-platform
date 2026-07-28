@@ -46,6 +46,10 @@ func SetApiRouter(router *gin.Engine) {
 		apiRouter.POST("/waitlist", middleware.CriticalRateLimit(), controller.JoinWaitlist)
 		apiRouter.GET("/waitlist/count", controller.GetWaitlistCount)
 
+		// First-touch acquisition attribution (public write + admin funnel)
+		apiRouter.POST("/acquisition/touch", middleware.CriticalRateLimit(), controller.PostAcquisitionTouch)
+		apiRouter.GET("/acquisition/funnel", middleware.AdminAuth(), controller.GetAcquisitionFunnel)
+
 		// Image upload (authenticated users only)
 		apiRouter.POST("/upload/image", middleware.UserAuth(), middleware.UploadRateLimit(), controller.UploadImage)
 

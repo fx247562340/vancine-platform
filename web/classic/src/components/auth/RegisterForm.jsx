@@ -33,6 +33,7 @@ import {
   onCustomOAuthClicked,
 } from '../../helpers';
 import { trackEvent } from '../../helpers/analytics';
+import { reportSignupStarted } from '../../helpers/acquisition';
 import Turnstile from 'react-turnstile';
 import {
   Button,
@@ -178,6 +179,7 @@ const RegisterForm = () => {
   }, []);
 
   const onWeChatLoginClicked = () => {
+    void reportSignupStarted();
     setWechatLoading(true);
     setShowWeChatLoginModal(true);
     setWechatLoading(false);
@@ -234,6 +236,10 @@ const RegisterForm = () => {
       // match, Turnstile). Record the funnel event before the register call.
       // No form data is included in the event.
       trackEvent('signup_started');
+      // Await first-party signup_started (which itself awaits landing_view) so
+      // the vancine_ft Set-Cookie lands before BindTouchToUser on register.
+      // reportSignupStarted soft-fails; attribution network errors must not block register.
+      await reportSignupStarted();
       setRegisterLoading(true);
       try {
         if (!affCode) {
@@ -289,7 +295,7 @@ const RegisterForm = () => {
     }
   };
 
-  const handleGitHubClick = () => {
+  const handleGitHubClick = async () => {
     if (githubButtonDisabled) {
       return;
     }
@@ -305,24 +311,29 @@ const RegisterForm = () => {
       setGithubButtonDisabled(true);
     }, 20000);
     try {
+      // Await first-party signup_started (which itself awaits landing_view)
+      // before leaving the site on OAuth redirect.
+      await reportSignupStarted({ keepalive: true });
       onGitHubOAuthClicked(status.github_client_id, { shouldLogout: true });
     } finally {
       setTimeout(() => setGithubLoading(false), 3000);
     }
   };
 
-  const handleDiscordClick = () => {
+  const handleDiscordClick = async () => {
     setDiscordLoading(true);
     try {
+      await reportSignupStarted({ keepalive: true });
       onDiscordOAuthClicked(status.discord_client_id, { shouldLogout: true });
     } finally {
       setTimeout(() => setDiscordLoading(false), 3000);
     }
   };
 
-  const handleOIDCClick = () => {
+  const handleOIDCClick = async () => {
     setOidcLoading(true);
     try {
+      await reportSignupStarted({ keepalive: true });
       onOIDCClicked(
         status.oidc_authorization_endpoint,
         status.oidc_client_id,
@@ -334,18 +345,20 @@ const RegisterForm = () => {
     }
   };
 
-  const handleLinuxDOClick = () => {
+  const handleLinuxDOClick = async () => {
     setLinuxdoLoading(true);
     try {
+      await reportSignupStarted({ keepalive: true });
       onLinuxDOOAuthClicked(status.linuxdo_client_id, { shouldLogout: true });
     } finally {
       setTimeout(() => setLinuxdoLoading(false), 3000);
     }
   };
 
-  const handleCustomOAuthClick = (provider) => {
+  const handleCustomOAuthClick = async (provider) => {
     setCustomOAuthLoading((prev) => ({ ...prev, [provider.slug]: true }));
     try {
+      await reportSignupStarted({ keepalive: true });
       onCustomOAuthClicked(provider, { shouldLogout: true });
     } finally {
       setTimeout(() => {

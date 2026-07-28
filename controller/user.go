@@ -16,6 +16,7 @@ import (
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/service/acquisition"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 
@@ -226,6 +227,11 @@ func Register(c *gin.Context) {
 			return
 		}
 	}
+
+	// First-touch attribution bind: only after durable provisioning
+	// (Insert + insertedUser load + optional default Token success),
+	// and immediately before setupLogin. Default Token failure must not bind.
+	acquisition.BindTouchToUser(c, insertedUser.Id)
 
 	// 注册成功后自动登录，建立 session
 	setupLogin(&insertedUser, c)

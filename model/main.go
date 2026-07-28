@@ -283,6 +283,7 @@ func migrateDB() error {
 		&PerfMetric{},
 		&WaitlistEntry{},
 		&PayPalSettlementEvent{},
+		&AcquisitionTouch{},
 	)
 	if err != nil {
 		return err
@@ -295,6 +296,10 @@ func migrateDB() error {
 		if err := DB.AutoMigrate(&SubscriptionPlan{}); err != nil {
 			return err
 		}
+	}
+	// Coverage CAS only after Option + AcquisitionTouch are ready and AutoMigrate succeeded.
+	if _, err := EnsureAcquisitionCoverageStartedAt(); err != nil {
+		return fmt.Errorf("acquisition coverage marker init failed: %w", err)
 	}
 	return nil
 }
@@ -333,6 +338,7 @@ func migrateDBFast() error {
 		{&UserOAuthBinding{}, "UserOAuthBinding"},
 		{&PerfMetric{}, "PerfMetric"},
 		{&PayPalSettlementEvent{}, "PayPalSettlementEvent"},
+		{&AcquisitionTouch{}, "AcquisitionTouch"},
 	}
 	// 动态计算migration数量，确保errChan缓冲区足够大
 	errChan := make(chan error, len(migrations))
@@ -341,17 +347,18 @@ func migrateDBFast() error {
 		wg.Add(1)
 		go func(model interface{}, name string) {
 			defer wg.Done()
+			// Coverage CAS is forbidden inside migration goroutines.
 			if err := DB.AutoMigrate(model); err != nil {
 				errChan <- fmt.Errorf("failed to migrate %s: %v", name, err)
 			}
 		}(m.model, m.name)
 	}
 
-	// Wait for all migrations to complete
+	// Wait for all migrations to complete (mandatory barrier before CAS)
 	wg.Wait()
 	close(errChan)
 
-	// Check for any errors
+	// Check for any errors — any failure skips coverage CAS
 	for err := range errChan {
 		if err != nil {
 			return err
@@ -365,6 +372,11 @@ func migrateDBFast() error {
 		if err := DB.AutoMigrate(&SubscriptionPlan{}); err != nil {
 			return err
 		}
+	}
+	// CAS only when Option table ready + AcquisitionTouch ready + all migration errors checked.
+	// Runs on the main migrate goroutine, outside parallel AutoMigrate workers.
+	if _, err := EnsureAcquisitionCoverageStartedAt(); err != nil {
+		return fmt.Errorf("acquisition coverage marker init failed: %w", err)
 	}
 	common.SysLog("database migrated")
 	return nil

@@ -25,6 +25,7 @@ import {
 } from '@tanstack/react-router'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
+import { captureAndReportFirstTouch } from '@/lib/acquisition'
 import { ThemeCustomizationProvider } from '@/context/theme-customization-provider'
 import { useSystemConfig } from '@/hooks/use-system-config'
 import { Toaster } from '@/components/ui/sonner'
@@ -43,6 +44,8 @@ function RootComponent() {
     if (aff) {
       saveAffiliateCode(aff)
     }
+    // First-touch acquisition capture (never throws; complements Umami).
+    void captureAndReportFirstTouch()
   }, [])
 
   return (

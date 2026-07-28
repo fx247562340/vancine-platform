@@ -11,6 +11,7 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/service/acquisition"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -154,6 +155,8 @@ func GitHubOAuth(c *gin.Context) {
 				})
 				return
 			}
+			// New user only — bind first-touch attribution (soft-fail).
+			acquisition.BindTouchToUser(c, user.Id)
 		} else {
 			c.JSON(http.StatusOK, gin.H{
 				"success": false,

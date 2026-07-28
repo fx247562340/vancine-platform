@@ -35,16 +35,29 @@ type LogoutRequestConfig = AxiosRequestConfig & {
   skipErrorHandler?: boolean
 }
 
+export type UseOAuthLoginOptions = {
+  /**
+   * Optional register-page-only callback. Invoked (and awaited) before the
+   * OAuth redirect so first-party signup_started can settle. Sign-in must
+   * NOT pass this — the shared hook must never hardcode signup_started.
+   */
+  onBeforeOAuthRedirect?: () => void | Promise<void>
+}
+
 /**
  * Hook for managing OAuth login
  */
-export function useOAuthLogin(status: SystemStatus | null) {
+export function useOAuthLogin(
+  status: SystemStatus | null,
+  options?: UseOAuthLoginOptions
+) {
   const { t } = useTranslation()
   const [isLoading, setIsLoading] = useState(false)
   const [githubButtonText, setGithubButtonText] = useState('')
   const [githubButtonDisabled, setGithubButtonDisabled] = useState(false)
   const githubTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const { auth } = useAuthStore()
+  const onBeforeOAuthRedirect = options?.onBeforeOAuthRedirect
 
   useEffect(() => {
     setGithubButtonText(t('Continue with GitHub'))
@@ -68,6 +81,15 @@ export function useOAuthLogin(status: SystemStatus | null) {
       } as LogoutRequestConfig)
     } catch (_error) {
       // ignore logout errors
+    }
+  }
+
+  const runBeforeOAuthRedirect = async () => {
+    if (!onBeforeOAuthRedirect) return
+    try {
+      await onBeforeOAuthRedirect()
+    } catch {
+      // soft-fail: never block OAuth redirect on attribution
     }
   }
 
@@ -105,6 +127,7 @@ export function useOAuthLogin(status: SystemStatus | null) {
         return
       }
 
+      await runBeforeOAuthRedirect()
       const url = buildGitHubOAuthUrl(status.github_client_id, state)
       window.open(url, '_self')
     } catch (_error) {
@@ -130,6 +153,7 @@ export function useOAuthLogin(status: SystemStatus | null) {
         return
       }
 
+      await runBeforeOAuthRedirect()
       const url = buildDiscordOAuthUrl(status.discord_client_id, state)
       window.open(url, '_self')
     } catch (_error) {
@@ -151,6 +175,7 @@ export function useOAuthLogin(status: SystemStatus | null) {
         return
       }
 
+      await runBeforeOAuthRedirect()
       const url = buildOIDCOAuthUrl(
         status.oidc_authorization_endpoint,
         status.oidc_client_id,
@@ -176,6 +201,7 @@ export function useOAuthLogin(status: SystemStatus | null) {
         return
       }
 
+      await runBeforeOAuthRedirect()
       const url = buildLinuxDOOAuthUrl(status.linuxdo_client_id, state)
       window.open(url, '_self')
     } catch (_error) {
@@ -186,6 +212,9 @@ export function useOAuthLogin(status: SystemStatus | null) {
   }
 
   const handleTelegramLogin = () => {
+    // Telegram uses a widget — no first-party OAuth redirect path here.
+    // signup_started is intentionally NOT fired (even when a register
+    // callback is injected) because there is no redirect to await against.
     toast.info(t('Telegram login requires widget integration; coming soon'))
   }
 
@@ -201,6 +230,7 @@ export function useOAuthLogin(status: SystemStatus | null) {
         return
       }
 
+      await runBeforeOAuthRedirect()
       const redirectUri = `${window.location.origin}/oauth/${provider.slug}`
       const url = new URL(provider.authorization_endpoint)
       url.searchParams.set('client_id', provider.client_id)

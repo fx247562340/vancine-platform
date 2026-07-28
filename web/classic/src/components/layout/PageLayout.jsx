@@ -40,6 +40,7 @@ import { StatusContext } from '../../context/Status';
 import { useLocation } from 'react-router-dom';
 import { normalizeLanguage } from '../../i18n/language';
 import { isStandaloneLandingPage as isStandaloneLandingPagePath } from './standalone-landing';
+import { captureAndReportFirstTouch } from '../../helpers/acquisition';
 const { Sider, Content, Header } = Layout;
 
 const PageLayout = () => {
@@ -112,6 +113,8 @@ const PageLayout = () => {
   useEffect(() => {
     loadUser();
     loadStatus().catch(console.error);
+    // First-touch acquisition capture (never throws; complements Umami).
+    void captureAndReportFirstTouch();
     let systemName = getSystemName();
     if (systemName) {
       document.title = systemName;
