@@ -1,7 +1,7 @@
 # Claude Code 任务简报模板
 
-> **版本**：v1.2.1
-> **更新时间**：2026-07-21
+> **版本**：v1.2.2
+> **更新时间**：2026-07-28
 > **负责人**：范总
 > **关联 SOP**：[模型上线与海外获客 SOP](../model-launch-sop.md)
 
@@ -530,6 +530,12 @@ Codex 收到 Claude Code 回传后，进行只读验收：
     }
   },
   "opportunity_score": {
+    "hotness": 0,
+    "overseas_demand": 0,
+    "api_commercial": 0,
+    "vancine_differentiation": 0,
+    "speed_cost": 0,
+    "channel_fit": 0,
     "total": 0,
     "decision": "Fast Lane|Watch|Hold"
   },
@@ -578,6 +584,7 @@ Codex 收到 Claude Code 回传后，进行只读验收：
 > - `override_approved_by`：未覆盖默认阈值时为 JSON `null`；覆盖获批时填批准人。
 > - `thresholds.source`：取值 `"default"` 或 `"overridden"`（枚举字符串）。
 > - `retention_7d`：样本过小时 `rate` 为 `null` 且 `insufficient_sample` 为 `true`，并报告分子/分母（见 SOP §10.4）。
+> - `opportunity_score`：必须包含六个独立维度 `hotness` / `overseas_demand` / `api_commercial` / `vancine_differentiation` / `speed_cost` / `channel_fit`（各项整数 `0–5`）、`total`（必须等于六项之和，合法范围 `0–30`）与 `decision`（`Fast Lane` ≥24 / `Watch` 19–23 / `Hold` ≤18）。商业可用性门禁（P4）优先于总分；Fast Lane 评分不得覆盖失败或未通过的硬门禁（见 SOP §5）。唯一合法刻度为六项各 0–5、总分 30；任何历史更高单项上限或更高总分刻度均视为错误。
 > - **规范**：`null` 一律使用真正的 JSON `null`，不得用 `"范总 | null"` 或说明文字充当字段值。
 
 ---
