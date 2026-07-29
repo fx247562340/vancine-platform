@@ -20,6 +20,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/auth-store'
+import { trackEvent } from '@/lib/analytics'
 import { cn } from '@/lib/utils'
 import { useNotifications } from '@/hooks/use-notifications'
 import { useSystemConfig } from '@/hooks/use-system-config'
@@ -290,13 +291,28 @@ export function PublicHeader(props: PublicHeaderProps) {
                   ) : isAuthenticated ? (
                     <ProfileDropdown />
                   ) : (
-                    <Button
-                      size='sm'
-                      className='h-8 rounded-lg px-3.5 text-xs font-medium'
-                      render={<Link to='/sign-in' />}
-                    >
-                      {t('Sign in')}
-                    </Button>
+                    <div className='flex items-center gap-2'>
+                      <Button
+                        size='sm'
+                        className='h-8 rounded-lg px-3.5 text-xs font-medium'
+                        render={<Link to='/sign-up' />}
+                        onClick={() =>
+                          trackEvent('get_started_clicked', {
+                            location: 'header',
+                          })
+                        }
+                      >
+                        {t('Sign up')}
+                      </Button>
+                      <Button
+                        size='sm'
+                        variant='ghost'
+                        className='h-8 rounded-lg px-3.5 text-xs font-medium'
+                        render={<Link to='/sign-in' />}
+                      >
+                        {t('Sign in')}
+                      </Button>
+                    </div>
                   )}
                 </>
               )}
@@ -408,13 +424,39 @@ export function PublicHeader(props: PublicHeaderProps) {
             style={{ transitionDelay: mobileOpen ? '250ms' : '0ms' }}
           >
             {showAuthButtons && (
-              <Link
-                to={isAuthenticated ? '/dashboard' : '/sign-in'}
-                onClick={() => setMobileOpen(false)}
-                className='bg-foreground text-background inline-flex h-10 items-center justify-center rounded-lg text-sm font-medium transition-opacity hover:opacity-90 active:opacity-80'
-              >
-                {isAuthenticated ? t('Go to Dashboard') : t('Sign in')}
-              </Link>
+              <>
+                {isAuthenticated ? (
+                  <Link
+                    to='/dashboard'
+                    onClick={() => setMobileOpen(false)}
+                    className='bg-foreground text-background inline-flex h-10 items-center justify-center rounded-lg text-sm font-medium transition-opacity hover:opacity-90 active:opacity-80'
+                  >
+                    {t('Go to Dashboard')}
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      to='/sign-up'
+                      onClick={() => {
+                        trackEvent('get_started_clicked', {
+                          location: 'header',
+                        })
+                        setMobileOpen(false)
+                      }}
+                      className='bg-foreground text-background inline-flex h-10 items-center justify-center rounded-lg text-sm font-medium transition-opacity hover:opacity-90 active:opacity-80'
+                    >
+                      {t('Sign up')}
+                    </Link>
+                    <Link
+                      to='/sign-in'
+                      onClick={() => setMobileOpen(false)}
+                      className='border-border/60 inline-flex h-10 items-center justify-center rounded-lg border text-sm font-medium transition-opacity hover:opacity-80 active:opacity-70'
+                    >
+                      {t('Sign in')}
+                    </Link>
+                  </>
+                )}
+              </>
             )}
           </div>
         </div>

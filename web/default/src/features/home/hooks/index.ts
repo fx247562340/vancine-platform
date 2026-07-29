@@ -17,3 +17,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 export { useHomePageContent } from './use-home-page-content'
+export { useHomepagePricing } from './use-homepage-pricing'
+export type {
+  HomepagePricingState,
+  HomepagePricingStatus,
+} from './use-homepage-pricing'

@@ -28,6 +28,42 @@ For commercial licensing, please contact support@quantumnous.com
 export const WORD_STAGGER = 0.06;
 
 /**
+ * Describe how one headline segment should be rendered so spacing survives.
+ *
+ * - Word segments → `display: inline-block` (so transforms apply).
+ * - Whitespace segments → `white-space: pre-wrap` on an inline span: the space
+ *   keeps its width (not collapsed) AND remains a legal line-break point, so
+ *   long headlines still wrap on narrow viewports (unlike a bare NBSP).
+ *
+ * @param {string} word
+ * @returns {{
+ *   text: string,
+ *   isWhitespace: boolean,
+ *   style: Record<string, string>,
+ *   animateWhitespace: boolean,
+ * }}
+ */
+export function describeWordSegment(word) {
+  const text = typeof word === 'string' ? word : '';
+  const isWhitespace = text.length > 0 && text.trim() === '';
+  if (isWhitespace) {
+    return {
+      text,
+      isWhitespace: true,
+      style: { whiteSpace: 'pre-wrap' },
+      // Whitespace is an inline span (no transform animation needed).
+      animateWhitespace: false,
+    };
+  }
+  return {
+    text,
+    isWhitespace: false,
+    style: { display: 'inline-block' },
+    animateWhitespace: false,
+  };
+}
+
+/**
  * Split headline text into word/space segments for staggered reveal.
  * Preserves whitespace tokens so layout matches the original string.
  *

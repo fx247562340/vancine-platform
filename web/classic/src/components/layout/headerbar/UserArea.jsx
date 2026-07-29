@@ -28,6 +28,7 @@ import {
   IconKey,
 } from '@douyinfe/semi-icons';
 import { stringToColor } from '../../../helpers';
+import { trackEvent } from '../../../helpers/analytics';
 import SkeletonWrapper from '../components/SkeletonWrapper';
 
 const UserArea = ({
@@ -180,8 +181,14 @@ const UserArea = ({
           </Button>
         </Link>
         {showRegisterButton && (
-          <div className='hidden md:block'>
-            <Link to='/register' className='flex -ml-px'>
+          <div className='block'>
+            <Link
+              to='/register'
+              className='flex -ml-px'
+              onClick={() =>
+                trackEvent('get_started_clicked', { location: 'header' })
+              }
+            >
               <Button
                 theme='solid'
                 type='primary'

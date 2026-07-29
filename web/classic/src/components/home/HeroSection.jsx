@@ -1,15 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Button, Input } from '@douyinfe/semi-ui';
-import { IconCopy, IconPlay, IconFile } from '@douyinfe/semi-icons';
+import { IconCopy, IconPlay, IconArrowRight } from '@douyinfe/semi-icons';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { trackEvent } from '../../helpers/analytics';
+import { guestPrimaryPath, authPrimaryPath } from './homepage-pricing';
 import {
   splitHeadlineWords,
   buildWordRevealMotion,
   deriveWordRevealMode,
   shouldStickWordRevealInstant,
+  describeWordSegment,
 } from './word-reveal';
 
 /* ── Aurora blobs: slow drifting soft lights behind the hero ── */
@@ -87,6 +89,19 @@ const WordReveal = ({
   return (
     <>
       {words.map((word, i) => {
+        const seg = describeWordSegment(word);
+        // Whitespace renders as an inline span with white-space: pre-wrap so the
+        // gap stays visible (a lone space inside inline-block collapses to zero
+        // width) while the headline can still wrap on narrow viewports. It never
+        // needs the entrance animation, so it is always visible — no reflow on
+        // language switch.
+        if (seg.isWhitespace) {
+          return (
+            <span key={i} style={seg.style}>
+              {seg.text}
+            </span>
+          );
+        }
         const motionProps = buildWordRevealMotion({
           index: i,
           baseDelay: delay,
@@ -100,9 +115,9 @@ const WordReveal = ({
             initial={motionProps.initial}
             animate={motionProps.animate}
             transition={motionProps.transition}
-            style={{ display: 'inline-block' }}
+            style={seg.style}
           >
-            {word === ' ' ? ' ' : word}
+            {seg.text}
           </motion.span>
         );
       })}
@@ -110,42 +125,31 @@ const WordReveal = ({
   );
 };
 
-/* ── Count-up number animation ── */
-const CountUp = ({ end, suffix = '', duration = 1.6 }) => {
-  const [count, setCount] = useState(0);
-  const [ref, setRef] = useState(null);
-  const hasAnimated = useRef(false);
+/* Entrance delays are capped so the primary CTA reaches full visibility
+ * within ~1.2s wall time after mount. */
+const HERO_ENTRANCE = {
+  badge: 0.05,
+  headline: 0.1,
+  sub: 0.35,
+  cta: 0.55,
+  docs: 0.6,
+  url: 0.7,
+  stats: 0.85,
+};
 
-  useEffect(() => {
-    if (!ref || hasAnimated.current) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !hasAnimated.current) {
-          hasAnimated.current = true;
-          const start = performance.now();
-          const numEnd = parseInt(end, 10) || 0;
-          const tick = (now) => {
-            const elapsed = now - start;
-            const progress = Math.min(elapsed / (duration * 1000), 1);
-            const eased = 1 - Math.pow(1 - progress, 3);
-            setCount(Math.round(eased * numEnd));
-            if (progress < 1) requestAnimationFrame(tick);
-          };
-          requestAnimationFrame(tick);
-        }
-      },
-      { threshold: 0.3 },
-    );
-    observer.observe(ref);
-    return () => observer.disconnect();
-  }, [ref, end, duration]);
-
-  return (
-    <span ref={setRef}>
-      {count}
-      {suffix}
-    </span>
-  );
+const entrance = (delay, reducedMotion) => {
+  if (reducedMotion) {
+    return {
+      initial: { opacity: 1, y: 0 },
+      animate: { opacity: 1, y: 0 },
+      transition: { duration: 0, delay: 0 },
+    };
+  }
+  return {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.45, delay },
+  };
 };
 
 const HeroSection = ({
@@ -154,6 +158,7 @@ const HeroSection = ({
   docsLink,
   onCopy,
   isMobile,
+  isAuthenticated,
 }) => {
   const { t } = useTranslation();
   const prefersReduced =
@@ -161,14 +166,21 @@ const HeroSection = ({
     window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
   const videoRef = useRef(null);
+  const videoFailedRef = useRef(false);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video || prefersReduced) return undefined;
-    // 延迟到浏览器空闲再播放，避免与首屏关键资源竞争带宽
+    // 延迟到浏览器空闲再播放，避免与首屏关键资源竞争带宽。
+    // 播放失败时保留 poster，不循环重试。
     const start = () => {
+      if (videoFailedRef.current) return;
       video.play().catch(() => {});
     };
+    const onError = () => {
+      videoFailedRef.current = true;
+    };
+    video.addEventListener('error', onError);
     let id;
     if ('requestIdleCallback' in window) {
       id = window.requestIdleCallback(start, { timeout: 1500 });
@@ -176,6 +188,7 @@ const HeroSection = ({
       id = setTimeout(start, 300);
     }
     return () => {
+      video.removeEventListener('error', onError);
       if ('requestIdleCallback' in window) {
         window.cancelIdleCallback(id);
       } else {
@@ -184,9 +197,20 @@ const HeroSection = ({
     };
   }, [prefersReduced]);
 
+  const primaryPath = isAuthenticated
+    ? authPrimaryPath('classic')
+    : guestPrimaryPath('classic');
+
+  const stats = [];
+  if (typeof modelCount === 'number' && modelCount >= 1) {
+    stats.push({ value: String(modelCount), label: t('AI Models') });
+  }
+  stats.push({ value: 'OpenAI', label: t('Compatible') });
+  stats.push({ value: '1', label: t('API Endpoint') });
+
   return (
     <section className='relative w-full h-screen min-h-[600px] flex items-center justify-center overflow-hidden'>
-      {/* Video Background */}
+      {/* Video Background — poster remains on failure / reduced motion */}
       <video
         ref={videoRef}
         loop
@@ -248,11 +272,9 @@ const HeroSection = ({
         className='relative z-10 max-w-[1200px] mx-auto px-6 text-center py-20'
         style={{ color: 'var(--vc-text-strong)' }}
       >
-        {/* Badge */}
+        {/* Eyebrow badge */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
+          {...entrance(HERO_ENTRANCE.badge, prefersReduced)}
           className='inline-flex items-center gap-2 px-4 py-1.5 mb-8 rounded-full text-sm font-medium'
           style={{
             background: 'var(--vc-glass-bg)',
@@ -262,22 +284,22 @@ const HeroSection = ({
         >
           <span className='w-2 h-2 rounded-full bg-emerald-400 animate-pulse' />
           <span style={{ color: 'var(--vc-text-body)' }}>
-            {t('Now available — Chinese AI models for global developers')}
+            {t('OpenAI-compatible access to China’s frontier AI')}
           </span>
         </motion.div>
 
-        {/* Headline — word-by-word reveal */}
+        {/* Headline — evergreen: no concrete model names */}
         <h1
-          className='font-bold leading-[1.0] mb-6'
+          className='font-bold leading-[1.05] mb-6'
           style={{
-            fontSize: isMobile ? '48px' : 'clamp(56px, 8vw, 110px)',
+            fontSize: isMobile ? '40px' : 'clamp(44px, 7vw, 92px)',
             letterSpacing: '-0.04em',
             color: 'var(--vc-text-strong)',
           }}
         >
           <WordReveal
-            text={t('One API,')}
-            delay={0.4}
+            text={t('China’s frontier AI models.')}
+            delay={HERO_ENTRANCE.headline}
             reducedMotion={prefersReduced}
           />
           <br />
@@ -291,9 +313,9 @@ const HeroSection = ({
             }}
           >
             <WordReveal
-              text={t('Infinite Creativity')}
-              delay={0.8}
-              duration={0.45}
+              text={t('One API.')}
+              delay={HERO_ENTRANCE.headline + 0.15}
+              duration={0.4}
               reducedMotion={prefersReduced}
             />
           </span>
@@ -301,9 +323,7 @@ const HeroSection = ({
 
         {/* Subheadline */}
         <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 1.4 }}
+          {...entrance(HERO_ENTRANCE.sub, prefersReduced)}
           className='max-w-2xl mx-auto mb-10 leading-relaxed'
           style={{
             fontSize: isMobile ? '16px' : '20px',
@@ -312,20 +332,18 @@ const HeroSection = ({
           }}
         >
           {t(
-            'Generate videos, images, music, and text with the best AI models — at a fraction of the cost.',
+            'Build with leading Chinese models through one OpenAI-compatible endpoint. Use the SDKs and agent tools you already know.',
           )}
         </motion.p>
 
         {/* CTAs */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 1.6 }}
-          className='flex flex-col sm:flex-row items-center justify-center gap-4 mb-12'
+          {...entrance(HERO_ENTRANCE.cta, prefersReduced)}
+          className='flex flex-col sm:flex-row items-center justify-center gap-4 mb-4'
         >
           <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
             <Link
-              to='/console'
+              to={primaryPath}
               onClick={() =>
                 trackEvent('get_started_clicked', { location: 'hero' })
               }
@@ -341,37 +359,68 @@ const HeroSection = ({
                 }}
                 icon={<IconPlay />}
               >
-                {t('Get Started Free')}
+                {t('Start building free')}
               </Button>
             </Link>
           </motion.div>
-          {docsLink && (
-            <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
-              <Link to='/docs'>
-                <Button
-                  size={isMobile ? 'default' : 'large'}
-                  className='!font-semibold !px-8 !py-3'
-                  style={{
-                    backgroundColor: 'var(--vc-glass-bg)',
-                    color: 'var(--vc-text-strong)',
-                    border: '1px solid var(--vc-glass-border)',
-                    borderRadius: '9999px',
-                    backdropFilter: 'blur(12px)',
-                  }}
-                  icon={<IconFile />}
-                >
-                  {t('Documentation')}
-                </Button>
-              </Link>
-            </motion.div>
-          )}
+          <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
+            <Link
+              to='/pricing'
+              onClick={() =>
+                trackEvent('explore_models_clicked', { location: 'hero' })
+              }
+            >
+              <Button
+                size={isMobile ? 'default' : 'large'}
+                className='!font-semibold !px-8 !py-3'
+                style={{
+                  backgroundColor: 'var(--vc-glass-bg)',
+                  color: 'var(--vc-text-strong)',
+                  border: '1px solid var(--vc-glass-border)',
+                  borderRadius: '9999px',
+                  backdropFilter: 'blur(12px)',
+                }}
+                icon={<IconArrowRight />}
+              >
+                {t('Explore live models')}
+              </Button>
+            </Link>
+          </motion.div>
         </motion.div>
+
+        {/* Docs — weak tertiary text link only; hidden when unconfigured */}
+        {docsLink ? (
+          <motion.div
+            {...entrance(HERO_ENTRANCE.docs, prefersReduced)}
+            className='mb-12'
+          >
+            {docsLink.startsWith('http') ? (
+              <a
+                href={docsLink}
+                target='_blank'
+                rel='noopener noreferrer'
+                className='text-sm underline underline-offset-4'
+                style={{ color: 'var(--vc-text-muted)' }}
+              >
+                {t('Documentation')}
+              </a>
+            ) : (
+              <Link
+                to={docsLink}
+                className='text-sm underline underline-offset-4'
+                style={{ color: 'var(--vc-text-muted)' }}
+              >
+                {t('Documentation')}
+              </Link>
+            )}
+          </motion.div>
+        ) : (
+          <div className='mb-12' aria-hidden />
+        )}
 
         {/* Base URL */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 1.8 }}
+          {...entrance(HERO_ENTRANCE.url, prefersReduced)}
           className='max-w-lg mx-auto'
         >
           <div
@@ -404,18 +453,12 @@ const HeroSection = ({
           />
         </motion.div>
 
-        {/* Stats — count-up animation */}
+        {/* Stats — honest values; model count only after successful parse */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 2.0 }}
+          {...entrance(HERO_ENTRANCE.stats, prefersReduced)}
           className='mt-16 flex flex-wrap items-center justify-center gap-8 md:gap-16'
         >
-          {[
-            { value: modelCount, suffix: '+', label: t('AI Models') },
-            { value: 10, suffix: 'x', label: t('Cheaper') },
-            { value: 1, suffix: '', label: t('Unified API') },
-          ].map((stat, i) => (
+          {stats.map((stat, i) => (
             <React.Fragment key={stat.label}>
               {i > 0 && (
                 <div
@@ -428,7 +471,7 @@ const HeroSection = ({
                   className='text-3xl font-bold'
                   style={{ color: 'var(--vc-text-strong)' }}
                 >
-                  <CountUp end={stat.value} suffix={stat.suffix} />
+                  {stat.value}
                 </div>
                 <div
                   className='text-sm mt-1'

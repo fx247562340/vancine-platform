@@ -191,6 +191,14 @@ const FooterBar = () => {
           </div>
         )}
 
+        <div className='w-full max-w-[1110px] mb-4 text-center'>
+          <Typography.Text className='text-sm !text-semi-color-text-2'>
+            {t(
+              'Independent API infrastructure for China’s frontier AI models.',
+            )}
+          </Typography.Text>
+        </div>
+
         <div className='flex flex-col md:flex-row items-center justify-between w-full max-w-[1110px] gap-6'>
           <div className='flex flex-wrap items-center gap-2'>
             <Typography.Text className='text-sm !text-semi-color-text-1'>
@@ -221,7 +229,9 @@ const FooterBar = () => {
     loadFooter();
   }, []);
 
-  const homeFooterClass = isHomePage ? 'vancine-public-page vancine-home-page footer-home' : '';
+  const homeFooterClass = isHomePage
+    ? 'vancine-public-page vancine-home-page footer-home'
+    : '';
 
   return (
     <div className={`w-full ${homeFooterClass}`}>

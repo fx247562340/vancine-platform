@@ -21,25 +21,27 @@ import { useAuthStore } from '@/stores/auth-store'
 import { Markdown } from '@/components/ui/markdown'
 import { PublicLayout } from '@/components/layout'
 import { Footer } from '@/components/layout/components/footer'
-import { CTA, Features, Hero, HowItWorks, Stats } from './components'
-import { useHomePageContent } from './hooks'
+import {
+  CTA,
+  Hero,
+  AvailableNow,
+  Stack,
+  Evidence,
+  Why,
+  Marketplace,
+} from './components'
+import { useHomePageContent, useHomepagePricing } from './hooks'
 
 export function Home() {
   const { t } = useTranslation()
   const { auth } = useAuthStore()
   const isAuthenticated = !!auth.user
-  const { content, isLoaded, isUrl } = useHomePageContent()
+  const { content, isUrl } = useHomePageContent()
+  const pricing = useHomepagePricing()
 
-  if (!isLoaded) {
-    return (
-      <PublicLayout showMainContainer={false}>
-        <main className='flex min-h-screen items-center justify-center'>
-          <div className='text-muted-foreground'>{t('Loading...')}</div>
-        </main>
-      </PublicLayout>
-    )
-  }
-
+  // Non-blocking: render the built-in acquisition home immediately; switch
+  // to the operator's custom content once it is available. Never a blank
+  // full-page loader.
   if (content) {
     return (
       <PublicLayout showMainContainer={false}>
@@ -62,10 +64,12 @@ export function Home() {
 
   return (
     <PublicLayout showMainContainer={false}>
-      <Hero isAuthenticated={isAuthenticated} />
-      <Stats />
-      <Features />
-      <HowItWorks />
+      <Hero isAuthenticated={isAuthenticated} pricing={pricing} />
+      <AvailableNow pricing={pricing} />
+      <Stack />
+      <Evidence />
+      <Why />
+      <Marketplace pricing={pricing} />
       <CTA isAuthenticated={isAuthenticated} />
       <Footer />
     </PublicLayout>

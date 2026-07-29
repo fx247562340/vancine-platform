@@ -266,6 +266,11 @@ export function Footer(props: FooterProps) {
             <p className='text-muted-foreground/60 mt-3 max-w-[200px] text-xs leading-relaxed'>
               {t('Powerful API Management Platform')}
             </p>
+            <p className='text-muted-foreground/50 mt-2 max-w-[240px] text-xs leading-relaxed'>
+              {t(
+                'Independent API infrastructure for China’s frontier AI models.'
+              )}
+            </p>
           </div>
 
           {/* Links columns */}

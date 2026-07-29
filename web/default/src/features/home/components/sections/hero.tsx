@@ -23,11 +23,13 @@ import { useTranslation } from 'react-i18next'
 import { trackEvent } from '@/lib/analytics'
 import { useStatus } from '@/hooks/use-status'
 import { Button } from '@/components/ui/button'
+import type { HomepagePricingState } from '../../hooks/use-homepage-pricing'
 import { HeroTerminalDemo } from '../hero-terminal-demo'
 
 interface HeroProps {
   className?: string
   isAuthenticated?: boolean
+  pricing?: HomepagePricingState
 }
 
 // Stylized three-dots indicator representing "More"
@@ -110,17 +112,17 @@ export function Hero(props: HeroProps) {
               <span className='absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75' />
               <span className='relative inline-flex size-1.5 rounded-full bg-blue-500 dark:bg-blue-400' />
             </span>
-            <span>{t('AI Application Infrastructure Foundation')}</span>
+            <span>{t('OpenAI-compatible access to China’s frontier AI')}</span>
           </div>
 
           <h1
             className='landing-animate-fade-up text-[clamp(2.25rem,4.5vw,3.25rem)] leading-[1.15] font-bold tracking-tight'
             style={{ animationDelay: '60ms' }}
           >
-            {t('Unified API Gateway for')}
+            {t('China’s frontier AI models.')}
             <br />
             <span className='bg-gradient-to-r from-blue-400 via-violet-400 to-purple-500 bg-clip-text text-transparent'>
-              {t('Vast Range of AI Models')}
+              {t('One API.')}
             </span>
           </h1>
           <p
@@ -128,7 +130,7 @@ export function Hero(props: HeroProps) {
             style={{ animationDelay: '120ms' }}
           >
             {t(
-              'Access a vast selection of models via a standard, unified API protocol. Power AI applications, manage digital assets, and connect the Future.'
+              'Build with leading Chinese models through one OpenAI-compatible endpoint. Use the SDKs and agent tools you already know.'
             )}
           </p>
 
@@ -156,19 +158,58 @@ export function Hero(props: HeroProps) {
                     trackEvent('get_started_clicked', { location: 'hero' })
                   }
                 >
-                  {t('Get Started')}
+                  {t('Start building free')}
                   <ArrowRight className='ml-1.5 size-4 transition-transform duration-200 group-hover:translate-x-0.5' />
                 </Button>
                 <Button
                   variant='outline'
                   className='border-border/50 hover:border-border hover:bg-muted/50 h-11 rounded-lg px-5 text-sm font-medium'
                   render={<Link to='/pricing' />}
+                  onClick={() =>
+                    trackEvent('explore_models_clicked', { location: 'hero' })
+                  }
                 >
-                  {t('View Pricing')}
+                  {t('Explore live models')}
                 </Button>
                 {renderDocsButton()}
               </>
             )}
+          </div>
+
+          {/* Live stats — real model count from the shared pricing state.
+              Never a fabricated hard-coded quantity: the count shows only
+              after a successful parse with count >= 1. */}
+          <div
+            className='landing-animate-fade-up mt-10 flex flex-wrap items-center gap-8 opacity-0 md:gap-12'
+            style={{ animationDelay: '300ms' }}
+          >
+            {typeof props.pricing?.count === 'number' &&
+            props.pricing.count >= 1 ? (
+              <div>
+                <div className='text-2xl font-bold tracking-tight md:text-3xl'>
+                  {props.pricing.count}
+                </div>
+                <div className='text-muted-foreground/70 mt-1 text-xs'>
+                  {t('AI Models')}
+                </div>
+              </div>
+            ) : null}
+            <div>
+              <div className='text-2xl font-bold tracking-tight md:text-3xl'>
+                OpenAI
+              </div>
+              <div className='text-muted-foreground/70 mt-1 text-xs'>
+                {t('Compatible')}
+              </div>
+            </div>
+            <div>
+              <div className='text-2xl font-bold tracking-tight md:text-3xl'>
+                1
+              </div>
+              <div className='text-muted-foreground/70 mt-1 text-xs'>
+                {t('API Endpoint')}
+              </div>
+            </div>
           </div>
 
           {/* Supported Apps (参考图二样式，进行卡片化和信息扩充设计，增加视觉高度) */}

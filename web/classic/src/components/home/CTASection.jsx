@@ -5,9 +5,13 @@ import { useTranslation } from 'react-i18next';
 import { IconPlay } from '@douyinfe/semi-icons';
 import ScrollReveal from './ScrollReveal';
 import { trackEvent } from '../../helpers/analytics';
+import { guestPrimaryPath, authPrimaryPath } from './homepage-pricing';
 
-const CTASection = ({ isMobile }) => {
+const CTASection = ({ isMobile, isAuthenticated }) => {
   const { t } = useTranslation();
+  const primaryPath = isAuthenticated
+    ? authPrimaryPath('classic')
+    : guestPrimaryPath('classic');
 
   return (
     <section
@@ -35,39 +39,15 @@ const CTASection = ({ isMobile }) => {
               lineHeight: 1.1,
             }}
           >
-            {t('Start Building')}{' '}
-            <span
-              style={{
-                background: 'linear-gradient(135deg, #6a4cf5, #d44df0)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}
-            >
-              {t('Today')}
-            </span>
+            {t('Start building with China’s frontier models')}
           </h2>
         </ScrollReveal>
 
         <ScrollReveal delay={0.1}>
-          <p
-            className='mb-10 max-w-xl mx-auto'
-            style={{
-              fontSize: '18px',
-              color: 'var(--vc-text-muted)',
-              lineHeight: 1.6,
-            }}
-          >
-            {t(
-              'No credit card required. Start with free credits and scale as you grow.',
-            )}
-          </p>
-        </ScrollReveal>
-
-        <ScrollReveal delay={0.2}>
           <Link
-            to='/console'
+            to={primaryPath}
             onClick={() =>
-              trackEvent('get_started_clicked', { location: 'cta' })
+              trackEvent('get_started_clicked', { location: 'final_cta' })
             }
           >
             <Button
@@ -82,9 +62,20 @@ const CTASection = ({ isMobile }) => {
               }}
               icon={<IconPlay />}
             >
-              {t('Get Started Free')}
+              {t('Get $1 in free API credit')}
             </Button>
           </Link>
+        </ScrollReveal>
+
+        <ScrollReveal delay={0.2}>
+          <p
+            className='mt-8 max-w-xl mx-auto text-sm leading-relaxed'
+            style={{ color: 'var(--vc-text-subtle)' }}
+          >
+            {t(
+              'New accounts may receive $1 in promotional API credit when the current signup bonus is enabled. Credit, eligibility, and availability can change; usage depends on model and workload.',
+            )}
+          </p>
         </ScrollReveal>
       </div>
     </section>

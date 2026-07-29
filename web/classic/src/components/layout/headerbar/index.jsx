@@ -26,6 +26,7 @@ import NoticeModal from '../NoticeModal';
 import MobileMenuButton from './MobileMenuButton';
 import HeaderLogo from './HeaderLogo';
 import Navigation from './Navigation';
+import PublicMobileNav from './PublicMobileNav';
 import ActionButtons from './ActionButtons';
 
 const HeaderBar = ({ onMobileMenuToggle, drawerOpen }) => {
@@ -78,14 +79,17 @@ const HeaderBar = ({ onMobileMenuToggle, drawerOpen }) => {
 
   const { mainNavLinks } = useNavigation(t, docsLink, headerNavModules);
 
-  const headerBg = isHomePage && !scrolled
-    ? 'bg-transparent'
-    : 'bg-white/75 dark:bg-zinc-900/75 backdrop-blur-lg';
+  const headerBg =
+    isHomePage && !scrolled
+      ? 'bg-transparent'
+      : 'bg-white/75 dark:bg-zinc-900/75 backdrop-blur-lg';
 
   const headerTextColor = isHomePage && !scrolled ? 'header-transparent' : '';
 
   return (
-    <header className={`text-semi-color-text-0 sticky top-0 z-50 transition-all duration-300 ${headerBg} ${headerTextColor}`}>
+    <header
+      className={`text-semi-color-text-0 sticky top-0 z-50 transition-all duration-300 ${headerBg} ${headerTextColor}`}
+    >
       <NoticeModal
         visible={noticeVisible}
         onClose={handleNoticeClose}
@@ -119,13 +123,21 @@ const HeaderBar = ({ onMobileMenuToggle, drawerOpen }) => {
             />
           </div>
 
-          <Navigation
-            mainNavLinks={mainNavLinks}
-            isMobile={isMobile}
-            isLoading={isLoading}
-            userState={userState}
-            pricingRequireAuth={pricingRequireAuth}
-          />
+          {isMobile && !isConsoleRoute ? (
+            <PublicMobileNav
+              mainNavLinks={mainNavLinks}
+              userState={userState}
+              t={t}
+            />
+          ) : (
+            <Navigation
+              mainNavLinks={mainNavLinks}
+              isMobile={isMobile}
+              isLoading={isLoading}
+              userState={userState}
+              pricingRequireAuth={pricingRequireAuth}
+            />
+          )}
 
           <ActionButtons
             isNewYear={isNewYear}

@@ -36,6 +36,7 @@ import {
   resolveWordRevealMode,
   deriveWordRevealMode,
   shouldStickWordRevealInstant,
+  describeWordSegment,
 } from './word-reveal.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -110,6 +111,59 @@ describe('splitHeadlineWords — language token shapes that trigger the bug', ()
     assert.deepEqual(splitHeadlineWords(''), ['']);
     assert.deepEqual(splitHeadlineWords(null), ['']);
     assert.deepEqual(splitHeadlineWords(undefined), ['']);
+  });
+});
+
+describe('describeWordSegment — visible, wrappable inter-word spacing', () => {
+  /**
+   * The regression: a lone regular space inside a `display: inline-block`
+   * span collapses to zero width, fusing words ("China’sfrontierAImodels.").
+   * A whitespace segment must render with a collapse-resistant style while
+   * still allowing the headline to wrap on narrow viewports.
+   */
+  function preservesVisibleSpace(d) {
+    return (
+      (d.style &&
+        typeof d.style.whiteSpace === 'string' &&
+        /pre/.test(d.style.whiteSpace)) ||
+      (typeof d.text === 'string' && d.text.includes(' '))
+    );
+  }
+
+  test('whitespace segment preserves a visible space (pre-wrap or NBSP)', () => {
+    const d = describeWordSegment(' ');
+    assert.equal(d.isWhitespace, true);
+    assert.ok(
+      preservesVisibleSpace(d),
+      `whitespace must not collapse to zero width; got ${JSON.stringify(d)}`,
+    );
+  });
+
+  test('whitespace segment stays wrappable (not a lone inline-block)', () => {
+    const d = describeWordSegment(' ');
+    // A lone inline-block span with only an NBSP would forbid line breaks and
+    // overflow narrow screens; whitespace must remain a break opportunity.
+    assert.equal(
+      d.style.display,
+      undefined,
+      'whitespace span must not be forced to inline-block',
+    );
+  });
+
+  test('word segments stay inline-block (transform animation applies)', () => {
+    for (const w of ['China’s', 'frontier', 'models.']) {
+      const d = describeWordSegment(w);
+      assert.equal(d.isWhitespace, false);
+      assert.equal(d.style.display, 'inline-block');
+    }
+  });
+
+  test('reconstructing the H1 from segments keeps spaces between words', () => {
+    const line = 'China’s frontier AI models.';
+    const joined = splitHeadlineWords(line)
+      .map((s) => describeWordSegment(s).text)
+      .join('');
+    assert.equal(joined, line);
   });
 });
 
@@ -605,6 +659,21 @@ describe('HeroSection wiring — component must call the pure helpers', () => {
       body,
       /if\s*\(\s*shouldStick\s*\)\s*\{[\s\S]*setHasCompletedEntrance\s*\(\s*true\s*\)/,
       'sticky setState must be gated by shouldStick',
+    );
+  });
+
+  test('H1 must not collapse inter-word spaces (whitespace regression)', () => {
+    // The bug: a lone ' ' rendered inside a display:inline-block motion.span
+    // collapses to zero width, fusing words ("China’sfrontierAImodels.").
+    assert.equal(
+      heroSrc.includes("{word === ' ' ? ' ' : word}"),
+      false,
+      'must not render bare spaces inside inline-block spans',
+    );
+    assert.match(
+      heroSrc,
+      /describeWordSegment/,
+      'WordReveal must render segments via describeWordSegment (pre-wrap whitespace)',
     );
   });
 });

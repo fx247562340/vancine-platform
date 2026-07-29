@@ -30,10 +30,8 @@ interface CTAProps {
 
 export function CTA(props: CTAProps) {
   const { t } = useTranslation()
-
-  if (props.isAuthenticated) {
-    return null
-  }
+  // Default theme register route is /sign-up; console home is /dashboard.
+  const primaryPath = props.isAuthenticated ? '/dashboard' : '/sign-up'
 
   return (
     <section className='relative z-10 overflow-hidden px-6 py-24 md:py-32'>
@@ -54,36 +52,27 @@ export function CTA(props: CTAProps) {
         animation='scale-in'
       >
         <h2 className='text-2xl leading-tight font-bold tracking-tight md:text-4xl'>
-          {t('Ready to simplify')}
-          <br />
-          <span className='bg-gradient-to-r from-blue-400 via-violet-400 to-purple-500 bg-clip-text text-transparent'>
-            {t('your AI integration?')}
-          </span>
+          {t('Start building with China’s frontier models')}
         </h2>
-        <p className='text-muted-foreground/80 mx-auto mt-5 max-w-md text-sm leading-relaxed md:text-base'>
-          {t(
-            'Deploy your own gateway and start routing requests through your configured upstream services.'
-          )}
-        </p>
         <div className='mt-8 flex items-center justify-center gap-3'>
           <Button
             className='group rounded-lg'
-            render={<Link to='/sign-up' />}
+            render={<Link to={primaryPath} />}
             onClick={() =>
-              trackEvent('get_started_clicked', { location: 'cta' })
+              trackEvent('get_started_clicked', { location: 'final_cta' })
             }
           >
-            {t('Get Started')}
+            {props.isAuthenticated
+              ? t('Go to Dashboard')
+              : t('Get $1 in free API credit')}
             <ArrowRight className='ml-1 size-3.5 transition-transform duration-200 group-hover:translate-x-0.5' />
           </Button>
-          <Button
-            variant='outline'
-            className='border-border/50 hover:border-border hover:bg-muted/50 rounded-lg'
-            render={<Link to='/pricing' />}
-          >
-            {t('View Pricing')}
-          </Button>
         </div>
+        <p className='text-muted-foreground/70 mx-auto mt-6 max-w-xl text-xs leading-relaxed md:text-sm'>
+          {t(
+            'New accounts may receive $1 in promotional API credit when the current signup bonus is enabled. Credit, eligibility, and availability can change; usage depends on model and workload.'
+          )}
+        </p>
       </AnimateInView>
     </section>
   )
