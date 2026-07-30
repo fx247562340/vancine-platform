@@ -93,6 +93,10 @@ const HOMEPAGE_KEYS = [
   'Compatible',
   'API Endpoint',
   'Featured models live on the public catalog. Open a model or browse the full marketplace.',
+  'Pi Coding Agent',
+  "Configuration-ready through Pi's custom OpenAI-compatible provider support. Not claimed as a completed Vancine live coding-agent verification on the homepage.",
+  'Configuration-ready',
+  'Live-verified',
 ]
 
 // Minimal whitelist of labels legitimately identical to English: pure
@@ -104,6 +108,7 @@ const WHITELIST = new Set([
   'Roo Code',
   'Claude Code',
   'OpenAI SDK',
+  'Pi Coding Agent',
   'Tests',
 ])
 

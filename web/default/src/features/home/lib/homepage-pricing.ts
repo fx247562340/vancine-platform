@@ -224,3 +224,21 @@ export function skeletonCountForWidth(width: number): number {
   if (width < 1280) return 2
   return 4
 }
+
+/**
+ * Desktop grid columns + centered max-width for the Available now Featured
+ * strip, driven by the actual featured count (1-4). Never returns 4 columns
+ * for 1-3 cards, so a 3-card row no longer leaves an empty 4th column.
+ * Tablet (<=2 cols) and mobile (1 col) reduction is handled by CSS in the
+ * section, not here; this only fixes the desktop column count + max-width.
+ */
+export function featuredGridColumns(
+  count: number
+): { columns: number; maxWidth: string } {
+  if (typeof count !== 'number' || count <= 1) {
+    return { columns: 1, maxWidth: '380px' }
+  }
+  if (count === 2) return { columns: 2, maxWidth: '780px' }
+  if (count === 3) return { columns: 3, maxWidth: '980px' }
+  return { columns: 4, maxWidth: '1200px' }
+}

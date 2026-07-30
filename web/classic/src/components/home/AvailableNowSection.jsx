@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { trackEvent } from '../../helpers/analytics';
 import ScrollReveal from './ScrollReveal';
+import SpotlightCard from './SpotlightCard';
 import {
   FEATURED_FALLBACK_LABEL,
   endpointChips,
+  featuredGridColumns,
   resolveVendorName,
   skeletonCountForWidth,
 } from './homepage-pricing';
@@ -85,7 +87,8 @@ const ModelCard = ({ model, vendors }) => {
   return (
     <Link
       to='/pricing'
-      className='block h-full'
+      className='block h-full rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[color:var(--vc-accent)]'
+      style={{ '--tw-ring-offset-color': 'var(--vc-section-bg)' }}
       onClick={() =>
         trackEvent('featured_model_clicked', {
           location: 'available_now',
@@ -93,14 +96,7 @@ const ModelCard = ({ model, vendors }) => {
         })
       }
     >
-      <div
-        className='h-full rounded-2xl p-5 transition-transform duration-200 hover:-translate-y-1'
-        style={{
-          background: 'var(--vc-glass-bg)',
-          border: '1px solid var(--vc-glass-border)',
-          backdropFilter: 'blur(12px)',
-        }}
-      >
+      <SpotlightCard interactive className='h-full p-5'>
         <div
           className='font-semibold text-base mb-1 break-all'
           style={{ color: 'var(--vc-text-strong)' }}
@@ -124,7 +120,7 @@ const ModelCard = ({ model, vendors }) => {
           </p>
         ) : null}
         <EndpointChips types={model.supported_endpoint_types} />
-      </div>
+      </SpotlightCard>
     </Link>
   );
 };
@@ -176,6 +172,60 @@ const FallbackLink = ({ location }) => {
   );
 };
 
+const FeaturedGrid = ({ featured, rawVendors, isMobile }) => {
+  const { t } = useTranslation();
+  const width =
+    typeof window !== 'undefined' && typeof window.innerWidth === 'number'
+      ? window.innerWidth
+      : 1280;
+  const isTablet = width >= 768 && width < 1280;
+  const { columns, maxWidth } = featuredGridColumns(featured.length);
+
+  const desktopGridCols =
+    columns === 1
+      ? 'grid-cols-1'
+      : columns === 2
+        ? 'grid-cols-2'
+        : columns === 3
+          ? 'grid-cols-3'
+          : 'grid-cols-4';
+
+  // Tablet rules (design §3.3): 1 card -> 1 column centered;
+  // 2/3/4 cards -> at most 2 columns centered. Mobile stays 1.
+  const tabletGridCols =
+    featured.length <= 1 ? 'md:grid-cols-1' : 'md:grid-cols-2';
+
+  const responsiveGridCols = isMobile
+    ? 'grid-cols-1'
+    : isTablet
+      ? tabletGridCols
+      : desktopGridCols;
+
+  return (
+    <>
+      <p
+        className='text-center text-sm mb-6 max-w-2xl mx-auto'
+        style={{ color: 'var(--vc-text-muted)' }}
+      >
+        {t(
+          'Featured models live on the public catalog. Open a model or browse the full marketplace.',
+        )}
+      </p>
+      <div className='mx-auto' style={{ maxWidth }}>
+        <div className={`grid gap-5 ${responsiveGridCols}`}>
+          {featured.map((model) => (
+            <ModelCard
+              key={model.model_name}
+              model={model}
+              vendors={rawVendors}
+            />
+          ))}
+        </div>
+      </div>
+    </>
+  );
+};
+
 const AvailableNowSection = ({ pricingState, isMobile }) => {
   const { t } = useTranslation();
   const width = useViewportWidth();
@@ -200,25 +250,11 @@ const AvailableNowSection = ({ pricingState, isMobile }) => {
         ) : (
           <>
             {featured.length > 0 ? (
-              <>
-                <p
-                  className='text-center text-sm mb-6 max-w-2xl mx-auto'
-                  style={{ color: 'var(--vc-text-muted)' }}
-                >
-                  {t(
-                    'Featured models live on the public catalog. Open a model or browse the full marketplace.',
-                  )}
-                </p>
-                <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5'>
-                  {featured.map((model) => (
-                    <ModelCard
-                      key={model.model_name}
-                      model={model}
-                      vendors={rawVendors}
-                    />
-                  ))}
-                </div>
-              </>
+              <FeaturedGrid
+                featured={featured}
+                rawVendors={rawVendors}
+                isMobile={isMobile}
+              />
             ) : (
               <FallbackLink location='available_now_fallback' />
             )}

@@ -30,6 +30,7 @@ import {
   selectMarketplace,
   selectVendors,
   endpointChips,
+  featuredGridColumns,
   guestPrimaryPath,
   authPrimaryPath,
   HERO_EVERGREEN_STRINGS,
@@ -231,6 +232,48 @@ describe('Hero evergreen contract', () => {
 
   test('fallback label is safe', () => {
     assert.match(FEATURED_FALLBACK_LABEL, /Explore all available models/i);
+  });
+});
+
+describe('featuredGridColumns (count-driven centered grid)', () => {
+  test('count 1 → 1 column + 380px max-width', () => {
+    assert.deepEqual(featuredGridColumns(1), {
+      columns: 1,
+      maxWidth: '380px',
+    });
+  });
+  test('count 2 → 2 columns + 780px max-width', () => {
+    assert.deepEqual(featuredGridColumns(2), {
+      columns: 2,
+      maxWidth: '780px',
+    });
+  });
+  test('count 3 → 3 columns + 980px max-width (no empty trailing column)', () => {
+    assert.deepEqual(featuredGridColumns(3), {
+      columns: 3,
+      maxWidth: '980px',
+    });
+  });
+  test('count 4 → 4 columns + 1200px max-width', () => {
+    assert.deepEqual(featuredGridColumns(4), {
+      columns: 4,
+      maxWidth: '1200px',
+    });
+  });
+  test('count 1, 2, 3 never return 4 columns (fixes empty 4th column)', () => {
+    for (const n of [1, 2, 3]) {
+      assert.notEqual(featuredGridColumns(n).columns, 4, `count ${n} must not return 4 columns`);
+    }
+  });
+  test('defensive: count <= 1 and non-number fall back to single column', () => {
+    assert.deepEqual(featuredGridColumns(0), {
+      columns: 1,
+      maxWidth: '380px',
+    });
+    assert.deepEqual(featuredGridColumns(undefined), {
+      columns: 1,
+      maxWidth: '380px',
+    });
   });
 });
 

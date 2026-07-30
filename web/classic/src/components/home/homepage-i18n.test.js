@@ -93,6 +93,10 @@ const HOMEPAGE_KEYS_EN = [
   'Compatible',
   'API Endpoint',
   'Featured models live on the public catalog. Open a model or browse the full marketplace.',
+  'Pi Coding Agent',
+  "Configuration-ready through Pi's custom OpenAI-compatible provider support. Not claimed as a completed Vancine live coding-agent verification on the homepage.",
+  'Configuration-ready',
+  'Live-verified',
 ];
 // Classic-only mobile menu keys (Chinese-source keys).
 const MENU_KEYS = ['关闭菜单', '打开菜单', '导航菜单'];
@@ -108,6 +112,7 @@ const WHITELIST = new Set([
   'Roo Code',
   'Claude Code',
   'OpenAI SDK',
+  'Pi Coding Agent',
   'Tests',
 ]);
 

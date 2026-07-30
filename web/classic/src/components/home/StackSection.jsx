@@ -1,31 +1,43 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import ScrollReveal from './ScrollReveal';
+import SpotlightCard from './SpotlightCard';
 
 const STACK_ITEMS = [
   {
     titleKey: 'OpenCode',
     bodyKey:
       'Live-verified with Kimi K3 in a controlled coding-agent run. View the evidence section below.',
+    qualification: 'Live-verified',
   },
   {
     titleKey: 'Cline',
     bodyKey:
       'Configuration-ready OpenAI-compatible setup. Not claimed as a completed Vancine live coding-agent verification on the homepage.',
+    qualification: 'Configuration-ready',
   },
   {
     titleKey: 'Roo Code',
     bodyKey:
       'Configuration-ready OpenAI-compatible setup. Not claimed as a completed Vancine live coding-agent verification on the homepage.',
+    qualification: 'Configuration-ready',
   },
   {
     titleKey: 'Claude Code',
     bodyKey:
       'Compatible via OpenAI-compatible / documented gateway usage patterns. No Vancine-owned end-to-end coding-agent benchmark is claimed on the homepage.',
+    qualification: 'Configuration-ready',
   },
   {
     titleKey: 'OpenAI SDK',
     bodyKey: 'First-class: standard OpenAI SDK against https://vancine.com/v1.',
+    qualification: 'Configuration-ready',
+  },
+  {
+    titleKey: 'Pi Coding Agent',
+    bodyKey:
+      "Configuration-ready through Pi's custom OpenAI-compatible provider support. Not claimed as a completed Vancine live coding-agent verification on the homepage.",
+    qualification: 'Configuration-ready',
   },
 ];
 
@@ -62,14 +74,7 @@ const StackSection = ({ isMobile }) => {
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5'>
           {STACK_ITEMS.map((item, i) => (
             <ScrollReveal key={item.titleKey} delay={i * 0.05}>
-              <div
-                className='h-full rounded-2xl p-6'
-                style={{
-                  background: 'var(--vc-glass-bg)',
-                  border: '1px solid var(--vc-glass-border)',
-                  backdropFilter: 'blur(12px)',
-                }}
-              >
+              <SpotlightCard className='h-full p-6'>
                 <div
                   className='font-semibold text-lg mb-2'
                   style={{ color: 'var(--vc-text-strong)' }}
@@ -82,7 +87,19 @@ const StackSection = ({ isMobile }) => {
                 >
                   {t(item.bodyKey)}
                 </p>
-              </div>
+                <div className='mt-3'>
+                  <span
+                    className='inline-flex items-center text-[11px] px-2 py-0.5 rounded-full font-medium'
+                    style={{
+                      background: 'var(--vc-glass-bg)',
+                      border: '1px solid var(--vc-glass-border)',
+                      color: 'var(--vc-text-subtle)',
+                    }}
+                  >
+                    {t(item.qualification)}
+                  </span>
+                </div>
+              </SpotlightCard>
             </ScrollReveal>
           ))}
         </div>

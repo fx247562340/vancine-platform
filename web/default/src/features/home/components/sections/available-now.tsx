@@ -21,9 +21,11 @@ import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { trackEvent } from '@/lib/analytics'
 import { AnimateInView } from '@/components/animate-in-view'
+import { SpotlightCard } from '@/features/home/components/spotlight-card'
 import type { HomepagePricingState } from '../../hooks/use-homepage-pricing'
 import {
   endpointChips,
+  featuredGridColumns,
   resolveVendorName,
   skeletonCountForWidth,
   type PricingModel,
@@ -80,7 +82,7 @@ function Card({
   return (
     <Link
       to='/pricing'
-      className='block h-full'
+      className='focus-visible:ring-ring block h-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2'
       onClick={() =>
         trackEvent('featured_model_clicked', {
           location: 'available_now',
@@ -88,7 +90,7 @@ function Card({
         })
       }
     >
-      <div className='border-border/40 bg-muted/10 hover:border-border hover:bg-muted/20 h-full rounded-xl border p-5 transition-colors duration-200'>
+      <SpotlightCard interactive className='h-full p-5'>
         <div className='mb-1 text-base font-semibold break-all'>
           {model.model_name}
         </div>
@@ -103,7 +105,7 @@ function Card({
           </p>
         ) : null}
         <Chips types={model.supported_endpoint_types} />
-      </div>
+      </SpotlightCard>
     </Link>
   )
 }
@@ -121,11 +123,77 @@ function SkeletonCard() {
   )
 }
 
-export function AvailableNow({ pricing }: { pricing: HomepagePricingState }) {
+function FeaturedGrid({
+  featured,
+  rawVendors,
+  isMobile,
+}: {
+  featured: PricingModel[]
+  rawVendors: PricingVendor[]
+  isMobile: boolean
+}) {
+  const { t } = useTranslation()
+  const width =
+    typeof window !== 'undefined' && typeof window.innerWidth === 'number'
+      ? window.innerWidth
+      : 1280
+  const isTablet = width >= 768 && width < 1280
+  const { columns, maxWidth } = featuredGridColumns(featured.length)
+
+  const desktopGridCols =
+    columns === 1
+      ? 'grid-cols-1'
+      : columns === 2
+        ? 'grid-cols-2'
+        : columns === 3
+          ? 'grid-cols-3'
+          : 'grid-cols-4'
+
+  // Tablet rules (design §3.3): 1 card -> 1 column centered;
+  // 2/3/4 cards -> at most 2 columns centered. Mobile stays 1.
+  const tabletGridCols =
+    featured.length <= 1 ? 'md:grid-cols-1' : 'md:grid-cols-2'
+
+  const responsiveGridCols = isMobile
+    ? 'grid-cols-1'
+    : isTablet
+      ? tabletGridCols
+      : desktopGridCols
+
+  return (
+    <>
+      <p className='text-muted-foreground mx-auto mb-6 max-w-2xl text-center text-sm'>
+        {t(
+          'Featured models live on the public catalog. Open a model or browse the full marketplace.'
+        )}
+      </p>
+      <div className='mx-auto' style={{ maxWidth }}>
+        <div className={`grid gap-5 ${responsiveGridCols}`}>
+          {featured.map((model) => (
+            <Card
+              key={model.model_name}
+              model={model}
+              vendors={rawVendors}
+            />
+          ))}
+        </div>
+      </div>
+    </>
+  )
+}
+
+export function AvailableNow({
+  pricing,
+  isMobile,
+}: {
+  pricing: HomepagePricingState
+  isMobile?: boolean
+}) {
   const { t } = useTranslation()
   const { status, featured, count, rawVendors } = pricing
   const width = useViewportWidth()
   const skeletonCount = skeletonCountForWidth(width)
+  const mobile = isMobile ?? width < 768
 
   return (
     <section className='border-border/40 bg-muted/5 relative z-10 border-y px-6 py-20 md:py-24'>
@@ -145,22 +213,11 @@ export function AvailableNow({ pricing }: { pricing: HomepagePricingState }) {
         ) : (
           <>
             {featured.length > 0 ? (
-              <>
-                <p className='text-muted-foreground mx-auto mb-6 max-w-2xl text-center text-sm'>
-                  {t(
-                    'Featured models live on the public catalog. Open a model or browse the full marketplace.'
-                  )}
-                </p>
-                <div className='grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4'>
-                  {featured.map((model) => (
-                    <Card
-                      key={model.model_name}
-                      model={model}
-                      vendors={rawVendors}
-                    />
-                  ))}
-                </div>
-              </>
+              <FeaturedGrid
+                featured={featured}
+                rawVendors={rawVendors}
+                isMobile={mobile}
+              />
             ) : (
               <div className='py-8 text-center'>
                 <Link

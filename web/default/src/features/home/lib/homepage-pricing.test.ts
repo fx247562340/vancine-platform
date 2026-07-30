@@ -25,6 +25,7 @@ import {
   selectMarketplace,
   selectVendors,
   endpointChips,
+  featuredGridColumns,
   guestPrimaryPath,
   authPrimaryPath,
   resolveVendorName,
@@ -210,5 +211,26 @@ describe('CTA paths + contracts (default parity)', () => {
     assert.equal(skeletonCountForWidth(390), 1)
     assert.equal(skeletonCountForWidth(768), 2)
     assert.equal(skeletonCountForWidth(1280), 4)
+  })
+})
+
+describe('featuredGridColumns (default parity)', () => {
+  test('count 1/2/3/4 return matching columns + max-width', () => {
+    assert.deepEqual(featuredGridColumns(1), { columns: 1, maxWidth: '380px' })
+    assert.deepEqual(featuredGridColumns(2), { columns: 2, maxWidth: '780px' })
+    assert.deepEqual(featuredGridColumns(3), { columns: 3, maxWidth: '980px' })
+    assert.deepEqual(featuredGridColumns(4), { columns: 4, maxWidth: '1200px' })
+  })
+  test('count 1, 2, 3 never return 4 columns (fixes empty 4th column)', () => {
+    for (const n of [1, 2, 3]) {
+      assert.notEqual(
+        featuredGridColumns(n).columns,
+        4,
+        `count ${n} must not return 4 columns`
+      )
+    }
+  })
+  test('defensive: count 0 falls back to single column', () => {
+    assert.deepEqual(featuredGridColumns(0), { columns: 1, maxWidth: '380px' })
   })
 })

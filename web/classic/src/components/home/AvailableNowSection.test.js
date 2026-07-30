@@ -71,3 +71,79 @@ describe('AvailableNowSection — count & fallback contract', () => {
     assert.match(src, /length:\s*skeletonCount/);
   });
 });
+
+describe('AvailableNowSection — count-driven centered grid contract', () => {
+  test('uses featuredGridColumns(count) helper', () => {
+    assert.match(src, /featuredGridColumns/);
+  });
+
+  test('does not unconditionally render 4 columns for 1-3 featured cards', () => {
+    // The count-driven grid must not pin to a fixed 4-col grid outside the
+    // skeleton state.
+    const countDrivenBlock = src.match(/FeaturedGrid[\s\S]*?<\/div>/);
+    assert.ok(countDrivenBlock, 'FeaturedGrid component must exist');
+    assert.equal(
+      /xl:grid-cols-4/.test(countDrivenBlock[0]),
+      false,
+      'featured grid must not pin to xl:grid-cols-4',
+    );
+  });
+});
+
+describe('AvailableNowSection — tablet responsive contract (design §3.3)', () => {
+  test('tablet + 1 featured card collapses to a single centered column (md:grid-cols-1)', () => {
+    const grid = src.match(/FeaturedGrid[\s\S]*?<\/div>/);
+    assert.ok(grid, 'FeaturedGrid component must exist');
+    assert.match(
+      grid[0],
+      /featured\.length\s*<=\s*1\s*\?\s*['"]md:grid-cols-1['"]/,
+      'tablet + 1 card must use md:grid-cols-1',
+    );
+  });
+
+  test('tablet + 2/3/4 featured cards collapse to at most 2 centered columns', () => {
+    const grid = src.match(/FeaturedGrid[\s\S]*?<\/div>/);
+    assert.ok(grid, 'FeaturedGrid component must exist');
+    assert.match(
+      grid[0],
+      /featured\.length\s*<=\s*1\s*\?\s*['"]md:grid-cols-1['"]\s*:\s*['"]md:grid-cols-2['"]/,
+      'tablet + 2/3/4 cards must use md:grid-cols-2',
+    );
+  });
+
+  test('desktop 1/2/3/4 contract preserved (count-driven 1/2/3/4 columns)', () => {
+    const grid = src.match(/FeaturedGrid[\s\S]*?<\/div>/);
+    assert.ok(grid, 'FeaturedGrid component must exist');
+    // Desktop column templates map 1/2/3/4 to grid-cols-1/2/3/4
+    assert.match(grid[0], /grid-cols-1/);
+    assert.match(grid[0], /grid-cols-2/);
+    assert.match(grid[0], /grid-cols-3/);
+    assert.match(grid[0], /grid-cols-4/);
+  });
+
+  test('mobile always single column (no md: override leaks)', () => {
+    // The responsive-grid is assembled from `'grid-cols-1'` for mobile and
+    // an md: variant for tablet. We assert on the source pieces directly,
+    // since the final className is built dynamically rather than as a single
+    // string literal in JSX.
+    assert.match(
+      src,
+      /responsiveGridCols\s*=\s*isMobile\s*\?\s*'grid-cols-1'/,
+      'mobile base must be grid-cols-1',
+    )
+    assert.match(src, /tabletGridCols\s*=\s*[\s\S]*?'md:grid-cols-1'/)
+    assert.match(src, /'md:grid-cols-1'\s*:\s*'md:grid-cols-2'/)
+  })
+});
+
+describe('AvailableNowSection — focus-visible + SpotlightCard', () => {
+  test('available-now link has :focus-visible accent ring', () => {
+    assert.match(src, /focus-visible:ring/);
+    assert.match(src, /focus-visible:ring-\[color:var\(--vc-accent\)\]/);
+  });
+
+  test('renders card through SpotlightCard primitive', () => {
+    assert.match(src, /import SpotlightCard from ['"]\.\/SpotlightCard['"]/);
+    assert.match(src, /<SpotlightCard[\s\S]*?>/);
+  });
+});

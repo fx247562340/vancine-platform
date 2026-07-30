@@ -18,27 +18,38 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useTranslation } from 'react-i18next'
 import { AnimateInView } from '@/components/animate-in-view'
+import { SpotlightCard } from '@/features/home/components/spotlight-card'
 
 const STACK_ITEMS = [
   {
     title: 'OpenCode',
     body: 'Live-verified with Kimi K3 in a controlled coding-agent run. View the evidence section below.',
+    qualification: 'Live-verified',
   },
   {
     title: 'Cline',
     body: 'Configuration-ready OpenAI-compatible setup. Not claimed as a completed Vancine live coding-agent verification on the homepage.',
+    qualification: 'Configuration-ready',
   },
   {
     title: 'Roo Code',
     body: 'Configuration-ready OpenAI-compatible setup. Not claimed as a completed Vancine live coding-agent verification on the homepage.',
+    qualification: 'Configuration-ready',
   },
   {
     title: 'Claude Code',
     body: 'Compatible via OpenAI-compatible / documented gateway usage patterns. No Vancine-owned end-to-end coding-agent benchmark is claimed on the homepage.',
+    qualification: 'Configuration-ready',
   },
   {
     title: 'OpenAI SDK',
     body: 'First-class: standard OpenAI SDK against https://vancine.com/v1.',
+    qualification: 'Configuration-ready',
+  },
+  {
+    title: 'Pi Coding Agent',
+    body: "Configuration-ready through Pi's custom OpenAI-compatible provider support. Not claimed as a completed Vancine live coding-agent verification on the homepage.",
+    qualification: 'Configuration-ready',
   },
 ]
 
@@ -64,12 +75,18 @@ export function Stack() {
               key={item.title}
               delay={i * 80}
               animation='scale-in'
-              className='border-border/40 bg-muted/10 rounded-xl border p-6'
             >
-              <h3 className='mb-2 text-lg font-semibold'>{t(item.title)}</h3>
-              <p className='text-muted-foreground text-sm leading-relaxed'>
-                {t(item.body)}
-              </p>
+              <SpotlightCard className='h-full p-6'>
+                <h3 className='mb-2 text-lg font-semibold'>{t(item.title)}</h3>
+                <p className='text-muted-foreground text-sm leading-relaxed'>
+                  {t(item.body)}
+                </p>
+                <div className='mt-3'>
+                  <span className='border-border/40 bg-muted/20 text-muted-foreground/80 inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium'>
+                    {t(item.qualification)}
+                  </span>
+                </div>
+              </SpotlightCard>
             </AnimateInView>
           ))}
         </div>
