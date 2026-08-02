@@ -24,7 +24,7 @@ import {
   getBillingSectionMeta,
 } from './section-registry.tsx'
 
-const defaultBillingSettings: BillingSettings = {
+export const defaultBillingSettings: BillingSettings = {
   QuotaForNewUser: 0,
   PreConsumedQuota: 0,
   QuotaForInviter: 0,
@@ -102,6 +102,16 @@ const defaultBillingSettings: BillingSettings = {
   WaffoPancakeReturnURL: '',
   WaffoPancakeStoreID: '',
   WaffoPancakeProductID: '',
+  PayPalEnabled: false,
+  PayPalTestMode: false,
+  PayPalClientId: '',
+  PayPalClientSecret: '',
+  PayPalWebhookId: '',
+  PayPalSandboxClientId: '',
+  PayPalSandboxClientSecret: '',
+  PayPalSandboxWebhookId: '',
+  PayPalMinTopUp: 1,
+  PayPalCurrency: 'USD',
   'checkin_setting.enabled': false,
   'checkin_setting.min_quota': 1000,
   'checkin_setting.max_quota': 10000,

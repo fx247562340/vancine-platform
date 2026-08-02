@@ -21,8 +21,9 @@ import {
   DEFAULT_PRESET_MULTIPLIERS,
   DEFAULT_PAYMENT_TYPE,
   DEFAULT_MIN_TOPUP,
-} from '../constants'
+} from '../constants.ts'
 import type { PresetAmount, TopupInfo } from '../types'
+import { isSafeHttpPaymentUrl } from './validate-payment-url.ts'
 
 // ============================================================================
 // Payment Processing Functions
@@ -87,6 +88,92 @@ export function isWaffoPancakePayment(paymentType: string): boolean {
 }
 
 /**
+ * Check if payment method is PayPal.
+ *
+ * Exact match only (no prefix/substring matching), keyed off the shared
+ * `PAYMENT_TYPES.PAYPAL` constant so the type check and the `payment_method`
+ * sent to the backend can never drift apart. PayPal uses dedicated
+ * `/api/user/paypal/*` endpoints and a current-window redirect to `pay_link`,
+ * so it must be dispatched separately from Stripe and the generic epay form.
+ */
+export function isPayPalPayment(paymentType: string): boolean {
+  return paymentType === PAYMENT_TYPES.PAYPAL
+}
+
+/**
+ * Result of resolving a PayPal checkout redirect from a pay response.
+ */
+export type PayPalRedirect = { ok: true; url: string } | { ok: false }
+
+/**
+ * Resolve the PayPal checkout redirect target from a pay response.
+ *
+ * Returns `{ ok: true, url }` ONLY when the business result is successful AND
+ * `data.pay_link` is a present, safe http(s) URL (via `isSafeHttpPaymentUrl`).
+ * In every other case (business failure, missing/non-string pay_link, or a
+ * javascript:/data:/relative URL) it returns `{ ok: false }`, and the caller
+ * must NOT navigate nor record `checkout_started`.
+ */
+export function resolvePayPalRedirect(response: {
+  success?: boolean
+  message?: string
+  data?: unknown
+}): PayPalRedirect {
+  const success = response.success === true || response.message === 'success'
+  if (!success) {
+    return { ok: false }
+  }
+  const data = response.data
+  const payLink =
+    data && typeof data === 'object'
+      ? (data as { pay_link?: unknown }).pay_link
+      : undefined
+  if (!isSafeHttpPaymentUrl(payLink)) {
+    return { ok: false }
+  }
+  return { ok: true, url: payLink as string }
+}
+
+/**
+ * Navigate the CURRENT window to a payment URL by assigning `location.href`
+ * (no new tab, no form submission). Accepts a Location-like object (defaulting
+ * to `window.location`) so tests can pass a fake. Callers must only invoke this
+ * with a URL that has already passed `isSafeHttpPaymentUrl`.
+ */
+export function navigateToPaymentUrl(
+  url: string,
+  location: { href: string } = window.location
+): void {
+  location.href = url
+}
+
+/**
+ * Resolve a human-readable payment error message from a backend response,
+ * matching Classic's readability.
+ *
+ * The backend reports failures as `{ message: 'error', data: '拉起支付失败' }`
+ * — the readable text lives in `data` while `message` is just the literal
+ * 'error'. Precedence:
+ * 1. `message` present and not 'error'/'success' -> use `message`;
+ * 2. else `data` is a non-empty string -> use `data`;
+ * 3. else `fallback`.
+ */
+export function resolvePaymentErrorMessage(
+  response: { message?: string; data?: unknown } | undefined | null,
+  fallback: string
+): string {
+  const message = response?.message
+  if (message && message !== 'error' && message !== 'success') {
+    return message
+  }
+  const data = response?.data
+  if (typeof data === 'string' && data.trim()) {
+    return data
+  }
+  return fallback
+}
+
+/**
  * Get default payment type from topup info
  */
 export function getDefaultPaymentType(topupInfo: TopupInfo | null): string {
@@ -101,6 +188,10 @@ export function getDefaultPaymentType(topupInfo: TopupInfo | null): string {
 
   if (topupInfo.enable_stripe_topup) {
     return PAYMENT_TYPES.STRIPE
+  }
+
+  if (topupInfo.enable_paypal_topup) {
+    return PAYMENT_TYPES.PAYPAL
   }
 
   if (topupInfo.enable_waffo_topup) {
@@ -128,6 +219,10 @@ export function getMinTopupAmount(topupInfo: TopupInfo | null): number {
 
   if (topupInfo.enable_stripe_topup) {
     return topupInfo.stripe_min_topup
+  }
+
+  if (topupInfo.enable_paypal_topup) {
+    return topupInfo.paypal_min_topup || DEFAULT_MIN_TOPUP
   }
 
   if (topupInfo.enable_waffo_topup) {
