@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
@@ -12,7 +13,7 @@ import (
 
 var timeFormat = "2006-01-02T15:04:05.000Z"
 
-var inMemoryRateLimiter common.InMemoryRateLimiter
+var inMemoryRateLimiter = &common.InMemoryRateLimiter{}
 
 var defNext = func(c *gin.Context) {
 	c.Next()
@@ -89,9 +90,30 @@ func rateLimitFactory(maxRequestNum int, duration int64, mark string) func(c *gi
 
 func GlobalWebRateLimit() func(c *gin.Context) {
 	if common.GlobalWebRateLimitEnable {
-		return rateLimitFactory(common.GlobalWebRateLimitNum, common.GlobalWebRateLimitDuration, "GW")
+		limiter := rateLimitFactory(common.GlobalWebRateLimitNum, common.GlobalWebRateLimitDuration, "GW")
+		return func(c *gin.Context) {
+			// Bypass frontend build assets (/static/*, /assets/*) so a burst of
+			// chunk requests cannot exhaust the per-IP web budget and break lazy
+			// docs bundles. Applied here (outside rateLimitFactory) so the Redis
+			// and in-memory branches share the exact same bypass contract.
+			if isBuildAssetPath(c.Request.URL.Path) {
+				c.Next()
+				return
+			}
+			limiter(c)
+		}
 	}
 	return defNext
+}
+
+// isBuildAssetPath reports whether path is a frontend build asset that must be
+// exempt from the global web rate limit: a path UNDER a top-level /static/
+// (Default build) or /assets/ (Classic build) segment. Matching is based on
+// URL.Path (no query string). Bare /static and /assets, look-alikes such as
+// /static-page or /assets-old, and nested /foo/static/x are NOT exempt and
+// remain rate-limited.
+func isBuildAssetPath(path string) bool {
+	return strings.HasPrefix(path, "/static/") || strings.HasPrefix(path, "/assets/")
 }
 
 func GlobalAPIRateLimit() func(c *gin.Context) {
