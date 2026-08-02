@@ -318,7 +318,7 @@ func TestTelegramLoginNewUserCreatesDefaultToken(t *testing.T) {
 	var tokens []model.Token
 	require.NoError(t, model.DB.Where("user_id = ?", created.Id).Find(&tokens).Error)
 	require.Len(t, tokens, 1)
-	assert.Equal(t, created.Username+"的初始令牌", tokens[0].Name)
+	assert.Equal(t, "default", tokens[0].Name)
 	assert.Equal(t, int64(-1), tokens[0].ExpiredTime)
 	assert.True(t, tokens[0].UnlimitedQuota)
 	assert.False(t, tokens[0].ModelLimitsEnabled)

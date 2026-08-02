@@ -153,7 +153,7 @@ func ensureDefaultTokenForNewUser(user *model.User) error {
 		}
 		token := model.Token{
 			UserId:             user.Id,
-			Name:               user.Username + "的初始令牌",
+			Name:               "default",
 			Key:                key,
 			CreatedTime:        common.GetTimestamp(),
 			AccessedTime:       common.GetTimestamp(),
