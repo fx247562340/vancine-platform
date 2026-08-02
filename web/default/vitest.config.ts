@@ -40,6 +40,8 @@ export default defineConfig({
       'src/features/docs/__tests__/**/*.test.tsx',
       'src/features/wallet/**/*.test.tsx',
       'src/features/system-settings/**/*.test.tsx',
+      'src/features/auth/**/telegram*.test.tsx',
+      'src/features/profile/**/telegram*.test.tsx',
     ],
     css: false,
   },

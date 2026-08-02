@@ -29,6 +29,7 @@ import {
   buildOIDCOAuthUrl,
   buildLinuxDOOAuthUrl,
 } from '../lib/oauth'
+import { telegramLogin, type TelegramAuthPayload } from '../lib/telegram'
 import type { SystemStatus, CustomOAuthProviderInfo } from '../types'
 
 type LogoutRequestConfig = AxiosRequestConfig & {
@@ -211,11 +212,12 @@ export function useOAuthLogin(
     }
   }
 
-  const handleTelegramLogin = () => {
-    // Telegram uses a widget — no first-party OAuth redirect path here.
-    // signup_started is intentionally NOT fired (even when a register
-    // callback is injected) because there is no redirect to await against.
-    toast.info(t('Telegram login requires widget integration; coming soon'))
+  const handleTelegramLogin = (payload: TelegramAuthPayload) => {
+    // Telegram uses an embedded widget whose onAuth callback hands us the auth
+    // payload directly — there is no first-party OAuth redirect, so
+    // signup_started is intentionally NOT fired here (no redirect to await).
+    // Executes the real login request; callers own success/navigation handling.
+    return telegramLogin(payload)
   }
 
   const handleCustomOAuthLogin = async (provider: CustomOAuthProviderInfo) => {

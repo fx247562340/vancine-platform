@@ -17,11 +17,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useEffect, useMemo, useState, useCallback } from 'react'
-import { Mail, Shield, Send, Link2, Unlink } from 'lucide-react'
+import { Mail, Shield, Link2, Unlink } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { SiGithub, SiWechat, SiLinux } from 'react-icons/si'
 import { toast } from 'sonner'
-import { IconDiscord } from '@/assets/brand-icons'
+import { IconDiscord, IconTelegram } from '@/assets/brand-icons'
 import {
   handleGitHubOAuth,
   handleOIDCOAuth,
@@ -228,7 +228,7 @@ export function AccountBindingsTab({
       {
         id: 'telegram',
         label: t('Telegram'),
-        icon: Send,
+        icon: IconTelegram,
         value: (profile as unknown as Record<string, unknown>).telegram_id as
           | string
           | undefined,

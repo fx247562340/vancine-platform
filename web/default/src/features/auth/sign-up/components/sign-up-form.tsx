@@ -59,6 +59,10 @@ import {
   getAffiliateCode,
   saveAffiliateCode,
 } from '@/features/auth/lib/storage'
+import {
+  telegramLogin,
+  type TelegramAuthPayload,
+} from '@/features/auth/lib/telegram'
 
 export function SignUpForm({
   className,
@@ -200,6 +204,28 @@ export function SignUpForm({
 
   async function handleSendVerificationCode() {
     await sendCode(emailValue || '')
+  }
+
+  async function handleTelegramAuth(payload: TelegramAuthPayload) {
+    // Telegram authorization happens inside the widget iframe (no first-party
+    // redirect), so signup_started is intentionally NOT fired here — mirroring
+    // the Classic theme and the OAuth acquisition contract.
+    if (requiresLegalConsent && !agreedToLegal) {
+      toast.error(legalConsentErrorMessage)
+      return
+    }
+
+    try {
+      const res = await telegramLogin(payload)
+      if (res?.success) {
+        await handleLoginSuccess(res.data as { id?: number } | null)
+        toast.success(t('Signed in via Telegram'))
+      } else {
+        toast.error(res?.message || t('Login failed'))
+      }
+    } catch (_error) {
+      toast.error(t('Login failed'))
+    }
   }
 
   const handleOpenWeChatDialog = () => {
@@ -392,6 +418,7 @@ export function SignUpForm({
             disabled={isLoading || (requiresLegalConsent && !agreedToLegal)}
             onWeChatLogin={hasWeChatLogin ? handleOpenWeChatDialog : undefined}
             isWeChatLoading={isWeChatSubmitting}
+            onTelegramAuth={handleTelegramAuth}
             onBeforeOAuthRedirect={reportSignupStarted}
             className='pt-2'
           />

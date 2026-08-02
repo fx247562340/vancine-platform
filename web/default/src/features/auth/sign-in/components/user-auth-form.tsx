@@ -58,6 +58,10 @@ import { OAuthProviders } from '@/features/auth/components/oauth-providers'
 import { loginFormSchema } from '@/features/auth/constants'
 import { useAuthRedirect } from '@/features/auth/hooks/use-auth-redirect'
 import { useTurnstile } from '@/features/auth/hooks/use-turnstile'
+import {
+  telegramLogin,
+  type TelegramAuthPayload,
+} from '@/features/auth/lib/telegram'
 import { beginPasskeyLogin, finishPasskeyLogin } from '@/features/auth/passkey'
 import type { AuthFormProps } from '@/features/auth/types'
 
@@ -221,6 +225,25 @@ export function UserAuthForm({
     }
   }
 
+  async function handleTelegramAuth(payload: TelegramAuthPayload) {
+    if (requiresLegalConsent && !agreedToLegal) {
+      toast.error(legalConsentErrorMessage)
+      return
+    }
+
+    try {
+      const res = await telegramLogin(payload)
+      if (res?.success) {
+        await handleLoginSuccess(res.data as { id?: number } | null, redirectTo)
+        toast.success(t('Signed in via Telegram'))
+      } else {
+        toast.error(res?.message || loginFailedMessage)
+      }
+    } catch (_error) {
+      toast.error(loginFailedMessage)
+    }
+  }
+
   async function handlePasskeyLogin() {
     if (requiresLegalConsent && !agreedToLegal) {
       toast.error(legalConsentErrorMessage)
@@ -321,6 +344,7 @@ export function UserAuthForm({
         disabled={isLoading || (requiresLegalConsent && !agreedToLegal)}
         onWeChatLogin={hasWeChatLogin ? handleOpenWeChatDialog : undefined}
         isWeChatLoading={isWeChatSubmitting}
+        onTelegramAuth={handleTelegramAuth}
       />
     </>
   )
