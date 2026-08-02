@@ -234,8 +234,129 @@ describe('useChatHandler image generation with pasted images', () => {
     const [endpoint, payload] = sendPlaygroundRequestMock.mock.calls[0]
     expect(endpoint).toBe('image-generation')
     expect(payload.image).toBe('https://cdn.example/ref.png')
+    // image-to-image edits keep working, and still never send a size field
+    expect(payload).not.toHaveProperty('size')
     expect(lastMessage().versions[0].content).toContain(
       'https://cdn.example/out.png'
     )
+  })
+})
+
+describe('useChatHandler image generation never sends size', () => {
+  // Product decision: the default playground has no size input, so no size
+  // field is ever sent; every upstream model uses its own official default.
+  async function sendImageForModel(model: string) {
+    sendPlaygroundRequestMock.mockResolvedValue({
+      data: [{ url: 'https://cdn.example/out.png' }],
+    })
+    const { result, lastMessage } = setup({
+      config: { model },
+      models: [{ label: model, value: model, endpoints: ['image-generation'] }],
+    })
+
+    await act(async () => {
+      result.current.sendChat([
+        createUserMessage('draw a cat'),
+        createLoadingAssistantMessage(),
+      ])
+    })
+    await waitFor(() => expect(lastMessage().status).toBe('complete'))
+
+    const [endpoint, payload] = sendPlaygroundRequestMock.mock.calls[0]
+    expect(endpoint).toBe('image-generation')
+    return payload
+  }
+
+  it.each([
+    ['Doubao-Seedream-5.0-pro'],
+    ['Doubao-Seedream-5.0-lite'],
+    ['qwen-image-2.0'],
+    ['wan2.7-image-pro'],
+    ['some-unknown-image-model'],
+  ])(
+    'omits the size field for %s (upstream default applies)',
+    async (model) => {
+      const payload = await sendImageForModel(model)
+      expect(payload).not.toHaveProperty('size')
+      // the rest of the image payload is intact
+      expect(payload).toMatchObject({
+        model,
+        prompt: 'draw a cat',
+        response_format: 'url',
+      })
+    }
+  )
+
+  it('never adds size to TTS, text chat, video or 3D task payloads', async () => {
+    // TTS
+    sendAudioSpeechMock.mockResolvedValue(
+      new Blob(['mp3'], { type: 'audio/mpeg' })
+    )
+    const tts = setup({ config: { model: 'doubao-tts2.0' } })
+    await act(async () => {
+      tts.result.current.sendChat([
+        createUserMessage('say hi'),
+        createLoadingAssistantMessage(),
+      ])
+    })
+    expect(sendAudioSpeechMock.mock.calls[0][0]).not.toHaveProperty('size')
+
+    // Non-streaming text chat
+    sendChatCompletionMock.mockResolvedValue({
+      choices: [{ message: { role: 'assistant', content: 'pong' } }],
+    })
+    const chat = setup({ config: { model: 'gpt-4o', stream: false } })
+    await act(async () => {
+      chat.result.current.sendChat([
+        createUserMessage('ping'),
+        createLoadingAssistantMessage(),
+      ])
+    })
+    expect(sendChatCompletionMock.mock.calls[0][0]).not.toHaveProperty('size')
+
+    // Video task
+    sendPlaygroundRequestMock.mockResolvedValue({ task_id: 'task-1' })
+    const video = setup({
+      config: { model: 'seedance-2.0' },
+      models: [
+        {
+          label: 'seedance-2.0',
+          value: 'seedance-2.0',
+          endpoints: ['openai-video'],
+        },
+      ],
+    })
+    await act(async () => {
+      video.result.current.sendChat([
+        createUserMessage('a video'),
+        createLoadingAssistantMessage(),
+      ])
+    })
+    expect(sendPlaygroundRequestMock.mock.calls[0][1]).not.toHaveProperty(
+      'size'
+    )
+
+    // 3D task
+    sendPlaygroundRequestMock.mockClear()
+    sendPlaygroundRequestMock.mockResolvedValue({ task_id: 'task-3d' })
+    const threeD = setup({
+      config: { model: 'hitem3d-2.0' },
+      models: [
+        {
+          label: 'hitem3d-2.0',
+          value: 'hitem3d-2.0',
+          endpoints: ['3d-generation'],
+        },
+      ],
+    })
+    await act(async () => {
+      threeD.result.current.sendChat([
+        createUserMessage('a 3d model'),
+        createLoadingAssistantMessage(),
+      ])
+    })
+    const [endpoint3d, payload3d] = sendPlaygroundRequestMock.mock.calls[0]
+    expect(endpoint3d).toBe('3d-generation')
+    expect(payload3d).not.toHaveProperty('size')
   })
 })

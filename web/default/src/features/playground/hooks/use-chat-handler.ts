@@ -166,9 +166,10 @@ export function useChatHandler({
         model: config.model,
         group: config.group,
         prompt,
-        size: '2K',
         response_format: 'url',
       }
+      // No `size` field is ever sent: the playground has no size input, and
+      // upstream models apply their own official default dimensions.
       // Attach pasted/uploaded images for image-to-image edits (aligned with
       // classic: single image as string, multiple as array).
       if (pendingImagesRef.current.length > 0) {
