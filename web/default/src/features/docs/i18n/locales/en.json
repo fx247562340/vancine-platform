@@ -1,0 +1,387 @@
+{
+  "quickstart": {
+    "title": "Quick Start",
+    "subtitle": "From zero to your first successful API call in about 3 minutes.",
+    "step1": {
+      "title": "Get your API key",
+      "desc": "After signing up, an initial token is automatically generated. Go to Console → Token Management to copy it.",
+      "cta": "Go to Token Management",
+      "security": "Never expose your API key in frontend code, public repositories, or client apps. Always read it from server-side environment variables."
+    },
+    "step2": {
+      "title": "Choose a model",
+      "desc": "We recommend deepseek-v4-flash for your first call — it's fast, affordable, and great for testing.",
+      "viewAll": "View all available models"
+    },
+    "step3": {
+      "title": "Choose your calling method",
+      "desc": "Vancine is OpenAI-compatible. You can call it directly via HTTP or use the official OpenAI SDK.",
+      "httpDesc": "Use curl, fetch, or any HTTP client to call the REST API directly.",
+      "sdkDesc": "Drop-in replacement: just change base_url and api_key in your existing OpenAI SDK code."
+    },
+    "step4": {
+      "title": "Make your first call",
+      "desc": "Copy the code below, replace sk-your-api-key with your real key, and run it.",
+      "expectedResponse": "Expected response"
+    },
+    "infoTable": {
+      "title": "Essential information",
+      "baseUrl": "Base URL",
+      "auth": "Authentication",
+      "modelList": "Model list",
+      "pricing": "Public pricing",
+      "tip": "GET /v1/models requires an API key and lists models available to the current token. GET /api/pricing is public and exposes endpoint support plus pricing metadata."
+    },
+    "exploreMore": {
+      "title": "Explore more",
+      "desc": "Now that you're up and running, check out what else Vancine can do:",
+      "chat": "Chat Completions",
+      "image": "Image Generation",
+      "video": "Video Generation",
+      "migrate": "Migrate from OpenAI"
+    }
+  },
+  "migrate": {
+    "title": "Migrate from OpenAI",
+    "hook": "Vancine is fully compatible with the OpenAI API. Existing code usually only needs two changes — base_url and api_key — while everything else (SDK, endpoints, response structure, streaming, function calling) stays the same.",
+    "twoChanges": {
+      "title": "Only 2 changes needed",
+      "desc": "Take your existing OpenAI code, change the base URL and API key, and it works."
+    },
+    "fullExamples": {
+      "title": "Full examples",
+      "desc": "Complete working examples in Python, Node.js, and cURL."
+    },
+    "whatStaysSame": {
+      "title": "What stays the same",
+      "desc": "Everything else in your codebase works without modification:"
+    },
+    "sameItems": {
+      "endpoint": "Same /v1/chat/completions endpoint",
+      "sdk": "Same openai Python / Node.js SDK — no new dependency",
+      "response": "Same response structure (choices, usage, etc.)",
+      "streaming": "Streaming (SSE) works identically",
+      "functionCalling": "Function calling / tool use is supported"
+    },
+    "comparison": {
+      "title": "Migration comparison",
+      "colField": "Field",
+      "colOpenai": "OpenAI",
+      "colVancine": "Vancine",
+      "colNote": "Note",
+      "baseUrlOpenai": "https://api.openai.com/v1",
+      "baseUrlNote": "Change to Vancine endpoint",
+      "apiKeyOpenai": "sk-xxx (OpenAI key)",
+      "apiKeyNote": "Use your Vancine token from Console → Tokens",
+      "modelOpenai": "gpt-4o, gpt-4o-mini, etc.",
+      "modelNote": "Use a Vancine-supported model (e.g. deepseek-v4-flash)"
+    },
+    "nextSteps": {
+      "title": "Next steps",
+      "desc": "Ready to go deeper? Check out these pages:",
+      "models": "Models & Pricing",
+      "quickstart": "Get your API key"
+    }
+  },
+  "chat": {
+    "title": "Chat Completions",
+    "desc": "Send an OpenAI-compatible messages array to a language model and receive a synchronous JSON response.",
+    "paramsTitle": "Parameters",
+    "examplesTitle": "Examples",
+    "reasoningCallout": "deepseek-v4-flash and deepseek-v4-pro are reasoning models. content may be empty while reasoning appears in reasoning_content; finish_reason: length often means the token budget was used by reasoning, not that the API failed.",
+    "params": {
+      "model": "Model name, for example glm-5.1",
+      "messages": "Array of message objects",
+      "maxTokens": "Maximum generated tokens; use a larger value for reasoning models",
+      "stream": "Enable SSE streaming",
+      "temperature": "Sampling temperature"
+    }
+  },
+  "image": {
+    "title": "Image Generation",
+    "desc": "Generate images from text prompts. The response is synchronous JSON with temporary image URLs in the data array.",
+    "paramsTitle": "Parameters",
+    "sizesTitle": "Working sizes",
+    "examplesTitle": "Examples",
+    "colWorkingSize": "Working size",
+    "defaultSizeSupported": "Default size supported",
+    "sizeWarning": "Doubao-Seedream-5.0-lite requires at least 3,686,400 pixels. 1024x1024 returns “image size must be at least 3686400 pixels”; use 2048x2048. Doubao-Seedream-5.0-pro has no such limit: minimum 921,600 pixels (1024x1024 works), but it only supports single-image generation (no image groups). Both support 1K/2K resolution tiers (lite also supports 3K/4K); the model decides the final size.",
+    "params": {
+      "model": "Image model name",
+      "prompt": "Text prompt for the image",
+      "n": "Number of images",
+      "size": "Size in WIDTHxHEIGHT format (see size table below)",
+      "response_format": "Return format: url (default, temporary link valid for 24 hours) or b64_json",
+      "output_format": "Output format: png or jpeg (default jpeg). Only Seedream 5.0 pro/lite support this",
+      "image": "Reference image URL or Base64 for image-to-image / multi-image fusion (5.0 pro: max 10, lite: max 14)",
+      "watermark": "Whether to add watermark. Seedream defaults to false"
+    },
+    "advancedParamsCallout": "Advanced Seedream parameters such as sequential_image_generation (image groups) and optimize_prompt_options (prompt optimization) require PassThrough to be enabled on the channel. They are not forwarded by default."
+  },
+  "video": {
+    "title": "Video Generation",
+    "desc": "Video generation is asynchronous. Save task_id from the submission response, then poll the same /v1/video/generations/{task_id} path.",
+    "endpointSubmit": "Submit an async generation task",
+    "endpointPoll": "Poll task status and result",
+    "paramsTitle": "Parameters",
+    "statusTitle": "Task status",
+    "examplesTitle": "Examples",
+    "params": {
+      "model": "Video model name",
+      "prompt": "Text prompt for the video",
+      "image": "Single reference image URL or Base64 (image-to-video)",
+      "images": "Array of reference image URLs (multi-image input)",
+      "size": "Resolution, for example 1280x720",
+      "duration": "Video duration in seconds",
+      "metadata": "Extended parameters object (see below)"
+    },
+    "metadataCallout": "metadata sub-parameters: resolution (e.g. 1080p), ratio (aspect ratio e.g. 16:9), frames (frame count), seed (random seed), watermark (boolean), camera_fixed (fixed camera, boolean), generate_audio (generate audio, boolean). These are forwarded to the upstream provider.",
+    "status": {
+      "queued": "Task is queued",
+      "inProgress": "Generation is running",
+      "success": "Done; read data.result_url or data.data.content.video_url",
+      "failure": "Failed; inspect data.fail_reason"
+    }
+  },
+  "td": {
+    "title": "3D Asset Generation",
+    "desc": "3D models use the same async task request shape. Submit a task, then poll with task_id for the result.",
+    "endpointSubmit": "3D also submits through the video async endpoint",
+    "endpointPoll": "Poll 3D task results",
+    "modelsTitle": "3D models",
+    "paramsTitle": "Parameters",
+    "examplesTitle": "Request examples",
+    "colImagesParam": "images parameter",
+    "withoutImage": "Without image",
+    "withImage": "With reference image",
+    "imagesWarning": "Doubao-Seed3D-2.0 requires images. Do not use an image_data field; the Vancine gateway converts images into the upstream content[].image_url format.",
+    "params": {
+      "model": "3D model name",
+      "prompt": "Text description of the 3D asset (optional for image-to-3D)",
+      "images": "Reference image URL array for image-to-3D. Doubao-Seed3D-2.0 requires at least one image. Supports public URLs or data:image/...;base64,..."
+    },
+    "asyncCallout": "3D generation is asynchronous. After submitting, save the task_id from the response, then poll GET /v1/video/generations/{task_id}. On success, read the 3D model file link from metadata.url in the result."
+  },
+  "audio": {
+    "title": "Audio / TTS",
+    "desc": "The TTS endpoint uses an OpenAI-compatible request body, but the response is binary MP3 audio, not JSON.",
+    "paramsTitle": "Parameters",
+    "ttsExamplesTitle": "Doubao-tts example (1.0 voices)",
+    "tts2ExamplesTitle": "Doubao-tts2.0 example (2.0 voices)",
+    "voicesTitle": "Available voices",
+    "endpointWarning": "TTS does not use /v1/chat/completions. Using the wrong endpoint can return a misleading 401 that looks like a missing API key; the usual cause is the wrong path.",
+    "voiceSuffixCallout": "The voice ID suffix determines the model version: uranus suffix is for Doubao-tts2.0, while mars suffix is for Doubao-tts. A voice/model mismatch returns a resource mismatch error.",
+    "colVoiceId": "Voice ID",
+    "colName": "Name",
+    "colModel": "Model",
+    "colUseCase": "Language / use case",
+    "params": {
+      "model": "Doubao-tts or Doubao-tts2.0",
+      "input": "Text to synthesize",
+      "voice": "Voice ID, see voice list below",
+      "response_format": "Output audio format: mp3 (default), opus, aac, flac, wav, pcm",
+      "speed": "Speech speed 0.25–4.0, default 1.0"
+    },
+    "voices": {
+      "vivi": "Vivi",
+      "nadia": "Nadia",
+      "jane": "Jane",
+      "rachel": "Rachel",
+      "david": "David",
+      "alex": "Alex",
+      "kevin": "Kevin",
+      "stokie": "Stokie",
+      "spanishFemale": "Spanish, female",
+      "frenchFemale": "French, female",
+      "germanFemale": "German, female",
+      "arabicFemale": "Arabic, female",
+      "cancan": "Cancan",
+      "wenhao": "Wenhao",
+      "amanda": "Amanda",
+      "emily": "Emily",
+      "adam": "Adam",
+      "jackson": "Jackson",
+      "sarah": "Sarah",
+      "smith": "Smith",
+      "anna": "Anna",
+      "dryw": "Dryw",
+      "zhFemaleGentle": "Chinese, female, gentle (multilingual)",
+      "enFemale": "English, female",
+      "enMale": "English, male",
+      "enUkFemale": "English (UK), female",
+      "espanol": "Español",
+      "francais": "Français",
+      "deutsch": "Deutsch",
+      "arabic": "العربية",
+      "zhFemaleBright": "Chinese, female, bright",
+      "zhMaleSteady": "Chinese, male, steady"
+    }
+  },
+  "auth": {
+    "title": "Authentication",
+    "desc": "All /v1 requests require an API key in the Authorization header.",
+    "securityWarning": "Do not put API keys in frontend code, public repositories, or client apps. Read the key from server-side environment variables before calling Vancine."
+  },
+  "capabilities": {
+    "title": "Capabilities",
+    "desc": "Vancine exposes different generation capabilities through OpenAI-compatible endpoints and async task endpoints.",
+    "rows": {
+      "chat": "Chat",
+      "tts": "Text to speech",
+      "image": "Image generation",
+      "video": "Video generation",
+      "td": "3D asset generation",
+      "chatNote": "OpenAI-compatible messages request body",
+      "ttsNote": "Returns binary MP3 audio",
+      "imageNote": "Returns image URLs",
+      "videoNote": "Async task, poll with task_id",
+      "tdNote": "Async task with prompt and images support"
+    }
+  },
+  "models": {
+    "title": "Models & Pricing",
+    "desc": "Call the public pricing endpoint to read model names, supported endpoints, ratios, and prices.",
+    "fetchPricing": "Fetch model pricing",
+    "textModelsTitle": "Text models ({{count}})",
+    "multimodalTitle": "Multimodal generation models",
+    "colType": "Type",
+    "colUsageNotes": "Usage notes",
+    "returnsValidMp3": "Returns valid MP3"
+  },
+  "errors": {
+    "title": "Error Handling",
+    "colHttpStatus": "HTTP status",
+    "colTypicalCause": "Typical cause",
+    "formatTitle": "Error response format",
+    "asyncCallout": "For async task failures, read details from data.fail_reason in the polling response.",
+    "codes": {
+      "badRequest": "Bad request",
+      "badRequestCause": "Invalid size, missing prompt, or model/endpoint mismatch",
+      "unauthorized": "Unauthorized",
+      "unauthorizedCause": "Invalid key, or wrong endpoint such as sending TTS to chat",
+      "notFound": "Path not found",
+      "notFoundCause": "Check that the URL path is spelled correctly",
+      "noChannel": "No available channel",
+      "noChannelCause": "No upstream channel is available for this model in the current group"
+    }
+  },
+  "sdks": {
+    "title": "SDKs & Tools",
+    "desc": "Vancine text endpoints are compatible with the OpenAI SDK. Multimedia endpoints can also be called with any HTTP client.",
+    "requestsDesc": "Good for image, video, 3D, and TTS",
+    "curlDesc": "Built in or install with package manager"
+  },
+  "agents": {
+    "title": "Agent Integration",
+    "desc": "Before connecting an agent tool, check whether it uses Chat Completions or Responses. Most OpenAI Compatible tools use /v1/chat/completions; Codex CLI official config currently uses /v1/responses.",
+    "universalTip": "Universal settings: Base URL = {{baseUrl}}, API Key = sk-your-api-key, Model = glm-5.1 or deepseek-v4-flash.",
+    "configExample": "Config example",
+    "guiTitle": "GUI tools",
+    "cli": {
+      "codex": "Codex official config uses ~/.codex/config.toml. Current docs show the Responses protocol, so set wire_api to responses.",
+      "opencode": "OpenCode uses project-level opencode.json. Custom OpenAI-compatible providers use @ai-sdk/openai-compatible with options.baseURL and options.apiKey.",
+      "openclaw": "OpenClaw-style clients usually need the OpenAI-compatible base URL, API key, and model name. Field names vary by distribution; choose OpenAI Compatible when available.",
+      "hermes": "Hermes Agent OpenAI-compatible plugins commonly use config.yaml or environment variables for base_url and api_key. Use the exact fields from the installed plugin."
+    },
+    "gui": {
+      "cursor": {
+        "title": "Cursor",
+        "step1": "Open Settings → Models",
+        "step2": "Choose OpenAI Compatible or custom OpenAI API",
+        "step3": "Set Base URL to {{baseUrl}}",
+        "step4": "Enter your Vancine API key",
+        "step5": "Use a text model such as glm-5.1 or deepseek-v4-flash"
+      },
+      "cline": {
+        "title": "Cline / Roo Code",
+        "step1": "Select Provider: OpenAI Compatible",
+        "step2": "Set Base URL to {{baseUrl}}",
+        "step3": "Enter the API key",
+        "step4": "Enter a text model name",
+        "step5": "Save and send a simple message to confirm the connection"
+      },
+      "cherryStudio": {
+        "title": "Cherry Studio",
+        "step1": "Open Settings → Model Services → Add",
+        "step2": "Choose OpenAI Compatible",
+        "step3": "Set API URL to {{baseUrl}}",
+        "step4": "Enter the API key",
+        "step5": "Sync or manually add models"
+      }
+    }
+  },
+  "faq": {
+    "title": "FAQ",
+    "items": {
+      "verifyKey": {
+        "q": "How do I verify an API key?",
+        "a": "Call GET {{baseUrl}}/models. HTTP 200 with a model list means the key is valid and has access in the current group."
+      },
+      "video3dResults": {
+        "q": "Where do I read video and 3D results?",
+        "a": "Poll GET /v1/video/generations/{task_id}. On success, read data.result_url or data.data.content.video_url."
+      },
+      "ttsNotJson": {
+        "q": "Why does TTS not return JSON?",
+        "a": "Successful TTS calls return binary MP3 audio directly with Content-Type audio/mpeg."
+      },
+      "seedreamSize": {
+        "q": "Why does Seedream reject my image size?",
+        "a": "Doubao-Seedream-5.0-lite requires at least 3,686,400 pixels (use 2048x2048). Doubao-Seedream-5.0-pro has no such limit: minimum 921,600 pixels (1024x1024 works). Set size for the model you use, or pass a 1K/2K tier and let the model decide."
+      }
+    }
+  },
+  "nav": {
+    "gettingStarted": "Getting Started",
+    "apiCapabilities": "API Capabilities",
+    "integrationGuide": "Integration Guide",
+    "reference": "Reference",
+    "quickstart": "Quick Start",
+    "migrate": "Migrate from OpenAI",
+    "models": "Models & Pricing",
+    "chat": "Chat Completions",
+    "image": "Image Generation",
+    "video": "Video Generation",
+    "td": "3D Generation",
+    "audio": "Audio / TTS",
+    "sdks": "SDKs & Tools",
+    "agents": "Agent Integration",
+    "auth": "Authentication",
+    "capabilities": "Capabilities",
+    "errors": "Error Handling",
+    "faq": "FAQ"
+  },
+  "common": {
+    "action": "Action",
+    "category": "Category",
+    "comingSoon": "Coming Soon",
+    "copied": "✓ Copied",
+    "copy": "Copy",
+    "description": "Description",
+    "endpoint": "Endpoint",
+    "feedbackNo": "No",
+    "feedbackQuestion": "Was this page helpful?",
+    "feedbackThanks": "Thanks for your feedback!",
+    "feedbackYes": "Yes",
+    "loading": "Loading…",
+    "meaning": "Meaning",
+    "model": "Model",
+    "navigation": "Navigation",
+    "nextPage": "Next",
+    "no": "No",
+    "notes": "Notes",
+    "notFound": "Page not found",
+    "notFoundDesc": "The documentation page you are looking for does not exist.",
+    "onThisPage": "On this page",
+    "pageNotReady": "This page is not ready yet. Check back soon!",
+    "parameter": "Parameter",
+    "prevPage": "Previous",
+    "required": "Required",
+    "result": "Result",
+    "searchNoResults": "No matching results",
+    "searchPlaceholder": "Search docs...",
+    "status": "Status",
+    "type": "Type",
+    "yes": "Yes"
+  }
+}

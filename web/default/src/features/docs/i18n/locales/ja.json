@@ -1,0 +1,387 @@
+{
+  "quickstart": {
+    "title": "クイックスタート",
+    "subtitle": "ゼロから最初のAPI呼び出し成功まで、約3分。",
+    "step1": {
+      "title": "APIキーを取得",
+      "desc": "サインアップ後、初期トークンが自動的に生成されます。コンソール → トークン管理 に移動してコピーしてください。",
+      "cta": "トークン管理へ移動",
+      "security": "APIキーをフロントエンドコード、公開リポジトリ、クライアントアプリに絶対に公開しないでください。常にサーバー側の環境変数から読み取ってからVancineを呼び出してください。"
+    },
+    "step2": {
+      "title": "モデルを選択",
+      "desc": "最初の呼び出しには deepseek-v4-flash をお勧めします — 高速、低コスト、テストに最適です。",
+      "viewAll": "すべての利用可能なモデルを表示"
+    },
+    "step3": {
+      "title": "呼び出し方法を選択",
+      "desc": "VancineはOpenAI互換です。HTTPで直接呼び出すことも、公式OpenAI SDKを使用することもできます。",
+      "httpDesc": "curl、fetch、または任意のHTTPクライアントを使用してREST APIを直接呼び出します。",
+      "sdkDesc": "そのまま置き換え：既存のOpenAI SDKコードのbase_urlとapi_keyを変更するだけ。"
+    },
+    "step4": {
+      "title": "最初の呼び出しを実行",
+      "desc": "以下のコードをコピーし、sk-your-api-keyを実際のキーに置き換えて実行してください。",
+      "expectedResponse": "期待されるレスポンス"
+    },
+    "infoTable": {
+      "title": "基本情報",
+      "baseUrl": "ベースURL",
+      "auth": "認証",
+      "modelList": "モデル一覧",
+      "pricing": "公開価格",
+      "tip": "GET /v1/models にはAPIキーが必要で、現在のトークンで利用可能なモデルを一覧表示します。GET /api/pricing は公開されており、エンドポイントのサポートと価格メタデータを公開しています。"
+    },
+    "exploreMore": {
+      "title": "さらに探索",
+      "desc": "APIの呼び出しに成功したら、Vancineの他の機能もチェックしてみましょう：",
+      "chat": "チャット補完",
+      "image": "画像生成",
+      "video": "動画生成",
+      "migrate": "OpenAIからの移行"
+    }
+  },
+  "migrate": {
+    "title": "OpenAIからの移行",
+    "hook": "VancineはOpenAI APIと完全に互換性があります。既存のコードは通常、base_urlとapi_keyの2箇所を変更するだけで済み、それ以外（SDK、エンドポイント、レスポンス構造、ストリーミング、function calling）はすべてそのまま動作します。",
+    "twoChanges": {
+      "title": "必要な変更は2箇所だけ",
+      "desc": "既存のOpenAIコードのベースURLとAPIキーを変更するだけで、すぐに動作します。"
+    },
+    "fullExamples": {
+      "title": "完全な例",
+      "desc": "Python、Node.js、cURLでの完全な動作例。"
+    },
+    "whatStaysSame": {
+      "title": "変更不要な部分",
+      "desc": "コードの他の部分は一切変更なしで動作します："
+    },
+    "sameItems": {
+      "endpoint": "同じ /v1/chat/completions エンドポイント",
+      "sdk": "同じ openai Python / Node.js SDK — 新しい依存関係なし",
+      "response": "同じレスポンス構造（choices、usageなど）",
+      "streaming": "ストリーミング（SSE）は同じように動作",
+      "functionCalling": "function calling / tool use に対応"
+    },
+    "comparison": {
+      "title": "移行比較表",
+      "colField": "フィールド",
+      "colOpenai": "OpenAI",
+      "colVancine": "Vancine",
+      "colNote": "備考",
+      "baseUrlOpenai": "https://api.openai.com/v1",
+      "baseUrlNote": "Vancineのエンドポイントに変更",
+      "apiKeyOpenai": "sk-xxx（OpenAIキー）",
+      "apiKeyNote": "コンソール → トークン管理でVancineトークンを取得",
+      "modelOpenai": "gpt-4o、gpt-4o-miniなど",
+      "modelNote": "Vancine対応モデルを使用（例：deepseek-v4-flash）"
+    },
+    "nextSteps": {
+      "title": "次のステップ",
+      "desc": "さらに詳しく知りたいですか？以下のページをご覧ください：",
+      "models": "モデルと価格",
+      "quickstart": "APIキーを取得"
+    }
+  },
+  "chat": {
+    "title": "チャット補完",
+    "desc": "OpenAI互換のmessages配列を言語モデルに送信し、同期JSONレスポンスを取得します。",
+    "paramsTitle": "パラメータ",
+    "examplesTitle": "例",
+    "reasoningCallout": "deepseek-v4-flash と deepseek-v4-pro は推論モデルです。contentが空の間、推論は reasoning_content に表示されることがあります。finish_reason: length は、トークン予算が推論に消費されたことを示すことが多く、APIが失敗したわけではありません。",
+    "params": {
+      "model": "モデル名（例：glm-5.1）",
+      "messages": "メッセージオブジェクトの配列",
+      "maxTokens": "最大生成トークン数。推論モデルではより大きな値を推奨",
+      "stream": "SSEストリーミングを有効化",
+      "temperature": "サンプリング温度"
+    }
+  },
+  "image": {
+    "title": "画像生成",
+    "desc": "テキストプロンプトから画像を生成します。レスポンスは同期JSONで、data配列に画像の一時URLが含まれます。",
+    "paramsTitle": "パラメータ",
+    "sizesTitle": "対応サイズ",
+    "examplesTitle": "例",
+    "colWorkingSize": "動作確認済みサイズ",
+    "defaultSizeSupported": "デフォルトサイズ対応",
+    "sizeWarning": "Doubao-Seedream-5.0-lite は最低 3,686,400 ピクセルが必要です。1024x1024 は「image size must be at least 3686400 pixels」エラーになります。2048x2048 を使用してください。Doubao-Seedream-5.0-pro にこの制限はなく、最低 921,600 ピクセル（1024x1024 可）ですが、単一画像のみ生成でき、組図は非対応です。どちらも 1K/2K（lite は 3K/4K も）解像度ティアを使え、最終サイズはモデルが決めます。",
+    "params": {
+      "model": "画像モデル名",
+      "prompt": "画像のテキストプロンプト",
+      "n": "生成する画像数",
+      "size": "サイズ（WIDTHxHEIGHT形式、下記サイズ表を参照）",
+      "response_format": "返却形式：url（デフォルト、24時間有効な一時リンク）または b64_json",
+      "output_format": "出力形式：png または jpeg（デフォルト jpeg）。Seedream 5.0 pro/lite のみ対応",
+      "image": "参照画像の URL または Base64。画像→画像/複数画像融合に使用（5.0 pro：最大10枚、lite：最大14枚）",
+      "watermark": "透かしを追加するか。Seedream のデフォルトは false"
+    },
+    "advancedParamsCallout": "組圖（sequential_image_generation）、プロンプト最適化（optimize_prompt_options）などの Seedream 高度パラメータは、チャネルで PassThrough を有効にした場合のみ使用可能です。デフォルトでは転送されません。"
+  },
+  "video": {
+    "title": "動画生成",
+    "desc": "動画生成は非同期タスクです。送信レスポンスからtask_idを保存し、同じ /v1/video/generations/{task_id} パスをポーリングします。",
+    "endpointSubmit": "非同期生成タスクを送信",
+    "endpointPoll": "タスクのステータスと結果をポーリング",
+    "paramsTitle": "パラメータ",
+    "statusTitle": "タスクステータス",
+    "examplesTitle": "例",
+    "params": {
+      "model": "動画モデル名",
+      "prompt": "動画のテキストプロンプト",
+      "image": "参照画像1枚の URL または Base64（画像→動画）",
+      "images": "参照画像 URL の配列（複数画像入力）",
+      "size": "解像度（例：1280x720）",
+      "duration": "動画の長さ（秒）",
+      "metadata": "拡張パラメータオブジェクト（下記参照）"
+    },
+    "metadataCallout": "metadata サブパラメータ：resolution（解像度 例：1080p）、ratio（アスペクト比 例：16:9）、frames（フレーム数）、seed（乱数シード）、watermark（透かし bool）、camera_fixed（カメラ固定 bool）、generate_audio（音声生成 bool）。これらはアップストリームプロバイダーに転送されます。",
+    "status": {
+      "queued": "タスクがキューに入っています",
+      "inProgress": "生成が実行中",
+      "success": "完了。data.result_url または data.data.content.video_url を読み取る",
+      "failure": "失敗。data.fail_reason を確認"
+    }
+  },
+  "td": {
+    "title": "3D生成",
+    "desc": "3Dモデルは同じ非同期タスクのリクエスト形式を使用します。タスクを送信し、task_idで結果をポーリングします。",
+    "endpointSubmit": "3Dも動画非同期エンドポイントで送信",
+    "endpointPoll": "3Dタスク結果をポーリング",
+    "modelsTitle": "3Dモデル",
+    "paramsTitle": "パラメータ",
+    "examplesTitle": "リクエスト例",
+    "colImagesParam": "images パラメータ",
+    "withoutImage": "画像なし",
+    "withImage": "参照画像あり",
+    "imagesWarning": "Doubao-Seed3D-2.0 は images が必須です。image_data フィールドは使用しないでください。Vancineゲートウェイが images を上游の content[].image_url 形式に変換します。",
+    "params": {
+      "model": "3Dモデル名",
+      "prompt": "3Dアセットのテキスト説明（画像→3Dの場合は省略可能）",
+      "images": "画像→3D用の参照画像URL配列。Doubao-Seed3D-2.0 は最低1枚の画像が必要。公開URLまたはdata:image/...;base64,...に対応"
+    },
+    "asyncCallout": "3D生成は非同期タスクです。送信後、レスポンスからtask_idを保存し、GET /v1/video/generations/{task_id} をポーリングします。成功時、結果の metadata.url から3Dモデルファイルのリンクを取得します。"
+  },
+  "audio": {
+    "title": "オーディオ / TTS",
+    "desc": "TTSエンドポイントはOpenAI互換のリクエストボディを使用しますが、レスポンスはJSONではなくバイナリMP3音声です。",
+    "paramsTitle": "パラメータ",
+    "ttsExamplesTitle": "Doubao-tts 例（1.0音色）",
+    "tts2ExamplesTitle": "Doubao-tts2.0 例（2.0音色）",
+    "voicesTitle": "利用可能な音色",
+    "endpointWarning": "TTSは/v1/chat/completionsを使用しません。間違ったエンドポイントを使用すると、APIキーが存在しないような誤解を招く401が返されることがあります。通常の原因は間違ったパスです。",
+    "voiceSuffixCallout": "音色IDの接尾辞がモデルバージョンを決定します：uranus接尾辞はDoubao-tts2.0用、mars接尾辞はDoubao-tts用。音色とモデルの不一致はresource mismatchエラーを返します。",
+    "colVoiceId": "音色ID",
+    "colName": "名前",
+    "colModel": "モデル",
+    "colUseCase": "言語 / 用途",
+    "params": {
+      "model": "Doubao-tts または Doubao-tts2.0",
+      "input": "合成するテキスト",
+      "voice": "音色ID、下記の音色リストを参照",
+      "response_format": "出力音声フォーマット：mp3（デフォルト）、opus、aac、flac、wav、pcm",
+      "speed": "話速 0.25–4.0、デフォルト 1.0"
+    },
+    "voices": {
+      "vivi": "Vivi",
+      "nadia": "Nadia",
+      "jane": "Jane",
+      "rachel": "Rachel",
+      "david": "David",
+      "alex": "Alex",
+      "kevin": "Kevin",
+      "stokie": "Stokie",
+      "spanishFemale": "スペイン語 女性",
+      "frenchFemale": "フランス語 女性",
+      "germanFemale": "ドイツ語 女性",
+      "arabicFemale": "アラビア語 女性",
+      "cancan": "Cancan",
+      "wenhao": "Wenhao",
+      "amanda": "Amanda",
+      "emily": "Emily",
+      "adam": "Adam",
+      "jackson": "Jackson",
+      "sarah": "Sarah",
+      "smith": "Smith",
+      "anna": "Anna",
+      "dryw": "Dryw",
+      "zhFemaleGentle": "中国語 女性・優しい（多言語）",
+      "enFemale": "英語 女性",
+      "enMale": "英語 男性",
+      "enUkFemale": "英語（英国） 女性",
+      "espanol": "Español",
+      "francais": "Français",
+      "deutsch": "Deutsch",
+      "arabic": "العربية",
+      "zhFemaleBright": "中国語 女性・明るい",
+      "zhMaleSteady": "中国語 男性・落ち着いている"
+    }
+  },
+  "auth": {
+    "title": "認証",
+    "desc": "すべての /v1 リクエストには、Authorization ヘッダーに API キーが必要です。",
+    "securityWarning": "APIキーをフロントエンドコード、公開リポジトリ、クライアントアプリに絶対に公開しないでください。Vancineを呼び出す前にサーバー側の環境変数から読み取ってください。"
+  },
+  "capabilities": {
+    "title": "機能概要",
+    "desc": "Vancineは、OpenAI互換エンドポイントと非同期タスクエンドポイントを通じて、さまざまな生成機能を提供しています。",
+    "rows": {
+      "chat": "チャット",
+      "tts": "音声合成",
+      "image": "画像生成",
+      "video": "動画生成",
+      "td": "3Dアセット生成",
+      "chatNote": "OpenAI互換のmessagesリクエストボディ",
+      "ttsNote": "バイナリMP3音声を返す",
+      "imageNote": "画像URLを返す",
+      "videoNote": "非同期タスク、task_idでポーリング",
+      "tdNote": "promptとimagesに対応する非同期タスク"
+    }
+  },
+  "models": {
+    "title": "モデルと価格",
+    "desc": "公開価格エンドポイントを呼び出して、モデル名、対応エンドポイント、レシオ、価格を読み取ることができます。",
+    "fetchPricing": "モデル価格を取得",
+    "textModelsTitle": "テキストモデル（{{count}}）",
+    "multimodalTitle": "マルチモーダル生成モデル",
+    "colType": "タイプ",
+    "colUsageNotes": "使用上の注意",
+    "returnsValidMp3": "有効なMP3を返す"
+  },
+  "errors": {
+    "title": "エラー処理",
+    "colHttpStatus": "HTTPステータス",
+    "colTypicalCause": "典型的な原因",
+    "formatTitle": "エラーレスポンス形式",
+    "asyncCallout": "非同期タスクの失敗時、ポーリングレスポンスの data.fail_reason フィールドから詳細を確認できます。",
+    "codes": {
+      "badRequest": "不正なリクエスト",
+      "badRequestCause": "無効なサイズ、promptの欠落、モデル/エンドポイントの不一致",
+      "unauthorized": "認証エラー",
+      "unauthorizedCause": "無効なキー、またはTTSをchatエンドポイントに送信するなどの間違ったエンドポイント",
+      "notFound": "パスが見つかりません",
+      "notFoundCause": "URLパスのスペルを確認してください",
+      "noChannel": "利用可能なチャネルなし",
+      "noChannelCause": "現在のグループでこのモデルに利用可能なアップストリームチャネルがありません"
+    }
+  },
+  "sdks": {
+    "title": "SDKとツール",
+    "desc": "VancineのテキストエンドポイントはOpenAI SDKと互換性があります。マルチメディアエンドポイントは任意のHTTPクライアントでも呼び出せます。",
+    "requestsDesc": "画像、動画、3D、TTSに適しています",
+    "curlDesc": "組み込み済みまたはパッケージマネージャでインストール"
+  },
+  "agents": {
+    "title": "エージェント統合",
+    "desc": "エージェントツールを接続する前に、Chat CompletionsかResponsesかを確認してください。ほとんどのOpenAI Compatibleツールは/v1/chat/completionsを使用します。Codex CLI公式設定は現在/v1/responsesを使用しています。",
+    "universalTip": "共通設定：Base URL = {{baseUrl}}、API Key = sk-your-api-key、Model = glm-5.1 または deepseek-v4-flash。",
+    "configExample": "設定例",
+    "guiTitle": "GUIツール",
+    "cli": {
+      "codex": "Codex公式設定は~/.codex/config.tomlを使用します。現在のドキュメントはResponsesプロトコルを示しているため、wire_apiをresponsesに設定します。",
+      "opencode": "OpenCodeはプロジェクト内のopencode.jsonを使用します。カスタムOpenAI互換プロバイダーは@ai-sdk/openai-compatibleを使用し、options.baseURLとoptions.apiKeyで設定します。",
+      "openclaw": "OpenClawスタイルのクライアントは通常、OpenAI互換のベースURL、APIキー、モデル名が必要です。フィールド名はディストリビューションによって異なります。OpenAI Compatibleを選択してください。",
+      "hermes": "Hermes AgentのOpenAI互換プラグインは通常、config.yamlまたは環境変数でbase_urlとapi_keyを設定します。インストール済みプラグインのフィールドを使用してください。"
+    },
+    "gui": {
+      "cursor": {
+        "title": "Cursor",
+        "step1": "Settings → Modelsを開く",
+        "step2": "OpenAI CompatibleまたはカスタムOpenAI APIを選択",
+        "step3": "Base URLを{{baseUrl}}に設定",
+        "step4": "Vancine APIキーを入力",
+        "step5": "glm-5.1やdeepseek-v4-flashなどのテキストモデルを使用"
+      },
+      "cline": {
+        "title": "Cline / Roo Code",
+        "step1": "Provider: OpenAI Compatibleを選択",
+        "step2": "Base URLを{{baseUrl}}に設定",
+        "step3": "APIキーを入力",
+        "step4": "テキストモデル名を入力",
+        "step5": "保存して簡単なメッセージを送信して接続を確認"
+      },
+      "cherryStudio": {
+        "title": "Cherry Studio",
+        "step1": "設定 → モデルサービス → 追加を開く",
+        "step2": "OpenAI Compatibleを選択",
+        "step3": "API URLを{{baseUrl}}に設定",
+        "step4": "APIキーを入力",
+        "step5": "同期または手動でモデルを追加"
+      }
+    }
+  },
+  "faq": {
+    "title": "よくある質問",
+    "items": {
+      "verifyKey": {
+        "q": "APIキーが有効か確認するには？",
+        "a": "GET {{baseUrl}}/modelsを呼び出します。HTTP 200でモデルリストが返されれば、キーは有効で現在のグループのアクセス権があります。"
+      },
+      "video3dResults": {
+        "q": "動画と3Dの結果はどこで取得しますか？",
+        "a": "GET /v1/video/generations/{task_id}をポーリングします。成功したらdata.result_urlまたはdata.data.content.video_urlを読み取ります。"
+      },
+      "ttsNotJson": {
+        "q": "なぜTTSはJSONを返さないのですか？",
+        "a": "TTS呼び出しが成功すると、Content-Type audio/mpegでバイナリMP3音声が直接返されます。"
+      },
+      "seedreamSize": {
+        "q": "なぜ Seedream が画像サイズを拒否するのですか？",
+        "a": "Doubao-Seedream-5.0-lite は最低 3,686,400 ピクセルが必要です（2048x2048 を推奨）。Doubao-Seedream-5.0-pro にこの制限はなく、最低 921,600 ピクセル（1024x1024 可）。使用するモデルに合わせて size を設定するか、1K/2K などの解像度ティアを渡してモデルに決定させてください。"
+      }
+    }
+  },
+  "nav": {
+    "gettingStarted": "はじめに",
+    "apiCapabilities": "API機能",
+    "integrationGuide": "統合ガイド",
+    "reference": "リファレンス",
+    "quickstart": "クイックスタート",
+    "migrate": "OpenAIからの移行",
+    "models": "モデルと価格",
+    "chat": "チャット補完",
+    "image": "画像生成",
+    "video": "動画生成",
+    "td": "3D生成",
+    "audio": "オーディオ / TTS",
+    "sdks": "SDKとツール",
+    "agents": "エージェント統合",
+    "auth": "認証",
+    "capabilities": "機能概要",
+    "errors": "エラー処理",
+    "faq": "よくある質問"
+  },
+  "common": {
+    "action": "アクション",
+    "category": "カテゴリ",
+    "comingSoon": "近日公開",
+    "copied": "✓ コピーしました",
+    "copy": "コピー",
+    "description": "説明",
+    "endpoint": "エンドポイント",
+    "feedbackNo": "いいえ",
+    "feedbackQuestion": "このページは役に立ちましたか？",
+    "feedbackThanks": "フィードバックありがとうございます！",
+    "feedbackYes": "はい",
+    "loading": "読み込み中…",
+    "meaning": "意味",
+    "model": "モデル",
+    "navigation": "ナビゲーション",
+    "nextPage": "次のページ",
+    "no": "いいえ",
+    "notes": "メモ",
+    "notFound": "ページが見つかりません",
+    "notFoundDesc": "お探しのドキュメントページは存在しません。",
+    "onThisPage": "このページ内",
+    "pageNotReady": "このページはまだ準備中です。お楽しみに！",
+    "parameter": "パラメータ",
+    "prevPage": "前のページ",
+    "required": "必須",
+    "result": "結果",
+    "searchNoResults": "一致する結果がありません",
+    "searchPlaceholder": "ドキュメントを検索...",
+    "status": "ステータス",
+    "type": "タイプ",
+    "yes": "はい"
+  }
+}
