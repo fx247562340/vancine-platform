@@ -705,6 +705,24 @@ func IsTelegramIdAlreadyTaken(telegramId string) bool {
 	return DB.Unscoped().Where("telegram_id = ?", telegramId).Find(&User{}).RowsAffected == 1
 }
 
+// IsTelegramIdTakenByActiveUser reports whether a non-deleted user currently
+// holds the given telegram_id. Unlike IsTelegramIdAlreadyTaken (unscoped), this
+// ignores soft-deleted rows so a deleted account's telegram_id can be
+// re-registered instead of surfacing "该 Telegram 账户未绑定".
+func IsTelegramIdTakenByActiveUser(telegramId string) bool {
+	return DB.Where("telegram_id = ?", telegramId).Find(&User{}).RowsAffected > 0
+}
+
+// ClearTelegramIdFromDeletedUsers blanks the telegram_id on soft-deleted users
+// that still carry it, so a freshly registered active user becomes the sole
+// holder and no stale binding lingers. No-op when nothing matches.
+func ClearTelegramIdFromDeletedUsers(telegramId string) error {
+	return DB.Unscoped().
+		Model(&User{}).
+		Where("telegram_id = ? AND deleted_at IS NOT NULL", telegramId).
+		Update("telegram_id", "").Error
+}
+
 func ResetUserPasswordByEmail(email string, password string) error {
 	if email == "" || password == "" {
 		return errors.New("邮箱地址或密码为空！")

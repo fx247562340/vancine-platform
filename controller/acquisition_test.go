@@ -565,3 +565,72 @@ func TestRegisterSourceOrderContract(t *testing.T) {
 		assert.True(t, strings.Index(reg, "BindTouchToUser") < strings.Index(reg, "setupLogin(&insertedUser"))
 	}
 }
+
+// TestOAuthNewUserCreatesDefaultToken verifies the generic findOrCreateOAuthUser
+// path provisions a default token for a brand-new OAuth user when
+// GenerateDefaultToken=true, and that an existing-user login creates none.
+func TestOAuthNewUserCreatesDefaultToken(t *testing.T) {
+	setupAcquisitionControllerTest(t)
+	constant.GenerateDefaultToken = true
+	common.RegisterEnabled = true
+
+	r := gin.New()
+	store := cookie.NewStore([]byte("acquisition-oauth-default-token"))
+	r.Use(sessions.Sessions("session", store))
+	r.GET("/oauth/test", func(c *gin.Context) {
+		prov := &stubOAuthProvider{taken: map[string]bool{}, users: map[string]*model.User{}}
+		ou := &oauth.OAuthUser{ProviderUserID: "stub-tok-1", Username: "stubtok1", DisplayName: "Stub Tok"}
+		sess := sessions.Default(c)
+		user, err := findOrCreateOAuthUser(c, prov, ou, sess)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"success": true, "user_id": user.Id})
+	})
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/oauth/test", nil)
+	r.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
+	var resp map[string]any
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, true, resp["success"])
+	newUID := int(resp["user_id"].(float64))
+	assert.Greater(t, newUID, 0)
+
+	var tokens []model.Token
+	require.NoError(t, model.DB.Where("user_id = ?", newUID).Find(&tokens).Error)
+	require.Len(t, tokens, 1)
+	assert.Equal(t, int64(-1), tokens[0].ExpiredTime)
+	assert.True(t, tokens[0].UnlimitedQuota)
+
+	// Existing-user login (provider reports taken + fills the user) creates no
+	// additional token.
+	var existing model.User
+	require.NoError(t, model.DB.First(&existing, newUID).Error)
+	r2 := gin.New()
+	r2.Use(sessions.Sessions("session", store))
+	r2.GET("/oauth/test", func(c *gin.Context) {
+		prov := &stubOAuthProvider{
+			taken: map[string]bool{"stub-tok-1": true},
+			users: map[string]*model.User{"stub-tok-1": &existing},
+		}
+		ou := &oauth.OAuthUser{ProviderUserID: "stub-tok-1"}
+		sess := sessions.Default(c)
+		user, err := findOrCreateOAuthUser(c, prov, ou, sess)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"success": true, "user_id": user.Id})
+	})
+	w2 := httptest.NewRecorder()
+	req2 := httptest.NewRequest(http.MethodGet, "/oauth/test", nil)
+	r2.ServeHTTP(w2, req2)
+	require.Equal(t, http.StatusOK, w2.Code, w2.Body.String())
+
+	var afterTokens []model.Token
+	require.NoError(t, model.DB.Where("user_id = ?", newUID).Find(&afterTokens).Error)
+	assert.Len(t, afterTokens, 1, "existing OAuth login must not create another token")
+}

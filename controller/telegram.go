@@ -94,9 +94,11 @@ func TelegramLogin(c *gin.Context) {
 		TelegramId: telegramId,
 	}
 
-	// Mirror GitHub/Discord: existing provider id → login; otherwise register
-	// when registration is enabled.
-	if model.IsTelegramIdAlreadyTaken(telegramId) {
+	// Only an active (non-deleted) user counts as "taken". A soft-deleted
+	// user's telegram_id must be re-registrable: the previous unscoped "taken"
+	// check plus scoped fill returned "该 Telegram 账户未绑定" and locked the
+	// account out of both login and re-registration.
+	if model.IsTelegramIdTakenByActiveUser(telegramId) {
 		if err := user.FillUserByTelegramId(); err != nil {
 			c.JSON(200, gin.H{
 				"message": err.Error(),
@@ -104,8 +106,6 @@ func TelegramLogin(c *gin.Context) {
 			})
 			return
 		}
-		// Soft-deleted users still count as taken (unscoped), but scoped fill
-		// returns id 0 — same contract as GitHubOAuth.
 		if user.Id == 0 {
 			c.JSON(200, gin.H{
 				"success": false,
@@ -118,6 +118,16 @@ func TelegramLogin(c *gin.Context) {
 			c.JSON(200, gin.H{
 				"success": false,
 				"message": "管理员关闭了新用户注册",
+			})
+			return
+		}
+
+		// Clear any soft-deleted residue so the new active user becomes the sole
+		// holder of this telegram_id (avoids stale bindings / future confusion).
+		if err := model.ClearTelegramIdFromDeletedUsers(telegramId); err != nil {
+			c.JSON(200, gin.H{
+				"success": false,
+				"message": err.Error(),
 			})
 			return
 		}
@@ -136,6 +146,15 @@ func TelegramLogin(c *gin.Context) {
 		}
 
 		if err := user.Insert(inviterId); err != nil {
+			c.JSON(200, gin.H{
+				"success": false,
+				"message": err.Error(),
+			})
+			return
+		}
+		// Default token for the new user (mirrors password register); abort
+		// before binding/login on failure to avoid a half-provisioned account.
+		if err := ensureDefaultTokenForNewUser(&user); err != nil {
 			c.JSON(200, gin.H{
 				"success": false,
 				"message": err.Error(),

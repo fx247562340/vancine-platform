@@ -137,6 +137,41 @@ func Logout(c *gin.Context) {
 	})
 }
 
+// ensureDefaultTokenForNewUser provisions the default API token for a freshly
+// registered user, mirroring the password-register path exactly (same key,
+// name, quota and group rules). It is a no-op when constant.GenerateDefaultToken
+// is disabled. On any failure it returns an error so callers abort BEFORE
+// binding first-touch attribution or setting up the login session — avoiding a
+// half-provisioned account with no usable token. Shared by password register
+// and every OAuth new-user path so there is a single token rule.
+func ensureDefaultTokenForNewUser(user *model.User) error {
+	if constant.GenerateDefaultToken {
+		key, err := common.GenerateKey()
+		if err != nil {
+			common.SysLog("failed to generate token key: " + err.Error())
+			return err
+		}
+		token := model.Token{
+			UserId:             user.Id,
+			Name:               user.Username + "的初始令牌",
+			Key:                key,
+			CreatedTime:        common.GetTimestamp(),
+			AccessedTime:       common.GetTimestamp(),
+			ExpiredTime:        -1,     // 永不过期
+			RemainQuota:        500000, // 示例额度
+			UnlimitedQuota:     true,
+			ModelLimitsEnabled: false,
+		}
+		if setting.DefaultUseAutoGroup {
+			token.Group = "auto"
+		}
+		if err := token.Insert(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func Register(c *gin.Context) {
 	if !common.RegisterEnabled {
 		common.ApiErrorI18n(c, i18n.MsgUserRegisterDisabled)
@@ -199,33 +234,10 @@ func Register(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgUserRegisterFailed)
 		return
 	}
-	// 生成默认令牌
-	if constant.GenerateDefaultToken {
-		key, err := common.GenerateKey()
-		if err != nil {
-			common.ApiErrorI18n(c, i18n.MsgUserDefaultTokenFailed)
-			common.SysLog("failed to generate token key: " + err.Error())
-			return
-		}
-		// 生成默认令牌
-		token := model.Token{
-			UserId:             insertedUser.Id, // 使用插入后的用户ID
-			Name:               cleanUser.Username + "的初始令牌",
-			Key:                key,
-			CreatedTime:        common.GetTimestamp(),
-			AccessedTime:       common.GetTimestamp(),
-			ExpiredTime:        -1,     // 永不过期
-			RemainQuota:        500000, // 示例额度
-			UnlimitedQuota:     true,
-			ModelLimitsEnabled: false,
-		}
-		if setting.DefaultUseAutoGroup {
-			token.Group = "auto"
-		}
-		if err := token.Insert(); err != nil {
-			common.ApiErrorI18n(c, i18n.MsgCreateDefaultTokenErr)
-			return
-		}
+	// 生成默认令牌（与 OAuth 新用户共用同一 helper；失败则不继续登录）
+	if err := ensureDefaultTokenForNewUser(&insertedUser); err != nil {
+		common.ApiErrorI18n(c, i18n.MsgCreateDefaultTokenErr)
+		return
 	}
 
 	// First-touch attribution bind: only after durable provisioning
@@ -582,10 +594,10 @@ func GetUserModels(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"success":              true,
-		"message":              "",
-		"data":                 models,
-		"supported_endpoint":   model.GetSupportedEndpointMap(),
+		"success":            true,
+		"message":            "",
+		"data":               models,
+		"supported_endpoint": model.GetSupportedEndpointMap(),
 	})
 	return
 }
