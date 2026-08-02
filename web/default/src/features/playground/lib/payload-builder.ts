@@ -17,12 +17,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import type {
+  AudioSpeechRequest,
   ChatCompletionRequest,
   Message,
   PlaygroundConfig,
   ParameterEnabled,
 } from '../types'
-import { formatMessageForAPI, isValidMessage } from './message-utils'
+import { getVoiceOptions } from './audio-models.ts'
+import { formatMessageForAPI, isValidMessage } from './message-utils.ts'
 
 /**
  * Build API request payload from messages and config
@@ -64,4 +66,30 @@ export function buildChatCompletionPayload(
   })
 
   return payload
+}
+
+/**
+ * Build the /pg/audio/speech payload for a TTS model.
+ *
+ * Voice selection must match the model generation: uranus voices bind to
+ * seed-tts-2.0 and mars voices to seed-tts-1.0, so a voice persisted for a
+ * different generation (or an empty value) falls back to the first voice of
+ * the current model's list instead of failing upstream.
+ */
+export function buildAudioSpeechPayload(
+  input: string,
+  config: PlaygroundConfig
+): AudioSpeechRequest {
+  const options = getVoiceOptions(config.model)
+  const voice = options.some((option) => option.value === config.voice)
+    ? config.voice
+    : (options[0]?.value ?? '')
+
+  return {
+    model: config.model,
+    group: config.group,
+    input,
+    voice,
+    response_format: 'mp3',
+  }
 }

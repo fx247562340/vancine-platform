@@ -23,8 +23,13 @@ import { toast } from 'sonner'
 import { getUserModels, getUserGroups } from './api'
 import { PlaygroundChat } from './components/playground-chat'
 import { PlaygroundInput } from './components/playground-input'
+import { VoiceSelect } from './components/voice-select'
 import { usePlaygroundState, useChatHandler } from './hooks'
-import { createUserMessage, createLoadingAssistantMessage } from './lib'
+import {
+  createUserMessage,
+  createLoadingAssistantMessage,
+  isAudioSpeechModel,
+} from './lib'
 import type { Message as MessageType } from './types'
 
 export function Playground() {
@@ -212,6 +217,17 @@ export function Playground() {
 
       {/* Input area: center content and constrain to the same container width */}
       <div className='mx-auto w-full max-w-4xl'>
+        {/* TTS voice selection — only rendered for audio speech models */}
+        {isAudioSpeechModel(config.model) && (
+          <div className='pb-2'>
+            <VoiceSelect
+              disabled={isGenerating}
+              model={config.model}
+              value={config.voice}
+              onChange={(voice) => updateConfig('voice', voice)}
+            />
+          </div>
+        )}
         <PlaygroundInput
           disabled={isGenerating}
           groups={groups}

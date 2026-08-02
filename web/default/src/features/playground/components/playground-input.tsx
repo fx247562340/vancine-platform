@@ -32,9 +32,12 @@ import {
   NotepadTextIcon,
   CodeSquareIcon,
   GraduationCapIcon,
+  Loader2Icon,
 } from 'lucide-react'
+import { nanoid } from 'nanoid'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,6 +54,7 @@ import {
 } from '@/components/ai-elements/prompt-input'
 import { Suggestion, Suggestions } from '@/components/ai-elements/suggestion'
 import { ModelGroupSelector } from '@/components/model-group-selector'
+import { uploadImage } from '../api'
 import type { ModelOption, GroupOption } from '../types'
 
 interface PlaygroundInputProps {
@@ -66,6 +70,19 @@ interface PlaygroundInputProps {
   groupValue: string
   onGroupChange: (value: string) => void
   showImageUpload?: boolean
+}
+
+/**
+ * A pasted/selected image on its way into a request. `previewUrl` is a
+ * local base64 data URL for instant thumbnails; `httpUrl` is the public
+ * URL returned by /api/upload/image once the upload settles.
+ */
+interface ImageAttachment {
+  id: string
+  name: string
+  previewUrl: string
+  httpUrl?: string
+  status: 'uploading' | 'ready' | 'error'
 }
 
 const suggestions = [
@@ -93,7 +110,7 @@ export function PlaygroundInput({
 }: PlaygroundInputProps) {
   const { t } = useTranslation()
   const [text, setText] = useState('')
-  const [images, setImages] = useState<string[]>([])
+  const [attachments, setAttachments] = useState<ImageAttachment[]>([])
   const [imageUrlInput, setImageUrlInput] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -101,52 +118,113 @@ export function PlaygroundInput({
     disabled || isModelLoading || models.length === 0
   const isGroupSelectDisabled = disabled || groups.length === 0
 
-  const handleImageUpload = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = e.target.files
-      if (!files) return
-      Array.from(files).forEach((file) => {
+  // Shared ingest for paste, file picker and drag-less flows: instant base64
+  // preview + background upload to /api/upload/image for the request URL.
+  const addFiles = useCallback(
+    (files: Array<File | null | undefined>) => {
+      files.forEach((file) => {
+        if (!file) return
         if (!file.type.startsWith('image/')) return
-        // Check file size (max 10MB for base64)
         if (file.size > 10 * 1024 * 1024) {
           toast.error(t('Image size must be less than 10MB'))
           return
         }
+        const id = nanoid()
         const reader = new FileReader()
         reader.onload = () => {
-          if (reader.result) {
-            setImages((prev) => [...prev, reader.result as string])
-          }
+          const previewUrl = reader.result as string
+          setAttachments((prev) => [
+            ...prev,
+            { id, name: file.name, previewUrl, status: 'uploading' },
+          ])
+          uploadImage(file)
+            .then((url) => {
+              setAttachments((prev) =>
+                prev.map((attachment) =>
+                  attachment.id === id
+                    ? { ...attachment, httpUrl: url, status: 'ready' }
+                    : attachment
+                )
+              )
+            })
+            .catch(() => {
+              setAttachments((prev) =>
+                prev.map((attachment) =>
+                  attachment.id === id
+                    ? { ...attachment, status: 'error' }
+                    : attachment
+                )
+              )
+              toast.error(t('Upload failed'))
+            })
         }
         reader.readAsDataURL(file)
       })
-      // reset input so same file can be selected again
-      e.target.value = ''
     },
     [t]
   )
 
-  const removeImage = useCallback((index: number) => {
-    setImages((prev) => prev.filter((_, i) => i !== index))
+  // Paste anywhere in the input area: only image clipboard items trigger an
+  // upload; text pastes keep their default behavior.
+  const handlePaste = useCallback(
+    (event: React.ClipboardEvent) => {
+      const items = event.clipboardData?.items
+      if (!items) return
+      const imageFiles = Array.from(items)
+        .filter((item) => item.type.startsWith('image/'))
+        .map((item) => item.getAsFile())
+        .filter((file): file is File => file !== null)
+      if (imageFiles.length === 0) return
+      event.preventDefault()
+      addFiles(imageFiles)
+    },
+    [addFiles]
+  )
+
+  const handleImageUpload = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files
+      if (!files) return
+      addFiles(Array.from(files))
+      // reset input so same file can be selected again
+      e.target.value = ''
+    },
+    [addFiles]
+  )
+
+  const removeAttachment = useCallback((id: string) => {
+    setAttachments((prev) => prev.filter((attachment) => attachment.id !== id))
   }, [])
 
   const addImageUrl = useCallback(() => {
     const url = imageUrlInput.trim()
     if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
-      setImages((prev) => [...prev, url])
+      setAttachments((prev) => [
+        ...prev,
+        {
+          id: nanoid(),
+          name: url,
+          previewUrl: url,
+          httpUrl: url,
+          status: 'ready',
+        },
+      ])
       setImageUrlInput('')
     }
   }, [imageUrlInput])
 
   const handleSubmit = (message: PromptInputMessage) => {
     if (!message.text?.trim() || disabled) return
-    // Only pass HTTP/HTTPS URLs (not base64 data URLs)
-    const httpImages = images.filter(
-      (img) => img.startsWith('http://') || img.startsWith('https://')
-    )
+    // Only successfully uploaded HTTP URLs are attached to requests
+    const httpImages = attachments
+      .filter(
+        (attachment): attachment is ImageAttachment & { httpUrl: string } =>
+          attachment.status === 'ready' && !!attachment.httpUrl
+      )
+      .map((attachment) => attachment.httpUrl)
     onSubmit(message.text, httpImages.length > 0 ? httpImages : undefined)
     setText('')
-    setImages([])
+    setAttachments([])
   }
 
   const handleFileAction = (action: string) => {
@@ -164,8 +242,8 @@ export function PlaygroundInput({
   }
 
   return (
-    <div className='grid shrink-0 gap-4 px-1 md:pb-4'>
-      {/* Hidden file input for image upload */}
+    <div className='grid shrink-0 gap-4 px-1 md:pb-4' onPaste={handlePaste}>
+      {/* Hidden file input for image upload (kept as an alternative entry) */}
       <input
         ref={fileInputRef}
         type='file'
@@ -175,19 +253,30 @@ export function PlaygroundInput({
         onChange={handleImageUpload}
       />
 
-      {/* Image previews */}
-      {images.length > 0 && (
+      {/* Attachment previews (paste / file picker / URL) */}
+      {attachments.length > 0 && (
         <div className='flex gap-2 overflow-x-auto px-2 py-1'>
-          {images.map((img, i) => (
-            <div key={i} className='group relative shrink-0'>
+          {attachments.map((attachment) => (
+            <div key={attachment.id} className='group relative shrink-0'>
               <img
-                src={img}
-                alt={`upload-${i}`}
-                className='h-16 w-16 rounded-lg border object-cover'
+                src={attachment.previewUrl}
+                alt={attachment.name}
+                className={cn(
+                  'h-16 w-16 rounded-lg border object-cover',
+                  attachment.status === 'error' &&
+                    'border-destructive opacity-60'
+                )}
               />
+              {attachment.status === 'uploading' && (
+                <div className='absolute inset-0 flex items-center justify-center rounded-lg bg-black/50'>
+                  <Loader2Icon className='animate-spin text-white' size={18} />
+                  <span className='sr-only'>{t('Uploading')}</span>
+                </div>
+              )}
               <button
                 type='button'
-                onClick={() => removeImage(i)}
+                aria-label={t('Remove image')}
+                onClick={() => removeAttachment(attachment.id)}
                 className='bg-background/80 absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full border text-xs opacity-0 group-hover:opacity-100'
               >
                 <XIcon size={10} />

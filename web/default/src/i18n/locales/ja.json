@@ -4784,6 +4784,18 @@
     "AI Models": "AI モデル",
     "Compatible": "互換",
     "API Endpoint": "API エンドポイント",
-    "Featured models live on the public catalog. Open a model or browse the full marketplace.": "注目モデルは公開カタログからリアルタイムで取得されます。個別のモデルを開くか、カタログ全体を参照してください。"
+    "Featured models live on the public catalog. Open a model or browse the full marketplace.": "注目モデルは公開カタログからリアルタイムで取得されます。個別のモデルを開くか、カタログ全体を参照してください。",
+    "Voice": "音声",
+    "Image failed to load": "画像の読み込みに失敗しました",
+    "Image preview": "画像プレビュー",
+    "Download audio": "音声をダウンロード",
+    "Task submitted": "タスクが送信されました",
+    "Go to Task Logs to check progress and results.": "「タスクログ」で進捗と結果を確認してください。",
+    "Task submitted, task ID:": "タスクが送信されました。タスク ID:",
+    "Voice has been generated": "音声が生成されました",
+    "Image size must be less than 10MB": "画像サイズは10MB未満にしてください",
+    "Upload failed": "アップロードに失敗しました",
+    "Uploading": "アップロード中",
+    "Remove image": "画像を削除"
   }
 }

@@ -17,13 +17,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { nanoid } from 'nanoid'
-import { MESSAGE_ROLES, MESSAGE_STATUS, ERROR_MESSAGES } from '../constants'
+import { MESSAGE_ROLES, MESSAGE_STATUS, ERROR_MESSAGES } from '../constants.ts'
 import type {
   Message,
   MessageVersion,
   ChatCompletionMessage,
   ContentPart,
 } from '../types'
+import { getContentImages, getContentText } from './message-content.ts'
 
 /**
  * Create a new message version
@@ -40,6 +41,13 @@ export function createMessageVersion(content: string): MessageVersion {
  */
 export function getCurrentVersion(message: Message): MessageVersion {
   return message.versions[0] || { id: 'default', content: '' }
+}
+
+/**
+ * Plain-text view of a message's current version (union-safe).
+ */
+export function getMessageText(message: Message): string {
+  return getContentText(getCurrentVersion(message).content)
 }
 
 /**
@@ -147,8 +155,15 @@ export function isValidMessage(message: Message): boolean {
   const content = message.versions[0]?.content
   if (content === undefined) return false
 
-  // Exclude empty assistant messages (loading/streaming placeholders)
-  if (message.from === 'assistant' && !content.trim()) return false
+  // Exclude empty assistant messages (loading/streaming placeholders);
+  // image-only content parts still count as valid content.
+  if (
+    message.from === 'assistant' &&
+    !getContentText(content).trim() &&
+    getContentImages(content).length === 0
+  ) {
+    return false
+  }
 
   return true
 }
@@ -264,9 +279,12 @@ export function processStreamingContent(
   contentChunk?: string
 ): Message {
   const currentVersion = getCurrentVersion(message)
+  // Streaming always accumulates into plain text; structured part content
+  // never appears mid-stream, but guard anyway.
+  const previousContent = getContentText(currentVersion.content)
   const fullContent = contentChunk
-    ? currentVersion.content + contentChunk
-    : currentVersion.content
+    ? previousContent + contentChunk
+    : previousContent
 
   const { reasoning, hasUnclosedTag } = parseThinkTags(fullContent)
 
@@ -291,6 +309,22 @@ export function finalizeMessage(
   apiReasoningContent?: string
 ): Message {
   const currentVersion = getCurrentVersion(message)
+
+  // Structured content parts carry no <think> tags; keep them untouched.
+  if (typeof currentVersion.content !== 'string') {
+    return {
+      ...message,
+      isReasoningStreaming: false,
+      reasoning:
+        apiReasoningContent || message.reasoning?.content
+          ? {
+              content: apiReasoningContent || message.reasoning!.content,
+              duration: message.reasoning?.duration || 0,
+            }
+          : message.reasoning,
+    }
+  }
+
   const { visibleContent, reasoning } = parseThinkTags(currentVersion.content)
 
   // Priority:
@@ -330,7 +364,10 @@ export function sanitizeMessagesOnLoad(messages: Message[]): Message[] {
   if (targetIndex === -1) return messages
 
   const finalized = finalizeMessage(messages[targetIndex])
-  const hasContent = finalized.versions?.[0]?.content?.trim()
+  const finalContent = finalized.versions?.[0]?.content
+  const hasContent =
+    getContentText(finalContent).trim() ||
+    getContentImages(finalContent).length > 0
   const hasReasoning = finalized.reasoning?.content?.trim()
 
   const sanitized: Message =

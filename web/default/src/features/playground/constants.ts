@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import type { PlaygroundConfig, ParameterEnabled } from './types'
+import type { PlaygroundConfig, ParameterEnabled, VoiceOption } from './types'
 
 // Message constants
 export const MESSAGE_ROLES = {
@@ -38,22 +38,77 @@ export const API_ENDPOINTS = {
   IMAGE_GENERATIONS: '/pg/images/generations',
   VIDEO_GENERATIONS: '/pg/video/generations',
   THREE_D_GENERATIONS: '/pg/3d/generations',
+  AUDIO_SPEECH: '/pg/audio/speech',
+  UPLOAD_IMAGE: '/api/upload/image',
   USER_MODELS: '/api/user/models',
   USER_GROUPS: '/api/user/self/groups',
 } as const
 
 // Endpoint type → API path mapping
 export const ENDPOINT_API_PATHS: Record<string, string> = {
-  'openai': API_ENDPOINTS.CHAT_COMPLETIONS,
+  openai: API_ENDPOINTS.CHAT_COMPLETIONS,
   'openai-response': API_ENDPOINTS.CHAT_COMPLETIONS,
   'openai-response-compact': API_ENDPOINTS.CHAT_COMPLETIONS,
-  'anthropic': API_ENDPOINTS.CHAT_COMPLETIONS,
-  'gemini': API_ENDPOINTS.CHAT_COMPLETIONS,
+  anthropic: API_ENDPOINTS.CHAT_COMPLETIONS,
+  gemini: API_ENDPOINTS.CHAT_COMPLETIONS,
   'image-generation': API_ENDPOINTS.IMAGE_GENERATIONS,
   'openai-video': API_ENDPOINTS.VIDEO_GENERATIONS,
   '3d-generation': API_ENDPOINTS.THREE_D_GENERATIONS,
-  'embeddings': API_ENDPOINTS.CHAT_COMPLETIONS,
+  embeddings: API_ENDPOINTS.CHAT_COMPLETIONS,
 }
+
+// Audio speech (TTS) model detection — aligned with classic
+// AUDIO_SPEECH_MODELS. The backend reports TTS models with the generic
+// 'openai' endpoint, so routing must match on the model name itself.
+export const AUDIO_SPEECH_MODELS = [
+  'tts-1',
+  'tts-1-hd',
+  'doubao-tts',
+  'doubao-tts2.0',
+] as const
+
+// TTS voices — ported from classic playground.constants.js.
+// Volcano Engine seed-tts resource binding:
+//   - uranus suffix → seed-tts-2.0 (Doubao-tts2.0)
+//   - mars suffix   → seed-tts-1.0 (Doubao-tts)
+// Mixing suffixes across versions fails with "resource ID is mismatched
+// with speaker related resource", so lists are kept strictly per version.
+export const DOUBAO_TTS2_VOICES: VoiceOption[] = [
+  {
+    value: 'zh_female_vv_uranus_bigtts',
+    label: 'Vivi · 中文 女 · 温柔（多语种）',
+  },
+  { value: 'en_female_nadia_uranus_bigtts', label: 'Nadia · English Female' },
+  { value: 'en_female_jane_uranus_bigtts', label: 'Jane · English Female' },
+  {
+    value: 'en_female_rachel_p1_uranus_bigtts',
+    label: 'Rachel · English Female',
+  },
+  { value: 'en_male_david_uranus_bigtts', label: 'David · English Male' },
+  { value: 'en_male_alex_uranus_bigtts', label: 'Alex · English Male' },
+  { value: 'en_male_kevin_uranus_bigtts', label: 'Kevin · English Male' },
+  {
+    value: 'en_female_stokie_uranus_bigtts',
+    label: 'Stokie · English (UK) Female',
+  },
+  { value: 'es_female_bv084_uranus_bigtts', label: 'Español · 西语 女' },
+  { value: 'fr_female_fr_bv078_uranus_bigtts', label: 'Français · 法语 女' },
+  { value: 'de_female_bv081_uranus_bigtts', label: 'Deutsch · 德语 女' },
+  { value: 'ar_female_dina_uranus_bigtts', label: 'العربية · 阿语 女' },
+]
+
+export const DOUBAO_TTS_VOICES: VoiceOption[] = [
+  { value: 'zh_female_cancan_mars_bigtts', label: '灿灿 · 中文 女 · 明亮' },
+  { value: 'zh_male_wenhao_mars_bigtts', label: '文豪 · 中文 男 · 沉稳' },
+  { value: 'en_female_amanda_mars_bigtts', label: 'Amanda · English Female' },
+  { value: 'en_female_emily_mars_bigtts', label: 'Emily · English Female' },
+  { value: 'en_male_adam_mars_bigtts', label: 'Adam · English Male' },
+  { value: 'en_male_jackson_mars_bigtts', label: 'Jackson · English Male' },
+  { value: 'en_female_sarah_mars_bigtts', label: 'Sarah · English Female' },
+  { value: 'en_male_smith_mars_bigtts', label: 'Smith · English Male' },
+  { value: 'en_female_anna_mars_bigtts', label: 'Anna · English Female' },
+  { value: 'en_male_dryw_mars_bigtts', label: 'Dryw · English Male' },
+]
 
 // Default group — uses 'default' as the safe fallback; auto-group is
 // only selected when the backend confirms it is available for the user.
@@ -63,6 +118,8 @@ export const DEFAULT_GROUP = 'default' as const
 export const DEFAULT_CONFIG: PlaygroundConfig = {
   model: 'gpt-4o',
   group: DEFAULT_GROUP,
+  // Same default voice as the classic playground (2.0 / uranus list)
+  voice: 'zh_female_vv_uranus_bigtts',
   temperature: 0.7,
   top_p: 1,
   max_tokens: 4096,

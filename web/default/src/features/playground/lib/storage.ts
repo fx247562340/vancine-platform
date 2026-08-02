@@ -107,11 +107,17 @@ export function loadMessages(): Message[] | null {
 }
 
 /**
- * Save messages to localStorage
+ * Save messages to localStorage.
+ * Audio data URLs are session-only: they can be several megabytes of
+ * base64 and would blow the storage quota, so they are stripped before
+ * persisting (the message text survives, the player does not).
  */
 export function saveMessages(messages: Message[]): void {
   try {
-    localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages))
+    const serializable = messages.map((message) =>
+      message.audioUrl ? { ...message, audioUrl: undefined } : message
+    )
+    localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(serializable))
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Failed to save messages:', error)

@@ -4784,6 +4784,18 @@
     "AI Models": "Mô hình AI",
     "Compatible": "Tương thích",
     "API Endpoint": "Điểm cuối API",
-    "Featured models live on the public catalog. Open a model or browse the full marketplace.": "Các mô hình nổi bật được lấy trực tiếp từ danh mục công khai. Mở một mô hình hoặc xem toàn bộ danh mục."
+    "Featured models live on the public catalog. Open a model or browse the full marketplace.": "Các mô hình nổi bật được lấy trực tiếp từ danh mục công khai. Mở một mô hình hoặc xem toàn bộ danh mục.",
+    "Voice": "Giọng đọc",
+    "Image failed to load": "Tải ảnh thất bại",
+    "Image preview": "Xem trước ảnh",
+    "Download audio": "Tải âm thanh",
+    "Task submitted": "Đã gửi tác vụ",
+    "Go to Task Logs to check progress and results.": "Vui lòng vào «Nhật ký tác vụ» để xem tiến độ và kết quả.",
+    "Task submitted, task ID:": "Đã gửi tác vụ, ID tác vụ:",
+    "Voice has been generated": "Đã tạo giọng nói",
+    "Image size must be less than 10MB": "Kích thước ảnh phải nhỏ hơn 10MB",
+    "Upload failed": "Tải lên thất bại",
+    "Uploading": "Đang tải lên",
+    "Remove image": "Xóa ảnh"
   }
 }

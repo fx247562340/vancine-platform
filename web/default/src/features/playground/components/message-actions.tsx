@@ -22,6 +22,7 @@ import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { MESSAGE_ACTION_LABELS } from '../constants'
 import { useMessageActionGuard } from '../hooks/use-message-action-guard'
+import { getContentImages, getContentText } from '../lib/message-content'
 import type { Message } from '../types'
 import { MessageActionButton } from './message-action-button'
 
@@ -50,10 +51,15 @@ export function MessageActions({
   const { guardAction } = useMessageActionGuard(isGenerating)
 
   const isAssistant = message.from === 'assistant'
-  const hasContent = message.versions.some((v) => v.content)
+  const hasContent = message.versions.some(
+    (v) => getContentText(v.content) || getContentImages(v.content).length > 0
+  )
   const isLoading =
     message.status === 'loading' || message.status === 'streaming'
-  const content = message.versions[0]?.content || ''
+  const versionContent = message.versions[0]?.content
+  const textContent = getContentText(versionContent)
+  // Copy falls back to the image URLs for image-only messages
+  const content = textContent || getContentImages(versionContent).join('\n')
   const isCopied = copiedText === content
 
   const handleCopy = () => {

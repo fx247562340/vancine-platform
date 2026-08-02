@@ -17,13 +17,23 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useCallback, useMemo, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { trackEvent } from '@/lib/analytics'
 import { createPlaygroundAnalytics } from '@/lib/playground-analytics'
-import { sendChatCompletion, sendPlaygroundRequest } from '../api'
+import {
+  sendAudioSpeech,
+  sendChatCompletion,
+  sendPlaygroundRequest,
+} from '../api'
 import { MESSAGE_STATUS, ERROR_MESSAGES } from '../constants'
 import {
+  blobToDataUrl,
+  buildAudioSpeechPayload,
   buildChatCompletionPayload,
+  buildTaskSubmittedContent,
+  getMessageText,
+  isAudioSpeechModel,
   updateAssistantMessageWithError,
   updateLastAssistantMessage,
   processStreamingContent,
@@ -71,21 +81,19 @@ export function useChatHandler({
   models,
   onMessageUpdate,
 }: UseChatHandlerOptions) {
+  const { t } = useTranslation()
   const { sendStreamRequest, stopStream, isStreaming } = useStreamRequest()
   const pendingImagesRef = useRef<string[]>([])
 
   // One analytics tracker instance per hook. Each request then gets its own
   // isolated handle (via analytics.start) that its async callbacks close over,
   // so concurrent requests never cross-contaminate.
-  const analytics = useMemo(
-    () => createPlaygroundAnalytics(trackEvent),
-    [],
-  )
+  const analytics = useMemo(() => createPlaygroundAnalytics(trackEvent), [])
 
   // The handle of the most recently started, still-on-the-wire request. Used
   // by stopGeneration to cancel in flight. Each send function replaces it.
   const latestRequestRef = useRef<ReturnType<typeof analytics.start> | null>(
-    null,
+    null
   )
 
   // 当前模型的 endpoint 类型
@@ -152,14 +160,23 @@ export function useChatHandler({
 
       // 取最后一条用户消息作为 prompt
       const lastUserMsg = [...messages].reverse().find((m) => m.from === 'user')
-      const prompt = lastUserMsg?.versions?.[0]?.content || ''
+      const prompt = lastUserMsg ? getMessageText(lastUserMsg) : ''
 
-      const payload = {
+      const payload: Record<string, unknown> = {
         model: config.model,
         group: config.group,
         prompt,
         size: '2K',
         response_format: 'url',
+      }
+      // Attach pasted/uploaded images for image-to-image edits (aligned with
+      // classic: single image as string, multiple as array).
+      if (pendingImagesRef.current.length > 0) {
+        payload.image =
+          pendingImagesRef.current.length === 1
+            ? pendingImagesRef.current[0]
+            : pendingImagesRef.current
+        pendingImagesRef.current = []
       }
 
       try {
@@ -214,13 +231,11 @@ export function useChatHandler({
     async (messages: Message[]) => {
       const handle = trackRequestHandle(
         config.model,
-        isTaskEndpoint(endpointType)
-          ? endpointType
-          : 'openai-video',
+        isTaskEndpoint(endpointType) ? endpointType : 'openai-video'
       )
 
       const lastUserMsg = [...messages].reverse().find((m) => m.from === 'user')
-      const prompt = lastUserMsg?.versions?.[0]?.content || ''
+      const prompt = lastUserMsg ? getMessageText(lastUserMsg) : ''
 
       const payload: Record<string, unknown> = {
         model: config.model,
@@ -245,6 +260,12 @@ export function useChatHandler({
 
         const taskId = response?.task_id || response?.id
         if (taskId) {
+          // No polling by design: confirm submission and point the user to
+          // the task logs page, where progress and results are visible.
+          const hintContent = buildTaskSubmittedContent(taskId, {
+            submittedLabel: t('Task submitted, task ID:'),
+            hintLabel: t('Go to Task Logs to check progress and results.'),
+          })
           onMessageUpdate((prev) =>
             updateLastAssistantMessage(prev, (message) => ({
               ...finalizeMessage({
@@ -252,10 +273,11 @@ export function useChatHandler({
                 versions: [
                   {
                     ...message.versions[0],
-                    content: `任务已提交，ID: ${taskId}\n\n请在任务管理中查看进度。`,
+                    content: hintContent,
                   },
                 ],
               }),
+              taskInfo: { taskId },
               status: MESSAGE_STATUS.COMPLETE,
             }))
           )
@@ -277,7 +299,54 @@ export function useChatHandler({
         handle.fail()
       }
     },
-    [config, endpointType, onMessageUpdate, handleStreamError]
+    [config, endpointType, onMessageUpdate, handleStreamError, t]
+  )
+
+  // 发送语音合成请求（TTS）。/pg/audio/speech 返回二进制音频而非 JSON，
+  // 转成 data URL 后存入消息，由 <MessageAudio> 内联播放。
+  const sendAudioSpeechRequest = useCallback(
+    async (messages: Message[]) => {
+      const handle = trackRequestHandle(config.model, 'audio-speech')
+      // 图片不适用于 TTS，丢弃待附加图片避免泄漏到后续请求
+      pendingImagesRef.current = []
+
+      const lastUserMsg = [...messages].reverse().find((m) => m.from === 'user')
+      const input = lastUserMsg ? getMessageText(lastUserMsg) : ''
+      const payload = buildAudioSpeechPayload(input, config)
+
+      try {
+        const blob = await sendAudioSpeech(payload)
+        const audioUrl = await blobToDataUrl(blob)
+        onMessageUpdate((prev) =>
+          updateLastAssistantMessage(prev, (message) => ({
+            ...finalizeMessage({
+              ...message,
+              versions: [
+                {
+                  ...message.versions[0],
+                  content: `🔊 ${t('Voice has been generated')}`,
+                },
+              ],
+            }),
+            audioUrl,
+            status: MESSAGE_STATUS.COMPLETE,
+          }))
+        )
+        handle.success() // audio blob received and decoded
+      } catch (error: unknown) {
+        const err = error as {
+          response?: { data?: { message?: string } }
+          message?: string
+        }
+        handleStreamError(
+          err?.response?.data?.message ||
+            err?.message ||
+            ERROR_MESSAGES.API_REQUEST_ERROR
+        )
+        handle.fail()
+      }
+    },
+    [config, onMessageUpdate, handleStreamError, t]
   )
 
   // Send streaming chat request. The handle is created here and threaded into
@@ -303,7 +372,10 @@ export function useChatHandler({
               message.status === MESSAGE_STATUS.COMPLETE ||
               message.status === MESSAGE_STATUS.ERROR
                 ? message
-                : { ...finalizeMessage(message), status: MESSAGE_STATUS.COMPLETE }
+                : {
+                    ...finalizeMessage(message),
+                    status: MESSAGE_STATUS.COMPLETE,
+                  }
             )
           )
         },
@@ -380,19 +452,28 @@ export function useChatHandler({
   // real request, before the model is invoked.
   const sendChat = useCallback(
     (messages: Message[]) => {
-      if (endpointType === 'image-generation') {
+      // TTS models report a generic 'openai' endpoint from the backend, so
+      // audio routing must match on the model name, before endpoint routing.
+      if (isAudioSpeechModel(config.model)) {
+        sendAudioSpeechRequest(messages)
+      } else if (endpointType === 'image-generation') {
         sendImageRequest(messages)
       } else if (isTaskEndpoint(endpointType)) {
         sendTaskRequest(messages)
       } else if (config.stream) {
+        // 文本对话不消费图片，丢弃待附加图片避免泄漏到后续请求
+        pendingImagesRef.current = []
         sendStreamingChat(messages)
       } else {
+        pendingImagesRef.current = []
         sendNonStreamingChat(messages)
       }
     },
     [
+      config.model,
       config.stream,
       endpointType,
+      sendAudioSpeechRequest,
       sendImageRequest,
       sendTaskRequest,
       sendStreamingChat,

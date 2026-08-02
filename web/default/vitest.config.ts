@@ -42,6 +42,7 @@ export default defineConfig({
       'src/features/system-settings/**/*.test.tsx',
       'src/features/auth/**/telegram*.test.tsx',
       'src/features/profile/**/telegram*.test.tsx',
+      'src/features/playground/**/*.test.tsx',
     ],
     css: false,
   },

@@ -4784,6 +4784,18 @@
     "AI Models": "AI 模型",
     "Compatible": "兼容",
     "API Endpoint": "API 端点",
-    "Featured models live on the public catalog. Open a model or browse the full marketplace.": "精选模型实时取自公开目录。打开一个模型，或浏览完整模型目录。"
+    "Featured models live on the public catalog. Open a model or browse the full marketplace.": "精选模型实时取自公开目录。打开一个模型，或浏览完整模型目录。",
+    "Voice": "音色",
+    "Image failed to load": "图片加载失败",
+    "Image preview": "图片预览",
+    "Download audio": "下载音频",
+    "Task submitted": "任务已提交",
+    "Go to Task Logs to check progress and results.": "请到「任务日志」查看进度和结果。",
+    "Task submitted, task ID:": "任务已提交，任务 ID：",
+    "Voice has been generated": "语音已生成",
+    "Image size must be less than 10MB": "图片大小不能超过 10MB",
+    "Upload failed": "上传失败",
+    "Uploading": "上传中",
+    "Remove image": "删除图片"
   }
 }
