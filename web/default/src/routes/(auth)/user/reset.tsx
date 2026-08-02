@@ -16,13 +16,22 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import z from 'zod'
 import { createFileRoute, useSearch } from '@tanstack/react-router'
 import {
   ResetPasswordConfirm,
   type ResetPasswordSearchParams,
 } from '@/features/auth/reset-password-confirm'
 
+const userResetSearchSchema = z
+  .object({
+    email: z.string().optional(),
+    token: z.string().optional(),
+  })
+  .catch({})
+
 export const Route = createFileRoute('/(auth)/user/reset')({
+  validateSearch: userResetSearchSchema,
   component: UserResetPassword,
 })
 
