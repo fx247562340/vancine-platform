@@ -41,6 +41,22 @@ describe('MessageImage preview dialog sizing', () => {
     expect(enlarged.className).toContain('max-w-full')
     expect(enlarged.className).toContain('object-contain')
   })
+
+  it('overrides the base dialog width at every breakpoint', () => {
+    render(<MessageImage src='https://cdn.example/big.png' />)
+    fireEvent.click(screen.getByRole('img'))
+
+    const dialog = screen.getByRole('dialog')
+    const classes = dialog.className.split(/\s+/)
+    // < 640px viewport: unprefixed max-w wins over the base
+    // max-w-[calc(100%-2rem)]
+    expect(classes).toContain('max-w-[90vw]')
+    // >= 640px viewport: an sm:-prefixed override is required, otherwise the
+    // base sm:max-w-sm (384px) locks the dialog on desktop
+    expect(classes).toContain('sm:max-w-[90vw]')
+    // the 384px desktop cap must be gone after class merging
+    expect(classes).not.toContain('sm:max-w-sm')
+  })
 })
 
 describe('MessageImage fallback', () => {

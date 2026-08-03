@@ -70,7 +70,10 @@ export function MessageImage({ src, alt, className }: MessageImageProps) {
         onError={() => setFailed(true)}
       />
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className='max-h-[90vh] max-w-[90vw]'>
+        {/* sm:max-w-[90vw] is required: the base dialog caps at sm:max-w-sm
+            (384px) on >= 640px viewports, which the unprefixed max-w cannot
+            override. twMerge drops the base cap at each breakpoint. */}
+        <DialogContent className='max-h-[90vh] max-w-[90vw] sm:max-w-[90vw]'>
           <DialogHeader>
             <DialogTitle>{t('Image preview')}</DialogTitle>
           </DialogHeader>
