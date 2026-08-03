@@ -37,6 +37,8 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     include: [
+      'src/__tests__/**/*.test.tsx',
+      'src/i18n/__tests__/**/*.test.tsx',
       'src/features/docs/__tests__/**/*.test.tsx',
       'src/features/wallet/**/*.test.tsx',
       'src/features/system-settings/**/*.test.tsx',

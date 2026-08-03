@@ -26,23 +26,7 @@ import {
   applyDocumentLanguage,
   wireDocumentLanguageSync,
 } from './languages'
-import en from './locales/en.json'
-import fr from './locales/fr.json'
-import ja from './locales/ja.json'
-import ru from './locales/ru.json'
-import vi from './locales/vi.json'
-import zhTW from './locales/zh-TW.json'
-import zh from './locales/zh.json'
-
-export const resources = {
-  en,
-  zh,
-  'zh-TW': zhTW,
-  fr,
-  ru,
-  ja,
-  vi,
-} as const
+import { createLazyResourceBackend } from './resource-loader'
 
 /**
  * Keep `<html lang>` in sync with the active interface language so assistive
@@ -60,10 +44,13 @@ wireDocumentLanguageSync(i18n)
  * integration tests can wait for the real wiring instead of guessing a delay.
  */
 export const i18nInitPromise: Promise<void> = i18n
+  // Lazy-load locale bundles (one chunk per language) instead of bundling
+  // every locale into the entry chunk; the active language (plus the `en`
+  // fallback) is fetched during init before the promise resolves.
+  .use(createLazyResourceBackend())
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    resources,
     fallbackLng: 'en',
     supportedLngs: SUPPORTED_INTERFACE_LANGUAGES as readonly string[],
     // Normalize to an exact supported code ourselves; keep it verbatim so
@@ -75,6 +62,11 @@ export const i18nInitPromise: Promise<void> = i18n
       escapeValue: false, // not needed for react as it escapes by default
     },
     detection: I18N_DETECTION_OPTIONS,
+    react: {
+      // Components must render immediately instead of suspending while a
+      // locale chunk is in flight (avoids a blank first paint on switch).
+      useSuspense: false,
+    },
   })
   .then(() => {
     // Safety-net initial sync in case no languageChanged fired during init.
