@@ -32,6 +32,8 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Turnstile } from '@/components/turnstile'
+import { useTurnstile } from '@/features/auth/hooks/use-turnstile'
 import { sendEmailVerification, bindEmail } from '../../api'
 
 // ============================================================================
@@ -56,6 +58,16 @@ export function EmailBindDialog({
   const [sendingCode, setSendingCode] = useState(false)
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
+  // Bumped after each successful send to remount the Turnstile widget, since
+  // a token is single-use and the widget only fires its callback once.
+  const [turnstileNonce, setTurnstileNonce] = useState(0)
+  const {
+    isTurnstileEnabled,
+    turnstileSiteKey,
+    turnstileToken,
+    setTurnstileToken,
+    validateTurnstile,
+  } = useTurnstile()
   const {
     secondsLeft,
     isActive,
@@ -71,13 +83,25 @@ export function EmailBindDialog({
       return
     }
 
+    // /api/verification is protected by TurnstileCheck; require a fresh
+    // human-check token before sending, like sign-in / sign-up do.
+    if (!validateTurnstile()) return
+
     try {
       setSendingCode(true)
-      const response = await sendEmailVerification(email)
+      const response = isTurnstileEnabled
+        ? await sendEmailVerification(email, turnstileToken)
+        : await sendEmailVerification(email)
 
       if (response.success) {
         toast.success(t('Verification code sent! Please check your email.'))
         startCountdown()
+        // Turnstile tokens are single-use: reset it and re-render the widget
+        // so the next send requires a fresh human check.
+        if (isTurnstileEnabled) {
+          setTurnstileToken('')
+          setTurnstileNonce((n) => n + 1)
+        }
       } else {
         toast.error(response.message || t('Failed to send verification code'))
       }
@@ -180,6 +204,17 @@ export function EmailBindDialog({
               </Button>
             </div>
           </div>
+
+          {/* Turnstile human check (same widget as sign-in / sign-up) */}
+          {isTurnstileEnabled && (
+            <div className='mt-2'>
+              <Turnstile
+                key={turnstileNonce}
+                siteKey={turnstileSiteKey}
+                onVerify={setTurnstileToken}
+              />
+            </div>
+          )}
         </div>
 
         <DialogFooter>

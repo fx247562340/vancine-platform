@@ -44,7 +44,7 @@ export default defineConfig({
       'src/features/system-settings/**/*.test.tsx',
       'src/features/auth/**/telegram*.test.tsx',
       'src/features/auth/**/google*.test.tsx',
-      'src/features/profile/**/telegram*.test.tsx',
+      'src/features/profile/**/*.test.tsx',
       'src/features/playground/**/*.test.tsx',
       'src/features/usage-logs/**/*.test.tsx',
     ],
