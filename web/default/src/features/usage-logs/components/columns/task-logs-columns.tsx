@@ -29,6 +29,7 @@ import { DataTableColumnHeader } from '@/components/data-table'
 import { StatusBadge } from '@/components/status-badge'
 import { TASK_ACTIONS, TASK_STATUS } from '../../constants'
 import { taskActionMapper, taskStatusMapper } from '../../lib/mappers'
+import { detectTaskMediaType, is3dFileUrl } from '../../lib/media-type'
 import type { TaskLog } from '../../types'
 import {
   AudioPreviewDialog,
@@ -220,7 +221,12 @@ export function useTaskLogsColumns(isAdmin: boolean): ColumnDef<TaskLog>[] {
               className='border-border/60 bg-muted/30 max-w-full truncate rounded-md border px-1.5 py-0.5 font-mono'
             />
             <span className='text-muted-foreground/60 truncate text-[11px]'>
-              {t(log.platform)} · {t(taskActionMapper.getLabel(log.action))}
+              {/* video and 3D tasks share the `generate` action; infer the
+                  media type so 3D tasks are not labeled "Image to Video" */}
+              {t(log.platform)} ·{' '}
+              {detectTaskMediaType(log) === '3d'
+                ? t('Image to 3D')
+                : t(taskActionMapper.getLabel(log.action))}
             </span>
           </div>
         )
@@ -305,14 +311,11 @@ export function useTaskLogsColumns(isAdmin: boolean): ColumnDef<TaskLog>[] {
               if (content.model_url)
                 return { url: content.model_url, type: '3d' }
               if (content.file_url) {
-                const url = content.file_url
-                // 3D file extensions
-                const is3dExt = /\.(glb|obj|fbx|gltf|stl|ply|zip)(\?|$)/i.test(
-                  url
-                )
-                // URL path contains 3D model name
-                const is3dPath = /seed3d|hitem3d|hyper3d|3d-gen/i.test(url)
-                return { url, type: is3dExt || is3dPath ? '3d' : 'video' }
+                // shared 3D asset detection (extensions + path hints)
+                return {
+                  url: content.file_url,
+                  type: is3dFileUrl(content.file_url) ? '3d' : 'video',
+                }
               }
             }
             if (parsed?.video_url)

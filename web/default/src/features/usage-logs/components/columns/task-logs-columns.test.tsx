@@ -125,3 +125,38 @@ describe('task logs details column — 3D results', () => {
     expect(document.querySelector('video')).toBeNull()
   })
 })
+
+function TaskIdCellRenderer({ log }: { log: TaskLog }) {
+  const columns = useTaskLogsColumns(false)
+  const taskIdColumn = columns.find(
+    (c) => 'accessorKey' in c && c.accessorKey === 'task_id'
+  )
+  const Cell = taskIdColumn!.cell as unknown as ComponentType<{ row: FakeRow }>
+  const row: FakeRow = {
+    original: log,
+    getValue: (key) => (key === 'task_id' ? log.task_id : undefined),
+  }
+  return <Cell row={row} />
+}
+
+describe('task logs Task ID column — action label disambiguation', () => {
+  it('labels 3D generate tasks as Image to 3D', () => {
+    const log = makeLog({
+      task_id: 'task-3d',
+      data: JSON.stringify({ model: 'doubao-seed3d-2-0-260328' }),
+    })
+    render(<TaskIdCellRenderer log={log} />)
+    expect(screen.getByText(/Image to 3D/)).toBeInTheDocument()
+    expect(screen.queryByText(/Image to Video/)).toBeNull()
+  })
+
+  it('keeps the Image to Video label for video generate tasks', () => {
+    const log = makeLog({
+      task_id: 'task-video',
+      data: JSON.stringify({ model: 'doubao-seedance-2-0-260128' }),
+    })
+    render(<TaskIdCellRenderer log={log} />)
+    expect(screen.getByText(/Image to Video/)).toBeInTheDocument()
+    expect(screen.queryByText(/Image to 3D/)).toBeNull()
+  })
+})
