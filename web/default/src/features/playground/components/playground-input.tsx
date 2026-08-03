@@ -22,9 +22,6 @@ import {
   PaperclipIcon,
   FileIcon,
   ImageIcon,
-  ScreenShareIcon,
-  CameraIcon,
-  GlobeIcon,
   SendIcon,
   SquareIcon,
   BarChartIcon,
@@ -113,6 +110,7 @@ export function PlaygroundInput({
   const [attachments, setAttachments] = useState<ImageAttachment[]>([])
   const [imageUrlInput, setImageUrlInput] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
 
   const isModelSelectDisabled =
     disabled || isModelLoading || models.length === 0
@@ -227,25 +225,24 @@ export function PlaygroundInput({
     setAttachments([])
   }
 
-  const handleFileAction = (action: string) => {
-    if (action === 'upload-photo' && fileInputRef.current) {
-      fileInputRef.current.click()
-    } else {
-      toast.info(t('Feature in development'), {
-        description: action,
-      })
-    }
-  }
-
   const handleSuggestionClick = (suggestion: string) => {
     onSubmit(suggestion)
   }
 
   return (
     <div className='grid shrink-0 gap-4 px-1 md:pb-4' onPaste={handlePaste}>
-      {/* Hidden file input for image upload (kept as an alternative entry) */}
+      {/* Hidden inputs behind the attach menu. Both feed the image upload
+          pipeline; non-image files picked via "Upload file" are filtered
+          out by addFiles (only image uploads are supported for now). */}
       <input
         ref={fileInputRef}
+        type='file'
+        multiple
+        className='hidden'
+        onChange={handleImageUpload}
+      />
+      <input
+        ref={imageInputRef}
         type='file'
         accept='image/*'
         multiple
@@ -344,43 +341,18 @@ export function PlaygroundInput({
                 <span className='sr-only sm:hidden'>{t('Attach')}</span>
               </DropdownMenuTrigger>
               <DropdownMenuContent align='start'>
-                <DropdownMenuItem
-                  onClick={() => handleFileAction('upload-file')}
-                >
+                <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
                   <FileIcon className='mr-2' size={16} />
                   {t('Upload file')}
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => handleFileAction('upload-photo')}
+                  onClick={() => imageInputRef.current?.click()}
                 >
                   <ImageIcon className='mr-2' size={16} />
                   {t('Upload photo')}
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleFileAction('take-screenshot')}
-                >
-                  <ScreenShareIcon className='mr-2' size={16} />
-                  {t('Take screenshot')}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleFileAction('take-photo')}
-                >
-                  <CameraIcon className='mr-2' size={16} />
-                  {t('Take photo')}
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-
-            <PromptInputButton
-              className='border font-medium'
-              disabled={disabled}
-              onClick={() => toast.info(t('Search feature in development'))}
-              variant='outline'
-            >
-              <GlobeIcon size={16} />
-              <span className='hidden sm:inline'>{t('Search')}</span>
-              <span className='sr-only sm:hidden'>{t('Search')}</span>
-            </PromptInputButton>
           </PromptInputTools>
 
           <div className='flex items-center gap-1.5 md:gap-2'>

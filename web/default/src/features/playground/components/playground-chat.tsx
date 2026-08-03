@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useEffect, useMemo, useState } from 'react'
+import { useAuthStore } from '@/stores/auth-store'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -34,7 +35,11 @@ import {
   ConversationScrollButton,
 } from '@/components/ai-elements/conversation'
 import { Loader } from '@/components/ai-elements/loader'
-import { Message, MessageContent } from '@/components/ai-elements/message'
+import {
+  Message,
+  MessageAvatar,
+  MessageContent,
+} from '@/components/ai-elements/message'
 import {
   Reasoning,
   ReasoningContent,
@@ -54,7 +59,6 @@ import {
   getContentText,
   stripImageMarkdown,
 } from '../lib/message-content'
-import { getMessageContentStyles } from '../lib/message-styles'
 import { parseThinkTags } from '../lib/message-utils'
 import type { Message as MessageType } from '../types'
 import { MessageActions } from './message-actions'
@@ -90,6 +94,9 @@ export function PlaygroundChat({
 }: PlaygroundChatProps) {
   const [editText, setEditText] = useState('')
   const [originalText, setOriginalText] = useState('')
+  const user = useAuthStore((s) => s.auth.user)
+  // Avatar identity: display name first, then username, then a neutral label
+  const userName = user?.display_name || user?.username || 'Me'
 
   useEffect(() => {
     if (!editingKey) return
@@ -122,11 +129,16 @@ export function PlaygroundChat({
                 <BranchMessages>
                   {versions.map((version, versionIndex) => (
                     <Message
-                      className='group flex-row-reverse'
+                      className={cn(
+                        'group',
+                        message.from === MESSAGE_ROLES.USER
+                          ? 'is-user justify-end'
+                          : 'is-assistant justify-start'
+                      )}
                       from={message.from}
                       key={`${message.key}-${version.id}-${versionIndex}`}
                     >
-                      <div className='w-full min-w-0 flex-1 basis-full py-1'>
+                      <div className='max-w-[80%] min-w-0 py-1'>
                         {isEditing(message.key) ? (
                           <div className='space-y-2'>
                             <Textarea
@@ -306,12 +318,7 @@ export function PlaygroundChat({
                                             render their own rich notice) */}
                                         {displayContent &&
                                           !message.taskInfo && (
-                                            <MessageContent
-                                              variant='flat'
-                                              className={cn(
-                                                getMessageContentStyles()
-                                              )}
-                                            >
+                                            <MessageContent variant='contained'>
                                               <Response>
                                                 {displayContent}
                                               </Response>
@@ -327,6 +334,20 @@ export function PlaygroundChat({
                           </>
                         )}
                       </div>
+                      {/* Role avatar: DOM order [content, avatar] plus the
+                          built-in flex-row-reverse on assistant puts avatars
+                          on the outer edge for both roles. */}
+                      <MessageAvatar
+                        className='mb-1'
+                        name={
+                          message.from === MESSAGE_ROLES.USER
+                            ? userName
+                            : 'Assistant'
+                        }
+                        src={
+                          message.from === MESSAGE_ROLES.USER ? '' : '/logo.png'
+                        }
+                      />
                     </Message>
                   ))}
                 </BranchMessages>

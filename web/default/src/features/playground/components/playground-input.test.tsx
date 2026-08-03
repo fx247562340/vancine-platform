@@ -94,6 +94,52 @@ describe('PlaygroundInput paste-to-upload', () => {
     expect(uploadMock).toHaveBeenCalledWith(file)
   })
 
+  describe('attach menu simplification', () => {
+    it('offers exactly two attach options and no search button', async () => {
+      renderInput()
+
+      // the placeholder search button is gone
+      expect(screen.queryByRole('button', { name: /Search/ })).toBeNull()
+      // unimplemented capture options are gone
+      expect(screen.queryByText('Take screenshot')).toBeNull()
+      expect(screen.queryByText('Take photo')).toBeNull()
+
+      fireEvent.click(screen.getByRole('button', { name: /Attach/ }))
+      const items = await screen.findAllByRole('menuitem')
+      expect(items).toHaveLength(2)
+      expect(screen.getByText('Upload file')).toBeInTheDocument()
+      expect(screen.getByText('Upload photo')).toBeInTheDocument()
+    })
+
+    it('Upload photo triggers the image-only file input', async () => {
+      const { container } = renderInput()
+      const imageInput = container.querySelector(
+        "input[type='file'][accept='image/*']"
+      ) as HTMLInputElement
+      expect(imageInput).not.toBeNull()
+      const clickSpy = vi.spyOn(imageInput, 'click')
+
+      fireEvent.click(screen.getByRole('button', { name: /Attach/ }))
+      fireEvent.click(await screen.findByText('Upload photo'))
+
+      expect(clickSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('Upload file triggers the generic file input', async () => {
+      const { container } = renderInput()
+      const fileInput = container.querySelector(
+        "input[type='file']:not([accept])"
+      ) as HTMLInputElement
+      expect(fileInput).not.toBeNull()
+      const clickSpy = vi.spyOn(fileInput, 'click')
+
+      fireEvent.click(screen.getByRole('button', { name: /Attach/ }))
+      fireEvent.click(await screen.findByText('Upload file'))
+
+      expect(clickSpy).toHaveBeenCalledTimes(1)
+    })
+  })
+
   it('shows a loading indicator while the upload is in flight', async () => {
     let resolveUpload!: (url: string) => void
     uploadMock.mockImplementation(

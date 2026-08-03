@@ -70,13 +70,13 @@ export function MessageImage({ src, alt, className }: MessageImageProps) {
         onError={() => setFailed(true)}
       />
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className='max-w-3xl'>
+        <DialogContent className='max-h-[90vh] max-w-[90vw]'>
           <DialogHeader>
             <DialogTitle>{t('Image preview')}</DialogTitle>
           </DialogHeader>
           <img
             alt={resolvedAlt}
-            className='max-h-[70vh] w-full object-contain'
+            className='mx-auto max-h-[85vh] max-w-full object-contain'
             src={src}
           />
         </DialogContent>

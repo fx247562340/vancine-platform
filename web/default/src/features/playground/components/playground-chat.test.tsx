@@ -21,6 +21,7 @@ For commercial licensing, please contact support@quantumnous.com
 // renderer is stubbed (Streamdown/shiki are unrelated to these behaviors).
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { useAuthStore } from '@/stores/auth-store'
 import type { ContentPart, Message } from '../types'
 import { PlaygroundChat } from './playground-chat'
 
@@ -36,6 +37,7 @@ vi.mock('@/components/ai-elements/response', () => ({
 
 // jsdom has no ResizeObserver (needed by the Conversation scroll container)
 beforeEach(() => {
+  useAuthStore.getState().auth.setUser(null)
   vi.stubGlobal(
     'ResizeObserver',
     class {
@@ -191,5 +193,108 @@ describe('PlaygroundChat audio rendering', () => {
     const audio = container.querySelector('audio')
     expect(audio).not.toBeNull()
     expect(audio).toHaveAttribute('src', 'data:audio/mpeg;base64,//uQx')
+  })
+})
+
+describe('PlaygroundChat user/assistant distinction', () => {
+  it('marks user messages is-user, right-aligned, with the user avatar', () => {
+    useAuthStore.getState().auth.setUser({
+      id: 1,
+      username: 'xinuser',
+      role: 1,
+    })
+    render(
+      <PlaygroundChat
+        messages={[
+          makeMessage({
+            key: 'u1',
+            from: 'user',
+            versions: [{ id: 'v1', content: 'hello there' }],
+          }),
+        ]}
+      />
+    )
+    const root = document.querySelector('.is-user')
+    expect(root).not.toBeNull()
+    expect(root!.className).toContain('justify-end')
+    // avatar fallback shows the first two letters of the username
+    expect(screen.getByText('xi')).toBeInTheDocument()
+  })
+
+  it('falls back to a neutral name when no user is signed in', () => {
+    render(
+      <PlaygroundChat
+        messages={[
+          makeMessage({
+            key: 'u2',
+            from: 'user',
+            versions: [{ id: 'v1', content: 'anon hello' }],
+          }),
+        ]}
+      />
+    )
+    expect(screen.getByText('Me')).toBeInTheDocument()
+  })
+
+  it('marks assistant messages is-assistant, left-aligned, with an Assistant avatar', () => {
+    render(
+      <PlaygroundChat
+        messages={[
+          makeMessage({
+            key: 'a1',
+            versions: [{ id: 'v1', content: 'hi, how can I help?' }],
+          }),
+        ]}
+      />
+    )
+    const root = document.querySelector('.is-assistant')
+    expect(root).not.toBeNull()
+    expect(root!.className).toContain('justify-start')
+    // avatar fallback shows the first two letters of 'Assistant'
+    expect(screen.getByText('As')).toBeInTheDocument()
+  })
+
+  it('renders primary background for user bubbles and secondary for assistant bubbles', () => {
+    render(
+      <PlaygroundChat
+        messages={[
+          makeMessage({
+            key: 'u3',
+            from: 'user',
+            versions: [{ id: 'v1', content: 'styled user text' }],
+          }),
+          makeMessage({
+            key: 'a3',
+            versions: [{ id: 'v1', content: 'styled assistant text' }],
+          }),
+        ]}
+      />
+    )
+    const userRoot = document.querySelector('.is-user')
+    const assistantRoot = document.querySelector('.is-assistant')
+    expect(
+      userRoot!.querySelector('[class*="group-[.is-user]:bg-primary"]')
+    ).not.toBeNull()
+    expect(
+      assistantRoot!.querySelector(
+        '[class*="group-[.is-assistant]:bg-secondary"]'
+      )
+    ).not.toBeNull()
+  })
+
+  it('keeps message content within 80% of the row width', () => {
+    render(
+      <PlaygroundChat
+        messages={[
+          makeMessage({
+            key: 'u4',
+            from: 'user',
+            versions: [{ id: 'v1', content: 'width limited' }],
+          }),
+        ]}
+      />
+    )
+    const root = document.querySelector('.is-user')
+    expect(root!.querySelector('[class*="max-w-[80%]"]')).not.toBeNull()
   })
 })
