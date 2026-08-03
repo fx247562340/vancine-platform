@@ -95,7 +95,7 @@ describe('PlaygroundInput paste-to-upload', () => {
   })
 
   describe('attach menu simplification', () => {
-    it('offers exactly two attach options and no search button', async () => {
+    it('offers only the image upload option', async () => {
       renderInput()
 
       // the placeholder search button is gone
@@ -103,12 +103,30 @@ describe('PlaygroundInput paste-to-upload', () => {
       // unimplemented capture options are gone
       expect(screen.queryByText('Take screenshot')).toBeNull()
       expect(screen.queryByText('Take photo')).toBeNull()
+      // non-image uploads silently dropped files, so the option is gone too
+      expect(screen.queryByText('Upload file')).toBeNull()
 
       fireEvent.click(screen.getByRole('button', { name: /Attach/ }))
       const items = await screen.findAllByRole('menuitem')
-      expect(items).toHaveLength(2)
-      expect(screen.getByText('Upload file')).toBeInTheDocument()
+      expect(items).toHaveLength(1)
       expect(screen.getByText('Upload photo')).toBeInTheDocument()
+    })
+
+    it('keeps only the image-only file input (no generic file input)', () => {
+      const { container } = renderInput()
+      // the playground-owned picker is image-only
+      expect(
+        container.querySelector(
+          "input[data-testid='image-input'][accept='image/*']"
+        )
+      ).not.toBeNull()
+      // the removed generic picker must not come back
+      expect(
+        container.querySelector("input[data-testid='file-input']")
+      ).toBeNull()
+      // the playground owns exactly one file input now (PromptInput's own
+      // internal attachment input is separate and untouched)
+      expect(container.querySelectorAll('input[data-testid]')).toHaveLength(1)
     })
 
     it('Upload photo triggers the image-only file input', async () => {
@@ -121,20 +139,6 @@ describe('PlaygroundInput paste-to-upload', () => {
 
       fireEvent.click(screen.getByRole('button', { name: /Attach/ }))
       fireEvent.click(await screen.findByText('Upload photo'))
-
-      expect(clickSpy).toHaveBeenCalledTimes(1)
-    })
-
-    it('Upload file triggers the generic file input', async () => {
-      const { container } = renderInput()
-      const fileInput = container.querySelector(
-        "input[type='file']:not([accept])"
-      ) as HTMLInputElement
-      expect(fileInput).not.toBeNull()
-      const clickSpy = vi.spyOn(fileInput, 'click')
-
-      fireEvent.click(screen.getByRole('button', { name: /Attach/ }))
-      fireEvent.click(await screen.findByText('Upload file'))
 
       expect(clickSpy).toHaveBeenCalledTimes(1)
     })

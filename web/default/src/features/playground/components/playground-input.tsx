@@ -20,7 +20,6 @@ import { useState, useRef, useCallback } from 'react'
 import {
   XIcon,
   PaperclipIcon,
-  FileIcon,
   ImageIcon,
   SendIcon,
   SquareIcon,
@@ -109,9 +108,7 @@ export function PlaygroundInput({
   const [text, setText] = useState('')
   const [attachments, setAttachments] = useState<ImageAttachment[]>([])
   const [imageUrlInput, setImageUrlInput] = useState('')
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
-
   const isModelSelectDisabled =
     disabled || isModelLoading || models.length === 0
   const isGroupSelectDisabled = disabled || groups.length === 0
@@ -231,22 +228,16 @@ export function PlaygroundInput({
 
   return (
     <div className='grid shrink-0 gap-4 px-1 md:pb-4' onPaste={handlePaste}>
-      {/* Hidden inputs behind the attach menu. Both feed the image upload
-          pipeline; non-image files picked via "Upload file" are filtered
-          out by addFiles (only image uploads are supported for now). */}
-      <input
-        ref={fileInputRef}
-        type='file'
-        multiple
-        className='hidden'
-        onChange={handleImageUpload}
-      />
+      {/* Hidden input behind the attach menu. Only image uploads are
+          supported (addFiles filters non-image files); for general file
+          support, file-as-context uploads would need a separate path. */}
       <input
         ref={imageInputRef}
         type='file'
         accept='image/*'
         multiple
         className='hidden'
+        data-testid='image-input'
         onChange={handleImageUpload}
       />
 
@@ -341,10 +332,6 @@ export function PlaygroundInput({
                 <span className='sr-only sm:hidden'>{t('Attach')}</span>
               </DropdownMenuTrigger>
               <DropdownMenuContent align='start'>
-                <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
-                  <FileIcon className='mr-2' size={16} />
-                  {t('Upload file')}
-                </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => imageInputRef.current?.click()}
                 >
