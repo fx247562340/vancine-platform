@@ -1,3 +1,9 @@
+## 1.0.24 - 2026-08-04
+
+### 新功能
+
+- Google OAuth 登录：海外开发者最常用的一键登录。支持登录页 "Continue with Google" 按钮 + 后台 OAuth 配置；走统一 OAuth JSON 流程（对齐 GitHub/Discord），登录后正确进入控制台。回调地址由 SPA 路由 /oauth/google 处理。
+
 ## 1.0.23 - 2026-08-03
 
 ### 性能
