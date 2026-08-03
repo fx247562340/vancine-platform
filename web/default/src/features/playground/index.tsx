@@ -243,10 +243,6 @@ export function Playground() {
           onModelChange={(value) => updateConfig('model', value)}
           onStop={stopGeneration}
           onSubmit={handleSendMessage}
-          showImageUpload={
-            config.model?.toLowerCase().includes('3d') ||
-            config.model?.toLowerCase().includes('hitem')
-          }
         />
       </div>
     </div>

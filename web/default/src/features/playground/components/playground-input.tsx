@@ -65,7 +65,6 @@ interface PlaygroundInputProps {
   groups: GroupOption[]
   groupValue: string
   onGroupChange: (value: string) => void
-  showImageUpload?: boolean
 }
 
 /**
@@ -102,12 +101,10 @@ export function PlaygroundInput({
   groups,
   groupValue,
   onGroupChange,
-  showImageUpload = false,
 }: PlaygroundInputProps) {
   const { t } = useTranslation()
   const [text, setText] = useState('')
   const [attachments, setAttachments] = useState<ImageAttachment[]>([])
-  const [imageUrlInput, setImageUrlInput] = useState('')
   const imageInputRef = useRef<HTMLInputElement>(null)
   const isModelSelectDisabled =
     disabled || isModelLoading || models.length === 0
@@ -191,23 +188,6 @@ export function PlaygroundInput({
     setAttachments((prev) => prev.filter((attachment) => attachment.id !== id))
   }, [])
 
-  const addImageUrl = useCallback(() => {
-    const url = imageUrlInput.trim()
-    if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
-      setAttachments((prev) => [
-        ...prev,
-        {
-          id: nanoid(),
-          name: url,
-          previewUrl: url,
-          httpUrl: url,
-          status: 'ready',
-        },
-      ])
-      setImageUrlInput('')
-    }
-  }, [imageUrlInput])
-
   const handleSubmit = (message: PromptInputMessage) => {
     if (!message.text?.trim() || disabled) return
     // Only successfully uploaded HTTP URLs are attached to requests
@@ -271,34 +251,6 @@ export function PlaygroundInput({
               </button>
             </div>
           ))}
-        </div>
-      )}
-
-      {/* Image URL input for 3D models */}
-      {showImageUpload && (
-        <div className='flex items-center gap-2 px-2'>
-          <input
-            type='text'
-            value={imageUrlInput}
-            onChange={(e) => setImageUrlInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                addImageUrl()
-              }
-            }}
-            placeholder={t('Paste image URL and press Enter')}
-            className='border-input bg-background flex-1 rounded-md border px-3 py-1.5 text-sm'
-            disabled={disabled}
-          />
-          <button
-            type='button'
-            onClick={addImageUrl}
-            disabled={!imageUrlInput.trim()}
-            className='bg-primary text-primary-foreground rounded-md px-3 py-1.5 text-sm disabled:opacity-50'
-          >
-            {t('Add')}
-          </button>
         </div>
       )}
 

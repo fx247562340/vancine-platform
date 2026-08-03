@@ -129,6 +129,13 @@ describe('PlaygroundInput paste-to-upload', () => {
       expect(container.querySelectorAll('input[data-testid]')).toHaveLength(1)
     })
 
+    it('renders no URL input row (paste/upload is the only image intake)', () => {
+      renderInput()
+      expect(
+        screen.queryByPlaceholderText('Paste image URL and press Enter')
+      ).toBeNull()
+    })
+
     it('Upload photo triggers the image-only file input', async () => {
       const { container } = renderInput()
       const imageInput = container.querySelector(

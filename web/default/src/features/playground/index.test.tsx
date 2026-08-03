@@ -188,6 +188,44 @@ describe('Playground sends a pasted image with the user message', () => {
   })
 })
 
+describe('Playground 3D model image intake', () => {
+  it('has no URL input row and paste still uploads for 3D models', async () => {
+    presetConfig('hitem3d-2.0')
+    getUserModelsMock.mockResolvedValue([
+      {
+        label: 'hitem3d-2.0',
+        value: 'hitem3d-2.0',
+        endpoints: ['3d-generation'],
+      },
+    ])
+    uploadImageMock.mockResolvedValue('https://cdn.example/pasted.png')
+    sendPlaygroundRequestMock.mockResolvedValue({ task_id: 'task-3d' })
+
+    renderPlayground()
+    const textarea = await screen.findByPlaceholderText('Ask anything')
+
+    // the redundant URL row must be gone even for 3D/hitem models
+    expect(
+      screen.queryByPlaceholderText('Paste image URL and press Enter')
+    ).toBeNull()
+
+    // paste still feeds the upload pipeline...
+    fireEvent.paste(
+      textarea,
+      imagePasteEvent(new File(['x'], 'p.png', { type: 'image/png' }))
+    )
+    await waitFor(() => expect(uploadImageMock).toHaveBeenCalledTimes(1))
+
+    // ...and the 3D task payload receives the uploaded image URL
+    fireEvent.change(textarea, { target: { value: 'build it in 3d' } })
+    fireEvent.click(screen.getByRole('button', { name: /Send/ }))
+    await waitFor(() => expect(sendPlaygroundRequestMock).toHaveBeenCalled())
+    const [endpoint, payload] = sendPlaygroundRequestMock.mock.calls[0]
+    expect(endpoint).toBe('3d-generation')
+    expect(payload.images).toEqual(['https://cdn.example/pasted.png'])
+  })
+})
+
 describe('Playground text-only message keeps plain string content', () => {
   it('persists string content for a message without images', async () => {
     presetConfig('gpt-4o')
