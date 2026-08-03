@@ -133,11 +133,22 @@ export function PlaygroundChat({
                         'group',
                         message.from === MESSAGE_ROLES.USER
                           ? 'is-user justify-end'
-                          : 'is-assistant justify-start'
+                          : // flex-row explicitly cancels the base
+                            // flex-row-reverse: under a reversed row,
+                            // justify-start lands on the visual right side.
+                            'is-assistant flex-row justify-start'
                       )}
                       from={message.from}
                       key={`${message.key}-${version.id}-${versionIndex}`}
                     >
+                      {/* Assistant avatar first → leftmost edge */}
+                      {message.from !== MESSAGE_ROLES.USER && (
+                        <MessageAvatar
+                          className='mb-1'
+                          name='Assistant'
+                          src='/logo.png'
+                        />
+                      )}
                       <div className='max-w-[80%] min-w-0 py-1'>
                         {isEditing(message.key) ? (
                           <div className='space-y-2'>
@@ -334,20 +345,14 @@ export function PlaygroundChat({
                           </>
                         )}
                       </div>
-                      {/* Role avatar: DOM order [content, avatar] plus the
-                          built-in flex-row-reverse on assistant puts avatars
-                          on the outer edge for both roles. */}
-                      <MessageAvatar
-                        className='mb-1'
-                        name={
-                          message.from === MESSAGE_ROLES.USER
-                            ? userName
-                            : 'Assistant'
-                        }
-                        src={
-                          message.from === MESSAGE_ROLES.USER ? '' : '/logo.png'
-                        }
-                      />
+                      {/* User avatar last → rightmost edge */}
+                      {message.from === MESSAGE_ROLES.USER && (
+                        <MessageAvatar
+                          className='mb-1'
+                          name={userName}
+                          src=''
+                        />
+                      )}
                     </Message>
                   ))}
                 </BranchMessages>

@@ -215,8 +215,8 @@ describe('PlaygroundChat user/assistant distinction', () => {
       />
     )
     const root = document.querySelector('.is-user')
-    expect(root).not.toBeNull()
     expect(root!.className).toContain('justify-end')
+    expect(root!.className.split(/\s+/)).not.toContain('justify-start')
     // avatar fallback shows the first two letters of the username
     expect(screen.getByText('xi')).toBeInTheDocument()
   })
@@ -250,8 +250,47 @@ describe('PlaygroundChat user/assistant distinction', () => {
     const root = document.querySelector('.is-assistant')
     expect(root).not.toBeNull()
     expect(root!.className).toContain('justify-start')
+    // the assistant row must be a normal (non-reversed) flex row, otherwise
+    // justify-start lands on the visual right side
+    const classes = root!.className.split(/\s+/)
+    expect(classes).toContain('flex-row')
+    expect(classes).not.toContain('flex-row-reverse')
     // avatar fallback shows the first two letters of 'Assistant'
     expect(screen.getByText('As')).toBeInTheDocument()
+  })
+
+  it('orders user DOM children [content, avatar] and assistant [avatar, content]', () => {
+    render(
+      <PlaygroundChat
+        messages={[
+          makeMessage({
+            key: 'u5',
+            from: 'user',
+            versions: [{ id: 'v1', content: 'user ordering' }],
+          }),
+          makeMessage({
+            key: 'a5',
+            versions: [{ id: 'v1', content: 'assistant ordering' }],
+          }),
+        ]}
+      />
+    )
+
+    const userChildren = Array.from(
+      document.querySelector('.is-user')!.children
+    )
+    expect(
+      userChildren[userChildren.length - 1].getAttribute('data-slot')
+    ).toBe('avatar')
+    expect(userChildren[0].className).toContain('max-w-[80%]')
+
+    const assistantChildren = Array.from(
+      document.querySelector('.is-assistant')!.children
+    )
+    expect(assistantChildren[0].getAttribute('data-slot')).toBe('avatar')
+    expect(assistantChildren[assistantChildren.length - 1].className).toContain(
+      'max-w-[80%]'
+    )
   })
 
   it('renders primary background for user bubbles and secondary for assistant bubbles', () => {
@@ -282,7 +321,7 @@ describe('PlaygroundChat user/assistant distinction', () => {
     ).not.toBeNull()
   })
 
-  it('keeps message content within 80% of the row width', () => {
+  it('keeps both roles within 80% of the row width', () => {
     render(
       <PlaygroundChat
         messages={[
@@ -291,10 +330,18 @@ describe('PlaygroundChat user/assistant distinction', () => {
             from: 'user',
             versions: [{ id: 'v1', content: 'width limited' }],
           }),
+          makeMessage({
+            key: 'a4',
+            versions: [{ id: 'v1', content: 'assistant width limited' }],
+          }),
         ]}
       />
     )
-    const root = document.querySelector('.is-user')
-    expect(root!.querySelector('[class*="max-w-[80%]"]')).not.toBeNull()
+    const userRoot = document.querySelector('.is-user')
+    const assistantRoot = document.querySelector('.is-assistant')
+    expect(userRoot!.querySelector('[class*="max-w-[80%]"]')).not.toBeNull()
+    expect(
+      assistantRoot!.querySelector('[class*="max-w-[80%]"]')
+    ).not.toBeNull()
   })
 })
