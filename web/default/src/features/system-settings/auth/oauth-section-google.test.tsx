@@ -164,17 +164,13 @@ describe('OAuthSection — Google tab', () => {
     fireEvent.click(screen.getByText('Google'))
     await waitFor(() => {
       expect(
-        screen.getByPlaceholderText(
-          'https://your-domain.com/api/oauth/google/callback'
-        )
+        screen.getByPlaceholderText('https://your-domain.com/oauth/google')
       ).toBeInTheDocument()
     })
 
     fireEvent.change(
-      screen.getByPlaceholderText(
-        'https://your-domain.com/api/oauth/google/callback'
-      ),
-      { target: { value: 'https://vancine.com/api/oauth/google/callback' } }
+      screen.getByPlaceholderText('https://your-domain.com/oauth/google'),
+      { target: { value: 'https://vancine.com/oauth/google' } }
     )
 
     fireEvent.click(screen.getByText('Save Changes'))
@@ -182,7 +178,7 @@ describe('OAuthSection — Google tab', () => {
     await waitFor(() => {
       expect(submittedOptions()).toContainEqual({
         key: 'GoogleRedirectUri',
-        value: 'https://vancine.com/api/oauth/google/callback',
+        value: 'https://vancine.com/oauth/google',
       })
     })
   })

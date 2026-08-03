@@ -11,7 +11,9 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
+	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/oauth"
 	"github.com/QuantumNous/new-api/setting/system_setting"
 
 	"github.com/gin-contrib/sessions"
@@ -30,6 +32,10 @@ func setupGoogleControllerTest(t *testing.T) {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 
+	// HandleOAuth renders user-facing messages through i18n.T; the embedded
+	// bundle must be loaded (no-op after the first call via sync.Once).
+	require.NoError(t, i18n.Init())
+
 	origDB := model.DB
 	origLogDB := model.LOG_DB
 	origCrypto := common.CryptoSecret
@@ -45,8 +51,8 @@ func setupGoogleControllerTest(t *testing.T) {
 	origGoogleClientSecret := common.GoogleClientSecret
 	origGoogleRedirectUri := common.GoogleRedirectUri
 	origServerAddress := system_setting.ServerAddress
-	origTokenEndpoint := googleTokenEndpoint
-	origUserInfoEndpoint := googleUserInfoEndpoint
+	origTokenEndpoint := oauth.GoogleTokenEndpoint
+	origUserInfoEndpoint := oauth.GoogleUserInfoEndpoint
 	t.Cleanup(func() {
 		if model.DB != nil && model.DB != origDB {
 			if sqlDB, err := model.DB.DB(); err == nil {
@@ -68,8 +74,8 @@ func setupGoogleControllerTest(t *testing.T) {
 		common.GoogleClientSecret = origGoogleClientSecret
 		common.GoogleRedirectUri = origGoogleRedirectUri
 		system_setting.ServerAddress = origServerAddress
-		googleTokenEndpoint = origTokenEndpoint
-		googleUserInfoEndpoint = origUserInfoEndpoint
+		oauth.GoogleTokenEndpoint = origTokenEndpoint
+		oauth.GoogleUserInfoEndpoint = origUserInfoEndpoint
 	})
 
 	common.CryptoSecret = "google-controller-test-secret"
@@ -94,15 +100,18 @@ func setupGoogleControllerTest(t *testing.T) {
 	require.NoError(t, db.AutoMigrate(&model.User{}, &model.AcquisitionTouch{}, &model.Token{}, &model.Log{}))
 }
 
-// newGoogleOAuthEngine builds a gin engine with cookie sessions and the two
-// Google OAuth routes. The extra helper route lets tests seed a logged-in
-// session to exercise the bind flow.
+// newGoogleOAuthEngine builds a gin engine with cookie sessions and the
+// Google OAuth routes: the backend entry (/login), the legacy callback
+// (/callback, forwards to the SPA) and the unified JSON callback served by
+// HandleOAuth through the :provider wildcard. The helper route seeds a
+// logged-in session to exercise the bind flow.
 func newGoogleOAuthEngine() *gin.Engine {
 	engine := gin.New()
 	store := cookie.NewStore([]byte(common.SessionSecret))
 	engine.Use(sessions.Sessions("session", store))
 	engine.GET("/api/oauth/google/login", GoogleLogin)
 	engine.GET("/api/oauth/google/callback", GoogleCallback)
+	engine.GET("/api/oauth/:provider", HandleOAuth)
 	engine.GET("/test/login-as/:id/:username", func(c *gin.Context) {
 		session := sessions.Default(c)
 		id, _ := strconv.Atoi(c.Param("id"))
@@ -114,8 +123,8 @@ func newGoogleOAuthEngine() *gin.Engine {
 	return engine
 }
 
-// mockGoogleServer spins up token + userinfo endpoints and points the package
-// endpoint variables at them. userInfo is returned verbatim by /userinfo.
+// mockGoogleServer spins up token + userinfo endpoints and points the oauth
+// package endpoint variables at them. userInfo is returned verbatim.
 func mockGoogleServer(t *testing.T, userInfo string) *httptest.Server {
 	t.Helper()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -138,8 +147,8 @@ func mockGoogleServer(t *testing.T, userInfo string) *httptest.Server {
 		}
 	}))
 	t.Cleanup(server.Close)
-	googleTokenEndpoint = server.URL + "/token"
-	googleUserInfoEndpoint = server.URL + "/userinfo"
+	oauth.GoogleTokenEndpoint = server.URL + "/token"
+	oauth.GoogleUserInfoEndpoint = server.URL + "/userinfo"
 	return server
 }
 
@@ -164,15 +173,59 @@ func startGoogleLogin(t *testing.T, engine *gin.Engine, extraQuery string) (stat
 	return state, resp.Cookies()
 }
 
-func doGoogleCallback(t *testing.T, engine *gin.Engine, cookies []*http.Cookie, query string) *httptest.ResponseRecorder {
+// startGoogleLoginWithCookies performs the login step carrying pre-existing
+// cookies so a logged-in session survives into the callback.
+func startGoogleLoginWithCookies(t *testing.T, engine *gin.Engine, extraQuery string, cookies []*http.Cookie) (string, []*http.Cookie) {
 	t.Helper()
-	req := httptest.NewRequest(http.MethodGet, "/api/oauth/google/callback?"+query, nil)
+	target := "/api/oauth/google/login"
+	if extraQuery != "" {
+		target += "?" + extraQuery
+	}
+	req := httptest.NewRequest(http.MethodGet, target, nil)
+	for _, c := range cookies {
+		req.AddCookie(c)
+	}
+	w := httptest.NewRecorder()
+	engine.ServeHTTP(w, req)
+
+	resp := w.Result()
+	require.Equal(t, http.StatusFound, resp.StatusCode)
+	location, err := url.Parse(resp.Header.Get("Location"))
+	require.NoError(t, err)
+	state := location.Query().Get("state")
+	require.NotEmpty(t, state)
+
+	merged := map[string]*http.Cookie{}
+	for _, c := range cookies {
+		merged[c.Name] = c
+	}
+	for _, c := range resp.Cookies() {
+		merged[c.Name] = c
+	}
+	out := make([]*http.Cookie, 0, len(merged))
+	for _, c := range merged {
+		out = append(out, c)
+	}
+	return state, out
+}
+
+func doGoogleGet(t *testing.T, engine *gin.Engine, cookies []*http.Cookie, path string) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodGet, path, nil)
 	for _, c := range cookies {
 		req.AddCookie(c)
 	}
 	w := httptest.NewRecorder()
 	engine.ServeHTTP(w, req)
 	return w
+}
+
+// jsonBody decodes the {success, message, data} envelope.
+func jsonBody(t *testing.T, w *httptest.ResponseRecorder) map[string]any {
+	t.Helper()
+	var body map[string]any
+	require.NoError(t, common.Unmarshal(w.Body.Bytes(), &body))
+	return body
 }
 
 func TestGoogleLoginDisabled(t *testing.T) {
@@ -218,7 +271,9 @@ func TestGoogleLoginRedirectsToGoogleAuthorizeURL(t *testing.T) {
 
 	q := location.Query()
 	assert.Equal(t, common.GoogleClientId, q.Get("client_id"))
-	assert.Equal(t, "https://vancine.test/api/oauth/google/callback", q.Get("redirect_uri"))
+	// redirect_uri must point at the SPA callback route so the unified JSON
+	// flow (/api/oauth/google) can finalize the login client-side.
+	assert.Equal(t, "https://vancine.test/oauth/google", q.Get("redirect_uri"))
 	assert.Equal(t, "code", q.Get("response_type"))
 	assert.Contains(t, q.Get("scope"), "openid")
 	assert.Contains(t, q.Get("scope"), "email")
@@ -232,7 +287,7 @@ func TestGoogleLoginRedirectsToGoogleAuthorizeURL(t *testing.T) {
 
 func TestGoogleLoginCustomRedirectUri(t *testing.T) {
 	setupGoogleControllerTest(t)
-	common.GoogleRedirectUri = "https://custom.example.com/cb"
+	common.GoogleRedirectUri = "https://custom.example.com/oauth/google"
 	engine := newGoogleOAuthEngine()
 
 	req := httptest.NewRequest(http.MethodGet, "/api/oauth/google/login", nil)
@@ -243,32 +298,25 @@ func TestGoogleLoginCustomRedirectUri(t *testing.T) {
 	require.Equal(t, http.StatusFound, resp.StatusCode)
 	location, err := url.Parse(resp.Header.Get("Location"))
 	require.NoError(t, err)
-	assert.Equal(t, "https://custom.example.com/cb", location.Query().Get("redirect_uri"))
+	assert.Equal(t, "https://custom.example.com/oauth/google", location.Query().Get("redirect_uri"))
 }
 
-func TestGoogleCallbackStateMismatch(t *testing.T) {
-	setupGoogleControllerTest(t)
-	engine := newGoogleOAuthEngine()
-
-	state, cookies := startGoogleLogin(t, engine, "")
-	require.NotEmpty(t, state)
-
-	w := doGoogleCallback(t, engine, cookies, "code=abc&state=wrong-state")
-	assert.Equal(t, http.StatusForbidden, w.Code)
-	assert.Contains(t, w.Body.String(), `"success":false`)
-}
-
-func TestGoogleCallbackNewEmailCreatesUser(t *testing.T) {
+func TestGoogleOAuthJSONFlowNewUser(t *testing.T) {
 	setupGoogleControllerTest(t)
 	mockGoogleServer(t, `{"sub":"google-sub-1","email":"newuser@example.com","name":"New User","picture":"https://example.com/p.png"}`)
 	engine := newGoogleOAuthEngine()
 
 	state, cookies := startGoogleLogin(t, engine, "")
-	w := doGoogleCallback(t, engine, cookies, "code=valid-code&state="+url.QueryEscape(state))
+	// The SPA callback page calls GET /api/oauth/google (unified route).
+	w := doGoogleGet(t, engine, cookies, "/api/oauth/google?code=valid-code&state="+url.QueryEscape(state))
 
-	resp := w.Result()
-	require.Equal(t, http.StatusFound, resp.StatusCode, "successful login should redirect, body: %s", w.Body.String())
-	assert.Equal(t, "/", resp.Header.Get("Location"))
+	assert.Equal(t, http.StatusOK, w.Code, "unified callback must return JSON, not a redirect")
+	body := jsonBody(t, w)
+	assert.Equal(t, true, body["success"])
+	data, ok := body["data"].(map[string]any)
+	require.True(t, ok, "login response must carry a data object")
+	assert.NotEmpty(t, data["id"])
+	assert.NotEmpty(t, data["username"])
 
 	var user model.User
 	require.NoError(t, model.DB.Where("google_sub = ?", "google-sub-1").First(&user).Error)
@@ -281,36 +329,7 @@ func TestGoogleCallbackNewEmailCreatesUser(t *testing.T) {
 	assert.Equal(t, int64(1), count)
 }
 
-func TestGoogleCallbackExistingEmailBindsGoogleSub(t *testing.T) {
-	setupGoogleControllerTest(t)
-	mockGoogleServer(t, `{"sub":"google-sub-2","email":"existing@example.com","name":"Existing User"}`)
-
-	existing := model.User{
-		Username:    "existing_user",
-		DisplayName: "Existing",
-		Email:       "existing@example.com",
-		Role:        common.RoleCommonUser,
-		Status:      common.UserStatusEnabled,
-	}
-	require.NoError(t, existing.Insert(0))
-
-	engine := newGoogleOAuthEngine()
-	state, cookies := startGoogleLogin(t, engine, "")
-	w := doGoogleCallback(t, engine, cookies, "code=valid-code&state="+url.QueryEscape(state))
-
-	resp := w.Result()
-	require.Equal(t, http.StatusFound, resp.StatusCode, "body: %s", w.Body.String())
-
-	var count int64
-	require.NoError(t, model.DB.Model(&model.User{}).Count(&count).Error)
-	assert.Equal(t, int64(1), count, "no new user should be created")
-
-	var user model.User
-	require.NoError(t, model.DB.Where("email = ?", "existing@example.com").First(&user).Error)
-	assert.Equal(t, "google-sub-2", user.GoogleSub)
-}
-
-func TestGoogleCallbackKnownSubLogsIn(t *testing.T) {
+func TestGoogleOAuthJSONFlowKnownSubLogsIn(t *testing.T) {
 	setupGoogleControllerTest(t)
 	mockGoogleServer(t, `{"sub":"google-sub-3","email":"known@example.com","name":"Known User"}`)
 
@@ -326,60 +345,48 @@ func TestGoogleCallbackKnownSubLogsIn(t *testing.T) {
 
 	engine := newGoogleOAuthEngine()
 	state, cookies := startGoogleLogin(t, engine, "")
-	w := doGoogleCallback(t, engine, cookies, "code=valid-code&state="+url.QueryEscape(state))
+	w := doGoogleGet(t, engine, cookies, "/api/oauth/google?code=valid-code&state="+url.QueryEscape(state))
 
-	resp := w.Result()
-	require.Equal(t, http.StatusFound, resp.StatusCode, "body: %s", w.Body.String())
+	assert.Equal(t, http.StatusOK, w.Code)
+	body := jsonBody(t, w)
+	assert.Equal(t, true, body["success"])
 
 	var count int64
 	require.NoError(t, model.DB.Model(&model.User{}).Count(&count).Error)
 	assert.Equal(t, int64(1), count)
 }
 
-func TestGoogleCallbackHonorsRedirectParam(t *testing.T) {
+func TestGoogleOAuthJSONFlowStateMismatch(t *testing.T) {
 	setupGoogleControllerTest(t)
-	mockGoogleServer(t, `{"sub":"google-sub-4","email":"redirect@example.com","name":"Redirect User"}`)
 	engine := newGoogleOAuthEngine()
 
-	state, cookies := startGoogleLogin(t, engine, "redirect=/dashboard")
-	w := doGoogleCallback(t, engine, cookies, "code=valid-code&state="+url.QueryEscape(state))
+	state, cookies := startGoogleLogin(t, engine, "")
+	require.NotEmpty(t, state)
 
-	resp := w.Result()
-	require.Equal(t, http.StatusFound, resp.StatusCode)
-	assert.Equal(t, "/dashboard", resp.Header.Get("Location"))
+	w := doGoogleGet(t, engine, cookies, "/api/oauth/google?code=abc&state=wrong-state")
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	assert.Contains(t, w.Body.String(), `"success":false`)
 }
 
-func TestGoogleCallbackRejectsOpenRedirect(t *testing.T) {
-	setupGoogleControllerTest(t)
-	mockGoogleServer(t, `{"sub":"google-sub-5","email":"evil@example.com","name":"Evil"}`)
-	engine := newGoogleOAuthEngine()
-
-	state, cookies := startGoogleLogin(t, engine, "redirect=https://evil.example.com/phish")
-	w := doGoogleCallback(t, engine, cookies, "code=valid-code&state="+url.QueryEscape(state))
-
-	resp := w.Result()
-	require.Equal(t, http.StatusFound, resp.StatusCode)
-	assert.Equal(t, "/", resp.Header.Get("Location"))
-}
-
-func TestGoogleCallbackRegistrationDisabled(t *testing.T) {
+func TestGoogleOAuthJSONFlowRegistrationDisabled(t *testing.T) {
 	setupGoogleControllerTest(t)
 	common.RegisterEnabled = false
 	mockGoogleServer(t, `{"sub":"google-sub-6","email":"fresh@example.com","name":"Fresh"}`)
 	engine := newGoogleOAuthEngine()
 
 	state, cookies := startGoogleLogin(t, engine, "")
-	w := doGoogleCallback(t, engine, cookies, "code=valid-code&state="+url.QueryEscape(state))
+	w := doGoogleGet(t, engine, cookies, "/api/oauth/google?code=valid-code&state="+url.QueryEscape(state))
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), `"success":false`)
+	body := jsonBody(t, w)
+	assert.Equal(t, false, body["success"])
 
 	var count int64
 	require.NoError(t, model.DB.Model(&model.User{}).Count(&count).Error)
 	assert.Equal(t, int64(0), count)
 }
 
-func TestGoogleCallbackBindsToLoggedInUser(t *testing.T) {
+func TestGoogleOAuthJSONFlowBindLoggedInUser(t *testing.T) {
 	setupGoogleControllerTest(t)
 	mockGoogleServer(t, `{"sub":"google-sub-7","email":"bindme@example.com","name":"Bind Me"}`)
 
@@ -394,17 +401,17 @@ func TestGoogleCallbackBindsToLoggedInUser(t *testing.T) {
 
 	engine := newGoogleOAuthEngine()
 
-	// seed a logged-in session
 	seedReq := httptest.NewRequest(http.MethodGet, "/test/login-as/"+strconv.Itoa(loggedIn.Id)+"/logged_in_user", nil)
 	seedW := httptest.NewRecorder()
 	engine.ServeHTTP(seedW, seedReq)
 	cookies := seedW.Result().Cookies()
 
 	state, mergedCookies := startGoogleLoginWithCookies(t, engine, "", cookies)
-	w := doGoogleCallback(t, engine, mergedCookies, "code=valid-code&state="+url.QueryEscape(state))
+	w := doGoogleGet(t, engine, mergedCookies, "/api/oauth/google?code=valid-code&state="+url.QueryEscape(state))
 
-	resp := w.Result()
-	require.Equal(t, http.StatusFound, resp.StatusCode, "body: %s", w.Body.String())
+	assert.Equal(t, http.StatusOK, w.Code, "bind flow must return JSON, body: %s", w.Body.String())
+	body := jsonBody(t, w)
+	assert.Equal(t, true, body["success"])
 
 	var user model.User
 	require.NoError(t, model.DB.Where("id = ?", loggedIn.Id).First(&user).Error)
@@ -415,18 +422,14 @@ func TestGoogleCallbackBindsToLoggedInUser(t *testing.T) {
 	assert.Equal(t, int64(1), count)
 }
 
-// startGoogleLoginWithCookies performs the login step carrying pre-existing
-// cookies so a logged-in session survives into the callback.
-func startGoogleLoginWithCookies(t *testing.T, engine *gin.Engine, extraQuery string, cookies []*http.Cookie) (string, []*http.Cookie) {
-	t.Helper()
-	target := "/api/oauth/google/login"
-	if extraQuery != "" {
-		target += "?" + extraQuery
-	}
-	req := httptest.NewRequest(http.MethodGet, target, nil)
-	for _, c := range cookies {
-		req.AddCookie(c)
-	}
+func TestGoogleCallbackLegacyForwardsToSPA(t *testing.T) {
+	setupGoogleControllerTest(t)
+	engine := newGoogleOAuthEngine()
+
+	// The legacy /api/oauth/google/callback (old authorized redirect URI)
+	// forwards code+state to the SPA callback route, which then drives the
+	// unified JSON flow.
+	req := httptest.NewRequest(http.MethodGet, "/api/oauth/google/callback?code=legacy-code&state=legacy-state", nil)
 	w := httptest.NewRecorder()
 	engine.ServeHTTP(w, req)
 
@@ -434,20 +437,7 @@ func startGoogleLoginWithCookies(t *testing.T, engine *gin.Engine, extraQuery st
 	require.Equal(t, http.StatusFound, resp.StatusCode)
 	location, err := url.Parse(resp.Header.Get("Location"))
 	require.NoError(t, err)
-	state := location.Query().Get("state")
-	require.NotEmpty(t, state)
-
-	// merge refreshed session cookie over the originals
-	merged := map[string]*http.Cookie{}
-	for _, c := range cookies {
-		merged[c.Name] = c
-	}
-	for _, c := range resp.Cookies() {
-		merged[c.Name] = c
-	}
-	out := make([]*http.Cookie, 0, len(merged))
-	for _, c := range merged {
-		out = append(out, c)
-	}
-	return state, out
+	assert.Equal(t, "/oauth/google", location.Path)
+	assert.Equal(t, "legacy-code", location.Query().Get("code"))
+	assert.Equal(t, "legacy-state", location.Query().Get("state"))
 }

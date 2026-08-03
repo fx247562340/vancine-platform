@@ -473,7 +473,7 @@ export function OAuthSection(props: OAuthSectionProps) {
                       <FormControl>
                         <Input
                           placeholder={t(
-                            'https://your-domain.com/api/oauth/google/callback'
+                            'https://your-domain.com/oauth/google'
                           )}
                           autoComplete='off'
                           value={field.value ?? ''}
@@ -487,7 +487,7 @@ export function OAuthSection(props: OAuthSectionProps) {
                       </FormControl>
                       <FormDescription>
                         {t(
-                          'Leave empty to use Server Address + /api/oauth/google/callback. Must match an authorized redirect URI in the Google Cloud Console.'
+                          'Leave empty to use Server Address + /oauth/google. Must match an authorized redirect URI in the Google Cloud Console.'
                         )}
                       </FormDescription>
                       <FormMessage />

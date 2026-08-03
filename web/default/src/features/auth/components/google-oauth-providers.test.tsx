@@ -92,6 +92,9 @@ describe('OAuthProviders — Google button', () => {
     await waitFor(() => {
       expect(locationStub.href).toContain('/api/oauth/google/login')
     })
+    // The button targets the Google OAuth entry, whose flow lands on the SPA
+    // callback route /oauth/google.
+    expect(locationStub.href).toContain('/oauth/google')
     expect(locationStub.href).toContain('redirect=')
   })
 

@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useMemo } from 'react'
+import GoogleColor from '@lobehub/icons/es/Google/components/Color'
 import { Loader2, Send, Shield, UserRound, type LucideIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { SiGithub, SiLinux, SiWechat } from 'react-icons/si'
@@ -40,6 +41,12 @@ const providerDictionary: Record<string, ProviderMeta> = {
     ),
   },
   oidc: { label: 'OIDC', Icon: Shield },
+  google: {
+    label: 'Google',
+    Icon: (props: { className?: string }) => (
+      <GoogleColor size={16} className={props.className} />
+    ),
+  },
   linuxdo: {
     label: 'LinuxDO',
     Icon: (props: { className?: string }) => (

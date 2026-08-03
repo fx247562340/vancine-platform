@@ -201,10 +201,10 @@ export function AccountBindingsTab({
         ),
         isEnabled: status?.google_oauth || false,
         onBind: () => {
-          // Server-driven Google OAuth: when logged in, the callback binds
-          // the Google account to the current user and redirects back here.
-          const back = window.location.pathname + window.location.search
-          window.location.href = `/api/oauth/google/login?redirect=${encodeURIComponent(back)}`
+          // Unified OAuth flow: open the backend entry in a popup. The
+          // window.opener present at /oauth/google switches the callback page
+          // into bind mode (same pattern as GitHub/Discord).
+          window.open('/api/oauth/google/login', '_blank')
         },
       },
       {
