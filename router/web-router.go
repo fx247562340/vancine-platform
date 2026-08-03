@@ -89,7 +89,7 @@ func SetWebRouter(router *gin.Engine, assets ThemeAssets) {
 
 	router.NoRoute(func(c *gin.Context) {
 		c.Set(middleware.RouteTagKey, "web")
-		if strings.HasPrefix(c.Request.RequestURI, "/v1") || strings.HasPrefix(c.Request.RequestURI, "/api") || strings.HasPrefix(c.Request.RequestURI, "/assets") {
+		if common.IsAssetNotFoundPath(c.Request.RequestURI) {
 			controller.RelayNotFound(c)
 			return
 		}

@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { api } from '@/lib/api'
 import { API_ENDPOINTS, ENDPOINT_API_PATHS } from './constants'
 import type {
+  AudioSpeechRequest,
   ChatCompletionRequest,
   ChatCompletionResponse,
   ModelOption,
@@ -59,6 +60,37 @@ export async function sendPlaygroundRequest(
 }
 
 /**
+ * Send a TTS request to /pg/audio/speech. The endpoint returns binary
+ * audio (not JSON), so the response is read as a Blob.
+ */
+export async function sendAudioSpeech(
+  payload: AudioSpeechRequest
+): Promise<Blob> {
+  const res = await api.post(API_ENDPOINTS.AUDIO_SPEECH, payload, {
+    responseType: 'blob',
+    skipErrorHandler: true,
+  } as Record<string, unknown>)
+  return res.data as Blob
+}
+
+/**
+ * Upload an image file via /api/upload/image and return the public URL.
+ */
+export async function uploadImage(file: File): Promise<string> {
+  const formData = new FormData()
+  formData.append('image', file)
+  const res = await api.post(API_ENDPOINTS.UPLOAD_IMAGE, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    skipErrorHandler: true,
+  } as Record<string, unknown>)
+  const url = (res.data as { url?: string } | undefined)?.url
+  if (!url) {
+    throw new Error('Image upload failed')
+  }
+  return url
+}
+
+/**
  * Get user available models with endpoint type information
  */
 export async function getUserModels(): Promise<ModelOption[]> {
@@ -71,16 +103,18 @@ export async function getUserModels(): Promise<ModelOption[]> {
 
   // New format: [{model: string, endpoints: string[]}]
   // Legacy format: string[]
-  return data.data.map((item: string | { model: string; endpoints: string[] }) => {
-    if (typeof item === 'string') {
-      return { label: item, value: item, endpoints: ['openai'] }
+  return data.data.map(
+    (item: string | { model: string; endpoints: string[] }) => {
+      if (typeof item === 'string') {
+        return { label: item, value: item, endpoints: ['openai'] }
+      }
+      return {
+        label: item.model,
+        value: item.model,
+        endpoints: item.endpoints || ['openai'],
+      }
     }
-    return {
-      label: item.model,
-      value: item.model,
-      endpoints: item.endpoints || ['openai'],
-    }
-  })
+  )
 }
 
 /**

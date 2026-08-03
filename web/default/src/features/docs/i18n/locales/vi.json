@@ -1,0 +1,387 @@
+{
+  "quickstart": {
+    "title": "Bắt đầu nhanh",
+    "subtitle": "Từ con số không đến lần gọi API đầu tiên thành công trong khoảng 3 phút.",
+    "step1": {
+      "title": "Lấy API Key",
+      "desc": "Sau khi đăng ký, token ban đầu đã được tự động tạo. Vào Bảng điều khiển → Quản lý Token để sao chép.",
+      "cta": "Đi đến Quản lý Token",
+      "security": "Không bao giờ để lộ API Key trong mã frontend, kho công khai hoặc ứng dụng client. Luôn đọc từ biến môi trường phía máy chủ trước khi gọi Vancine."
+    },
+    "step2": {
+      "title": "Chọn mô hình",
+      "desc": "Chúng tôi khuyên dùng deepseek-v4-flash cho lần gọi đầu tiên — nhanh, rẻ và phù hợp để kiểm thử.",
+      "viewAll": "Xem tất cả mô hình khả dụng"
+    },
+    "step3": {
+      "title": "Chọn phương thức gọi",
+      "desc": "Vancine tương thích OpenAI. Bạn có thể gọi trực tiếp qua HTTP hoặc sử dụng SDK OpenAI chính thức.",
+      "httpDesc": "Sử dụng curl, fetch hoặc bất kỳ HTTP client nào để gọi REST API trực tiếp.",
+      "sdkDesc": "Thay thế ngay: chỉ cần thay đổi base_url và api_key trong mã SDK OpenAI hiện có."
+    },
+    "step4": {
+      "title": "Thực hiện lần gọi đầu tiên",
+      "desc": "Sao chép mã bên dưới, thay sk-your-api-key bằng khóa thực của bạn, rồi chạy.",
+      "expectedResponse": "Phản hồi dự kiến"
+    },
+    "infoTable": {
+      "title": "Thông tin cơ bản",
+      "baseUrl": "URL cơ sở",
+      "auth": "Xác thực",
+      "modelList": "Danh sách mô hình",
+      "pricing": "Bảng giá công khai",
+      "tip": "GET /v1/models yêu cầu API Key và liệt kê các mô hình khả dụng cho token hiện tại. GET /api/pricing là công khai và hiển thị các endpoint được hỗ trợ cùng metadata giá."
+    },
+    "exploreMore": {
+      "title": "Khám phá thêm",
+      "desc": "Bây giờ bạn đã gọi API thành công, hãy xem Vancine còn có thể làm gì nữa:",
+      "chat": "Hoàn thành hội thoại",
+      "image": "Tạo hình ảnh",
+      "video": "Tạo video",
+      "migrate": "Chuyển từ OpenAI"
+    }
+  },
+  "migrate": {
+    "title": "Chuyển từ OpenAI",
+    "hook": "Vancine hoàn toàn tương thích với API OpenAI. Mã hiện có thường chỉ cần thay đổi base_url và api_key — mọi thứ khác (SDK, endpoint, cấu trúc phản hồi, streaming, function calling) đều giữ nguyên.",
+    "twoChanges": {
+      "title": "Chỉ cần thay đổi 2 chỗ",
+      "desc": "Lấy mã OpenAI hiện có của bạn, thay đổi base URL và API key, là có thể hoạt động ngay."
+    },
+    "fullExamples": {
+      "title": "Ví dụ đầy đủ",
+      "desc": "Ví dụ hoàn chỉnh có thể chạy bằng Python, Node.js và cURL."
+    },
+    "whatStaysSame": {
+      "title": "Những gì không thay đổi",
+      "desc": "Mọi phần khác trong mã của bạn hoạt động mà không cần sửa đổi:"
+    },
+    "sameItems": {
+      "endpoint": "Cùng endpoint /v1/chat/completions",
+      "sdk": "Cùng SDK openai Python / Node.js — không cần phụ thuộc mới",
+      "response": "Cùng cấu trúc phản hồi (choices, usage, v.v.)",
+      "streaming": "Streaming (SSE) hoạt động giống hệt",
+      "functionCalling": "Hỗ trợ function calling / tool use"
+    },
+    "comparison": {
+      "title": "Bảng so sánh chuyển đổi",
+      "colField": "Trường",
+      "colOpenai": "OpenAI",
+      "colVancine": "Vancine",
+      "colNote": "Ghi chú",
+      "baseUrlOpenai": "https://api.openai.com/v1",
+      "baseUrlNote": "Thay bằng endpoint Vancine",
+      "apiKeyOpenai": "sk-xxx (khóa OpenAI)",
+      "apiKeyNote": "Sử dụng token Vancine từ Bảng điều khiển → Token",
+      "modelOpenai": "gpt-4o, gpt-4o-mini, v.v.",
+      "modelNote": "Sử dụng mô hình Vancine hỗ trợ (vd: deepseek-v4-flash)"
+    },
+    "nextSteps": {
+      "title": "Bước tiếp theo",
+      "desc": "Sẵn sàng tìm hiểu thêm? Xem các trang sau:",
+      "models": "Mô hình và giá",
+      "quickstart": "Lấy API Key"
+    }
+  },
+  "chat": {
+    "title": "Hoàn thành hội thoại",
+    "desc": "Gửi mảng messages tương thích OpenAI đến mô hình ngôn ngữ và nhận phản hồi JSON đồng bộ.",
+    "paramsTitle": "Tham số",
+    "examplesTitle": "Ví dụ",
+    "reasoningCallout": "deepseek-v4-flash và deepseek-v4-pro là mô hình suy luận. content có thể trống trong khi suy luận xuất hiện trong reasoning_content; finish_reason: length thường có nghĩa là ngân sách token đã được sử dụng cho suy luận, không phải API lỗi.",
+    "params": {
+      "model": "Tên mô hình, ví dụ glm-5.1",
+      "messages": "Mảng đối tượng tin nhắn",
+      "maxTokens": "Số token tối đa được tạo; dùng giá trị lớn hơn cho mô hình suy luận",
+      "stream": "Bật streaming SSE",
+      "temperature": "Nhiệt độ lấy mẫu"
+    }
+  },
+  "image": {
+    "title": "Tạo hình ảnh",
+    "desc": "Tạo hình ảnh từ mô tả văn bản. Phản hồi là JSON đồng bộ với URL hình ảnh tạm thời trong mảng data.",
+    "paramsTitle": "Tham số",
+    "sizesTitle": "Kích thước khả dụng",
+    "examplesTitle": "Ví dụ",
+    "colWorkingSize": "Kích thước hoạt động",
+    "defaultSizeSupported": "Kích thước mặc định được hỗ trợ",
+    "sizeWarning": "Doubao-Seedream-5.0-lite yêu cầu tối thiểu 3,686,400 pixel. 1024x1024 trả về “image size must be at least 3686400 pixels”; hãy dùng 2048x2048. Doubao-Seedream-5.0-pro không có giới hạn này: tối thiểu 921,600 pixel (1024x1024 dùng được), nhưng chỉ hỗ trợ tạo một ảnh (không hỗ trợ nhóm ảnh). Cả hai đều hỗ trợ bậc 1K/2K (lite còn hỗ trợ 3K/4K); mô hình quyết định kích thước cuối.",
+    "params": {
+      "model": "Tên mô hình hình ảnh",
+      "prompt": "Mô tả văn bản cho hình ảnh",
+      "n": "Số lượng hình ảnh",
+      "size": "Kích thước định dạng RỘNGxCAO (xem bảng kích thước bên dưới)",
+      "response_format": "Định dạng trả về: url (mặc định, liên kết tạm thời hiệu lực 24 giờ) hoặc b64_json",
+      "output_format": "Định dạng đầu ra: png hoặc jpeg (mặc định jpeg). Chỉ Seedream 5.0 pro/lite hỗ trợ",
+      "image": "URL hoặc Base64 hình ảnh tham chiếu cho hình-đến-hình / hòa trộn đa hình ảnh (5.0 pro: tối đa 10, lite: tối đa 14)",
+      "watermark": "Có thêm hình mờ không. Seedream mặc định false"
+    },
+    "advancedParamsCallout": "Các tham số nâng cao của Seedream như sequential_image_generation (nhóm ảnh) và optimize_prompt_options (tối ưu prompt) yêu cầu bật PassThrough trên kênh. Mặc định không được chuyển tiếp."
+  },
+  "video": {
+    "title": "Tạo video",
+    "desc": "Tạo video là tác vụ bất đồng bộ. Lưu task_id từ phản hồi gửi, rồi poll cùng đường dẫn /v1/video/generations/{task_id}.",
+    "endpointSubmit": "Gửi tác vụ tạo bất đồng bộ",
+    "endpointPoll": "Poll trạng thái và kết quả tác vụ",
+    "paramsTitle": "Tham số",
+    "statusTitle": "Trạng thái tác vụ",
+    "examplesTitle": "Ví dụ",
+    "params": {
+      "model": "Tên mô hình video",
+      "prompt": "Mô tả văn bản cho video",
+      "image": "URL hoặc Base64 một hình ảnh tham chiếu (hình-đến-video)",
+      "images": "Mảng URL hình ảnh tham chiếu (đầu vào đa hình ảnh)",
+      "size": "Độ phân giải, ví dụ 1280x720",
+      "duration": "Thời lượng video (giây)",
+      "metadata": "Đối tượng tham số mở rộng (xem bên dưới)"
+    },
+    "metadataCallout": "Tham số con của metadata: resolution (độ phân giải vd 1080p), ratio (tỷ lệ khung vd 16:9), frames (số khung hình), seed (hạt ngẫu nhiên), watermark (hình mờ bool), camera_fixed (camera cố định bool), generate_audio (tạo âm thanh bool). Các tham số này được chuyển tiếp đến nhà cung cấp upstream.",
+    "status": {
+      "queued": "Tác vụ đang xếp hàng",
+      "inProgress": "Đang tạo",
+      "success": "Hoàn thành; đọc data.result_url hoặc data.data.content.video_url",
+      "failure": "Thất bại; kiểm tra data.fail_reason"
+    }
+  },
+  "td": {
+    "title": "Tạo 3D",
+    "desc": "Các mô hình 3D sử dụng cùng định dạng tác vụ bất đồng bộ. Gửi tác vụ, rồi poll với task_id để lấy kết quả.",
+    "endpointSubmit": "3D cũng gửi qua endpoint video bất đồng bộ",
+    "endpointPoll": "Poll kết quả tác vụ 3D",
+    "modelsTitle": "Mô hình 3D",
+    "paramsTitle": "Tham số",
+    "examplesTitle": "Ví dụ yêu cầu",
+    "colImagesParam": "Tham số images",
+    "withoutImage": "Không có hình ảnh",
+    "withImage": "Có hình ảnh tham chiếu",
+    "imagesWarning": "Doubao-Seed3D-2.0 yêu cầu images. Không sử dụng trường image_data; gateway Vancine sẽ chuyển images sang định dạng content[].image_url mà upstream yêu cầu.",
+    "params": {
+      "model": "Tên mô hình 3D",
+      "prompt": "Mô tả văn bản tài sản 3D（tùy chọn cho hình-đến-3D）",
+      "images": "Mảng URL hình ảnh tham chiếu cho hình-đến-3D. Doubao-Seed3D-2.0 yêu cầu ít nhất một hình ảnh. Hỗ trợ URL công khai hoặc data:image/...;base64,..."
+    },
+    "asyncCallout": "Tạo 3D là tác vụ bất đồng bộ. Sau khi gửi, lưu task_id từ phản hồi, rồi poll GET /v1/video/generations/{task_id}. Khi thành công, đọc liên kết tệp mô hình 3D từ metadata.url trong kết quả."
+  },
+  "audio": {
+    "title": "Âm thanh / TTS",
+    "desc": "Endpoint TTS sử dụng thân yêu cầu tương thích OpenAI, nhưng phản hồi là luồng âm thanh MP3 nhị phân, không phải JSON.",
+    "paramsTitle": "Tham số",
+    "ttsExamplesTitle": "Ví dụ Doubao-tts (giọng 1.0)",
+    "tts2ExamplesTitle": "Ví dụ Doubao-tts2.0 (giọng 2.0)",
+    "voicesTitle": "Giọng khả dụng",
+    "endpointWarning": "TTS không sử dụng /v1/chat/completions. Sử dụng sai endpoint có thể trả về 401 gây hiểu lầm giống như thiếu API key; nguyên nhân thường là sai đường dẫn.",
+    "voiceSuffixCallout": "Hậu tố ID giọng quyết định phiên bản mô hình: hậu tố uranus dành cho Doubao-tts2.0, hậu tố mars dành cho Doubao-tts. Không khớp giọng/mô hình sẽ trả về lỗi resource mismatch.",
+    "colVoiceId": "ID giọng",
+    "colName": "Tên",
+    "colModel": "Mô hình",
+    "colUseCase": "Ngôn ngữ / trường hợp sử dụng",
+    "params": {
+      "model": "Doubao-tts hoặc Doubao-tts2.0",
+      "input": "Văn bản cần tổng hợp",
+      "voice": "ID giọng, xem danh sách bên dưới",
+      "response_format": "Định dạng âm thanh đầu ra：mp3（mặc định）、opus、aac、flac、wav、pcm",
+      "speed": "Tốc độ nói 0.25–4.0, mặc định 1.0"
+    },
+    "voices": {
+      "vivi": "Vivi",
+      "nadia": "Nadia",
+      "jane": "Jane",
+      "rachel": "Rachel",
+      "david": "David",
+      "alex": "Alex",
+      "kevin": "Kevin",
+      "stokie": "Stokie",
+      "spanishFemale": "Tây Ban Nha, nữ",
+      "frenchFemale": "Pháp, nữ",
+      "germanFemale": "Đức, nữ",
+      "arabicFemale": "Ả Rập, nữ",
+      "cancan": "Cancan",
+      "wenhao": "Wenhao",
+      "amanda": "Amanda",
+      "emily": "Emily",
+      "adam": "Adam",
+      "jackson": "Jackson",
+      "sarah": "Sarah",
+      "smith": "Smith",
+      "anna": "Anna",
+      "dryw": "Dryw",
+      "zhFemaleGentle": "Trung Quốc, nữ, nhẹ nhàng (đa ngôn ngữ)",
+      "enFemale": "Tiếng Anh, nữ",
+      "enMale": "Tiếng Anh, nam",
+      "enUkFemale": "Tiếng Anh (UK), nữ",
+      "espanol": "Español",
+      "francais": "Français",
+      "deutsch": "Deutsch",
+      "arabic": "العربية",
+      "zhFemaleBright": "Trung Quốc, nữ, tươi sáng",
+      "zhMaleSteady": "Trung Quốc, nam, điềm đạm"
+    }
+  },
+  "auth": {
+    "title": "Xác thực",
+    "desc": "Tất cả yêu cầu /v1 đều yêu cầu API key trong header Authorization.",
+    "securityWarning": "Không để lộ API key trong mã frontend, kho công khai hoặc ứng dụng client. Luôn đọc key từ biến môi trường phía máy chủ trước khi gọi Vancine."
+  },
+  "capabilities": {
+    "title": "Tổng quan khả năng",
+    "desc": "Vancine cung cấp các khả năng tạo khác nhau thông qua các endpoint tương thích OpenAI và endpoint tác vụ bất đồng bộ.",
+    "rows": {
+      "chat": "Hội thoại",
+      "tts": "Tổng hợp giọng nói",
+      "image": "Tạo hình ảnh",
+      "video": "Tạo video",
+      "td": "Tạo tài sản 3D",
+      "chatNote": "Thân yêu cầu messages tương thích OpenAI",
+      "ttsNote": "Trả về luồng âm thanh MP3 nhị phân",
+      "imageNote": "Trả về URL hình ảnh",
+      "videoNote": "Tác vụ bất đồng bộ, poll với task_id",
+      "tdNote": "Tác vụ bất đồng bộ, hỗ trợ prompt và images"
+    }
+  },
+  "models": {
+    "title": "Mô hình và giá",
+    "desc": "Gọi endpoint giá công khai để đọc tên mô hình, endpoint được hỗ trợ, tỷ lệ và giá.",
+    "fetchPricing": "Lấy giá mô hình",
+    "textModelsTitle": "Mô hình văn bản ({{count}})",
+    "multimodalTitle": "Mô hình tạo đa phương thức",
+    "colType": "Loại",
+    "colUsageNotes": "Ghi chú sử dụng",
+    "returnsValidMp3": "Trả về MP3 hợp lệ"
+  },
+  "errors": {
+    "title": "Xử lý lỗi",
+    "colHttpStatus": "Trạng thái HTTP",
+    "colTypicalCause": "Nguyên nhân điển hình",
+    "formatTitle": "Định dạng phản hồi lỗi",
+    "asyncCallout": "Khi tác vụ bất đồng bộ thất bại, đọc chi tiết từ trường data.fail_reason trong phản hồi poll.",
+    "codes": {
+      "badRequest": "Yêu cầu không hợp lệ",
+      "badRequestCause": "Size không hợp lệ, thiếu prompt, hoặc mô hình/endpoint không khớp",
+      "unauthorized": "Không được ủy quyền",
+      "unauthorizedCause": "Key không hợp lệ, hoặc sai endpoint như gửi TTS đến chat",
+      "notFound": "Không tìm thấy đường dẫn",
+      "notFoundCause": "Kiểm tra đường dẫn URL có viết đúng không",
+      "noChannel": "Không có kênh khả dụng",
+      "noChannelCause": "Không có kênh upstream khả dụng cho mô hình này trong nhóm hiện tại"
+    }
+  },
+  "sdks": {
+    "title": "SDK và công cụ",
+    "desc": "Các endpoint văn bản của Vancine tương thích với SDK OpenAI. Các endpoint đa phương thức cũng có thể gọi bằng bất kỳ HTTP client nào.",
+    "requestsDesc": "Phù hợp cho hình ảnh, video, 3D và TTS",
+    "curlDesc": "Có sẵn hoặc cài qua trình quản lý gói"
+  },
+  "agents": {
+    "title": "Tích hợp Agent",
+    "desc": "Trước khi kết nối công cụ agent, hãy kiểm tra nó dùng Chat Completions hay Responses. Hầu hết công cụ OpenAI Compatible dùng /v1/chat/completions; cấu hình chính thức Codex CLI hiện dùng /v1/responses.",
+    "universalTip": "Cài đặt chung: Base URL = {{baseUrl}}, API Key = sk-your-api-key, Model = glm-5.1 hoặc deepseek-v4-flash.",
+    "configExample": "Ví dụ cấu hình",
+    "guiTitle": "Công cụ GUI",
+    "cli": {
+      "codex": "Cấu hình chính thức Codex dùng ~/.codex/config.toml. Tài liệu hiện tại hiển thị giao thức Responses, nên đặt wire_api thành responses.",
+      "opencode": "OpenCode dùng opencode.json cấp dự án. Nhà cung cấp tương thích OpenAI tùy chỉnh dùng @ai-sdk/openai-compatible với options.baseURL và options.apiKey.",
+      "openclaw": "Client kiểu OpenClaw thường cần base URL, API key và tên mô hình tương thích OpenAI. Tên trường khác nhau tùy bản phân phối; chọn OpenAI Compatible nếu có.",
+      "hermes": "Plugin tương thích OpenAI của Hermes Agent thường dùng config.yaml hoặc biến môi trường cho base_url và api_key. Dùng các trường chính xác từ plugin đã cài."
+    },
+    "gui": {
+      "cursor": {
+        "title": "Cursor",
+        "step1": "Mở Settings → Models",
+        "step2": "Chọn OpenAI Compatible hoặc API OpenAI tùy chỉnh",
+        "step3": "Đặt Base URL = {{baseUrl}}",
+        "step4": "Nhập API key Vancine",
+        "step5": "Dùng mô hình văn bản như glm-5.1 hoặc deepseek-v4-flash"
+      },
+      "cline": {
+        "title": "Cline / Roo Code",
+        "step1": "Chọn Provider: OpenAI Compatible",
+        "step2": "Đặt Base URL = {{baseUrl}}",
+        "step3": "Nhập API key",
+        "step4": "Nhập tên mô hình văn bản",
+        "step5": "Lưu và gửi tin nhắn đơn giản để xác nhận kết nối"
+      },
+      "cherryStudio": {
+        "title": "Cherry Studio",
+        "step1": "Mở Cài đặt → Dịch vụ mô hình → Thêm",
+        "step2": "Chọn OpenAI Compatible",
+        "step3": "Đặt API URL = {{baseUrl}}",
+        "step4": "Nhập API key",
+        "step5": "Đồng bộ hoặc thêm mô hình thủ công"
+      }
+    }
+  },
+  "faq": {
+    "title": "Câu hỏi thường gặp",
+    "items": {
+      "verifyKey": {
+        "q": "Làm sao xác minh API key?",
+        "a": "Gọi GET {{baseUrl}}/models. HTTP 200 với danh sách mô hình nghĩa là key hợp lệ và có quyền truy cập trong nhóm hiện tại."
+      },
+      "video3dResults": {
+        "q": "Kết quả video và 3D lấy ở đâu?",
+        "a": "Poll GET /v1/video/generations/{task_id}. Khi thành công, đọc data.result_url hoặc data.data.content.video_url."
+      },
+      "ttsNotJson": {
+        "q": "Tại sao TTS không trả về JSON?",
+        "a": "Gọi TTS thành công trả về trực tiếp luồng âm thanh MP3 nhị phân với Content-Type audio/mpeg."
+      },
+      "seedreamSize": {
+        "q": "Tại sao Seedream từ chối kích thước hình ảnh?",
+        "a": "Doubao-Seedream-5.0-lite yêu cầu tối thiểu 3,686,400 pixel (nên dùng 2048x2048). Doubao-Seedream-5.0-pro không có giới hạn này: tối thiểu 921,600 pixel (1024x1024 dùng được). Hãy đặt size theo mô hình đang dùng, hoặc truyền bậc 1K/2K để mô hình tự quyết định."
+      }
+    }
+  },
+  "nav": {
+    "gettingStarted": "Bắt đầu",
+    "apiCapabilities": "Khả năng API",
+    "integrationGuide": "Hướng dẫn tích hợp",
+    "reference": "Tài liệu tham khảo",
+    "quickstart": "Bắt đầu nhanh",
+    "migrate": "Chuyển từ OpenAI",
+    "models": "Mô hình và giá",
+    "chat": "Hoàn thành hội thoại",
+    "image": "Tạo hình ảnh",
+    "video": "Tạo video",
+    "td": "Tạo 3D",
+    "audio": "Âm thanh / TTS",
+    "sdks": "SDK và công cụ",
+    "agents": "Tích hợp Agent",
+    "auth": "Xác thực",
+    "capabilities": "Tổng quan khả năng",
+    "errors": "Xử lý lỗi",
+    "faq": "Câu hỏi thường gặp"
+  },
+  "common": {
+    "action": "Hành động",
+    "category": "Danh mục",
+    "comingSoon": "Sắp ra mắt",
+    "copied": "✓ Đã sao chép",
+    "copy": "Sao chép",
+    "description": "Mô tả",
+    "endpoint": "Endpoint",
+    "feedbackNo": "Không",
+    "feedbackQuestion": "Trang này có hữu ích không?",
+    "feedbackThanks": "Cảm ơn phản hồi của bạn!",
+    "feedbackYes": "Có",
+    "loading": "Đang tải…",
+    "meaning": "Ý nghĩa",
+    "model": "Mô hình",
+    "navigation": "Điều hướng",
+    "nextPage": "Trang sau",
+    "no": "Không",
+    "notes": "Ghi chú",
+    "notFound": "Không tìm thấy trang",
+    "notFoundDesc": "Trang tài liệu bạn tìm kiếm không tồn tại.",
+    "onThisPage": "Trên trang này",
+    "pageNotReady": "Trang này chưa sẵn sàng. Hãy quay lại sau!",
+    "parameter": "Tham số",
+    "prevPage": "Trang trước",
+    "required": "Bắt buộc",
+    "result": "Kết quả",
+    "searchNoResults": "Không có kết quả phù hợp",
+    "searchPlaceholder": "Tìm trong tài liệu...",
+    "status": "Trạng thái",
+    "type": "Loại",
+    "yes": "Có"
+  }
+}

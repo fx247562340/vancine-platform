@@ -12,7 +12,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU Affero General Public License for more details.
 
 You should have received a copy of the GNU Affero General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
+along with the program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
@@ -26,10 +26,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { TelegramLoginWidget } from '@/features/auth/components/telegram-login-widget'
 
 // ============================================================================
 // Telegram Bind Dialog Component
 // ============================================================================
+//
+// Binding uses the Telegram Login Widget in redirect mode (data-auth-url),
+// matching the Classic theme's `dataAuthUrl='/api/oauth/telegram/bind'`. After
+// the user authorizes, Telegram navigates the browser to the bind endpoint;
+// the backend verifies the HMAC signature, attaches the Telegram ID to the
+// current session's user, and 302-redirects back to the profile page — which
+// is a full page load, so the refreshed binding is picked up automatically.
+// Backend error responses (already bound / disabled / bad signature) surface
+// on that navigated page, same as Classic.
 
 interface TelegramBindDialogProps {
   open: boolean
@@ -65,34 +75,22 @@ export function TelegramBindDialog({
           </Alert>
 
           <div className='flex flex-col items-center justify-center gap-4 rounded-lg border p-6'>
-            <div className='flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900'>
-              <Send className='h-6 w-6 text-blue-600 dark:text-blue-400' />
-            </div>
+            <p className='text-muted-foreground text-sm'>
+              {t('Bot:')}{' '}
+              <span className='font-mono font-semibold'>@{botName}</span>
+            </p>
 
-            <div className='text-center'>
-              <p className='text-muted-foreground text-sm'>
-                {t('Bot:')}{' '}
-                <span className='font-mono font-semibold'>@{botName}</span>
-              </p>
-              <p className='text-muted-foreground mt-1 text-xs'>
-                {t(
-                  "After clicking the button, you'll be asked to authorize the bot"
-                )}
-              </p>
-            </div>
+            <TelegramLoginWidget
+              botName={botName}
+              authUrl='/api/oauth/telegram/bind'
+            />
 
-            {/* Telegram Login Widget will be injected here by react-telegram-login */}
-            <div id='telegram-login-widget' className='flex justify-center'>
-              {/* This would require the react-telegram-login library */}
-              <div className='text-muted-foreground rounded-lg border border-dashed px-6 py-3 text-sm'>
-                {t('Telegram Login Widget')}
-              </div>
-            </div>
+            <p className='text-muted-foreground text-center text-xs'>
+              {t(
+                "After clicking the button, you'll be asked to authorize the bot"
+              )}
+            </p>
           </div>
-
-          <p className='text-muted-foreground text-center text-xs'>
-            {t('The binding will complete automatically after authorization')}
-          </p>
         </div>
       </DialogContent>
     </Dialog>

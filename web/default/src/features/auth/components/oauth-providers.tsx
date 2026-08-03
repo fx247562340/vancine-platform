@@ -27,7 +27,9 @@ import {
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useOAuthLogin } from '../hooks/use-oauth-login'
+import type { TelegramAuthPayload } from '../lib/telegram'
 import type { SystemStatus } from '../types'
+import { TelegramLoginWidget } from './telegram-login-widget'
 
 type OAuthProvidersProps = {
   status: SystemStatus | null
@@ -35,6 +37,12 @@ type OAuthProvidersProps = {
   className?: string
   onWeChatLogin?: () => void
   isWeChatLoading?: boolean
+  /**
+   * Telegram widget callback. Invoked with the Telegram auth payload after the
+   * user authorizes via the embedded widget. The owner (sign-in / sign-up form)
+   * performs the login request and success handling.
+   */
+  onTelegramAuth?: (payload: TelegramAuthPayload) => void | Promise<void>
   /**
    * Register-page-only. When set, OAuth redirect providers await this before
    * leaving the site (first-party signup_started). Sign-in must omit it.
@@ -56,6 +64,7 @@ export function OAuthProviders({
   className,
   onWeChatLogin,
   isWeChatLoading = false,
+  onTelegramAuth,
   onBeforeOAuthRedirect,
 }: OAuthProvidersProps) {
   const { t } = useTranslation()
@@ -67,7 +76,6 @@ export function OAuthProviders({
     handleDiscordLogin,
     handleOIDCLogin,
     handleLinuxDOLogin,
-    handleTelegramLogin,
     handleCustomOAuthLogin,
   } = useOAuthLogin(status, { onBeforeOAuthRedirect })
 
@@ -119,13 +127,9 @@ export function OAuthProviders({
     })
   }
 
-  if (status?.telegram_oauth) {
-    providerButtons.push({
-      key: 'telegram',
-      label: t('Continue with Telegram'),
-      onClick: handleTelegramLogin,
-    })
-  }
+  // Telegram is rendered as the official embedded widget (not a plain button)
+  // below, because authorization happens inside Telegram's iframe and hands us
+  // the payload via a callback rather than a first-party redirect.
 
   // Custom OAuth providers
   const customProviders = status?.custom_oauth_providers
@@ -139,7 +143,11 @@ export function OAuthProviders({
     }
   }
 
-  if (providerButtons.length === 0) return null
+  const showTelegramWidget = Boolean(
+    status?.telegram_oauth && status?.telegram_bot_name && onTelegramAuth
+  )
+
+  if (providerButtons.length === 0 && !showTelegramWidget) return null
 
   return (
     <div className={cn('space-y-3', className)}>
@@ -169,6 +177,15 @@ export function OAuthProviders({
               {label}
             </Button>
           )
+        )}
+
+        {showTelegramWidget && onTelegramAuth && (
+          <div className='flex justify-center'>
+            <TelegramLoginWidget
+              botName={String(status?.telegram_bot_name)}
+              onAuth={onTelegramAuth}
+            />
+          </div>
         )}
       </div>
     </div>

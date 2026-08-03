@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import axios, { type AxiosRequestConfig } from 'axios'
+import { getAcceptLanguage } from '@/i18n/languages'
 import i18n, { t } from 'i18next'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth-store'
@@ -151,13 +152,8 @@ export function getCommonHeaders(): Record<string, string> {
     headers['New-Api-User'] = uid
   }
 
-  // Add Accept-Language
-  const lang = i18n.language
-  const langMap: Record<string, string> = {
-    zh: 'zh-CN',
-    en: 'en',
-  }
-  const acceptLang = langMap[lang] || lang
+  // Add Accept-Language (shared mapping with the Axios interceptor)
+  const acceptLang = getAcceptLanguage(i18n.language)
   if (acceptLang) {
     headers['Accept-Language'] = acceptLang
   }
@@ -176,15 +172,10 @@ api.interceptors.request.use((config) => {
     // Custom header for user identification
     ;(config.headers as Record<string, string>)['New-Api-User'] = uid
   }
-  // Map frontend language to backend Accept-Language
-  // Frontend: zh, en, fr, ru, ja, vi
-  // Backend: zh-CN, en
-  const lang = i18n.language
-  const langMap: Record<string, string> = {
-    zh: 'zh-CN',
-    en: 'en',
-  }
-  const acceptLang = langMap[lang] || lang
+  // Map frontend language to backend Accept-Language via the shared helper
+  // (zh -> zh-CN, zh-TW -> zh-TW, others verbatim). Single source of truth
+  // with getCommonHeaders so the two request paths cannot drift.
+  const acceptLang = getAcceptLanguage(i18n.language)
   if (acceptLang) {
     ;(config.headers as Record<string, string>)['Accept-Language'] = acceptLang
   }

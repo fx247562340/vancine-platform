@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useEffect, useMemo, useRef } from 'react'
 import * as z from 'zod'
 import type { Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -50,6 +51,10 @@ import { SettingsPageFormActions } from '../components/settings-page-context'
 import { SettingsSection } from '../components/settings-section'
 import { useSettingsForm } from '../hooks/use-settings-form'
 import { useUpdateOption } from '../hooks/use-update-option'
+import {
+  executeSettingsSubmit,
+  type ThemeNavigationAction,
+} from './theme-switch-navigation'
 
 const _systemInfoSchema = z.object({
   theme: z.object({
@@ -82,22 +87,41 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
   const { t } = useTranslation()
   const updateOption = useUpdateOption()
 
-  const normalizedDefaults: SystemInfoFormValues = {
-    theme: {
-      frontend:
-        defaultValues.theme?.frontend === 'classic' ? 'classic' : 'default',
-    },
-    SystemName: normalizeValue(defaultValues.SystemName),
-    ServerAddress: normalizeValue(defaultValues.ServerAddress),
-    Logo: normalizeValue(defaultValues.Logo),
-    Footer: normalizeValue(defaultValues.Footer),
-    About: normalizeValue(defaultValues.About),
-    HomePageContent: normalizeValue(defaultValues.HomePageContent),
-    legal: {
-      user_agreement: normalizeValue(defaultValues.legal?.user_agreement),
-      privacy_policy: normalizeValue(defaultValues.legal?.privacy_policy),
-    },
-  }
+  // Memoize normalizedDefaults to prevent useSettingsForm's useEffect
+  // from firing on every render. Without this, the parent's refetch
+  // after a successful save would cause a re-render with new
+  // defaultValues, triggering form.reset() and clearing dirty state.
+  const normalizedDefaults = useMemo<SystemInfoFormValues>(
+    () => ({
+      theme: {
+        frontend:
+          defaultValues.theme?.frontend === 'classic'
+            ? 'classic'
+            : 'default',
+      },
+      SystemName: normalizeValue(defaultValues.SystemName),
+      ServerAddress: normalizeValue(defaultValues.ServerAddress),
+      Logo: normalizeValue(defaultValues.Logo),
+      Footer: normalizeValue(defaultValues.Footer),
+      About: normalizeValue(defaultValues.About),
+      HomePageContent: normalizeValue(defaultValues.HomePageContent),
+      legal: {
+        user_agreement: normalizeValue(
+          defaultValues.legal?.user_agreement
+        ),
+        privacy_policy: normalizeValue(
+          defaultValues.legal?.privacy_policy
+        ),
+      },
+    }),
+    [defaultValues]
+  )
+
+  // Deferred theme navigation: stores the action returned by
+  // executeSettingsSubmit. Navigation is executed in a useEffect
+  // AFTER useSettingsForm calls form.reset() (which clears isDirty),
+  // so FormNavigationGuard does not block the full-document navigation.
+  const pendingNavRef = useRef<ThemeNavigationAction | null>(null)
 
   const systemInfoSchemaWithI18n = z.object({
     theme: z.object({
@@ -126,18 +150,40 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
       >,
       defaultValues: normalizedDefaults,
       onSubmit: async (_data, changedFields) => {
-        for (const [key, value] of Object.entries(changedFields)) {
-          let v = normalizeValue(value)
-          if (key === 'ServerAddress') {
-            v = v.replace(/\/+$/, '')
-          }
-          await updateOption.mutateAsync({
-            key,
-            value: v,
-          })
+        // executeSettingsSubmit saves all changed fields, asserts
+        // success (throwing on failure to prevent form.reset()), then
+        // returns the navigation action. The action is stored in a ref
+        // and executed by a useEffect AFTER useSettingsForm calls
+        // form.reset() — which clears isDirty and disarms
+        // FormNavigationGuard. This prevents the guard from blocking
+        // the full-document window.location.href navigation.
+        const action = await executeSettingsSubmit(
+          changedFields,
+          (req) => updateOption.mutateAsync(req),
+          normalizeValue,
+          (v) => v.replace(/\/+$/, '')
+        )
+        if (action.type !== 'none') {
+          pendingNavRef.current = action
         }
       },
     })
+
+  // Execute deferred navigation when the form is no longer dirty.
+  // This fires after useSettingsForm's handleSubmit completes its
+  // post-submit form.reset(), which sets isDirty to false.
+  useEffect(() => {
+    const pending = pendingNavRef.current
+    if (!pending || pending.type === 'none') return
+    if (isDirty) return // wait for form.reset() to clear dirty state
+
+    pendingNavRef.current = null
+    if (pending.type === 'reload') {
+      window.location.reload()
+    } else if (pending.type === 'navigate') {
+      window.location.href = pending.url
+    }
+  }, [isDirty])
 
   return (
     <>

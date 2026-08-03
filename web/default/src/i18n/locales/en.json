@@ -4784,6 +4784,21 @@
     "AI Models": "AI Models",
     "Compatible": "Compatible",
     "API Endpoint": "API Endpoint",
-    "Featured models live on the public catalog. Open a model or browse the full marketplace.": "Featured models live on the public catalog. Open a model or browse the full marketplace."
+    "Featured models live on the public catalog. Open a model or browse the full marketplace.": "Featured models live on the public catalog. Open a model or browse the full marketplace.",
+    "Voice": "Voice",
+    "Image failed to load": "Image failed to load",
+    "Image preview": "Image preview",
+    "Download audio": "Download audio",
+    "Task submitted": "Task submitted",
+    "Go to Task Logs to check progress and results.": "Go to Task Logs to check progress and results.",
+    "Task submitted, task ID:": "Task submitted, task ID:",
+    "Voice has been generated": "Voice has been generated",
+    "Image size must be less than 10MB": "Image size must be less than 10MB",
+    "Upload failed": "Upload failed",
+    "Uploading": "Uploading",
+    "Remove image": "Remove image",
+    "Video Preview": "Video Preview",
+    "Video failed to load": "Video failed to load",
+    "Image to 3D": "Image to 3D"
   }
 }

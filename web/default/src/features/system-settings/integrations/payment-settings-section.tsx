@@ -61,6 +61,10 @@ import { AmountOptionsVisualEditor } from './amount-options-visual-editor'
 import { CreemProductsVisualEditor } from './creem-products-visual-editor'
 import { PaymentMethodsVisualEditor } from './payment-methods-visual-editor'
 import {
+  PayPalSettingsSection,
+  type PayPalSettingsValues,
+} from './paypal-settings-section'
+import {
   formatJsonForEditor,
   getJsonError,
   normalizeJsonForComparison,
@@ -181,6 +185,7 @@ type PaymentSettingsSectionProps = {
   defaultValues: PaymentBaseFormValues
   waffoDefaultValues: WaffoSettingsValues
   waffoPancakeDefaultValues: WaffoPancakeSettingsValues
+  paypalDefaultValues: PayPalSettingsValues
   waffoPancakeProvisionedStoreID?: string
   waffoPancakeProvisionedProductID?: string
   complianceDefaults: PaymentComplianceDefaults
@@ -199,6 +204,7 @@ export function PaymentSettingsSection({
   defaultValues,
   waffoDefaultValues,
   waffoPancakeDefaultValues,
+  paypalDefaultValues,
   waffoPancakeProvisionedStoreID,
   waffoPancakeProvisionedProductID,
   complianceDefaults,
@@ -1531,6 +1537,10 @@ export function PaymentSettingsSection({
             payMethods={waffoPayMethods}
             onPayMethodsChange={setWaffoPayMethods}
           />
+
+          <Separator />
+
+          <PayPalSettingsSection defaultValues={paypalDefaultValues} />
         </SettingsForm>
       </Form>
     </SettingsSection>

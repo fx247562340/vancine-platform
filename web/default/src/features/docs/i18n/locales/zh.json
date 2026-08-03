@@ -1,0 +1,387 @@
+{
+  "quickstart": {
+    "title": "快速开始",
+    "subtitle": "从零到第一次成功调用，约 3 分钟。",
+    "step1": {
+      "title": "获取 API Key",
+      "desc": "注册后系统已自动生成初始令牌，前往 控制台 → 令牌管理 复制。",
+      "cta": "前往令牌管理",
+      "security": "不要把 API Key 写进前端代码、公开仓库或客户端应用。务必从服务端环境变量中读取后再调用 Vancine。"
+    },
+    "step2": {
+      "title": "选择模型",
+      "desc": "推荐使用 deepseek-v4-flash 进行首次调用——速度快、成本低，适合测试验证。",
+      "viewAll": "查看所有可用模型"
+    },
+    "step3": {
+      "title": "选择调用方式",
+      "desc": "Vancine 兼容 OpenAI API。你可以直接通过 HTTP 调用，也可以使用官方 OpenAI SDK。",
+      "httpDesc": "使用 curl、fetch 或任何 HTTP 客户端直接调用 REST API。",
+      "sdkDesc": "即插即用：只需修改现有 OpenAI SDK 代码中的 base_url 和 api_key。"
+    },
+    "step4": {
+      "title": "发起第一次调用",
+      "desc": "复制下方代码，将 sk-your-api-key 替换为你的真实密钥，然后运行。",
+      "expectedResponse": "预期返回"
+    },
+    "infoTable": {
+      "title": "基础信息",
+      "baseUrl": "Base URL",
+      "auth": "鉴权方式",
+      "modelList": "模型清单",
+      "pricing": "公开定价",
+      "tip": "GET /v1/models 需要 API Key，可用于查看当前令牌可调用的模型。GET /api/pricing 无需鉴权，可用于读取模型端点类型和价格。"
+    },
+    "exploreMore": {
+      "title": "探索更多功能",
+      "desc": "现在你已经成功调用了 API，来看看 Vancine 还能做什么：",
+      "chat": "对话补全",
+      "image": "图片生成",
+      "video": "视频生成",
+      "migrate": "从 OpenAI 迁移"
+    }
+  },
+  "migrate": {
+    "title": "从 OpenAI 迁移",
+    "hook": "Vancine 完全兼容 OpenAI API。已有代码通常只需改 base_url 和 api_key 两处，其余（SDK、端点、响应结构、流式、function calling）完全不变。",
+    "twoChanges": {
+      "title": "只需修改 2 处",
+      "desc": "拿你现有的 OpenAI 代码，改掉 base URL 和 API key，就能直接用。"
+    },
+    "fullExamples": {
+      "title": "完整示例",
+      "desc": "Python、Node.js 和 cURL 的完整可运行示例。"
+    },
+    "whatStaysSame": {
+      "title": "这些完全不变",
+      "desc": "代码中的其他部分无需任何修改："
+    },
+    "sameItems": {
+      "endpoint": "相同的 /v1/chat/completions 端点",
+      "sdk": "相同的 openai Python / Node.js SDK，无需新依赖",
+      "response": "相同的响应结构（choices、usage 等）",
+      "streaming": "流式输出（SSE）工作方式完全一致",
+      "functionCalling": "支持 function calling / tool use"
+    },
+    "comparison": {
+      "title": "修改项对照",
+      "colField": "字段",
+      "colOpenai": "OpenAI",
+      "colVancine": "Vancine",
+      "colNote": "说明",
+      "baseUrlOpenai": "https://api.openai.com/v1",
+      "baseUrlNote": "改为 Vancine 端点地址",
+      "apiKeyOpenai": "sk-xxx（OpenAI 密钥）",
+      "apiKeyNote": "使用 Vancine 令牌，在 控制台 → 令牌管理 获取",
+      "modelOpenai": "gpt-4o、gpt-4o-mini 等",
+      "modelNote": "使用 Vancine 支持的模型（如 deepseek-v4-flash）"
+    },
+    "nextSteps": {
+      "title": "下一步",
+      "desc": "准备深入了解？查看以下页面：",
+      "models": "模型与定价",
+      "quickstart": "获取 API Key"
+    }
+  },
+  "chat": {
+    "title": "对话补全",
+    "desc": "向语言模型发送 OpenAI 兼容的 messages 数组并获取同步 JSON 响应。",
+    "paramsTitle": "参数",
+    "examplesTitle": "示例",
+    "reasoningCallout": "deepseek-v4-flash 和 deepseek-v4-pro 是推理模型。content 可能暂时为空，推理内容会在 reasoning_content 中；finish_reason: length 常表示 token 预算被推理消耗完，不代表 API 不通。",
+    "params": {
+      "model": "模型名称，例如 glm-5.1",
+      "messages": "消息对象数组",
+      "maxTokens": "最大生成 token 数；推理模型建议设置更大",
+      "stream": "启用 SSE 流式输出",
+      "temperature": "采样温度"
+    }
+  },
+  "image": {
+    "title": "图片生成",
+    "desc": "从文本提示生成图片。响应为同步 JSON，data 数组中包含图片临时 URL。",
+    "paramsTitle": "参数",
+    "sizesTitle": "可用尺寸",
+    "examplesTitle": "示例",
+    "colWorkingSize": "可用尺寸",
+    "defaultSizeSupported": "默认尺寸可用",
+    "sizeWarning": "Doubao-Seedream-5.0-lite 要求最小 3,686,400 像素，1024x1024 会报 image size must be at least 3686400 pixels，建议使用 2048x2048。Doubao-Seedream-5.0-pro 无此限制，最小 921,600 像素（1024x1024 可用），但只支持生成单图（不支持组图）。两者都支持用 1K/2K（lite 还支持 3K/4K）分辨率档位，由模型决定最终尺寸。",
+    "params": {
+      "model": "图片模型名称",
+      "prompt": "图片文字描述",
+      "n": "生成数量",
+      "size": "尺寸，格式为 WIDTHxHEIGHT（见下方尺寸表）",
+      "response_format": "返回格式：url（默认，临时链接 24 小时有效）或 b64_json",
+      "output_format": "输出格式：png 或 jpeg（默认 jpeg），仅 Seedream 5.0 pro/lite 支持",
+      "image": "参考图 URL 或 Base64，用于图生图/多图融合（5.0 pro 最多 10 张，lite 最多 14 张）",
+      "watermark": "是否加水印，Seedream 默认 false"
+    },
+    "advancedParamsCallout": "组图（sequential_image_generation）、提示词优化（optimize_prompt_options）等 Seedream 高级参数需在渠道开启透传（PassThrough）时可用，默认不透传。"
+  },
+  "video": {
+    "title": "视频生成",
+    "desc": "视频生成是异步任务。提交后保存 task_id，然后轮询同一个 /v1/video/generations/{task_id} 路径。",
+    "endpointSubmit": "提交异步生成任务",
+    "endpointPoll": "轮询任务状态和结果",
+    "paramsTitle": "参数",
+    "statusTitle": "任务状态",
+    "examplesTitle": "示例",
+    "params": {
+      "model": "视频模型名称",
+      "prompt": "视频文字描述",
+      "image": "单张参考图 URL 或 Base64（图生视频）",
+      "images": "多张参考图 URL 数组",
+      "size": "分辨率，例如 1280x720",
+      "duration": "视频时长（秒）",
+      "metadata": "扩展参数对象（见下方说明）"
+    },
+    "metadataCallout": "metadata 子参数：resolution（分辨率如 1080p）、ratio（宽高比如 16:9）、frames（帧数）、seed（随机种子）、watermark（水印 bool）、camera_fixed（固定镜头 bool）、generate_audio（生成音频 bool）。这些参数会透传到上游供应商。",
+    "status": {
+      "queued": "任务已排队",
+      "inProgress": "生成中",
+      "success": "完成，取 data.result_url 或 data.data.content.video_url",
+      "failure": "失败，查看 data.fail_reason"
+    }
+  },
+  "td": {
+    "title": "3D 资产生成",
+    "desc": "3D 模型使用统一的异步任务参数。提交任务后用 task_id 轮询结果。",
+    "endpointSubmit": "3D 也使用视频异步端点提交",
+    "endpointPoll": "轮询 3D 任务结果",
+    "modelsTitle": "3D 模型",
+    "paramsTitle": "参数",
+    "examplesTitle": "请求示例",
+    "colImagesParam": "images 参数",
+    "withoutImage": "不传图片",
+    "withImage": "传参考图片",
+    "imagesWarning": "Doubao-Seed3D-2.0 必须传 images。不要使用 image_data 字段；Vancine 网关会把 images 转成上游需要的 content[].image_url 格式。",
+    "params": {
+      "model": "3D 模型名称",
+      "prompt": "3D 资产文本描述（图生 3D 时可省略）",
+      "images": "参考图 URL 数组，用于图生 3D。Doubao-Seed3D-2.0 需至少一张参考图。支持公网 URL 或 data:image/...;base64,..."
+    },
+    "asyncCallout": "3D 生成是异步任务。提交后保存 task_id，轮询 GET /v1/video/generations/{task_id}，成功后从结果的 metadata.url 获取 3D 模型文件链接。"
+  },
+  "audio": {
+    "title": "音频 / TTS",
+    "desc": "TTS 接口使用 OpenAI 兼容请求体，但响应不是 JSON，而是 MP3 二进制音频流。",
+    "paramsTitle": "参数",
+    "ttsExamplesTitle": "Doubao-tts 示例（1.0 音色）",
+    "tts2ExamplesTitle": "Doubao-tts2.0 示例（2.0 音色）",
+    "voicesTitle": "可用音色",
+    "endpointWarning": "TTS 不走 /v1/chat/completions。端点选错时可能返回类似 API key 不存在的 401，这通常不是 key 失效，而是路径用错。",
+    "voiceSuffixCallout": "音色 ID 后缀决定所属模型版本：uranus 后缀用于 Doubao-tts2.0，mars 后缀用于 Doubao-tts。音色与模型版本不匹配会返回 resource mismatch 错误。",
+    "colVoiceId": "音色 ID",
+    "colName": "名称",
+    "colModel": "适用模型",
+    "colUseCase": "语种·场景",
+    "params": {
+      "model": "Doubao-tts 或 Doubao-tts2.0",
+      "input": "待合成文本",
+      "voice": "音色 ID，见下方音色列表",
+      "response_format": "输出音频格式：mp3（默认）、opus、aac、flac、wav、pcm",
+      "speed": "语速 0.25–4.0，默认 1.0"
+    },
+    "voices": {
+      "vivi": "Vivi",
+      "nadia": "Nadia",
+      "jane": "Jane",
+      "rachel": "Rachel",
+      "david": "David",
+      "alex": "Alex",
+      "kevin": "Kevin",
+      "stokie": "Stokie",
+      "spanishFemale": "西语 女",
+      "frenchFemale": "法语 女",
+      "germanFemale": "德语 女",
+      "arabicFemale": "阿语 女",
+      "cancan": "灿灿",
+      "wenhao": "文豪",
+      "amanda": "Amanda",
+      "emily": "Emily",
+      "adam": "Adam",
+      "jackson": "Jackson",
+      "sarah": "Sarah",
+      "smith": "Smith",
+      "anna": "Anna",
+      "dryw": "Dryw",
+      "zhFemaleGentle": "中文 女·温柔（多语种）",
+      "enFemale": "英语 女",
+      "enMale": "英语 男",
+      "enUkFemale": "英式英语 女",
+      "espanol": "Español",
+      "francais": "Français",
+      "deutsch": "Deutsch",
+      "arabic": "العربية",
+      "zhFemaleBright": "中文 女·明亮",
+      "zhMaleSteady": "中文 男·沉稳"
+    }
+  },
+  "auth": {
+    "title": "认证方式",
+    "desc": "所有 /v1 请求都需要在 Authorization 请求头中携带 API Key。",
+    "securityWarning": "不要把 API Key 写进前端代码、公开仓库或客户端应用。服务端读取环境变量后再调用 Vancine。"
+  },
+  "capabilities": {
+    "title": "能力概览",
+    "desc": "Vancine 将不同类型的生成能力整理成统一的 OpenAI 兼容接口和异步任务接口。",
+    "rows": {
+      "chat": "文本对话",
+      "tts": "语音合成 TTS",
+      "image": "图片生成",
+      "video": "视频生成",
+      "td": "3D 资产生成",
+      "chatNote": "OpenAI 兼容 messages 请求体",
+      "ttsNote": "返回 MP3 二进制音频流",
+      "imageNote": "返回图片 URL",
+      "videoNote": "异步任务，轮询 task_id",
+      "tdNote": "异步任务，支持 prompt 和 images"
+    }
+  },
+  "models": {
+    "title": "模型与定价",
+    "desc": "调用公开定价接口可读取模型名称、支持端点、倍率和价格。",
+    "fetchPricing": "获取模型价格",
+    "textModelsTitle": "文本模型（{{count}} 个）",
+    "multimodalTitle": "多媒体模型",
+    "colType": "类型",
+    "colUsageNotes": "调用说明",
+    "returnsValidMp3": "返回有效 MP3"
+  },
+  "errors": {
+    "title": "错误处理",
+    "colHttpStatus": "HTTP 状态",
+    "colTypicalCause": "典型原因",
+    "formatTitle": "错误响应格式",
+    "asyncCallout": "异步任务失败时，错误详情在轮询响应的 data.fail_reason 字段中。",
+    "codes": {
+      "badRequest": "参数错误",
+      "badRequestCause": "size 不合规、缺少 prompt、模型和端点不匹配",
+      "unauthorized": "未授权",
+      "unauthorizedCause": "key 失效，或 TTS 等模型误用了 chat 端点",
+      "notFound": "路径不存在",
+      "notFoundCause": "检查 URL 路径是否拼写正确",
+      "noChannel": "无可用渠道",
+      "noChannelCause": "当前分组下该模型暂无可用上游"
+    }
+  },
+  "sdks": {
+    "title": "SDK 与工具",
+    "desc": "Vancine 的文本接口兼容 OpenAI SDK。多媒体端点也可直接用 HTTP 客户端调用。",
+    "requestsDesc": "适合图片、视频、3D、TTS",
+    "curlDesc": "系统自带或包管理器安装"
+  },
+  "agents": {
+    "title": "Agent 接入指南",
+    "desc": "Agent 工具接入时先确认它使用的是 Chat Completions 还是 Responses。多数 OpenAI Compatible 工具使用 /v1/chat/completions；Codex CLI 官方配置当前使用 /v1/responses。",
+    "universalTip": "通用三件套：Base URL = {{baseUrl}}，API Key = sk-your-api-key，Model = glm-5.1 或 deepseek-v4-flash。",
+    "configExample": "配置示例",
+    "guiTitle": "图形化工具",
+    "cli": {
+      "codex": "Codex 官方配置使用 ~/.codex/config.toml。它当前文档示例使用 Responses 协议，所以 wire_api 写 responses。",
+      "opencode": "OpenCode 使用项目内 opencode.json。自定义 OpenAI 兼容供应商使用 @ai-sdk/openai-compatible，并在 options.baseURL / options.apiKey 中配置。",
+      "openclaw": "OpenClaw 生态里常见的是 OpenAI-compatible base URL、API Key、模型名三件套。不同发行版字段名可能不同，优先在 Provider 里选择 OpenAI Compatible。",
+      "hermes": "Hermes Agent 的 OpenAI-compatible 插件常用 config.yaml 或环境变量配置 base_url / api_key。字段以所安装插件为准。"
+    },
+    "gui": {
+      "cursor": {
+        "title": "Cursor",
+        "step1": "打开 Settings → Models",
+        "step2": "选择 OpenAI Compatible 或自定义 OpenAI API",
+        "step3": "Base URL 填 {{baseUrl}}",
+        "step4": "填入 Vancine API Key",
+        "step5": "模型名填写 glm-5.1、deepseek-v4-flash 等文本模型"
+      },
+      "cline": {
+        "title": "Cline / Roo Code",
+        "step1": "选择 Provider: OpenAI Compatible",
+        "step2": "Base URL 填 {{baseUrl}}",
+        "step3": "填入 API Key",
+        "step4": "模型名填写文本模型",
+        "step5": "保存后发送一条简单消息确认连接"
+      },
+      "cherryStudio": {
+        "title": "Cherry Studio",
+        "step1": "打开 设置 → 模型服务 → 添加",
+        "step2": "类型选择 OpenAI Compatible",
+        "step3": "API 地址填 {{baseUrl}}",
+        "step4": "填入 API Key",
+        "step5": "同步或手动添加模型"
+      }
+    }
+  },
+  "faq": {
+    "title": "常见问题",
+    "items": {
+      "verifyKey": {
+        "q": "如何确认 API Key 可用？",
+        "a": "调用 GET {{baseUrl}}/models。HTTP 200 且返回模型列表，说明 key 有效并具备当前分组权限。"
+      },
+      "video3dResults": {
+        "q": "视频和 3D 结果在哪里取？",
+        "a": "轮询 GET /v1/video/generations/{task_id}，成功后读取 data.result_url，或读取 data.data.content.video_url。"
+      },
+      "ttsNotJson": {
+        "q": "TTS 为什么返回的不是 JSON？",
+        "a": "TTS 成功时直接返回 MP3 二进制音频流，Content-Type 为 audio/mpeg。"
+      },
+      "seedreamSize": {
+        "q": "为什么 Seedream 图片尺寸报错？",
+        "a": "Doubao-Seedream-5.0-lite 要求最小 3,686,400 像素（建议 2048x2048）；Doubao-Seedream-5.0-pro 无此限制，最小 921,600 像素（1024x1024 可用）。请按所用模型设置 size，或直接用 1K/2K 等分辨率档位让模型自行决定。"
+      }
+    }
+  },
+  "nav": {
+    "gettingStarted": "开始使用",
+    "apiCapabilities": "API 能力",
+    "integrationGuide": "接入指南",
+    "reference": "参考",
+    "quickstart": "快速开始",
+    "migrate": "从 OpenAI 迁移",
+    "models": "模型与定价",
+    "chat": "对话补全",
+    "image": "图片生成",
+    "video": "视频生成",
+    "td": "3D 生成",
+    "audio": "音频 / TTS",
+    "sdks": "SDK 与工具",
+    "agents": "Agent 接入",
+    "auth": "认证方式",
+    "capabilities": "能力概览",
+    "errors": "错误处理",
+    "faq": "常见问题"
+  },
+  "common": {
+    "action": "处理方式",
+    "category": "类别",
+    "comingSoon": "即将上线",
+    "copied": "✓ 已复制",
+    "copy": "复制",
+    "description": "说明",
+    "endpoint": "端点",
+    "feedbackNo": "否",
+    "feedbackQuestion": "本页内容对你有帮助吗？",
+    "feedbackThanks": "感谢反馈",
+    "feedbackYes": "是",
+    "loading": "加载中…",
+    "meaning": "含义",
+    "model": "模型",
+    "navigation": "导航",
+    "nextPage": "下一篇",
+    "no": "否",
+    "notes": "备注",
+    "notFound": "未找到页面",
+    "notFoundDesc": "你访问的文档页面不存在。",
+    "onThisPage": "在此页面",
+    "pageNotReady": "此页面尚未完成，请稍后再来查看。",
+    "parameter": "参数",
+    "prevPage": "上一篇",
+    "required": "必填",
+    "result": "结果",
+    "searchNoResults": "无匹配结果",
+    "searchPlaceholder": "搜索文档...",
+    "status": "状态",
+    "type": "类型",
+    "yes": "是"
+  }
+}

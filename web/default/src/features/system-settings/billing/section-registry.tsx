@@ -174,6 +174,18 @@ const BILLING_SECTIONS = [
           WaffoPancakePrivateKey: settings.WaffoPancakePrivateKey ?? '',
           WaffoPancakeReturnURL: settings.WaffoPancakeReturnURL ?? '',
         }}
+        paypalDefaultValues={{
+          PayPalEnabled: settings.PayPalEnabled ?? false,
+          PayPalTestMode: settings.PayPalTestMode ?? false,
+          PayPalClientId: settings.PayPalClientId ?? '',
+          PayPalClientSecret: settings.PayPalClientSecret ?? '',
+          PayPalWebhookId: settings.PayPalWebhookId ?? '',
+          PayPalSandboxClientId: settings.PayPalSandboxClientId ?? '',
+          PayPalSandboxClientSecret: settings.PayPalSandboxClientSecret ?? '',
+          PayPalSandboxWebhookId: settings.PayPalSandboxWebhookId ?? '',
+          PayPalMinTopUp: settings.PayPalMinTopUp ?? 1,
+          PayPalCurrency: settings.PayPalCurrency ?? 'USD',
+        }}
         waffoPancakeProvisionedStoreID={settings.WaffoPancakeStoreID ?? ''}
         waffoPancakeProvisionedProductID={settings.WaffoPancakeProductID ?? ''}
         complianceDefaults={{

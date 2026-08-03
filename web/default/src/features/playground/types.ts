@@ -23,7 +23,12 @@ export type MessageStatus = 'loading' | 'streaming' | 'complete' | 'error'
 
 export interface MessageVersion {
   id: string
-  content: string
+  /**
+   * Plain text/markdown, or structured content parts (text + image_url).
+   * Structured parts appear when a message carries generated/uploaded
+   * images; all existing flows keep using plain strings.
+   */
+  content: string | ContentPart[]
 }
 
 export interface Message {
@@ -40,6 +45,10 @@ export interface Message {
   isContentComplete?: boolean
   status?: MessageStatus
   errorCode?: string | null
+  /** TTS result: playable audio data URL (session-only, not persisted) */
+  audioUrl?: string
+  /** Async task (video/3D) accepted by the backend; rendered as a hint */
+  taskInfo?: { taskId: string }
 }
 
 // API payload types
@@ -110,6 +119,7 @@ export interface ChatCompletionResponse {
 export interface PlaygroundConfig {
   model: string
   group: string
+  voice: string
   temperature: number
   top_p: number
   max_tokens: number
@@ -126,6 +136,21 @@ export interface ParameterEnabled {
   frequency_penalty: boolean
   presence_penalty: boolean
   seed: boolean
+}
+
+// TTS voice option (aligned with classic DOUBAO_TTS*_VOICES)
+export interface VoiceOption {
+  label: string
+  value: string
+}
+
+// TTS request payload for /pg/audio/speech (OpenAI-compatible)
+export interface AudioSpeechRequest {
+  model: string
+  group?: string
+  input: string
+  voice: string
+  response_format?: string
 }
 
 // Model and group options

@@ -41,6 +41,12 @@ type CodeBlockProps = HTMLAttributes<HTMLDivElement> & {
   code: string
   language: BundledLanguage
   showLineNumbers?: boolean
+  /**
+   * Opt-in horizontal scrolling for long lines (e.g. Docs code samples on
+   * narrow viewports). Defaults to false, which keeps the existing clipping
+   * behavior for all other consumers.
+   */
+  scrollable?: boolean
 }
 
 type CodeBlockContextType = {
@@ -95,6 +101,7 @@ export const CodeBlock = ({
   code,
   language,
   showLineNumbers = false,
+  scrollable = false,
   className,
   children,
   ...props
@@ -117,14 +124,18 @@ export const CodeBlock = ({
     <CodeBlockContext.Provider value={{ code }}>
       <div
         className={cn(
-          'group bg-background text-foreground relative w-full overflow-hidden rounded-md border',
+          'group bg-background text-foreground relative w-full rounded-md border',
+          scrollable ? 'overflow-x-auto' : 'overflow-hidden',
           className
         )}
         {...props}
       >
         <div className='relative'>
           <div
-            className='[&>pre]:bg-background! [&>pre]:text-foreground! overflow-hidden [&_code]:font-mono [&_code]:text-sm [&>pre]:m-0 [&>pre]:p-4 [&>pre]:text-sm'
+            className={cn(
+              '[&>pre]:bg-background! [&>pre]:text-foreground! [&_code]:font-mono [&_code]:text-sm [&>pre]:m-0 [&>pre]:p-4 [&>pre]:text-sm',
+              scrollable ? 'overflow-x-auto' : 'overflow-hidden'
+            )}
             // biome-ignore lint/security/noDangerouslySetInnerHtml: "this is needed."
             dangerouslySetInnerHTML={{ __html: html }}
           />

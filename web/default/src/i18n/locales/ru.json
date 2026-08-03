@@ -4784,6 +4784,21 @@
     "AI Models": "AI-модели",
     "Compatible": "Совместимость",
     "API Endpoint": "API-эндпоинт",
-    "Featured models live on the public catalog. Open a model or browse the full marketplace.": "Рекомендуемые модели загружаются напрямую из публичного каталога. Откройте нужную модель или просмотрите весь каталог."
+    "Featured models live on the public catalog. Open a model or browse the full marketplace.": "Рекомендуемые модели загружаются напрямую из публичного каталога. Откройте нужную модель или просмотрите весь каталог.",
+    "Voice": "Голос",
+    "Image failed to load": "Не удалось загрузить изображение",
+    "Image preview": "Предпросмотр изображения",
+    "Download audio": "Скачать аудио",
+    "Task submitted": "Задача отправлена",
+    "Go to Task Logs to check progress and results.": "Перейдите в «Журнал задач», чтобы отслеживать прогресс и результаты.",
+    "Task submitted, task ID:": "Задача отправлена, ID задачи:",
+    "Voice has been generated": "Аудио сгенерировано",
+    "Image size must be less than 10MB": "Размер изображения должен быть меньше 10 МБ",
+    "Upload failed": "Ошибка загрузки",
+    "Uploading": "Загрузка",
+    "Remove image": "Удалить изображение",
+    "Video Preview": "Предпросмотр видео",
+    "Video failed to load": "Не удалось загрузить видео",
+    "Image to 3D": "Image to 3D"
   }
 }

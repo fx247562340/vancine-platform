@@ -17,21 +17,28 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useState, useCallback } from 'react'
-import i18next from 'i18next'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { trackEvent } from '@/lib/analytics'
 import {
   calculateAmount,
   calculateStripeAmount,
   calculateWaffoPancakeAmount,
+  calculatePayPalAmount,
   requestPayment,
   requestStripePayment,
+  requestPayPalPayment,
   isApiSuccess,
 } from '../api'
+import { PAYMENT_TYPES } from '../constants'
 import {
   isSafeHttpPaymentUrl,
   isStripePayment,
   isWaffoPancakePayment,
+  isPayPalPayment,
+  resolvePayPalRedirect,
+  resolvePaymentErrorMessage,
+  navigateToPaymentUrl,
   submitPaymentForm,
 } from '../lib'
 
@@ -40,6 +47,7 @@ import {
 // ============================================================================
 
 export function usePayment() {
+  const { t } = useTranslation()
   const [amount, setAmount] = useState<number>(0)
   const [calculating, setCalculating] = useState(false)
   const [processing, setProcessing] = useState(false)
@@ -50,13 +58,18 @@ export function usePayment() {
       try {
         setCalculating(true)
 
-        const isStripe = isStripePayment(paymentType)
-        const isPancake = isWaffoPancakePayment(paymentType)
-        const response = isStripe
-          ? await calculateStripeAmount({ amount: topupAmount })
-          : isPancake
-            ? await calculateWaffoPancakeAmount({ amount: topupAmount })
-            : await calculateAmount({ amount: topupAmount })
+        // Dispatch to the provider-specific amount endpoint. Each branch calls
+        // exactly one endpoint; PayPal never falls back to the generic amount.
+        let response
+        if (isStripePayment(paymentType)) {
+          response = await calculateStripeAmount({ amount: topupAmount })
+        } else if (isWaffoPancakePayment(paymentType)) {
+          response = await calculateWaffoPancakeAmount({ amount: topupAmount })
+        } else if (isPayPalPayment(paymentType)) {
+          response = await calculatePayPalAmount({ amount: topupAmount })
+        } else {
+          response = await calculateAmount({ amount: topupAmount })
+        }
 
         if (isApiSuccess(response) && response.data) {
           const calculatedAmount = parseFloat(response.data)
@@ -84,7 +97,42 @@ export function usePayment() {
         setProcessing(true)
 
         const isStripe = isStripePayment(paymentType)
+        const isPayPal = isPayPalPayment(paymentType)
         const amount = Math.floor(topupAmount)
+
+        // PayPal: dedicated /api/user/paypal/* endpoints, then a current-window
+        // redirect to data.pay_link. Never uses window.open or the generic epay
+        // form submission. checkout_started is recorded only after the pay_link
+        // passes isSafeHttpPaymentUrl (inside resolvePayPalRedirect).
+        if (isPayPal) {
+          const response = await requestPayPalPayment({
+            amount,
+            payment_method: PAYMENT_TYPES.PAYPAL,
+          })
+          // Business failure: prefer the backend's readable message (which may
+          // live in `data` when message is the literal 'error'), else generic.
+          if (!isApiSuccess(response)) {
+            toast.error(
+              resolvePaymentErrorMessage(response, t('Payment request failed'))
+            )
+            return false
+          }
+          // Business success: the pay_link must be present and safe. A missing
+          // or unsafe pay_link is an invalid redirect URL (NOT the backend's
+          // 'success' message).
+          const redirect = resolvePayPalRedirect(response)
+          if (!redirect.ok) {
+            toast.error(t('Invalid payment redirect URL'))
+            return false
+          }
+          trackEvent('checkout_started', {
+            provider: 'paypal',
+            amount,
+          })
+          navigateToPaymentUrl(redirect.url)
+          toast.success(t('Redirecting to payment page...'))
+          return true
+        }
 
         const response = isStripe
           ? await requestStripePayment({
@@ -97,7 +145,9 @@ export function usePayment() {
             })
 
         if (!isApiSuccess(response)) {
-          toast.error(response.message || i18next.t('Payment request failed'))
+          toast.error(
+            resolvePaymentErrorMessage(response, t('Payment request failed'))
+          )
           return false
         }
 
@@ -105,7 +155,7 @@ export function usePayment() {
         if (isStripe && response.data?.pay_link) {
           const payLink = response.data.pay_link as string
           if (!isSafeHttpPaymentUrl(payLink)) {
-            toast.error(i18next.t('Invalid payment redirect URL'))
+            toast.error(t('Invalid payment redirect URL'))
             return false
           }
           trackEvent('checkout_started', {
@@ -113,7 +163,7 @@ export function usePayment() {
             amount,
           })
           window.open(payLink, '_blank')
-          toast.success(i18next.t('Redirecting to payment page...'))
+          toast.success(t('Redirecting to payment page...'))
           return true
         }
 
@@ -122,7 +172,7 @@ export function usePayment() {
           const url = (response as unknown as { url?: string }).url
           if (url) {
             if (!isSafeHttpPaymentUrl(url)) {
-              toast.error(i18next.t('Invalid payment redirect URL'))
+              toast.error(t('Invalid payment redirect URL'))
               return false
             }
             trackEvent('checkout_started', {
@@ -130,20 +180,20 @@ export function usePayment() {
               amount,
             })
             submitPaymentForm(url, response.data)
-            toast.success(i18next.t('Redirecting to payment page...'))
+            toast.success(t('Redirecting to payment page...'))
             return true
           }
         }
 
         return false
       } catch (_error) {
-        toast.error(i18next.t('Payment request failed'))
+        toast.error(t('Payment request failed'))
         return false
       } finally {
         setProcessing(false)
       }
     },
-    []
+    [t]
   )
 
   return {

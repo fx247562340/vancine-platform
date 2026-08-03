@@ -104,6 +104,15 @@ func WeChatAuth(c *gin.Context) {
 				})
 				return
 			}
+			// Default token for the new user (mirrors password register); abort
+			// before binding/login on failure to avoid a half-provisioned account.
+			if err := ensureDefaultTokenForNewUser(&user); err != nil {
+				c.JSON(http.StatusOK, gin.H{
+					"success": false,
+					"message": err.Error(),
+				})
+				return
+			}
 			// New user only — bind first-touch attribution (soft-fail).
 			acquisition.BindTouchToUser(c, user.Id)
 		} else {

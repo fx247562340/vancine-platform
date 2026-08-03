@@ -297,6 +297,11 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 
 		// Perform post-transaction tasks (logs, sidebar config, inviter rewards)
 		user.FinalizeOAuthUserCreation(inviterId)
+		// Default token for the new user (mirrors password register); abort
+		// before binding on failure to avoid a half-provisioned account.
+		if err := ensureDefaultTokenForNewUser(user); err != nil {
+			return nil, err
+		}
 		// New user only — bind first-touch attribution (soft-fail).
 		acquisition.BindTouchToUser(c, user.Id)
 	} else {
@@ -328,6 +333,11 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 
 		// Perform post-transaction tasks
 		user.FinalizeOAuthUserCreation(inviterId)
+		// Default token for the new user (mirrors password register); abort
+		// before binding on failure to avoid a half-provisioned account.
+		if err := ensureDefaultTokenForNewUser(user); err != nil {
+			return nil, err
+		}
 		// New user only — bind first-touch attribution (soft-fail).
 		acquisition.BindTouchToUser(c, user.Id)
 	}

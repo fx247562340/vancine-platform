@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useNavigate } from '@tanstack/react-router'
+import { normalizeInterfaceLanguage } from '@/i18n/languages'
 import i18n from 'i18next'
 import { useAuthStore } from '@/stores/auth-store'
 import { getSelf } from '@/lib/api'
@@ -74,10 +75,15 @@ export function useAuthRedirect() {
           saveUserId(user.id)
         }
 
-        // Restore saved language preference
+        // Restore saved language preference. Normalize so legacy/variant
+        // values (e.g. zh-HK, zh-Hant) resolve to a supported interface code
+        // such as zh-TW instead of being passed through verbatim.
         const savedLang = getSavedLanguage(user)
-        if (savedLang && savedLang !== i18n.language) {
-          i18n.changeLanguage(savedLang)
+        if (savedLang) {
+          const targetLang = normalizeInterfaceLanguage(savedLang)
+          if (targetLang !== i18n.language) {
+            i18n.changeLanguage(targetLang)
+          }
         }
       }
     } catch (error) {

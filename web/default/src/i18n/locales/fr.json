@@ -4784,6 +4784,21 @@
     "AI Models": "Modèles IA",
     "Compatible": "Compatibilité",
     "API Endpoint": "Point de terminaison API",
-    "Featured models live on the public catalog. Open a model or browse the full marketplace.": "Les modèles mis en avant sont chargés directement depuis le catalogue public. Ouvrez un modèle ou parcourez l’ensemble du catalogue."
+    "Featured models live on the public catalog. Open a model or browse the full marketplace.": "Les modèles mis en avant sont chargés directement depuis le catalogue public. Ouvrez un modèle ou parcourez l’ensemble du catalogue.",
+    "Voice": "Voix",
+    "Image failed to load": "Échec du chargement de l'image",
+    "Image preview": "Aperçu de l'image",
+    "Download audio": "Télécharger l'audio",
+    "Task submitted": "Tâche soumise",
+    "Go to Task Logs to check progress and results.": "Rendez-vous dans les journaux des tâches pour suivre la progression et les résultats.",
+    "Task submitted, task ID:": "Tâche soumise, ID de tâche :",
+    "Voice has been generated": "La voix a été générée",
+    "Image size must be less than 10MB": "La taille de l'image doit être inférieure à 10 Mo",
+    "Upload failed": "Échec du téléversement",
+    "Uploading": "Téléversement en cours",
+    "Remove image": "Supprimer l'image",
+    "Video Preview": "Aperçu vidéo",
+    "Video failed to load": "Échec du chargement de la vidéo",
+    "Image to 3D": "Image to 3D"
   }
 }

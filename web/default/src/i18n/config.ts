@@ -19,39 +19,67 @@ For commercial licensing, please contact support@quantumnous.com
 import i18n from 'i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import { initReactI18next } from 'react-i18next'
+import {
+  I18N_DETECTION_OPTIONS,
+  I18N_LOAD_STRATEGY,
+  SUPPORTED_INTERFACE_LANGUAGES,
+  applyDocumentLanguage,
+  wireDocumentLanguageSync,
+} from './languages'
 import en from './locales/en.json'
 import fr from './locales/fr.json'
 import ja from './locales/ja.json'
 import ru from './locales/ru.json'
 import vi from './locales/vi.json'
+import zhTW from './locales/zh-TW.json'
 import zh from './locales/zh.json'
 
 export const resources = {
   en,
   zh,
+  'zh-TW': zhTW,
   fr,
   ru,
   ja,
   vi,
 } as const
 
-i18n
+/**
+ * Keep `<html lang>` in sync with the active interface language so assistive
+ * tech and the browser use the correct language. The event wiring lives in
+ * `wireDocumentLanguageSync` (shared with the tests); the initial sync after
+ * init is chained below. `applyDocumentLanguage` is idempotent, so the
+ * languageChanged event fired during init and the safety-net sync below do not
+ * produce duplicate writes.
+ */
+wireDocumentLanguageSync(i18n)
+
+/**
+ * Awaitable promise resolving once the production i18next instance has finished
+ * initializing (and the initial `<html lang>` sync has run). Exported so
+ * integration tests can wait for the real wiring instead of guessing a delay.
+ */
+export const i18nInitPromise: Promise<void> = i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources,
     fallbackLng: 'en',
-    supportedLngs: ['en', 'zh', 'fr', 'ru', 'ja', 'vi'],
-    load: 'languageOnly', // Convert zh-CN -> zh
+    supportedLngs: SUPPORTED_INTERFACE_LANGUAGES as readonly string[],
+    // Normalize to an exact supported code ourselves; keep it verbatim so
+    // zh-TW does NOT collapse into zh (which `languageOnly` would do).
+    load: I18N_LOAD_STRATEGY,
     nsSeparator: false, // Allow literal colons in keys (e.g., URLs, labels)
     debug: import.meta.env.DEV,
     interpolation: {
       escapeValue: false, // not needed for react as it escapes by default
     },
-    detection: {
-      order: ['localStorage', 'navigator'],
-      caches: ['localStorage'],
-    },
+    detection: I18N_DETECTION_OPTIONS,
+  })
+  .then(() => {
+    // Safety-net initial sync in case no languageChanged fired during init.
+    // Idempotent with the event-driven sync above (no duplicate write).
+    applyDocumentLanguage(i18n.language)
   })
 
 export default i18n
