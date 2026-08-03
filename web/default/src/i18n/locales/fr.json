@@ -4796,6 +4796,8 @@
     "Image size must be less than 10MB": "La taille de l'image doit être inférieure à 10 Mo",
     "Upload failed": "Échec du téléversement",
     "Uploading": "Téléversement en cours",
-    "Remove image": "Supprimer l'image"
+    "Remove image": "Supprimer l'image",
+    "Video Preview": "Aperçu vidéo",
+    "Video failed to load": "Échec du chargement de la vidéo"
   }
 }

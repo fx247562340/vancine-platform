@@ -4796,6 +4796,8 @@
     "Image size must be less than 10MB": "画像サイズは10MB未満にしてください",
     "Upload failed": "アップロードに失敗しました",
     "Uploading": "アップロード中",
-    "Remove image": "画像を削除"
+    "Remove image": "画像を削除",
+    "Video Preview": "動画プレビュー",
+    "Video failed to load": "動画の読み込みに失敗しました"
   }
 }

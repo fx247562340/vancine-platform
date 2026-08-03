@@ -4796,6 +4796,8 @@
     "Image size must be less than 10MB": "圖片大小不能超過 10MB",
     "Upload failed": "上傳失敗",
     "Uploading": "上傳中",
-    "Remove image": "刪除圖片"
+    "Remove image": "刪除圖片",
+    "Video Preview": "影片預覽",
+    "Video failed to load": "影片載入失敗"
   }
 }

@@ -4796,6 +4796,8 @@
     "Image size must be less than 10MB": "图片大小不能超过 10MB",
     "Upload failed": "上传失败",
     "Uploading": "上传中",
-    "Remove image": "删除图片"
+    "Remove image": "删除图片",
+    "Video Preview": "视频预览",
+    "Video failed to load": "视频加载失败"
   }
 }

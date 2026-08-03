@@ -4796,6 +4796,8 @@
     "Image size must be less than 10MB": "Kích thước ảnh phải nhỏ hơn 10MB",
     "Upload failed": "Tải lên thất bại",
     "Uploading": "Đang tải lên",
-    "Remove image": "Xóa ảnh"
+    "Remove image": "Xóa ảnh",
+    "Video Preview": "Xem trước video",
+    "Video failed to load": "Tải video thất bại"
   }
 }

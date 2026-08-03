@@ -19,7 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 /* eslint-disable react-refresh/only-export-components */
 import { useState, useMemo } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { Music } from 'lucide-react'
+import { Film, Music } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { getUserAvatarFallback, getUserAvatarStyle } from '@/lib/avatar'
 import { formatTimestampToDate } from '@/lib/format'
@@ -35,6 +35,7 @@ import {
   type AudioClip,
 } from '../dialogs/audio-preview-dialog'
 import { FailReasonDialog } from '../dialogs/fail-reason-dialog'
+import { VideoPreviewDialog } from '../dialogs/video-preview-dialog'
 import { useUsageLogsContext } from '../usage-logs-provider'
 import {
   createDurationColumn,
@@ -84,6 +85,38 @@ function AudioPreviewCell({ log }: { log: TaskLog }) {
         open={open}
         onOpenChange={setOpen}
         clips={clips as AudioClip[]}
+      />
+    </>
+  )
+}
+
+function VideoPreviewCell({
+  url,
+  originalUrl,
+}: {
+  url: string
+  originalUrl?: string
+}) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+
+  return (
+    <>
+      <button
+        type='button'
+        className='group flex items-center gap-1 text-left text-xs'
+        onClick={() => setOpen(true)}
+      >
+        <Film className='text-muted-foreground size-3' />
+        <span className='text-foreground leading-snug group-hover:underline'>
+          {t('Click to preview video')}
+        </span>
+      </button>
+      <VideoPreviewDialog
+        open={open}
+        onOpenChange={setOpen}
+        url={url}
+        originalUrl={originalUrl}
       />
     </>
   )
@@ -278,8 +311,7 @@ export function useTaskLogsColumns(isAdmin: boolean): ColumnDef<TaskLog>[] {
                   url
                 )
                 // URL path contains 3D model name
-                const is3dPath =
-                  /seed3d|hitem3d|hyper3d|3d-gen/i.test(url)
+                const is3dPath = /seed3d|hitem3d|hyper3d|3d-gen/i.test(url)
                 return { url, type: is3dExt || is3dPath ? '3d' : 'video' }
               }
             }
@@ -292,12 +324,9 @@ export function useTaskLogsColumns(isAdmin: boolean): ColumnDef<TaskLog>[] {
                   typeof c === 'object' &&
                   (c.video_url || c.model_url || c.file_url)
               )
-              if (item?.video_url)
-                return { url: item.video_url, type: 'video' }
-              if (item?.model_url)
-                return { url: item.model_url, type: '3d' }
-              if (item?.file_url)
-                return { url: item.file_url, type: '3d' }
+              if (item?.video_url) return { url: item.video_url, type: 'video' }
+              if (item?.model_url) return { url: item.model_url, type: '3d' }
+              if (item?.file_url) return { url: item.file_url, type: '3d' }
             }
           } catch {
             // ignore parse errors
@@ -311,24 +340,26 @@ export function useTaskLogsColumns(isAdmin: boolean): ColumnDef<TaskLog>[] {
             ? { url: failReason, type: 'video' as const }
             : result
           if (resultUrl) {
-            // 3D models use direct URL (signed TOS link), videos use proxy
-            const href =
-              resultUrl.type === '3d'
-                ? resultUrl.url
-                : `/v1/videos/${log.task_id}/content`
-            const label =
-              resultUrl.type === '3d'
-                ? t('Click to download 3D model')
-                : t('Click to preview video')
+            // 3D models download via the direct signed URL (no in-browser
+            // viewer yet); videos play in-page through the proxied content
+            // endpoint, aligned with the classic ContentModal.
+            if (resultUrl.type === '3d') {
+              return (
+                <a
+                  href={resultUrl.url}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  className='text-foreground text-xs hover:underline'
+                >
+                  {t('Click to download 3D model')}
+                </a>
+              )
+            }
             return (
-              <a
-                href={href}
-                target='_blank'
-                rel='noopener noreferrer'
-                className='text-foreground text-xs hover:underline'
-              >
-                {label}
-              </a>
+              <VideoPreviewCell
+                url={`/v1/videos/${log.task_id}/content`}
+                originalUrl={resultUrl.url}
+              />
             )
           }
         }

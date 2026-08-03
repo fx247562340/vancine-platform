@@ -4796,6 +4796,8 @@
     "Image size must be less than 10MB": "Размер изображения должен быть меньше 10 МБ",
     "Upload failed": "Ошибка загрузки",
     "Uploading": "Загрузка",
-    "Remove image": "Удалить изображение"
+    "Remove image": "Удалить изображение",
+    "Video Preview": "Предпросмотр видео",
+    "Video failed to load": "Не удалось загрузить видео"
   }
 }
