@@ -25,6 +25,14 @@ export {
   buildLinuxDOOAuthUrl,
 } from '@/lib/oauth'
 
+/**
+ * Build the backend entry URL for the server-driven Google OAuth flow.
+ * The server owns the CSRF state and performs the redirect to Google.
+ */
+export function buildGoogleOAuthLoginUrl(redirectPath = '/dashboard'): string {
+  return `/api/oauth/google/login?redirect=${encodeURIComponent(redirectPath)}`
+}
+
 // ============================================================================
 // OAuth Providers Utilities
 // ============================================================================
@@ -45,6 +53,14 @@ export function getAvailableOAuthProviders(
       type: 'github',
       enabled: true,
       clientId: status.github_client_id,
+    })
+  }
+
+  if (status.google_oauth) {
+    providers.push({
+      name: 'Google',
+      type: 'google',
+      enabled: true,
     })
   }
 
@@ -94,6 +110,7 @@ export function hasOAuthProviders(status: SystemStatus | null): boolean {
   if (!status) return false
   return !!(
     status.github_oauth ||
+    status.google_oauth ||
     status.discord_oauth ||
     status.oidc_enabled ||
     status.linuxdo_oauth ||

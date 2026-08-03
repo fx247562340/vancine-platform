@@ -33,6 +33,7 @@ type User struct {
 	GitHubId         string         `json:"github_id" gorm:"column:github_id;index"`
 	DiscordId        string         `json:"discord_id" gorm:"column:discord_id;index"`
 	OidcId           string         `json:"oidc_id" gorm:"column:oidc_id;index"`
+	GoogleSub        string         `json:"google_sub" gorm:"column:google_sub;index"`
 	WeChatId         string         `json:"wechat_id" gorm:"column:wechat_id;index"`
 	TelegramId       string         `json:"telegram_id" gorm:"column:telegram_id;index"`
 	VerificationCode string         `json:"verification_code" gorm:"-:all"`                         // this field is only for Email verification, don't save it to database!
@@ -699,6 +700,21 @@ func IsDiscordIdAlreadyTaken(discordId string) bool {
 
 func IsOidcIdAlreadyTaken(oidcId string) bool {
 	return DB.Where("oidc_id = ?", oidcId).Find(&User{}).RowsAffected == 1
+}
+
+func IsGoogleSubAlreadyTaken(googleSub string) bool {
+	if googleSub == "" {
+		return false
+	}
+	return DB.Unscoped().Where("google_sub = ?", googleSub).Find(&User{}).RowsAffected == 1
+}
+
+func (user *User) FillUserByGoogleSub() error {
+	if user.GoogleSub == "" {
+		return errors.New("google sub 为空！")
+	}
+	DB.Where(User{GoogleSub: user.GoogleSub}).First(user)
+	return nil
 }
 
 func IsTelegramIdAlreadyTaken(telegramId string) bool {

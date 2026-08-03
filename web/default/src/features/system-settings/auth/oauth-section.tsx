@@ -21,6 +21,7 @@ import * as z from 'zod'
 import axios from 'axios'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import GoogleColor from '@lobehub/icons/es/Google/components/Color'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import {
@@ -56,6 +57,10 @@ const oauthSchema = z.object({
   GitHubOAuthEnabled: z.boolean(),
   GitHubClientId: z.string(),
   GitHubClientSecret: z.string(),
+  GoogleOAuthEnabled: z.boolean(),
+  GoogleClientId: z.string(),
+  GoogleClientSecret: z.string(),
+  GoogleRedirectUri: z.string(),
   discord: z.object({
     enabled: z.boolean(),
     client_id: z.string(),
@@ -89,6 +94,10 @@ type FlatOAuthDefaults = {
   GitHubOAuthEnabled: boolean
   GitHubClientId: string
   GitHubClientSecret: string
+  GoogleOAuthEnabled: boolean
+  GoogleClientId: string
+  GoogleClientSecret: string
+  GoogleRedirectUri: string
   'discord.enabled': boolean
   'discord.client_id': string
   'discord.client_secret': string
@@ -119,6 +128,10 @@ const buildFormDefaults = (defaults: FlatOAuthDefaults): OAuthFormValues => ({
   GitHubOAuthEnabled: defaults.GitHubOAuthEnabled,
   GitHubClientId: defaults.GitHubClientId ?? '',
   GitHubClientSecret: defaults.GitHubClientSecret ?? '',
+  GoogleOAuthEnabled: defaults.GoogleOAuthEnabled,
+  GoogleClientId: defaults.GoogleClientId ?? '',
+  GoogleClientSecret: defaults.GoogleClientSecret ?? '',
+  GoogleRedirectUri: defaults.GoogleRedirectUri ?? '',
   discord: {
     enabled: defaults['discord.enabled'],
     client_id: defaults['discord.client_id'] ?? '',
@@ -150,6 +163,10 @@ const normalizeFormValues = (values: OAuthFormValues): FlatOAuthDefaults => ({
   GitHubOAuthEnabled: values.GitHubOAuthEnabled,
   GitHubClientId: values.GitHubClientId,
   GitHubClientSecret: values.GitHubClientSecret,
+  GoogleOAuthEnabled: values.GoogleOAuthEnabled,
+  GoogleClientId: values.GoogleClientId,
+  GoogleClientSecret: values.GoogleClientSecret,
+  GoogleRedirectUri: values.GoogleRedirectUri,
   'discord.enabled': values.discord.enabled,
   'discord.client_id': values.discord.client_id,
   'discord.client_secret': values.discord.client_secret,
@@ -294,8 +311,9 @@ export function OAuthSection(props: OAuthSectionProps) {
             <FormDirtyIndicator isDirty={form.formState.isDirty} />
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className='grid w-full grid-cols-6'>
+              <TabsList className='grid w-full grid-cols-7'>
                 <TabsTrigger value='github'>{t('GitHub')}</TabsTrigger>
+                <TabsTrigger value='google'>{t('Google')}</TabsTrigger>
                 <TabsTrigger value='discord'>{t('Discord')}</TabsTrigger>
                 <TabsTrigger value='oidc'>{t('OIDC')}</TabsTrigger>
                 <TabsTrigger value='telegram'>{t('Telegram')}</TabsTrigger>
@@ -373,6 +391,126 @@ export function OAuthSection(props: OAuthSectionProps) {
                     </FormItem>
                   )}
                 />
+              </TabsContent>
+
+              <TabsContent value='google' className={oauthTabContentClassName}>
+                <FormField
+                  control={form.control}
+                  name='GoogleOAuthEnabled'
+                  render={({ field }) => (
+                    <SettingsSwitchItem>
+                      <SettingsSwitchContent>
+                        <FormLabel>{t('Enable Google OAuth')}</FormLabel>
+                        <FormDescription>
+                          {t('Allow users to sign in with Google')}
+                        </FormDescription>
+                      </SettingsSwitchContent>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </SettingsSwitchItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name='GoogleClientId'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('Client ID')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder={t('Your Google OAuth Client ID')}
+                          autoComplete='off'
+                          value={field.value ?? ''}
+                          onChange={(event) =>
+                            field.onChange(event.target.value)
+                          }
+                          name={field.name}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name='GoogleClientSecret'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('Client Secret')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          type='password'
+                          placeholder={t('Your Google OAuth Client Secret')}
+                          autoComplete='new-password'
+                          value={field.value ?? ''}
+                          onChange={(event) =>
+                            field.onChange(event.target.value)
+                          }
+                          name={field.name}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name='GoogleRedirectUri'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('Redirect URI (Optional)')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder={t(
+                            'https://your-domain.com/api/oauth/google/callback'
+                          )}
+                          autoComplete='off'
+                          value={field.value ?? ''}
+                          onChange={(event) =>
+                            field.onChange(event.target.value)
+                          }
+                          name={field.name}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          'Leave empty to use Server Address + /api/oauth/google/callback. Must match an authorized redirect URI in the Google Cloud Console.'
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormItem className='lg:col-span-2'>
+                  <FormLabel>
+                    {t('Sign in with Google button preview')}
+                  </FormLabel>
+                  <div className='flex items-center gap-3'>
+                    <span className='bg-muted inline-flex h-10 items-center justify-center gap-2 rounded-lg border px-4 text-sm font-medium'>
+                      <GoogleColor size={18} />
+                      {t('Continue with Google')}
+                    </span>
+                    <p className='text-muted-foreground text-xs'>
+                      {t(
+                        'Users see this button on the sign-in and sign-up pages.'
+                      )}
+                    </p>
+                  </div>
+                </FormItem>
               </TabsContent>
 
               <TabsContent value='discord' className={oauthTabContentClassName}>

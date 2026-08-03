@@ -632,6 +632,7 @@ const SAME_ENGLISH_ALLOWLIST = new Set([
   'FastGPT',
   'Gemini',
   'GitHub',
+  'Google',
   'Grok',
   'ID',
   'IP',

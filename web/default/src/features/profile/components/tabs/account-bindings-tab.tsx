@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useEffect, useMemo, useState, useCallback } from 'react'
+import GoogleColor from '@lobehub/icons/es/Google/components/Color'
 import { Mail, Shield, Link2, Unlink } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { SiGithub, SiWechat, SiLinux } from 'react-icons/si'
@@ -186,6 +187,24 @@ export function AccountBindingsTab({
           if (status?.github_client_id) {
             handleGitHubOAuth(status.github_client_id)
           }
+        },
+      },
+      {
+        id: 'google',
+        label: t('Google'),
+        icon: GoogleColor,
+        value: (profile as unknown as Record<string, unknown>).google_sub as
+          | string
+          | undefined,
+        isBound: Boolean(
+          (profile as unknown as Record<string, unknown>).google_sub
+        ),
+        isEnabled: status?.google_oauth || false,
+        onBind: () => {
+          // Server-driven Google OAuth: when logged in, the callback binds
+          // the Google account to the current user and redirects back here.
+          const back = window.location.pathname + window.location.search
+          window.location.href = `/api/oauth/google/login?redirect=${encodeURIComponent(back)}`
         },
       },
       {
