@@ -122,14 +122,17 @@ export function Playground() {
   }, [groupsData, setGroups, config.group, updateConfig])
 
   const handleSendMessage = (text: string, images?: string[]) => {
-    const userMessage = createUserMessage(text)
+    const validImages = (images || []).filter((url) => url && url.trim() !== '')
+    // Persist images into the message content so the chat bubble renders
+    // them; the same URLs also flow to the request payload below.
+    const userMessage = createUserMessage(text, validImages)
     const assistantMessage = createLoadingAssistantMessage()
 
     const newMessages = [...messages, userMessage, assistantMessage]
     updateMessages(newMessages)
 
-    // Store images for task requests
-    setPendingImages(images || [])
+    // Store images for image-to-image / video / 3D request payloads
+    setPendingImages(validImages)
     // Send chat request
     sendChat(newMessages)
   }

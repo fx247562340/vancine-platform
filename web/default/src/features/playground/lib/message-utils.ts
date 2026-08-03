@@ -29,7 +29,9 @@ import { getContentImages, getContentText } from './message-content.ts'
 /**
  * Create a new message version
  */
-export function createMessageVersion(content: string): MessageVersion {
+export function createMessageVersion(
+  content: string | ContentPart[]
+): MessageVersion {
   return {
     id: nanoid(),
     content,
@@ -65,13 +67,18 @@ export function updateCurrentVersionContent(
 }
 
 /**
- * Create a user message
+ * Create a user message. With image URLs the content becomes structured
+ * parts (text + image_url) so pasted/uploaded images render inside the
+ * user bubble; without them the content stays a plain string.
  */
-export function createUserMessage(content: string): Message {
+export function createUserMessage(
+  content: string,
+  imageUrls?: string[]
+): Message {
   return {
     key: nanoid(),
     from: MESSAGE_ROLES.USER,
-    versions: [createMessageVersion(content)],
+    versions: [createMessageVersion(buildMessageContent(content, imageUrls))],
   }
 }
 
@@ -104,16 +111,16 @@ export function buildMessageContent(
     return text
   }
 
-  const parts: ContentPart[] = [
-    {
-      type: 'text',
-      text: text || '',
-    },
+  const parts: ContentPart[] = []
+  if (text) {
+    parts.push({ type: 'text', text })
+  }
+  parts.push(
     ...validImages.map((url) => ({
       type: 'image_url' as const,
       image_url: { url: url.trim() },
-    })),
-  ]
+    }))
+  )
 
   return parts
 }

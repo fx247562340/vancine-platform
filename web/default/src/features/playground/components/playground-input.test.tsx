@@ -136,6 +136,29 @@ describe('PlaygroundInput paste-to-upload', () => {
     )
   })
 
+  it('clears the attachment previews after sending', async () => {
+    uploadMock.mockResolvedValue('https://cdn.example/pasted.png')
+    const { textarea, onSubmit } = renderInput()
+
+    fireEvent.paste(
+      textarea,
+      imagePasteEvent(new File(['x'], 'p.png', { type: 'image/png' }))
+    )
+    await screen.findByAltText('p.png')
+    await waitFor(() => expect(screen.queryByText('Uploading')).toBeNull())
+
+    fireEvent.change(textarea, { target: { value: 'with image' } })
+    fireEvent.click(screen.getByRole('button', { name: /Send/ }))
+
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith('with image', [
+        'https://cdn.example/pasted.png',
+      ])
+    )
+    // thumbnails are gone once the message is on its way
+    expect(screen.queryByAltText('p.png')).toBeNull()
+  })
+
   it('removes the attachment when the delete button is clicked', async () => {
     uploadMock.mockResolvedValue('https://cdn.example/pasted.png')
     const { textarea, onSubmit } = renderInput()
