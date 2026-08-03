@@ -1,3 +1,11 @@
+## 1.0.23 - 2026-08-03
+
+### 性能
+
+- Default 首屏优化：i18n 各语言包懒加载（resource-loader + 7 个独立 locale chunk），入口从 ~3.14MB 降到 ~745KB（-76%）；首屏仅加载当前语言，切语言按需加载对应 chunk。
+- 修复 Default 暗色主题首帧白屏（FOUC）：index.html 注入首帧前同步内联脚本，按 cookie `vite-ui-theme` 解析为 `dark`/`light` 并打 class，匹配 ThemeProvider 解析顺序；移动端 chrome 颜色同步。
+- i18n 资源加载策略对齐 Classic：仅加载当前语言，避免 6 个无用语言包拖慢首屏。
+
 # Changelog
 
 All notable Vancine platform release and operations changes are tracked here.
