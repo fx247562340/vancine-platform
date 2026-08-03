@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import type { ReactNode } from 'react'
+import GoogleColor from '@lobehub/icons/es/Google/components/Color'
 import { useTranslation } from 'react-i18next'
 import {
   IconDiscord,
@@ -73,6 +74,7 @@ export function OAuthProviders({
     githubButtonText,
     githubButtonDisabled,
     handleGitHubLogin,
+    handleGoogleLogin,
     handleDiscordLogin,
     handleOIDCLogin,
     handleLinuxDOLogin,
@@ -98,6 +100,15 @@ export function OAuthProviders({
       onClick: handleGitHubLogin,
       icon: <IconGithub className='h-4 w-4' />,
       disabled: githubButtonDisabled,
+    })
+  }
+
+  if (status?.google_oauth) {
+    providerButtons.push({
+      key: 'google',
+      label: t('Continue with Google'),
+      onClick: handleGoogleLogin,
+      icon: <GoogleColor size={16} />,
     })
   }
 

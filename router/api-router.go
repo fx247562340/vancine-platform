@@ -61,7 +61,13 @@ func SetApiRouter(router *gin.Engine) {
 		apiRouter.POST("/oauth/wechat/bind", middleware.CriticalRateLimit(), controller.WeChatBind)
 		apiRouter.GET("/oauth/telegram/login", middleware.CriticalRateLimit(), controller.TelegramLogin)
 		apiRouter.GET("/oauth/telegram/bind", middleware.CriticalRateLimit(), controller.TelegramBind)
-		// Standard OAuth providers (GitHub, Discord, OIDC, LinuxDO) - unified route
+		// Google OAuth: /oauth/google/login starts the flow (302 to Google);
+		// the JSON callback is served by the unified /oauth/:provider route
+		// below (provider "google"), and /oauth/google/callback is a legacy
+		// compatibility shim forwarding to the SPA callback route.
+		apiRouter.GET("/oauth/google/login", middleware.CriticalRateLimit(), controller.GoogleLogin)
+		apiRouter.GET("/oauth/google/callback", middleware.CriticalRateLimit(), controller.GoogleCallback)
+		// Standard OAuth providers (GitHub, Google, Discord, OIDC, LinuxDO) - unified route
 		apiRouter.GET("/oauth/:provider", middleware.CriticalRateLimit(), controller.HandleOAuth)
 		apiRouter.GET("/ratio_config", middleware.CriticalRateLimit(), controller.GetRatioConfig)
 
