@@ -275,6 +275,7 @@ func migrateDB() error {
 		&Log{},
 		&Midjourney{},
 		&TopUp{},
+	&PayPalSettlementEvent{},
 		&QuotaData{},
 		&Task{},
 		&Model{},

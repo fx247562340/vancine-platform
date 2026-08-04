@@ -22,6 +22,7 @@ import {
   DEFAULT_PAYMENT_TYPE,
   DEFAULT_MIN_TOPUP,
 } from '../constants'
+import { isSafeHttpPaymentUrl } from './validate-payment-url'
 import type { PaymentMethod, PresetAmount, TopupInfo } from '../types'
 
 // ============================================================================
@@ -93,6 +94,56 @@ export function isWaffoPancakePayment(paymentType: string): boolean {
   return paymentType === PAYMENT_TYPES.WAFFO_PANCAKE
 }
 
+/**
+ * Check if payment method is PayPal.
+ *
+ * Exact match only (no prefix/substring matching), keyed off the shared
+ * `PAYMENT_TYPES.PAYPAL` constant so the type check and the `payment_method`
+ * sent to the backend can never drift apart. PayPal uses dedicated
+ * `/api/user/paypal/*` endpoints and a current-window redirect to `pay_link`,
+ * so it must be dispatched separately from Stripe and the generic epay form.
+ */
+export function isPayPalPayment(paymentType: string): boolean {
+  return paymentType === PAYMENT_TYPES.PAYPAL
+}
+
+/**
+ * Result of resolving a PayPal checkout redirect from a pay response.
+ */
+export type PayPalRedirect = { ok: true; url: string } | { ok: false }
+
+/**
+ * Resolve the PayPal checkout redirect target from a pay response.
+ *
+ * Returns `{ ok: true, url }` ONLY when the business result is successful AND
+ * `data.pay_link` is a present, safe http(s) URL (via `isSafeHttpPaymentUrl`).
+ * In every other case (business failure, missing/non-string pay_link, or a
+ * javascript:/data:/relative URL) it returns `{ ok: false }`, and the caller
+ * must NOT navigate nor record `checkout_started`.
+ */
+export function resolvePayPalRedirect(response: {
+  success?: boolean
+  message?: string
+  data?: unknown
+}): PayPalRedirect {
+  const success = response.success === true || response.message === 'success'
+  if (!success) {
+    return { ok: false }
+  }
+  const data = response.data
+  if (!data || typeof data !== 'object') {
+    return { ok: false }
+  }
+  const payLink = (data as Record<string, unknown>).pay_link
+  if (typeof payLink !== 'string' || !payLink) {
+    return { ok: false }
+  }
+  if (!isSafeHttpPaymentUrl(payLink)) {
+    return { ok: false }
+  }
+  return { ok: true, url: payLink }
+}
+
 export interface PaymentProcessors {
   regular: (topupAmount: number, paymentType: string) => Promise<boolean>
   waffo: (topupAmount: number, payMethodIndex: number) => Promise<boolean>
@@ -136,6 +187,10 @@ export function getDefaultPaymentType(topupInfo: TopupInfo | null): string {
     return PAYMENT_TYPES.STRIPE
   }
 
+  if (topupInfo.enable_paypal_topup) {
+    return PAYMENT_TYPES.PAYPAL
+  }
+
   if (topupInfo.enable_waffo_topup) {
     return PAYMENT_TYPES.WAFFO
   }
@@ -161,6 +216,10 @@ export function getMinTopupAmount(topupInfo: TopupInfo | null): number {
 
   if (topupInfo.enable_stripe_topup) {
     return topupInfo.stripe_min_topup
+  }
+
+  if (topupInfo.enable_paypal_topup) {
+    return topupInfo.paypal_min_topup || DEFAULT_MIN_TOPUP
   }
 
   if (topupInfo.enable_waffo_topup) {

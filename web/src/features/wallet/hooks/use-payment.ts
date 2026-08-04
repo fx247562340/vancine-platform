@@ -25,14 +25,18 @@ import {
   calculateStripeAmount,
   calculateWaffoAmount,
   calculateWaffoPancakeAmount,
+  calculatePayPalAmount,
   requestPayment,
   requestStripePayment,
+  requestPayPalPayment,
   isApiSuccess,
 } from '../api'
 import {
   isStripePayment,
   isWaffoPayment,
   isWaffoPancakePayment,
+  isPayPalPayment,
+  resolvePayPalRedirect,
   submitPaymentForm,
 } from '../lib'
 import type { AmountRequest, AmountResponse } from '../types'
@@ -48,6 +52,7 @@ export interface PaymentAmountCalculators {
   stripe: AmountCalculator
   waffo: AmountCalculator
   waffoPancake: AmountCalculator
+  paypal: AmountCalculator
 }
 
 const defaultPaymentAmountCalculators: PaymentAmountCalculators = {
@@ -55,6 +60,7 @@ const defaultPaymentAmountCalculators: PaymentAmountCalculators = {
   stripe: calculateStripeAmount,
   waffo: calculateWaffoAmount,
   waffoPancake: calculateWaffoPancakeAmount,
+  paypal: calculatePayPalAmount,
 }
 
 export async function requestPaymentAmount(
@@ -69,6 +75,8 @@ export async function requestPaymentAmount(
     calculator = calculators.waffo
   } else if (isWaffoPancakePayment(paymentType)) {
     calculator = calculators.waffoPancake
+  } else if (isPayPalPayment(paymentType)) {
+    calculator = calculators.paypal
   }
 
   const response = await calculator({ amount: topupAmount })
@@ -112,7 +120,32 @@ export function usePayment() {
         setProcessing(true)
 
         const isStripe = isStripePayment(paymentType)
+        const isPayPal = isPayPalPayment(paymentType)
         const amount = Math.floor(topupAmount)
+
+        // PayPal: dedicated /api/user/paypal/* endpoints, then a current-window
+        // redirect to data.pay_link. Never uses window.open or the generic epay
+        // form submission.
+        if (isPayPal) {
+          const response = await requestPayPalPayment({
+            amount,
+            payment_method: 'paypal',
+          })
+          if (!isApiSuccess(response)) {
+            toast.error(
+              response.message || i18next.t('Payment request failed')
+            )
+            return false
+          }
+          const redirect = resolvePayPalRedirect(response)
+          if (!redirect.ok) {
+            toast.error(i18next.t('Invalid payment redirect URL'))
+            return false
+          }
+          window.location.href = redirect.url
+          toast.success(i18next.t('Redirecting to payment page...'))
+          return true
+        }
 
         const response = isStripe
           ? await requestStripePayment({

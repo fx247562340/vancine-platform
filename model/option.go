@@ -116,6 +116,18 @@ func InitOptionMap() {
 	common.OptionMap["WaffoPancakeMinTopUp"] = strconv.Itoa(setting.WaffoPancakeMinTopUp)
 	common.OptionMap["WaffoPancakeStoreID"] = setting.WaffoPancakeStoreID
 	common.OptionMap["WaffoPancakeProductID"] = setting.WaffoPancakeProductID
+	common.OptionMap["PayPalEnabled"] = strconv.FormatBool(setting.PayPalEnabled)
+	common.OptionMap["PayPalClientId"] = setting.PayPalClientId
+	common.OptionMap["PayPalClientSecret"] = setting.PayPalClientSecret
+	common.OptionMap["PayPalWebhookId"] = setting.PayPalWebhookId
+	common.OptionMap["PayPalSandboxClientId"] = setting.PayPalSandboxClientId
+	common.OptionMap["PayPalSandboxClientSecret"] = setting.PayPalSandboxClientSecret
+	common.OptionMap["PayPalSandboxWebhookId"] = setting.PayPalSandboxWebhookId
+	common.OptionMap["PayPalTestMode"] = strconv.FormatBool(setting.PayPalTestMode)
+	common.OptionMap["PayPalMinTopUp"] = strconv.Itoa(setting.PayPalMinTopUp)
+	common.OptionMap["PayPalUnitPrice"] = strconv.FormatFloat(setting.PayPalUnitPrice, 'f', -1, 64)
+	common.OptionMap["PayPalCurrency"] = setting.PayPalCurrency
+	common.OptionMap["PayPalProducts"] = setting.PayPalProducts
 	common.OptionMap["TopupGroupRatio"] = common.TopupGroupRatio2JSONString()
 	common.OptionMap["Chats"] = setting.Chats2JsonString()
 	common.OptionMap["AutoGroups"] = setting.AutoGroups2JsonString()
@@ -495,6 +507,30 @@ func updateOptionMap(key string, value string) (err error) {
 		setting.WaffoPancakeUnitPrice, _ = strconv.ParseFloat(value, 64)
 	case "WaffoPancakeMinTopUp":
 		setting.WaffoPancakeMinTopUp, _ = strconv.Atoi(value)
+	case "PayPalEnabled":
+		setting.PayPalEnabled = value == "true"
+	case "PayPalClientId":
+		setting.PayPalClientId = value
+	case "PayPalClientSecret":
+		setting.PayPalClientSecret = value
+	case "PayPalWebhookId":
+		setting.PayPalWebhookId = value
+	case "PayPalSandboxClientId":
+		setting.PayPalSandboxClientId = value
+	case "PayPalSandboxClientSecret":
+		setting.PayPalSandboxClientSecret = value
+	case "PayPalSandboxWebhookId":
+		setting.PayPalSandboxWebhookId = value
+	case "PayPalTestMode":
+		setting.PayPalTestMode = value == "true"
+	case "PayPalMinTopUp":
+		setting.PayPalMinTopUp, _ = strconv.Atoi(value)
+	case "PayPalUnitPrice":
+		setting.PayPalUnitPrice, _ = strconv.ParseFloat(value, 64)
+	case "PayPalCurrency":
+		setting.PayPalCurrency = value
+	case "PayPalProducts":
+		setting.PayPalProducts = value
 	case "TopupGroupRatio":
 		err = common.UpdateTopupGroupRatioByJSONString(value)
 	case "GitHubClientId":

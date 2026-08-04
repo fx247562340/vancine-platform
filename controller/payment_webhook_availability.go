@@ -73,6 +73,23 @@ func isWaffoWebhookEnabled() bool {
 	return isWaffoTopUpEnabled()
 }
 
+func isPayPalTopUpEnabled() bool {
+	if !isPaymentComplianceConfirmed() {
+		return false
+	}
+	return setting.PayPalEnabled &&
+		strings.TrimSpace(setting.GetPayPalClientId()) != "" &&
+		strings.TrimSpace(setting.GetPayPalClientSecret()) != ""
+}
+
+func isPayPalWebhookConfigured() bool {
+	return strings.TrimSpace(setting.GetPayPalWebhookId()) != ""
+}
+
+func isPayPalWebhookEnabled() bool {
+	return isPayPalTopUpEnabled() && isPayPalWebhookConfigured()
+}
+
 func isWaffoPancakeTopUpEnabled() bool {
 	if !isPaymentComplianceConfirmed() {
 		return false

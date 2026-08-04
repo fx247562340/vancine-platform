@@ -3,6 +3,8 @@ package model
 import (
 	"errors"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/logger"
@@ -19,6 +21,8 @@ type TopUp struct {
 	TradeNo         string  `json:"trade_no" gorm:"unique;type:varchar(255);index"`
 	PaymentMethod   string  `json:"payment_method" gorm:"type:varchar(50)"`
 	PaymentProvider string  `json:"payment_provider" gorm:"type:varchar(50);default:''"`
+	PaymentId       string  `json:"payment_id" gorm:"type:varchar(255);default:'';index"`
+	TransactionId   string  `json:"transaction_id" gorm:"type:varchar(255);default:'';uniqueIndex"`
 	CreateTime      int64   `json:"create_time"`
 	CompleteTime    int64   `json:"complete_time"`
 	Status          string  `json:"status"`
@@ -27,6 +31,7 @@ type TopUp struct {
 const (
 	PaymentMethodStripe       = "stripe"
 	PaymentMethodCreem        = "creem"
+	PaymentMethodPayPal       = "paypal"
 	PaymentMethodWaffo        = "waffo"
 	PaymentMethodWaffoPancake = "waffo_pancake"
 	PaymentMethodBalance      = "balance"
@@ -36,6 +41,7 @@ const (
 	PaymentProviderEpay         = "epay"
 	PaymentProviderStripe       = "stripe"
 	PaymentProviderCreem        = "creem"
+	PaymentProviderPayPal       = "paypal"
 	PaymentProviderWaffo        = "waffo"
 	PaymentProviderWaffoPancake = "waffo_pancake"
 	PaymentProviderBalance      = "balance"
@@ -77,6 +83,64 @@ func GetTopUpByTradeNo(tradeNo string) *TopUp {
 		return nil
 	}
 	return topUp
+}
+
+func GetTopUpByTransactionId(transactionId string) *TopUp {
+	var topUp *TopUp
+	err := DB.Where("transaction_id = ?", transactionId).First(&topUp).Error
+	if err != nil {
+		return nil
+	}
+	return topUp
+}
+
+// FindTopUpByPaymentID looks up a top-up by its stored PayPal Order ID. When
+// expectedProvider is non-empty the lookup is provider-scoped so a stray Order
+// ID from another payment method can never settle a PayPal obligation.
+func FindTopUpByPaymentID(paymentID, expectedProvider string) (*TopUp, error) {
+	if strings.TrimSpace(paymentID) == "" {
+		return nil, ErrTopUpNotFound
+	}
+	var topUp TopUp
+	query := DB.Where("payment_id = ?", paymentID)
+	if expectedProvider != "" {
+		query = query.Where("payment_provider = ?", expectedProvider)
+	}
+	if err := query.First(&topUp).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrTopUpNotFound
+		}
+		return nil, err
+	}
+	return &topUp, nil
+}
+
+// RefundPayPalTopUp deducts quota and marks the order as refunded in a single transaction.
+// A duplicate full refund on an already-refunded order is a successful no-op: it returns
+// nil without deducting quota or logging again.
+func RefundPayPalTopUp(tradeNo string, quota int) error {
+	return DB.Transaction(func(tx *gorm.DB) error {
+		var topUp TopUp
+		if err := lockForUpdate(tx).Where("trade_no = ?", tradeNo).First(&topUp).Error; err != nil {
+			return errors.New("充值订单不存在")
+		}
+
+		if topUp.Status == common.TopUpStatusRefunded {
+			return nil
+		}
+
+		if topUp.Status != common.TopUpStatusSuccess {
+			return errors.New("订单状态不是 success，无法退款")
+		}
+
+		err := tx.Model(&User{}).Where("id = ?", topUp.UserId).Update("quota", gorm.Expr("quota - ?", quota)).Error
+		if err != nil {
+			return err
+		}
+
+		topUp.Status = common.TopUpStatusRefunded
+		return tx.Save(&topUp).Error
+	})
 }
 
 func UpdatePendingTopUpStatus(tradeNo string, expectedPaymentProvider string, targetStatus string) error {
@@ -389,6 +453,97 @@ func ManualCompleteTopUp(tradeNo string, callerIp string) error {
 	RecordTopupLog(userId, fmt.Sprintf("管理员补单成功，充值金额: %v，支付金额：%f", logger.FormatQuota(quotaToAdd), payMoney), callerIp, paymentMethod, "admin")
 	return nil
 }
+func RechargePayPal(referenceId string, customerEmail string, customerName string, callerIp string, transactionId string) (err error) {
+	if referenceId == "" {
+		return errors.New("未提供支付单号")
+	}
+
+	var quota int64
+	var credited bool
+	topUp := &TopUp{}
+
+	err = DB.Transaction(func(tx *gorm.DB) error {
+		if err := lockForUpdate(tx).Where("trade_no = ?", referenceId).First(topUp).Error; err != nil {
+			return errors.New("充值订单不存在")
+		}
+
+		if topUp.PaymentProvider != PaymentProviderPayPal {
+			return ErrPaymentMethodMismatch
+		}
+
+		// Idempotent: an already-success order with the same non-empty Capture ID
+		// returns nil without crediting or logging again.
+		if topUp.Status == common.TopUpStatusSuccess {
+			if transactionId != "" && topUp.TransactionId == transactionId {
+				return nil
+			}
+			return ErrTopUpStatusInvalid
+		}
+
+		if topUp.Status != common.TopUpStatusPending {
+			return ErrTopUpStatusInvalid
+		}
+
+		if strings.TrimSpace(transactionId) == "" {
+			return ErrTopUpStatusInvalid
+		}
+		var dupCount int64
+		dupQuery := tx.Model(&TopUp{}).Where("transaction_id = ?", transactionId)
+		if topUp.Id > 0 {
+			dupQuery = dupQuery.Where("id <> ?", topUp.Id)
+		}
+		if err := dupQuery.Count(&dupCount).Error; err != nil {
+			return err
+		}
+		if dupCount > 0 {
+			return ErrTopUpStatusInvalid
+		}
+
+		topUp.CompleteTime = common.GetTimestamp()
+		topUp.Status = common.TopUpStatusSuccess
+		topUp.TransactionId = transactionId
+		if err := tx.Save(topUp).Error; err != nil {
+			return err
+		}
+
+		quota = int64(topUp.Money * common.QuotaPerUnit)
+
+		updateFields := map[string]interface{}{
+			"quota": gorm.Expr("quota + ?", quota),
+		}
+
+		if customerEmail != "" {
+			var user User
+			err = tx.Where("id = ?", topUp.UserId).First(&user).Error
+			if err != nil {
+				return err
+			}
+			if user.Email == "" {
+				updateFields["email"] = customerEmail
+			}
+		}
+
+		err = tx.Model(&User{}).Where("id = ?", topUp.UserId).Updates(updateFields).Error
+		if err != nil {
+			return err
+		}
+
+		credited = true
+		return nil
+	})
+
+	if err != nil {
+		common.SysError("paypal topup failed: " + err.Error())
+		return errors.New("充值失败，请稍后重试")
+	}
+
+	if credited {
+		RecordTopupLog(topUp.UserId, fmt.Sprintf("使用PayPal充值成功，充值额度: %v，支付金额：%.2f", quota, topUp.Money), callerIp, topUp.PaymentMethod, PaymentMethodPayPal)
+	}
+
+	return nil
+}
+
 func RechargeCreem(referenceId string, customerEmail string, customerName string, callerIp string) (err error) {
 	if referenceId == "" {
 		return errors.New("未提供支付单号")
@@ -525,6 +680,32 @@ func RechargeWaffo(tradeNo string, callerIp string) (err error) {
 	}
 
 	return nil
+}
+
+// CleanExpiredPendingTopUps marks pending orders older than the given duration as expired.
+// Returns the number of orders expired.
+func CleanExpiredPendingTopUps(maxAge time.Duration) int64 {
+	cutoff := time.Now().Add(-maxAge).Unix()
+	result := DB.Model(&TopUp{}).
+		Where("status = ? AND create_time < ?", common.TopUpStatusPending, cutoff).
+		Update("status", common.TopUpStatusExpired)
+	if result.Error != nil {
+		common.SysLog("failed to expire pending topups: " + result.Error.Error())
+		return 0
+	}
+	return result.RowsAffected
+}
+
+// StartPendingTopUpCleaner runs periodically to expire stale pending orders.
+// Orders older than maxAge are marked as "expired".
+func StartPendingTopUpCleaner(interval, maxAge time.Duration) {
+	for {
+		time.Sleep(interval)
+		count := CleanExpiredPendingTopUps(maxAge)
+		if count > 0 {
+			common.SysLog(fmt.Sprintf("expired %d pending topups older than %v", count, maxAge))
+		}
+	}
 }
 
 func RechargeWaffoPancake(tradeNo string) (err error) {
