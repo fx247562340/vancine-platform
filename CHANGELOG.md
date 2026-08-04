@@ -1,3 +1,9 @@
+## 1.0.26 - 2026-08-04
+
+### 品牌
+
+- Default 主题 footer 去掉 New API 版权与 attribution（双品牌残留），只保留 Vancine 系统名 + 用户协议/隐私政策链接。AGPL 文件头/LICENSE 保留。
+
 ## 1.0.25 - 2026-08-04
 
 ### 修复
