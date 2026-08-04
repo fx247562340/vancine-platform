@@ -257,6 +257,9 @@ func migrateDB() error {
 	if err := migrateTokenModelLimitsToText(); err != nil {
 		return err
 	}
+	if err := MigrateLongcatChannelType(); err != nil {
+		return err
+	}
 
 	err := DB.AutoMigrate(
 		&Channel{},

@@ -58,7 +58,11 @@ const (
 	ChannelTypeAdvancedCustom = 58
 	ChannelTypeSub2API        = 59
 	ChannelTypeNewAPI         = 60
-	ChannelTypeDummy          // this one is only for count, do not add any channel after this
+
+	// Vancine custom channel types, start at 100 to avoid upstream conflicts
+	ChannelTypeLongcat = 100 // OpenAI-compatible API
+
+	ChannelTypeDummy = 101 // sentinel, do not add any channel after this
 
 )
 
@@ -126,6 +130,15 @@ var ChannelBaseURLs = []string{
 	"",                                          //60
 }
 
+func init() {
+	// Extend ChannelBaseURLs to accommodate Vancine custom channel types (100+)
+	if len(ChannelBaseURLs) <= ChannelTypeLongcat {
+		extra := make([]string, ChannelTypeLongcat-len(ChannelBaseURLs)+1)
+		ChannelBaseURLs = append(ChannelBaseURLs, extra...)
+	}
+	ChannelBaseURLs[ChannelTypeLongcat] = "https://api.longcat.chat/openai"
+}
+
 var ChannelTypeNames = map[int]string{
 	ChannelTypeUnknown:        "Unknown",
 	ChannelTypeOpenAI:         "OpenAI",
@@ -184,6 +197,7 @@ var ChannelTypeNames = map[int]string{
 	ChannelTypeAdvancedCustom: "Advanced Custom",
 	ChannelTypeSub2API:        "Sub2API",
 	ChannelTypeNewAPI:         "New API",
+	ChannelTypeLongcat:        "LongCat",
 }
 
 func GetChannelTypeName(channelType int) string {
