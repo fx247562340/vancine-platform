@@ -28,6 +28,7 @@ import {
   buildDiscordOAuthUrl,
   buildOIDCOAuthUrl,
   buildLinuxDOOAuthUrl,
+  buildGoogleOAuthLoginUrl,
 } from '../lib/oauth'
 import { pickTelegramAuthorization } from '../lib/telegram-login'
 import type { SystemStatus, CustomOAuthProviderInfo } from '../types'
@@ -101,6 +102,21 @@ export function useOAuthLogin(
       setIsLoading(false)
       setGithubButtonText(t('Continue with GitHub'))
       setGithubButtonDisabled(false)
+    }
+  }
+
+  const handleGoogleLogin = async () => {
+    setIsLoading(true)
+    try {
+      await resetSession()
+      // Google uses a backend-driven authorization-code flow: the server
+      // generates the CSRF state itself (an auth_flows token) and redirects
+      // the browser to Google, so there is no client-side state or authorize
+      // URL to build here.
+      window.location.href = buildGoogleOAuthLoginUrl('/dashboard')
+    } catch {
+      toast.error(t('Failed to start Google login'))
+      setIsLoading(false)
     }
   }
 
@@ -238,6 +254,7 @@ export function useOAuthLogin(
     isTelegramDialogOpen,
     isTelegramPending,
     handleGitHubLogin,
+    handleGoogleLogin,
     handleDiscordLogin,
     handleOIDCLogin,
     handleLinuxDOLogin,
