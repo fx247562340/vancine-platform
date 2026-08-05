@@ -88,11 +88,16 @@ export function useTopNavLinks(): TopNavLink[] {
 
   // Docs (supports external links)
   if (modules?.docs !== false) {
-    if (docsLink) {
-      links.push({ title: t('Docs'), href: docsLink, external: true })
-    } else {
-      links.push({ title: t('Docs'), href: '/docs' })
+    const href = docsLink || '/docs'
+    // Only treat as external when the URL points to a different origin.
+    // Paths like '/docs' or same-origin URLs should open in the same tab.
+    let external = false
+    try {
+      external = /^https?:\/\//.test(href) && new URL(href).origin !== window.location.origin
+    } catch {
+      external = false
     }
+    links.push({ title: t('Docs'), href, external })
   }
 
   // About

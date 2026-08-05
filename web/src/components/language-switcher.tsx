@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Languages, Check } from 'lucide-react'
-import { useCallback } from 'react'
+import { useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
@@ -35,19 +35,24 @@ import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 
+/** Delay before persisting language preference to the backend.
+ *  Prevents rapid switches from hitting CriticalRateLimit (20 req / 20 min)
+ *  on PUT /api/user/self. */
+const SAVE_DEBOUNCE_MS = 1500
+
 export function LanguageSwitcher() {
   const { i18n, t } = useTranslation()
   const user = useAuthStore((s) => s.auth.user)
   const currentLanguage = normalizeInterfaceLanguage(i18n.language)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const handleChangeLanguage = useCallback(
-    async (code: string) => {
-      await i18n.changeLanguage(code)
+    (code: string) => {
+      void i18n.changeLanguage(code)
       if (user) {
-        try {
-          await api.put('/api/user/self', { language: code })
-        } catch {
-          // Best-effort persistence; don't block the UI on failure
-        }
+        if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+        saveTimerRef.current = setTimeout(() => {
+          api.put('/api/user/self', { language: code }).catch(() => {})
+        }, SAVE_DEBOUNCE_MS)
       }
     },
     [i18n, user]
