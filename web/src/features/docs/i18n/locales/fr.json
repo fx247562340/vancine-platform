@@ -1,0 +1,387 @@
+{
+  "quickstart": {
+    "title": "Démarrage rapide",
+    "subtitle": "De zéro à votre premier appel API réussi en environ 3 minutes.",
+    "step1": {
+      "title": "Obtenez votre clé API",
+      "desc": "Après votre inscription, un jeton initial est automatiquement généré. Allez dans Console → Gestion des jetons pour le copier.",
+      "cta": "Aller à la gestion des jetons",
+      "security": "N'exposez jamais votre clé API dans du code frontend, des dépôts publics ou des applications clientes. Lisez-la toujours à partir de variables d'environnement côté serveur."
+    },
+    "step2": {
+      "title": "Choisissez un modèle",
+      "desc": "Nous recommandons deepseek-v4-flash pour votre premier appel — il est rapide, abordable et idéal pour les tests.",
+      "viewAll": "Voir tous les modèles disponibles"
+    },
+    "step3": {
+      "title": "Choisissez votre méthode d'appel",
+      "desc": "Vancine est compatible OpenAI. Vous pouvez l'appeler directement via HTTP ou utiliser le SDK OpenAI officiel.",
+      "httpDesc": "Utilisez curl, fetch ou tout client HTTP pour appeler l'API REST directement.",
+      "sdkDesc": "Remplacement immédiat : modifiez simplement base_url et api_key dans votre code SDK OpenAI existant."
+    },
+    "step4": {
+      "title": "Effectuez votre premier appel",
+      "desc": "Copiez le code ci-dessous, remplacez sk-your-api-key par votre vraie clé, puis exécutez-le.",
+      "expectedResponse": "Réponse attendue"
+    },
+    "infoTable": {
+      "title": "Informations essentielles",
+      "baseUrl": "URL de base",
+      "auth": "Authentification",
+      "modelList": "Liste des modèles",
+      "pricing": "Tarification publique",
+      "tip": "GET /v1/models nécessite une clé API et liste les modèles disponibles pour le jeton actuel. GET /api/pricing est public et expose les points de terminaison pris en charge ainsi que les métadonnées de tarification."
+    },
+    "exploreMore": {
+      "title": "Explorez davantage",
+      "desc": "Maintenant que vous êtes opérationnel, découvrez ce que Vancine peut faire d'autre :",
+      "chat": "Complétions de chat",
+      "image": "Génération d'images",
+      "video": "Génération de vidéos",
+      "migrate": "Migrer depuis OpenAI"
+    }
+  },
+  "migrate": {
+    "title": "Migrer depuis OpenAI",
+    "hook": "Vancine est entièrement compatible avec l'API OpenAI. Le code existant ne nécessite généralement que deux modifications — base_url et api_key — tandis que tout le reste (SDK, points de terminaison, structure de réponse, streaming, function calling) reste identique.",
+    "twoChanges": {
+      "title": "Seulement 2 modifications nécessaires",
+      "desc": "Reprenez votre code OpenAI existant, modifiez l'URL de base et la clé API, et ça fonctionne."
+    },
+    "fullExamples": {
+      "title": "Exemples complets",
+      "desc": "Exemples fonctionnels complets en Python, Node.js et cURL."
+    },
+    "whatStaysSame": {
+      "title": "Ce qui reste inchangé",
+      "desc": "Tout le reste de votre code fonctionne sans modification :"
+    },
+    "sameItems": {
+      "endpoint": "Même point de terminaison /v1/chat/completions",
+      "sdk": "Même SDK openai Python / Node.js — aucune nouvelle dépendance",
+      "response": "Même structure de réponse (choices, usage, etc.)",
+      "streaming": "Le streaming (SSE) fonctionne de manière identique",
+      "functionCalling": "Function calling / tool use est pris en charge"
+    },
+    "comparison": {
+      "title": "Tableau de migration",
+      "colField": "Champ",
+      "colOpenai": "OpenAI",
+      "colVancine": "Vancine",
+      "colNote": "Remarque",
+      "baseUrlOpenai": "https://api.openai.com/v1",
+      "baseUrlNote": "Remplacer par le point de terminaison Vancine",
+      "apiKeyOpenai": "sk-xxx (clé OpenAI)",
+      "apiKeyNote": "Utilisez votre jeton Vancine depuis Console → Jetons",
+      "modelOpenai": "gpt-4o, gpt-4o-mini, etc.",
+      "modelNote": "Utilisez un modèle pris en charge par Vancine (ex. deepseek-v4-flash)"
+    },
+    "nextSteps": {
+      "title": "Prochaines étapes",
+      "desc": "Prêt à aller plus loin ? Consultez ces pages :",
+      "models": "Modèles et tarification",
+      "quickstart": "Obtenir votre clé API"
+    }
+  },
+  "chat": {
+    "title": "Complétions de chat",
+    "desc": "Envoyez un tableau de messages compatible OpenAI à un modèle de langage et recevez une réponse JSON synchrone.",
+    "paramsTitle": "Paramètres",
+    "examplesTitle": "Exemples",
+    "reasoningCallout": "deepseek-v4-flash et deepseek-v4-pro sont des modèles de raisonnement. content peut être vide pendant que le raisonnement apparaît dans reasoning_content ; finish_reason: length signifie souvent que le budget de tokens a été utilisé par le raisonnement, pas que l'API a échoué.",
+    "params": {
+      "model": "Nom du modèle, par exemple glm-5.1",
+      "messages": "Tableau d'objets message",
+      "maxTokens": "Maximum de tokens générés ; utilisez une valeur plus grande pour les modèles de raisonnement",
+      "stream": "Activer le streaming SSE",
+      "temperature": "Température d'échantillonnage"
+    }
+  },
+  "image": {
+    "title": "Génération d'images",
+    "desc": "Générez des images à partir de descriptions textuelles. La réponse est un JSON synchrone contenant des URL d'images temporaires dans le tableau data.",
+    "paramsTitle": "Paramètres",
+    "sizesTitle": "Tailles prises en charge",
+    "examplesTitle": "Exemples",
+    "colWorkingSize": "Taille fonctionnelle",
+    "defaultSizeSupported": "Taille par défaut prise en charge",
+    "sizeWarning": "Doubao-Seedream-5.0-lite exige au moins 3 686 400 pixels. 1024x1024 renvoie « image size must be at least 3686400 pixels » ; utilisez 2048x2048. Doubao-Seedream-5.0-pro n’a pas cette limite : minimum 921 600 pixels (1024x1024 fonctionne), mais ne génère que des images unitaires (pas de groupes d’images). Les deux acceptent les paliers 1K/2K (lite accepte aussi 3K/4K) ; le modèle décide de la taille finale.",
+    "params": {
+      "model": "Nom du modèle d'image",
+      "prompt": "Description textuelle de l'image",
+      "n": "Nombre d'images",
+      "size": "Taille au format LARGEURxHAUTEUR (voir le tableau ci-dessous)",
+      "response_format": "Format de retour : url (par défaut, lien temporaire valide 24 heures) ou b64_json",
+      "output_format": "Format de sortie : png ou jpeg (jpeg par défaut). Seuls Seedream 5.0 pro/lite le prennent en charge",
+      "image": "URL ou Base64 d'une image de référence pour image-à-image / fusion multi-images (5.0 pro : max 10, lite : max 14)",
+      "watermark": "Ajouter un filigrane. Seedream utilise false par défaut"
+    },
+    "advancedParamsCallout": "Les paramètres avancés de Seedream tels que sequential_image_generation (groupes d'images) et optimize_prompt_options (optimisation du prompt) nécessitent l'activation de PassThrough sur le canal. Ils ne sont pas transmis par défaut."
+  },
+  "video": {
+    "title": "Génération de vidéos",
+    "desc": "La génération de vidéos est asynchrone. Enregistrez le task_id de la réponse de soumission, puis interrogez le même chemin /v1/video/generations/{task_id}.",
+    "endpointSubmit": "Soumettre une tâche de génération asynchrone",
+    "endpointPoll": "Interroger l'état et le résultat de la tâche",
+    "paramsTitle": "Paramètres",
+    "statusTitle": "État de la tâche",
+    "examplesTitle": "Exemples",
+    "params": {
+      "model": "Nom du modèle vidéo",
+      "prompt": "Description textuelle de la vidéo",
+      "image": "URL ou Base64 d'une image de référence unique (image-à-vidéo)",
+      "images": "Tableau d'URL d'images de référence (entrée multi-images)",
+      "size": "Résolution, par exemple 1280x720",
+      "duration": "Durée de la vidéo en secondes",
+      "metadata": "Objet de paramètres étendus (voir ci-dessous)"
+    },
+    "metadataCallout": "Sous-paramètres de metadata : resolution (ex. 1080p), ratio (rapport d'aspect ex. 16:9), frames (nombre d'images), seed (graine aléatoire), watermark (booléen), camera_fixed (caméra fixe, booléen), generate_audio (générer l'audio, booléen). Ces paramètres sont transmis au fournisseur amont.",
+    "status": {
+      "queued": "La tâche est en file d'attente",
+      "inProgress": "La génération est en cours",
+      "success": "Terminé ; lire data.result_url ou data.data.content.video_url",
+      "failure": "Échoué ; inspecter data.fail_reason"
+    }
+  },
+  "td": {
+    "title": "Génération d'actifs 3D",
+    "desc": "Les modèles 3D utilisent le même format de tâche asynchrone. Soumettez une tâche, puis interrogez avec task_id pour obtenir le résultat.",
+    "endpointSubmit": "La 3D soumet également via le point de terminaison vidéo asynchrone",
+    "endpointPoll": "Interroger les résultats de tâche 3D",
+    "modelsTitle": "Modèles 3D",
+    "paramsTitle": "Paramètres",
+    "examplesTitle": "Exemples de requêtes",
+    "colImagesParam": "Paramètre images",
+    "withoutImage": "Sans image",
+    "withImage": "Avec image de référence",
+    "imagesWarning": "Doubao-Seed3D-2.0 nécessite images. N'utilisez pas le champ image_data ; la passerelle Vancine convertit images au format content[].image_url requis par l'amont.",
+    "params": {
+      "model": "Nom du modèle 3D",
+      "prompt": "Description textuelle de l'actif 3D (facultatif pour image-à-3D)",
+      "images": "Tableau d'URL d'images de référence pour image-à-3D. Doubao-Seed3D-2.0 nécessite au moins une image. Prend en charge les URL publiques ou data:image/...;base64,..."
+    },
+    "asyncCallout": "La génération 3D est asynchrone. Après soumission, enregistrez le task_id de la réponse, puis interrogez GET /v1/video/generations/{task_id}. En cas de succès, lisez le lien du fichier modèle 3D depuis metadata.url dans le résultat."
+  },
+  "audio": {
+    "title": "Audio / TTS",
+    "desc": "Le point de terminaison TTS utilise un corps de requête compatible OpenAI, mais la réponse est un flux audio MP3 binaire, pas du JSON.",
+    "paramsTitle": "Paramètres",
+    "ttsExamplesTitle": "Exemple Doubao-tts (voix 1.0)",
+    "tts2ExamplesTitle": "Exemple Doubao-tts2.0 (voix 2.0)",
+    "voicesTitle": "Voix disponibles",
+    "endpointWarning": "TTS n'utilise pas /v1/chat/completions. L'utilisation d'un mauvais point de terminaison peut renvoyer un 401 trompeur ressemblant à une clé API manquante ; la cause habituelle est un mauvais chemin.",
+    "voiceSuffixCallout": "Le suffixe de l'ID de voix détermine la version du modèle : le suffixe uranus est pour Doubao-tts2.0, le suffixe mars pour Doubao-tts. Une incompatibilité voix/modèle renvoie une erreur resource mismatch.",
+    "colVoiceId": "ID de voix",
+    "colName": "Nom",
+    "colModel": "Modèle",
+    "colUseCase": "Langue / cas d'usage",
+    "params": {
+      "model": "Doubao-tts ou Doubao-tts2.0",
+      "input": "Texte à synthétiser",
+      "voice": "ID de voix, voir la liste ci-dessous",
+      "response_format": "Format audio de sortie : mp3 (par défaut), opus, aac, flac, wav, pcm",
+      "speed": "Vitesse de parole 0.25–4.0, par défaut 1.0"
+    },
+    "voices": {
+      "vivi": "Vivi",
+      "nadia": "Nadia",
+      "jane": "Jane",
+      "rachel": "Rachel",
+      "david": "David",
+      "alex": "Alex",
+      "kevin": "Kevin",
+      "stokie": "Stokie",
+      "spanishFemale": "Espagnol, féminin",
+      "frenchFemale": "Français, féminin",
+      "germanFemale": "Allemand, féminin",
+      "arabicFemale": "Arabe, féminin",
+      "cancan": "Cancan",
+      "wenhao": "Wenhao",
+      "amanda": "Amanda",
+      "emily": "Emily",
+      "adam": "Adam",
+      "jackson": "Jackson",
+      "sarah": "Sarah",
+      "smith": "Smith",
+      "anna": "Anna",
+      "dryw": "Dryw",
+      "zhFemaleGentle": "Chinois, féminin, doux (multilingue)",
+      "enFemale": "Anglais, féminin",
+      "enMale": "Anglais, masculin",
+      "enUkFemale": "Anglais (Royaume-Uni), féminin",
+      "espanol": "Español",
+      "francais": "Français",
+      "deutsch": "Deutsch",
+      "arabic": "العربية",
+      "zhFemaleBright": "Chinois, féminin, brillant",
+      "zhMaleSteady": "Chinois, masculin, stable"
+    }
+  },
+  "auth": {
+    "title": "Authentification",
+    "desc": "Toutes les requêtes /v1 nécessitent une clé API dans l'en-tête Authorization.",
+    "securityWarning": "Ne mettez pas de clés API dans le code frontend, les dépôts publics ou les applications clientes. Lisez la clé à partir de variables d'environnement côté serveur avant d'appeler Vancine."
+  },
+  "capabilities": {
+    "title": "Capacités",
+    "desc": "Vancine expose différentes capacités de génération via des points de terminaison compatibles OpenAI et des points de terminaison de tâches asynchrones.",
+    "rows": {
+      "chat": "Chat",
+      "tts": "Synthèse vocale",
+      "image": "Génération d'images",
+      "video": "Génération de vidéos",
+      "td": "Génération d'actifs 3D",
+      "chatNote": "Corps de requête messages compatible OpenAI",
+      "ttsNote": "Renvoie un flux audio MP3 binaire",
+      "imageNote": "Renvoie des URL d'images",
+      "videoNote": "Tâche asynchrone, interroger avec task_id",
+      "tdNote": "Tâche asynchrone avec support de prompt et images"
+    }
+  },
+  "models": {
+    "title": "Modèles et tarification",
+    "desc": "Appelez le point de terminaison public de tarification pour lire les noms de modèles, les points de terminaison pris en charge, les ratios et les prix.",
+    "fetchPricing": "Récupérer la tarification des modèles",
+    "textModelsTitle": "Modèles de texte ({{count}})",
+    "multimodalTitle": "Modèles de génération multimodaux",
+    "colType": "Type",
+    "colUsageNotes": "Notes d'utilisation",
+    "returnsValidMp3": "Renvoie un MP3 valide"
+  },
+  "errors": {
+    "title": "Gestion des erreurs",
+    "colHttpStatus": "Statut HTTP",
+    "colTypicalCause": "Cause typique",
+    "formatTitle": "Format de réponse d'erreur",
+    "asyncCallout": "Pour les échecs de tâches asynchrones, lisez les détails depuis data.fail_reason dans la réponse d'interrogation.",
+    "codes": {
+      "badRequest": "Requête incorrecte",
+      "badRequestCause": "Taille invalide, prompt manquant, ou inadéquation modèle/point de terminaison",
+      "unauthorized": "Non autorisé",
+      "unauthorizedCause": "Clé invalide, ou mauvais point de terminaison comme envoyer du TTS au chat",
+      "notFound": "Chemin introuvable",
+      "notFoundCause": "Vérifiez que le chemin URL est correctement orthographié",
+      "noChannel": "Aucun canal disponible",
+      "noChannelCause": "Aucun canal amont n'est disponible pour ce modèle dans le groupe actuel"
+    }
+  },
+  "sdks": {
+    "title": "SDK et outils",
+    "desc": "Les points de terminaison texte de Vancine sont compatibles avec le SDK OpenAI. Les points de terminaison multimédia peuvent également être appelés avec n'importe quel client HTTP.",
+    "requestsDesc": "Adapté pour image, vidéo, 3D et TTS",
+    "curlDesc": "Intégré ou installer via le gestionnaire de paquets"
+  },
+  "agents": {
+    "title": "Intégration d'agents",
+    "desc": "Avant de connecter un outil d'agent, vérifiez s'il utilise Chat Completions ou Responses. La plupart des outils OpenAI Compatible utilisent /v1/chat/completions ; la config officielle de Codex CLI utilise actuellement /v1/responses.",
+    "universalTip": "Réglages universels : Base URL = {{baseUrl}}, API Key = sk-your-api-key, Model = glm-5.1 ou deepseek-v4-flash.",
+    "configExample": "Exemple de configuration",
+    "guiTitle": "Outils graphiques",
+    "cli": {
+      "codex": "La config officielle de Codex utilise ~/.codex/config.toml. La documentation actuelle montre le protocole Responses, donc wire_api doit être responses.",
+      "opencode": "OpenCode utilise opencode.json au niveau du projet. Les fournisseurs OpenAI-compatible personnalisés utilisent @ai-sdk/openai-compatible avec options.baseURL et options.apiKey.",
+      "openclaw": "Les clients de type OpenClaw nécessitent généralement l'URL de base, la clé API et le nom du modèle OpenAI-compatible. Les noms de champs varient ; choisissez OpenAI Compatible si disponible.",
+      "hermes": "Les plugins OpenAI-compatible de Hermes Agent utilisent généralement config.yaml ou des variables d'environnement pour base_url et api_key. Utilisez les champs exacts du plugin installé."
+    },
+    "gui": {
+      "cursor": {
+        "title": "Cursor",
+        "step1": "Ouvrir Settings → Models",
+        "step2": "Choisir OpenAI Compatible ou API OpenAI personnalisée",
+        "step3": "Définir Base URL sur {{baseUrl}}",
+        "step4": "Entrer votre clé API Vancine",
+        "step5": "Utiliser un modèle texte comme glm-5.1 ou deepseek-v4-flash"
+      },
+      "cline": {
+        "title": "Cline / Roo Code",
+        "step1": "Sélectionner Provider : OpenAI Compatible",
+        "step2": "Définir Base URL sur {{baseUrl}}",
+        "step3": "Entrer la clé API",
+        "step4": "Entrer un nom de modèle texte",
+        "step5": "Enregistrer et envoyer un message simple pour confirmer la connexion"
+      },
+      "cherryStudio": {
+        "title": "Cherry Studio",
+        "step1": "Ouvrir Paramètres → Services de modèle → Ajouter",
+        "step2": "Choisir OpenAI Compatible",
+        "step3": "Définir l'URL de l'API sur {{baseUrl}}",
+        "step4": "Entrer la clé API",
+        "step5": "Synchroniser ou ajouter manuellement des modèles"
+      }
+    }
+  },
+  "faq": {
+    "title": "FAQ",
+    "items": {
+      "verifyKey": {
+        "q": "Comment vérifier une clé API ?",
+        "a": "Appelez GET {{baseUrl}}/models. HTTP 200 avec une liste de modèles signifie que la clé est valide et a accès dans le groupe actuel."
+      },
+      "video3dResults": {
+        "q": "Où lire les résultats vidéo et 3D ?",
+        "a": "Interrogez GET /v1/video/generations/{task_id}. En cas de succès, lisez data.result_url ou data.data.content.video_url."
+      },
+      "ttsNotJson": {
+        "q": "Pourquoi TTS ne renvoie-t-il pas du JSON ?",
+        "a": "Les appels TTS réussis renvoient directement un flux audio MP3 binaire avec Content-Type audio/mpeg."
+      },
+      "seedreamSize": {
+        "q": "Pourquoi Seedream rejette-t-il ma taille d’image ?",
+        "a": "Doubao-Seedream-5.0-lite exige au moins 3 686 400 pixels (utilisez 2048x2048). Doubao-Seedream-5.0-pro n’a pas cette limite : minimum 921 600 pixels (1024x1024 fonctionne). Définissez size selon le modèle, ou passez un palier 1K/2K et laissez le modèle décider."
+      }
+    }
+  },
+  "nav": {
+    "gettingStarted": "Pour commencer",
+    "apiCapabilities": "Capacités API",
+    "integrationGuide": "Guide d'intégration",
+    "reference": "Référence",
+    "quickstart": "Démarrage rapide",
+    "migrate": "Migrer depuis OpenAI",
+    "models": "Modèles et tarification",
+    "chat": "Complétions de chat",
+    "image": "Génération d'images",
+    "video": "Génération de vidéos",
+    "td": "Génération 3D",
+    "audio": "Audio / TTS",
+    "sdks": "SDK et outils",
+    "agents": "Intégration d'agents",
+    "auth": "Authentification",
+    "capabilities": "Capacités",
+    "errors": "Gestion des erreurs",
+    "faq": "FAQ"
+  },
+  "common": {
+    "action": "Action",
+    "category": "Catégorie",
+    "comingSoon": "Bientôt disponible",
+    "copied": "✓ Copié",
+    "copy": "Copier",
+    "description": "Description",
+    "endpoint": "Point de terminaison",
+    "feedbackNo": "Non",
+    "feedbackQuestion": "Cette page vous a-t-elle été utile ?",
+    "feedbackThanks": "Merci pour votre retour !",
+    "feedbackYes": "Oui",
+    "loading": "Chargement…",
+    "meaning": "Signification",
+    "model": "Modèle",
+    "navigation": "Navigation",
+    "nextPage": "Suivant",
+    "no": "Non",
+    "notes": "Notes",
+    "notFound": "Page introuvable",
+    "notFoundDesc": "La page de documentation que vous recherchez n'existe pas.",
+    "onThisPage": "Sur cette page",
+    "pageNotReady": "Cette page n'est pas encore prête. Revenez bientôt !",
+    "parameter": "Paramètre",
+    "prevPage": "Précédent",
+    "required": "Requis",
+    "result": "Résultat",
+    "searchNoResults": "Aucun résultat",
+    "searchPlaceholder": "Rechercher dans la doc...",
+    "status": "Statut",
+    "type": "Type",
+    "yes": "Oui"
+  }
+}

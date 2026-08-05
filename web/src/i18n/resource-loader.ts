@@ -30,6 +30,10 @@ import type { BackendModule, ReadCallback } from 'i18next'
  * Internal language codes use camelCase (`zhCN` / `zhTW`) while locale
  * file names retain their original hyphenated form (`zh.json` / `zh-TW.json`).
  * The LOCALE_LOADERS table handles this mapping.
+ *
+ * Non-`translation` namespaces (e.g. `docs`) are rejected with an error so
+ * i18next does NOT register an empty bundle — which would shadow the real
+ * bundle loaded later by the namespace's own provider (DocsI18nProvider).
  */
 
 /**
@@ -93,11 +97,13 @@ export async function loadTranslationBundle(
 /**
  * Factory for an i18next custom backend that loads locale bundles on
  * demand. i18next calls `read(language, namespace, callback)` for each
- * (language, namespace) it needs; we resolve it asynchronously and always
- * hand back a value (never `false`, never an error) so i18next does not
- * spin on repeated fallback attempts. A factory (rather than a shared
- * singleton object) keeps independent i18next instances — e.g. tests using
- * `createInstance()` — from interfering with each other.
+ * (language, namespace) it needs. The `translation` namespace is loaded
+ * asynchronously via dynamic import; other namespaces (e.g. `docs`)
+ * receive an error callback so i18next does NOT register an empty bundle
+ * that would shadow the real bundle loaded by the namespace's own provider.
+ * A factory (rather than a shared singleton object) keeps independent
+ * i18next instances — e.g. tests using `createInstance()` — from
+ * interfering with each other.
  */
 export function createLazyResourceBackend(): BackendModule {
   return {
@@ -106,10 +112,13 @@ export function createLazyResourceBackend(): BackendModule {
       // No backend-level options to configure.
     },
     read(language: string, namespace: string, callback: ReadCallback): void {
-      // The app uses a single `translation` namespace; any other namespace
-      // is answered empty instead of triggering a locale chunk load.
+      // The app uses a single `translation` namespace managed by this
+      // backend. Other namespaces (e.g. 'docs') are loaded independently
+      // by their own providers. Returning an error tells i18next the load
+      // failed so it does NOT register an empty bundle — which would
+      // shadow the real bundle loaded later by the namespace's own provider.
       if (namespace !== 'translation') {
-        callback(null, {})
+        callback(true, undefined)
         return
       }
       loadTranslationBundle(language).then(
