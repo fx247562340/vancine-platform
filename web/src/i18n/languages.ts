@@ -99,3 +99,89 @@ export function toIntlLocale(value?: string | null): string | undefined {
     return undefined
   }
 }
+
+/**
+ * Map an interface language code to the BCP 47 tag written to
+ * `document.documentElement.lang`.
+ *
+ * Simplified Chinese uses the unambiguous `zh-CN` form; Traditional Chinese
+ * uses the precise `zh-TW` tag; every other supported language uses its code
+ * verbatim (en, fr, ru, ja, vi). Shared by the production config wiring and the
+ * tests so the `<html lang>` behavior cannot drift.
+ */
+export function getDocumentLanguage(code?: string | null): string {
+  const normalized = normalizeInterfaceLanguage(code)
+  if (normalized === 'zhCN') return 'zh-CN'
+  if (normalized === 'zhTW') return 'zh-TW'
+  return normalized
+}
+
+/**
+ * Write the BCP 47 tag for `lng` to `document.documentElement.lang`. A no-op
+ * when `document` is unavailable (unit tests / SSR), so it is safe to call from
+ * any environment. Idempotent: skips the DOM write when the value is unchanged,
+ * so redundant triggers (e.g. the init languageChanged event plus the init
+ * safety-net) do not produce duplicate writes.
+ */
+export function applyDocumentLanguage(lng: string): void {
+  if (typeof document !== 'undefined' && document.documentElement) {
+    const next = getDocumentLanguage(lng)
+    if (document.documentElement.lang !== next) {
+      document.documentElement.lang = next
+    }
+  }
+}
+
+/** Minimal i18next event surface needed to wire the language sync. */
+interface I18nLanguageEventEmitter {
+  on(event: 'languageChanged', cb: (lng: string) => void): unknown
+  off(event: 'languageChanged', cb: (lng: string) => void): unknown
+}
+
+// Maps a wired instance to its CURRENTLY active handler (its "generation").
+// A cleanup only tears down the registration if the handler it captured is
+// still the active one, so a stale cleanup can never disturb a newer wire.
+const activeHandlers = new WeakMap<
+  I18nLanguageEventEmitter,
+  (lng: string) => void
+>()
+
+/**
+ * Wire `<html lang>` synchronization to an i18next instance: refresh on every
+ * `languageChanged` event. Shared by the production config and the tests as a
+ * single source of truth.
+ *
+ * Generation-safe semantics:
+ * 1. First wire: registers a handler and records it as the instance's active
+ *    generation.
+ * 2. Repeat wire while a handler is active: returns a no-op cleanup and does
+ *    NOT register a second handler.
+ * 3. The returned cleanup, on its first call, removes the handler ONLY if it is
+ *    still the active generation, then clears the record.
+ * 4. Calling the same cleanup again is a strict no-op.
+ * 5. A stale cleanup (captured before a later re-wire) is a strict no-op: it
+ *    cannot off the newer handler nor clear the newer registration.
+ * 6. After a cleanup tears down the active handler, the instance may be wired
+ *    again.
+ */
+export function wireDocumentLanguageSync(
+  instance: I18nLanguageEventEmitter
+): () => void {
+  if (activeHandlers.has(instance)) {
+    return () => {}
+  }
+  const handler = (lng: string): void => {
+    applyDocumentLanguage(lng)
+  }
+  activeHandlers.set(instance, handler)
+  instance.on('languageChanged', handler)
+  return () => {
+    // Generation guard: only the cleanup owning the active handler may tear it
+    // down. A stale cleanup (after a re-wire) is a strict no-op.
+    if (activeHandlers.get(instance) !== handler) {
+      return
+    }
+    activeHandlers.delete(instance)
+    instance.off('languageChanged', handler)
+  }
+}

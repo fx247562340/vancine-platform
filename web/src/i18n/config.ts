@@ -20,32 +20,40 @@ import i18n from 'i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import { initReactI18next } from 'react-i18next'
 
-import { convertDetectedLanguage } from './languages'
-import en from './locales/en.json'
-import fr from './locales/fr.json'
-import ja from './locales/ja.json'
-import ru from './locales/ru.json'
-import vi from './locales/vi.json'
-import zhTW from './locales/zh-TW.json'
-import zhCN from './locales/zh.json'
+import {
+  applyDocumentLanguage,
+  convertDetectedLanguage,
+  wireDocumentLanguageSync,
+} from './languages'
+import { createLazyResourceBackend } from './resource-loader'
 
-export const resources = {
-  en,
-  zhCN,
-  fr,
-  ru,
-  ja,
-  vi,
-  zhTW,
-} as const
+/**
+ * Keep `<html lang>` in sync with the active interface language so assistive
+ * tech and the browser use the correct language. The event wiring lives in
+ * `wireDocumentLanguageSync` (shared with the tests); the initial sync after
+ * init is chained below. `applyDocumentLanguage` is idempotent, so the
+ * languageChanged event fired during init and the safety-net sync below do not
+ * produce duplicate writes.
+ */
+wireDocumentLanguageSync(i18n)
 
-i18n
+/**
+ * Awaitable promise resolving once the production i18next instance has finished
+ * initializing (and the initial `<html lang>` sync has run). Exported so
+ * integration tests can wait for the real wiring instead of guessing a delay.
+ */
+export const i18nInitPromise: Promise<void> = i18n
+  // Lazy-load locale bundles (one chunk per language) instead of bundling
+  // every locale into the entry chunk; the active language (plus the `en`
+  // fallback) is fetched during init before the promise resolves.
+  .use(createLazyResourceBackend())
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    resources,
     fallbackLng: 'en',
     supportedLngs: ['en', 'zhCN', 'fr', 'ru', 'ja', 'vi', 'zhTW'],
+    // Normalize to an exact supported code ourselves; keep it verbatim so
+    // zhTW does NOT collapse into zh (which `languageOnly` would do).
     load: 'currentOnly',
     nsSeparator: false, // Allow literal colons in keys (e.g., URLs, labels)
     debug: import.meta.env.DEV,
@@ -59,6 +67,16 @@ i18n
       // codes (non-Chinese codes pass through for normal supportedLngs matching).
       convertDetectedLanguage,
     },
+    react: {
+      // Components must render immediately instead of suspending while a
+      // locale chunk is in flight (avoids a blank first paint on switch).
+      useSuspense: false,
+    },
+  })
+  .then(() => {
+    // Safety-net initial sync in case no languageChanged fired during init.
+    // Idempotent with the event-driven sync above (no duplicate write).
+    applyDocumentLanguage(i18n.language)
   })
 
 export default i18n
