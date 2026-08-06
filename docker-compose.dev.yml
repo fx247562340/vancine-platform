@@ -2,12 +2,11 @@
 #
 # Usage:
 #   1. docker compose -f docker-compose.dev.yml up -d
-#   2. cd web/default && npm install --no-audit --no-fund && npm run dev
-#      # or: cd web/classic && npm install --legacy-peer-deps --no-audit --no-fund && npm run dev
-#   3. Open the frontend dev server printed by npm; it proxies API calls to :3000.
+#   2. make dev-web
+#   3. Open http://localhost:5173 (Rsbuild dev server, API auto-proxied to :3000)
 #
 # Rebuild backend after Go code changes:
-#   docker compose -f docker-compose.dev.yml up -d --build vancine
+#   docker compose -f docker-compose.dev.yml up -d --build new-api
 #
 # Stop:
 #   docker compose -f docker-compose.dev.yml down
@@ -16,23 +15,27 @@
 #   docker compose -f docker-compose.dev.yml down -v
 
 services:
-  vancine:
+  new-api:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    image: vancine-dev:local
-    container_name: vancine-dev
+    image: new-api-dev:local
+    container_name: new-api-dev
     restart: unless-stopped
     ports:
       - "3000:3000"
     volumes:
       - dev_data:/data
     environment:
-      - SQL_DSN=postgresql://root:123456@postgres:5432/vancine
+      - SQL_DSN=postgresql://root:123456@postgres:5432/new-api
       - REDIS_CONN_STRING=redis://redis
       - TZ=Asia/Shanghai
       - BATCH_UPDATE_ENABLED=true
-      - GENERATE_DEFAULT_TOKEN=true
+      # Local HTTP dev mode: keep Secure=false and leave TRUSTED_URL unset. This disables the refresh/logout OriginGuard so the :5173 -> :3000 dev proxy works.
+      - SESSION_COOKIE_SECURE=false
+      # For HTTPS only: set Secure=true and list every exact trusted HTTPS browser Origin. This does not configure relay CORS.
+      # - SESSION_COOKIE_SECURE=true
+      # - SESSION_COOKIE_TRUSTED_URL=https://example.com,https://admin.example.com
     depends_on:
       redis:
         condition: service_started
@@ -43,25 +46,25 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: vancine-dev-redis
+    container_name: new-api-dev-redis
     restart: unless-stopped
     networks:
       - dev-network
 
   postgres:
     image: postgres:15-alpine
-    container_name: vancine-dev-pg
+    container_name: new-api-dev-pg
     restart: unless-stopped
     environment:
       POSTGRES_USER: root
       POSTGRES_PASSWORD: 123456
-      POSTGRES_DB: vancine
+      POSTGRES_DB: new-api
     volumes:
       - dev_pg_data:/var/lib/postgresql/data
     networks:
       - dev-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U root -d vancine"]
+      test: ["CMD-SHELL", "pg_isready -U root -d new-api"]
       interval: 5s
       timeout: 3s
       retries: 5

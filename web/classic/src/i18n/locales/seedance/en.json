@@ -1,9 +1,0 @@
-{
-  "footer": "Access Seedance video generation through one API",
-  "meta": {
-    "title": "Seedance API for Video Generation | Vancine",
-    "description": "Integrate supported Seedance text-to-video and image-to-video workflows with one API key. Start with $1 in free credit and no card required.",
-    "ogTitle": "Build with Seedance Through One API",
-    "ogDescription": "Submit an async video task, poll its status, and retrieve the result through Vancine's documented API."
-  }
-}

@@ -46,25 +46,6 @@ func isCreemWebhookEnabled() bool {
 	return isCreemTopUpEnabled() && isCreemWebhookConfigured()
 }
 
-func isPayPalTopUpEnabled() bool {
-	if !isPaymentComplianceConfirmed() {
-		return false
-	}
-	if !setting.PayPalEnabled {
-		return false
-	}
-	return strings.TrimSpace(setting.GetPayPalClientId()) != "" &&
-		strings.TrimSpace(setting.GetPayPalClientSecret()) != ""
-}
-
-func isPayPalWebhookConfigured() bool {
-	return strings.TrimSpace(setting.GetPayPalWebhookId()) != ""
-}
-
-func isPayPalWebhookEnabled() bool {
-	return isPayPalTopUpEnabled() && isPayPalWebhookConfigured()
-}
-
 func isWaffoTopUpEnabled() bool {
 	if !isPaymentComplianceConfirmed() {
 		return false

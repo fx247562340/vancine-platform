@@ -1,9 +1,0 @@
-{
-  "footer": "Генерация видео Seedance через один API",
-  "meta": {
-    "title": "Seedance API для генерации видео | Vancine",
-    "description": "Подключите поддерживаемые workflow Seedance text-to-video и image-to-video одним API-ключом. Начните с 1 $ бесплатного кредита без карты.",
-    "ogTitle": "Работайте с Seedance через один API",
-    "ogDescription": "Отправьте асинхронную видеозадачу, опросите её статус и получите результат через документированный API Vancine."
-  }
-}

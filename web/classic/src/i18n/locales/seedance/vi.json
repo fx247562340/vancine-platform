@@ -1,9 +1,0 @@
-{
-  "footer": "Truy cập tạo video Seedance qua một API duy nhất",
-  "meta": {
-    "title": "API Seedance cho tạo video | Vancine",
-    "description": "Tích hợp các workflow Seedance text-to-video và image-to-video được hỗ trợ với một API key. Bắt đầu với 1 USD credit miễn phí, không cần thẻ.",
-    "ogTitle": "Xây dựng với Seedance qua một API",
-    "ogDescription": "Gửi tác vụ video bất đồng bộ, poll trạng thái và lấy kết quả qua API đã có tài liệu của Vancine."
-  }
-}

@@ -61,10 +61,6 @@
           "to": "bin/vancine"
         },
         {
-          "from": "../web/dist",
-          "to": "web/dist"
-        },
-        {
           "from": "../LICENSE",
           "to": "licenses/LICENSE"
         },
@@ -94,8 +90,8 @@
       ],
       "extraResources": [
         {
-          "from": "../vancine.exe",
-          "to": "bin/vancine.exe"
+          "from": "../new-api.exe",
+          "to": "bin/new-api.exe"
         },
         {
           "from": "../LICENSE",
@@ -128,8 +124,8 @@
       "category": "Development",
       "extraResources": [
         {
-          "from": "../vancine",
-          "to": "bin/vancine"
+          "from": "../new-api",
+          "to": "bin/new-api"
         },
         {
           "from": "../LICENSE",

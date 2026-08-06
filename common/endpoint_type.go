@@ -1,7 +1,5 @@
 package common
 
-import "strings"
-
 import "github.com/QuantumNous/new-api/constant"
 
 // GetEndpointTypesByChannelType 获取渠道最优先端点类型（所有的渠道都支持 OpenAI 端点）
@@ -32,8 +30,21 @@ func GetEndpointTypesByChannelType(channelType int, modelName string) []constant
 		endpointTypes = []constant.EndpointType{constant.EndpointTypeOpenAI, constant.EndpointTypeOpenAIResponse}
 	case constant.ChannelTypeSora:
 		endpointTypes = []constant.EndpointType{constant.EndpointTypeOpenAIVideo}
-	case constant.ChannelTypeVolcEngine, constant.ChannelTypeDoubaoVideo:
-		endpointTypes = getVolcEngineEndpointTypes(modelName)
+	case constant.ChannelTypeSub2API, constant.ChannelTypeNewAPI:
+		endpointTypes = []constant.EndpointType{
+			constant.EndpointTypeOpenAI,
+			constant.EndpointTypeOpenAIResponse,
+			constant.EndpointTypeOpenAIResponseCompact,
+			constant.EndpointTypeAnthropic,
+			constant.EndpointTypeGemini,
+			constant.EndpointTypeOpenAIAlphaSearch,
+		}
+	case constant.ChannelTypeCodex:
+		endpointTypes = []constant.EndpointType{
+			constant.EndpointTypeOpenAIResponse,
+			constant.EndpointTypeOpenAIResponseCompact,
+			constant.EndpointTypeOpenAIAlphaSearch,
+		}
 	default:
 		if IsOpenAIResponseOnlyModel(modelName) {
 			endpointTypes = []constant.EndpointType{constant.EndpointTypeOpenAIResponse}
@@ -46,21 +57,4 @@ func GetEndpointTypesByChannelType(channelType int, modelName string) []constant
 		endpointTypes = append([]constant.EndpointType{constant.EndpointTypeImageGeneration}, endpointTypes...)
 	}
 	return endpointTypes
-}
-
-// getVolcEngineEndpointTypes 根据模型名称返回火山方舟渠道的端点类型
-func getVolcEngineEndpointTypes(modelName string) []constant.EndpointType {
-	lower := strings.ToLower(modelName)
-	switch {
-	case strings.Contains(lower, "seedream"):
-		return []constant.EndpointType{constant.EndpointTypeImageGeneration}
-	case strings.Contains(lower, "seedance"):
-		return []constant.EndpointType{constant.EndpointTypeOpenAIVideo}
-	case strings.Contains(lower, "seed3d") || strings.Contains(lower, "hyper3d") || strings.Contains(lower, "hitem3d"):
-		return []constant.EndpointType{constant.EndpointType3DGeneration}
-	case strings.Contains(lower, "tts") || strings.Contains(lower, "speech") || strings.Contains(lower, "audio"):
-		return []constant.EndpointType{constant.EndpointTypeOpenAI}
-	default:
-		return []constant.EndpointType{constant.EndpointTypeOpenAI}
-	}
 }

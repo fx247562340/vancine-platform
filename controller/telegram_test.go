@@ -4,23 +4,18 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
-	"io"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"sort"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
-	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/model"
-
-	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/assert"
@@ -28,392 +23,387 @@ import (
 	"gorm.io/gorm"
 )
 
-func setupTelegramControllerTest(t *testing.T) {
-	t.Helper()
-	gin.SetMode(gin.TestMode)
+func TestVerifyTelegramAuthorization(t *testing.T) {
+	const token = "telegram-test-token"
+	now := time.Unix(1_700_000_000, 0)
 
-	origDB := model.DB
-	origLogDB := model.LOG_DB
-	origCrypto := common.CryptoSecret
-	origSQLite := common.UsingSQLite
-	origMySQL := common.UsingMySQL
-	origPG := common.UsingPostgreSQL
-	origRedis := common.RedisEnabled
-	origRegister := common.RegisterEnabled
-	origTelegramEnabled := common.TelegramOAuthEnabled
-	origTelegramToken := common.TelegramBotToken
-	origSessionSecret := common.SessionSecret
-	origGenToken := constant.GenerateDefaultToken
-	t.Cleanup(func() {
-		if model.DB != nil && model.DB != origDB {
-			if sqlDB, err := model.DB.DB(); err == nil {
-				_ = sqlDB.Close()
+	tests := []struct {
+		name     string
+		authDate time.Time
+		mutate   func(url.Values)
+		wantID   string
+		wantErr  string
+	}{
+		{name: "valid", authDate: now, wantID: "123456"},
+		{name: "small future clock skew", authDate: now.Add(90 * time.Second), wantID: "123456"},
+		{name: "expired", authDate: now.Add(-telegramAuthorizationMaxAge - time.Second), wantErr: "expired"},
+		{name: "too far in future", authDate: now.Add(telegramAuthorizationFutureSkew + time.Second), wantErr: "expired"},
+		{name: "invalid signature", authDate: now, mutate: func(values url.Values) { values.Set("hash", "00") }, wantErr: "signature"},
+		{name: "unsigned flow token query is rejected", authDate: now, mutate: func(values url.Values) { values.Set("flow_token", "must-be-in-path") }, wantErr: "signature"},
+		{name: "duplicate parameter", authDate: now, mutate: func(values url.Values) { values["id"] = append(values["id"], "654321") }, wantErr: "duplicate"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			params := signedTelegramAuthorization(token, tt.authDate)
+			if tt.mutate != nil {
+				tt.mutate(params)
 			}
+
+			telegramID, err := verifyTelegramAuthorization(params, token, now)
+			if tt.wantErr != "" {
+				require.Error(t, err)
+				assert.ErrorContains(t, err, tt.wantErr)
+				assert.Empty(t, telegramID)
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantID, telegramID)
+		})
+	}
+}
+
+func signedTelegramAuthorization(token string, authDate time.Time) url.Values {
+	params := url.Values{
+		"auth_date":  {strconv.FormatInt(authDate.Unix(), 10)},
+		"first_name": {"Test"},
+		"id":         {"123456"},
+	}
+	signTelegramAuthorization(token, params)
+	return params
+}
+
+func signTelegramAuthorization(token string, params url.Values) {
+	keys := make([]string, 0, len(params))
+	for key := range params {
+		if key == "hash" {
+			continue
 		}
-		model.DB = origDB
-		model.LOG_DB = origLogDB
-		common.CryptoSecret = origCrypto
-		common.UsingSQLite = origSQLite
-		common.UsingMySQL = origMySQL
-		common.UsingPostgreSQL = origPG
-		common.RedisEnabled = origRedis
-		common.RegisterEnabled = origRegister
-		common.TelegramOAuthEnabled = origTelegramEnabled
-		common.TelegramBotToken = origTelegramToken
-		common.SessionSecret = origSessionSecret
-		constant.GenerateDefaultToken = origGenToken
-	})
-
-	common.CryptoSecret = "telegram-controller-test-secret"
-	common.SessionSecret = "telegram-controller-session-secret"
-	common.UsingSQLite = true
-	common.UsingMySQL = false
-	common.UsingPostgreSQL = false
-	common.RedisEnabled = false
-	common.RegisterEnabled = true
-	common.TelegramOAuthEnabled = true
-	common.TelegramBotToken = "telegram-test-token"
-	constant.GenerateDefaultToken = false
-
-	dsn := "file:tg_ctrl_" + strconv.FormatInt(int64(os.Getpid()), 10) + "_" + strings.ReplaceAll(t.Name(), "/", "_") + "?mode=memory&cache=shared"
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
-	require.NoError(t, err)
-	model.DB = db
-	model.LOG_DB = db
-	require.NoError(t, db.AutoMigrate(&model.User{}, &model.AcquisitionTouch{}, &model.Token{}))
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	dataCheck := make([]string, 0, len(keys))
+	for _, key := range keys {
+		dataCheck = append(dataCheck, key+"="+params.Get(key))
+	}
+	secret := sha256.Sum256([]byte(token))
+	mac := hmac.New(sha256.New, secret[:])
+	_, _ = mac.Write([]byte(strings.Join(dataCheck, "\n")))
+	params.Set("hash", hex.EncodeToString(mac.Sum(nil)))
 }
 
-func telegramSignedQuery(t *testing.T, token string, fields map[string]string) string {
+func createTelegramBindTestFlow(t *testing.T, db *gorm.DB, name string, status int, now time.Time) (*model.User, string) {
 	t.Helper()
-	vals := url.Values{}
-	parts := make([]string, 0, len(fields))
-	for k, v := range fields {
-		vals.Set(k, v)
-		parts = append(parts, k+"="+v)
+	user := &model.User{
+		Username: name, Password: "password-placeholder", Role: common.RoleCommonUser,
+		Status: status, Group: "default", AuthVersion: 1, AffCode: name,
 	}
-	sort.Strings(parts)
-	imploded := strings.Join(parts, "\n")
-	sha := sha256.New()
-	_, _ = io.WriteString(sha, token)
-	mac := hmac.New(sha256.New, sha.Sum(nil))
-	_, _ = io.WriteString(mac, imploded)
-	vals.Set("hash", hex.EncodeToString(mac.Sum(nil)))
-	return vals.Encode()
-}
-
-func newTelegramLoginEngine() *gin.Engine {
-	engine := gin.New()
-	store := cookie.NewStore([]byte(common.SessionSecret))
-	engine.Use(sessions.Sessions("session", store))
-	engine.GET("/api/oauth/telegram/login", TelegramLogin)
-	return engine
-}
-
-func TestCheckTelegramAuthorization(t *testing.T) {
-	token := "test-bot-token"
-	params := map[string][]string{
-		"id":         {"42"},
-		"first_name": {"Ada"},
-		"auth_date":  {"1700000000"},
+	require.NoError(t, db.Create(user).Error)
+	session := &model.UserSession{
+		SID: name + "-session", UserID: user.Id, Version: 1, UserAuthVersion: user.AuthVersion,
+		Status: model.UserSessionStatusActive, RefreshHash: name + "-refresh-hash", LoginMethod: "password",
+		CreatedAt: now.Unix(), LastActiveAt: now.Unix(), ExpiresAt: now.Add(time.Hour).Unix(),
 	}
-	strs := []string{"auth_date=1700000000", "first_name=Ada", "id=42"}
-	imploded := strings.Join(strs, "\n")
-	sha256hash := sha256.New()
-	_, _ = io.WriteString(sha256hash, token)
-	hmachash := hmac.New(sha256.New, sha256hash.Sum(nil))
-	_, _ = io.WriteString(hmachash, imploded)
-	params["hash"] = []string{hex.EncodeToString(hmachash.Sum(nil))}
-
-	assert.True(t, checkTelegramAuthorization(params, token))
-	params["hash"] = []string{"deadbeef"}
-	assert.False(t, checkTelegramAuthorization(params, token))
-}
-
-func TestTelegramDisplayName(t *testing.T) {
-	assert.Equal(t, "Ada Lovelace", telegramDisplayName(map[string][]string{
-		"first_name": {"Ada"},
-		"last_name":  {"Lovelace"},
-	}))
-	assert.Equal(t, "ada_bot", telegramDisplayName(map[string][]string{
-		"username": {"ada_bot"},
-	}))
-	assert.Equal(t, "Telegram User", telegramDisplayName(map[string][]string{}))
-}
-
-func TestTelegramLoginAutoRegistersWhenUnknown(t *testing.T) {
-	setupTelegramControllerTest(t)
-
-	query := telegramSignedQuery(t, common.TelegramBotToken, map[string]string{
-		"id":         "900001",
-		"first_name": "Grace",
-		"last_name":  "Hopper",
-		"username":   "ghopper",
-		"auth_date":  "1700000001",
+	require.NoError(t, model.CreateUserSession(session))
+	flowToken, _, err := model.CreateAuthFlow(model.AuthFlowCreate{
+		Purpose: model.AuthFlowPurposeTelegramBind, UserId: user.Id, SessionId: session.SID,
+		ExpiresAt: now.Add(time.Minute),
 	})
-
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/oauth/telegram/login?"+query, nil)
-	newTelegramLoginEngine().ServeHTTP(w, req)
-
-	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
-	var body map[string]any
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-	assert.Equal(t, true, body["success"], w.Body.String())
-
-	var created model.User
-	require.NoError(t, model.DB.Where("telegram_id = ?", "900001").First(&created).Error)
-	assert.Equal(t, "900001", created.TelegramId)
-	assert.Equal(t, "Grace Hopper", created.DisplayName)
-	assert.True(t, strings.HasPrefix(created.Username, "telegram_"))
-	assert.Equal(t, common.RoleCommonUser, created.Role)
-	assert.Equal(t, common.UserStatusEnabled, created.Status)
-}
-
-func TestTelegramLoginExistingUserDoesNotCreateDuplicate(t *testing.T) {
-	setupTelegramControllerTest(t)
-
-	existing := &model.User{
-		Username:    "tg_existing_user",
-		DisplayName: "Existing TG",
-		TelegramId:  "900002",
-		Role:        common.RoleCommonUser,
-		Status:      common.UserStatusEnabled,
-	}
-	require.NoError(t, existing.Insert(0))
-
-	var beforeCount int64
-	require.NoError(t, model.DB.Model(&model.User{}).Count(&beforeCount).Error)
-
-	query := telegramSignedQuery(t, common.TelegramBotToken, map[string]string{
-		"id":        "900002",
-		"auth_date": "1700000002",
-	})
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/oauth/telegram/login?"+query, nil)
-	newTelegramLoginEngine().ServeHTTP(w, req)
-
-	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
-	var body map[string]any
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-	assert.Equal(t, true, body["success"], w.Body.String())
-
-	var afterCount int64
-	require.NoError(t, model.DB.Model(&model.User{}).Count(&afterCount).Error)
-	assert.Equal(t, beforeCount, afterCount)
-}
-
-func TestTelegramLoginRegistrationDisabled(t *testing.T) {
-	setupTelegramControllerTest(t)
-	common.RegisterEnabled = false
-
-	query := telegramSignedQuery(t, common.TelegramBotToken, map[string]string{
-		"id":        "900003",
-		"auth_date": "1700000003",
-	})
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/oauth/telegram/login?"+query, nil)
-	newTelegramLoginEngine().ServeHTTP(w, req)
-
-	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
-	var body map[string]any
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-	assert.Equal(t, false, body["success"])
-	assert.Equal(t, "管理员关闭了新用户注册", body["message"])
-
-	var count int64
-	require.NoError(t, model.DB.Model(&model.User{}).Where("telegram_id = ?", "900003").Count(&count).Error)
-	assert.Equal(t, int64(0), count)
-}
-
-func TestTelegramLoginInvalidSignature(t *testing.T) {
-	setupTelegramControllerTest(t)
-
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/oauth/telegram/login?id=1&auth_date=1&hash=deadbeef", nil)
-	newTelegramLoginEngine().ServeHTTP(w, req)
-
-	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
-	var body map[string]any
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-	assert.Equal(t, false, body["success"])
-	assert.Equal(t, "无效的请求", body["message"])
-}
-
-// TestTelegramLoginSoftDeletedUserCanReRegister covers the root-cause fix: a
-// soft-deleted user's telegram_id must be re-registrable. Previously the
-// unscoped "taken" check plus the scoped fill returned "该 Telegram 账户未绑定",
-// locking the account out of both login and re-registration.
-func TestTelegramLoginSoftDeletedUserCanReRegister(t *testing.T) {
-	setupTelegramControllerTest(t)
-
-	deleted := &model.User{
-		Username:    "tg_deleted_user",
-		DisplayName: "Deleted TG",
-		TelegramId:  "900010",
-		Role:        common.RoleCommonUser,
-		Status:      common.UserStatusEnabled,
-	}
-	require.NoError(t, deleted.Insert(0))
-	require.NoError(t, model.DB.Delete(deleted).Error) // soft delete
-
-	// Sanity: the residue is visible unscoped but not to a scoped query.
-	var unscopedCount int64
-	require.NoError(t, model.DB.Unscoped().Model(&model.User{}).Where("telegram_id = ?", "900010").Count(&unscopedCount).Error)
-	require.Equal(t, int64(1), unscopedCount)
-
-	query := telegramSignedQuery(t, common.TelegramBotToken, map[string]string{
-		"id":         "900010",
-		"first_name": "Alan",
-		"last_name":  "Turing",
-		"auth_date":  "1700000010",
-	})
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/oauth/telegram/login?"+query, nil)
-	newTelegramLoginEngine().ServeHTTP(w, req)
-
-	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
-	var body map[string]any
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-	assert.Equal(t, true, body["success"], w.Body.String())
-
-	// A NEW active user now holds the telegram_id.
-	var active model.User
-	require.NoError(t, model.DB.Where("telegram_id = ?", "900010").First(&active).Error)
-	assert.NotEqual(t, deleted.Id, active.Id)
-	assert.True(t, strings.HasPrefix(active.Username, "telegram_"))
-	assert.Equal(t, "Alan Turing", active.DisplayName)
-
-	// The soft-deleted residue no longer carries the telegram_id.
-	var residue model.User
-	require.NoError(t, model.DB.Unscoped().First(&residue, deleted.Id).Error)
-	assert.Equal(t, "", residue.TelegramId)
-
-	// Exactly one active user holds the id.
-	var activeCount int64
-	require.NoError(t, model.DB.Model(&model.User{}).Where("telegram_id = ?", "900010").Count(&activeCount).Error)
-	assert.Equal(t, int64(1), activeCount)
-}
-
-func TestTelegramLoginNewUserCreatesDefaultToken(t *testing.T) {
-	setupTelegramControllerTest(t)
-	constant.GenerateDefaultToken = true
-
-	query := telegramSignedQuery(t, common.TelegramBotToken, map[string]string{
-		"id":         "900020",
-		"first_name": "Token",
-		"auth_date":  "1700000020",
-	})
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/oauth/telegram/login?"+query, nil)
-	newTelegramLoginEngine().ServeHTTP(w, req)
-
-	require.Equal(t, http.StatusOK, w.Code, w.Body.String())
-	var body map[string]any
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-	assert.Equal(t, true, body["success"], w.Body.String())
-
-	var created model.User
-	require.NoError(t, model.DB.Where("telegram_id = ?", "900020").First(&created).Error)
-
-	var tokens []model.Token
-	require.NoError(t, model.DB.Where("user_id = ?", created.Id).Find(&tokens).Error)
-	require.Len(t, tokens, 1)
-	assert.Equal(t, "default", tokens[0].Name)
-	assert.Equal(t, int64(-1), tokens[0].ExpiredTime)
-	assert.True(t, tokens[0].UnlimitedQuota)
-	assert.False(t, tokens[0].ModelLimitsEnabled)
-}
-
-func TestTelegramLoginNewUserNoTokenWhenDisabled(t *testing.T) {
-	setupTelegramControllerTest(t)
-	constant.GenerateDefaultToken = false
-
-	query := telegramSignedQuery(t, common.TelegramBotToken, map[string]string{
-		"id":        "900021",
-		"auth_date": "1700000021",
-	})
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/oauth/telegram/login?"+query, nil)
-	newTelegramLoginEngine().ServeHTTP(w, req)
-
-	var body map[string]any
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-	assert.Equal(t, true, body["success"], w.Body.String())
-
-	var created model.User
-	require.NoError(t, model.DB.Where("telegram_id = ?", "900021").First(&created).Error)
-	var count int64
-	require.NoError(t, model.DB.Model(&model.Token{}).Where("user_id = ?", created.Id).Count(&count).Error)
-	assert.Equal(t, int64(0), count)
-}
-
-func TestTelegramLoginExistingUserCreatesNoNewToken(t *testing.T) {
-	setupTelegramControllerTest(t)
-	constant.GenerateDefaultToken = true
-
-	existing := &model.User{
-		Username:    "tg_existing_token_user",
-		DisplayName: "Existing TG",
-		TelegramId:  "900022",
-		Role:        common.RoleCommonUser,
-		Status:      common.UserStatusEnabled,
-	}
-	require.NoError(t, existing.Insert(0))
-
-	var beforeCount int64
-	require.NoError(t, model.DB.Model(&model.Token{}).Count(&beforeCount).Error)
-
-	query := telegramSignedQuery(t, common.TelegramBotToken, map[string]string{
-		"id":        "900022",
-		"auth_date": "1700000022",
-	})
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/oauth/telegram/login?"+query, nil)
-	newTelegramLoginEngine().ServeHTTP(w, req)
-
-	var body map[string]any
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-	assert.Equal(t, true, body["success"], w.Body.String())
-
-	var afterCount int64
-	require.NoError(t, model.DB.Model(&model.Token{}).Count(&afterCount).Error)
-	assert.Equal(t, beforeCount, afterCount)
-}
-
-// TestTelegramLoginTokenFailureDoesNotLogin forces token.Insert to fail and
-// asserts the login aborts (no setupLogin) and first-touch attribution is NOT
-// bound — mirroring the password-register failure semantics.
-func TestTelegramLoginTokenFailureDoesNotLogin(t *testing.T) {
-	setupTelegramControllerTest(t)
-	constant.GenerateDefaultToken = true
-
-	// Force token.Insert to fail with a CHECK-constrained stub table.
-	require.NoError(t, model.DB.Migrator().DropTable(&model.Token{}))
-	require.NoError(t, model.DB.Exec("CREATE TABLE tokens (id integer primary key, user_id integer NOT NULL CHECK(user_id < 0))").Error)
-
-	touch, err := model.CreateAcquisitionTouch(model.AcquisitionUTMFields{LandingPath: "/tg"})
 	require.NoError(t, err)
-	cookieVal := model.FormatTouchCookieValue(touch.TouchId)
+	return user, flowToken
+}
 
-	query := telegramSignedQuery(t, common.TelegramBotToken, map[string]string{
-		"id":        "900023",
-		"auth_date": "1700000023",
-	})
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/api/oauth/telegram/login?"+query, nil)
-	req.AddCookie(&http.Cookie{Name: model.AcquisitionCookieName, Value: cookieVal})
-	newTelegramLoginEngine().ServeHTTP(w, req)
-
-	var body map[string]any
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
-	assert.Equal(t, false, body["success"], w.Body.String())
-
-	// Touch must remain unbound (BindTouchToUser runs only after token success).
-	loaded, err := model.GetAcquisitionTouchByTouchID(touch.TouchId)
+func assertTelegramBindRedirect(t *testing.T, response *httptest.ResponseRecorder, flowToken, errorCode string) {
+	t.Helper()
+	require.Equal(t, http.StatusFound, response.Code)
+	location, err := url.Parse(response.Header().Get("Location"))
 	require.NoError(t, err)
-	assert.Nil(t, loaded.UserId, "touch must not bind when default token fails")
+	assert.Equal(t, "/oauth/telegram", location.Path)
+	assert.Equal(t, "error", location.Query().Get("telegram_bind"))
+	assert.Equal(t, flowToken, location.Query().Get("flow_token"))
+	assert.Equal(t, errorCode, location.Query().Get("error_code"))
+	assert.Empty(t, location.Query().Get("error_description"))
+	assert.Empty(t, location.Query().Get("message"))
+}
 
-	// Restore tokens table for subsequent tests.
-	_ = model.DB.Exec("DROP TABLE IF EXISTS tokens")
-	require.NoError(t, model.DB.AutoMigrate(&model.Token{}))
+func TestTelegramBindFailureResponseContract(t *testing.T) {
+	failures := []struct {
+		name      string
+		errorCode string
+	}{
+		{name: "disabled", errorCode: telegramBindErrorDisabled},
+		{name: "invalid request", errorCode: telegramBindErrorInvalidRequest},
+		{name: "invalid flow", errorCode: telegramBindErrorFlowInvalid},
+		{name: "invalid session", errorCode: telegramBindErrorSessionInvalid},
+		{name: "already bound", errorCode: telegramBindErrorAlreadyBound},
+		{name: "deleted user", errorCode: telegramBindErrorUserDeleted},
+		{name: "disabled user", errorCode: telegramBindErrorUserDisabled},
+		{name: "internal error", errorCode: telegramBindErrorInternal},
+	}
+
+	for _, failure := range failures {
+		t.Run(failure.name, func(t *testing.T) {
+			response := httptest.NewRecorder()
+			context, _ := gin.CreateTestContext(response)
+			context.Params = gin.Params{{Key: "flow_token", Value: "flow token"}}
+			context.Request = httptest.NewRequest(http.MethodGet, "/api/oauth/telegram/bind/flow-token", nil)
+
+			telegramBindFailure(context, failure.errorCode)
+
+			assertTelegramBindRedirect(t, response, "flow token", failure.errorCode)
+		})
+	}
+}
+
+func TestTelegramBindCommitsFlowAssertionAndBindingAtomically(t *testing.T) {
+	previousDB := model.DB
+	previousType := common.MainDatabaseType()
+	previousRedis := common.RedisEnabled
+	previousEnabled := common.TelegramOAuthEnabled
+	previousToken := common.TelegramBotToken
+	previousSecret := common.SessionSecret
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	require.NoError(t, err)
+	require.NoError(t, db.AutoMigrate(
+		&model.User{},
+		&model.UserSession{},
+		&model.AuthFlow{},
+		&model.ExternalIdentityClaim{},
+	))
+	model.DB = db
+	common.SetMainDatabaseType(common.DatabaseTypeSQLite)
+	common.RedisEnabled = false
+	common.TelegramOAuthEnabled = true
+	common.TelegramBotToken = "telegram-bind-test-token"
+	common.SessionSecret = "telegram-bind-session-secret"
+	t.Cleanup(func() {
+		model.DB = previousDB
+		common.SetMainDatabaseType(previousType)
+		common.RedisEnabled = previousRedis
+		common.TelegramOAuthEnabled = previousEnabled
+		common.TelegramBotToken = previousToken
+		common.SessionSecret = previousSecret
+	})
+
+	user := &model.User{
+		Username: "telegram-bind-user", Password: "password-placeholder", Role: common.RoleCommonUser,
+		Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "telegram-bind-user",
+	}
+	require.NoError(t, db.Create(user).Error)
+	now := time.Now()
+	session := &model.UserSession{
+		SID: "telegram-bind-session", UserID: user.Id, Version: 1, UserAuthVersion: user.AuthVersion,
+		Status: model.UserSessionStatusActive, RefreshHash: "refresh-hash", LoginMethod: "password",
+		CreatedAt: now.Unix(), LastActiveAt: now.Unix(), ExpiresAt: now.Add(time.Hour).Unix(),
+	}
+	require.NoError(t, model.CreateUserSession(session))
+	flowToken, _, err := model.CreateAuthFlow(model.AuthFlowCreate{
+		Purpose: model.AuthFlowPurposeTelegramBind, UserId: user.Id, SessionId: session.SID,
+		ExpiresAt: now.Add(time.Minute),
+	})
+	require.NoError(t, err)
+	params := signedTelegramAuthorization(common.TelegramBotToken, now)
+	router := gin.New()
+	router.GET("/api/oauth/telegram/bind/:flow_token", TelegramBind)
+
+	common.TelegramOAuthEnabled = false
+	request := httptest.NewRequest(http.MethodGet, "/api/oauth/telegram/bind/disabled-flow", nil)
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	assertTelegramBindRedirect(t, response, "disabled-flow", telegramBindErrorDisabled)
+	common.TelegramOAuthEnabled = true
+
+	request = httptest.NewRequest(http.MethodGet, "/api/oauth/telegram/bind/invalid-request", nil)
+	response = httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	assertTelegramBindRedirect(t, response, "invalid-request", telegramBindErrorInvalidRequest)
+
+	request = httptest.NewRequest(http.MethodGet, "/api/oauth/telegram/bind/missing-flow?"+params.Encode(), nil)
+	response = httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	assertTelegramBindRedirect(t, response, "missing-flow", telegramBindErrorFlowInvalid)
+
+	invalidSessionFlowToken, _, err := model.CreateAuthFlow(model.AuthFlowCreate{
+		Purpose: model.AuthFlowPurposeTelegramBind, UserId: user.Id, SessionId: "missing-session",
+		ExpiresAt: now.Add(time.Minute),
+	})
+	require.NoError(t, err)
+	request = httptest.NewRequest(
+		http.MethodGet,
+		"/api/oauth/telegram/bind/"+invalidSessionFlowToken+"?"+params.Encode(),
+		nil,
+	)
+	response = httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	assertTelegramBindRedirect(t, response, invalidSessionFlowToken, telegramBindErrorSessionInvalid)
+	invalidSessionFlow, err := model.GetAuthFlow(invalidSessionFlowToken, model.AuthFlowMatch{Purpose: model.AuthFlowPurposeTelegramBind})
+	require.NoError(t, err)
+	assert.Nil(t, invalidSessionFlow.ConsumedAt)
+
+	request = httptest.NewRequest(http.MethodGet, "/api/oauth/telegram/bind/"+flowToken+"?"+params.Encode(), nil)
+	response = httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+
+	assert.Equal(t, http.StatusFound, response.Code)
+	assert.Equal(t, "/oauth/telegram?telegram_bind=success&flow_token="+url.QueryEscape(flowToken), response.Header().Get("Location"))
+	var storedUser model.User
+	require.NoError(t, db.First(&storedUser, user.Id).Error)
+	assert.Equal(t, "123456", storedUser.TelegramId)
+	var identityClaim model.ExternalIdentityClaim
+	require.NoError(t, db.Where("provider = ? AND subject = ?", model.ExternalIdentityProviderTelegram, "123456").
+		First(&identityClaim).Error)
+	assert.Equal(t, user.Id, identityClaim.UserId)
+	_, err = model.GetAuthFlow(flowToken, model.AuthFlowMatch{Purpose: model.AuthFlowPurposeTelegramBind})
+	assert.ErrorIs(t, err, model.ErrAuthFlowConsumed)
+
+	replayFlowToken, _, err := model.CreateAuthFlow(model.AuthFlowCreate{
+		Purpose: model.AuthFlowPurposeTelegramBind, UserId: user.Id, SessionId: session.SID,
+		ExpiresAt: now.Add(time.Minute),
+	})
+	require.NoError(t, err)
+	request = httptest.NewRequest(http.MethodGet, "/api/oauth/telegram/bind/"+replayFlowToken+"?"+params.Encode(), nil)
+	response = httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	assertTelegramBindRedirect(t, response, replayFlowToken, telegramBindErrorInvalidRequest)
+	replayFlow, err := model.GetAuthFlow(replayFlowToken, model.AuthFlowMatch{Purpose: model.AuthFlowPurposeTelegramBind})
+	require.NoError(t, err)
+	assert.Nil(t, replayFlow.ConsumedAt)
+
+	competingUser := &model.User{
+		Username: "telegram-bind-competing-user", Password: "password-placeholder", Role: common.RoleCommonUser,
+		Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AffCode: "telegram-bind-competing-user",
+	}
+	require.NoError(t, db.Create(competingUser).Error)
+	competingSession := &model.UserSession{
+		SID: "telegram-bind-competing-session", UserID: competingUser.Id, Version: 1,
+		UserAuthVersion: competingUser.AuthVersion, Status: model.UserSessionStatusActive,
+		RefreshHash: "competing-refresh-hash", LoginMethod: "password",
+		CreatedAt: now.Unix(), LastActiveAt: now.Unix(), ExpiresAt: now.Add(time.Hour).Unix(),
+	}
+	require.NoError(t, model.CreateUserSession(competingSession))
+	competingFlowToken, _, err := model.CreateAuthFlow(model.AuthFlowCreate{
+		Purpose: model.AuthFlowPurposeTelegramBind, UserId: competingUser.Id, SessionId: competingSession.SID,
+		ExpiresAt: now.Add(time.Minute),
+	})
+	require.NoError(t, err)
+	competingParams := signedTelegramAuthorization(common.TelegramBotToken, now)
+	competingParams.Set("first_name", "Competing")
+	signTelegramAuthorization(common.TelegramBotToken, competingParams)
+	request = httptest.NewRequest(
+		http.MethodGet,
+		"/api/oauth/telegram/bind/"+competingFlowToken+"?"+competingParams.Encode(),
+		nil,
+	)
+	response = httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	assertTelegramBindRedirect(t, response, competingFlowToken, telegramBindErrorAlreadyBound)
+
+	require.NoError(t, db.First(competingUser, competingUser.Id).Error)
+	assert.Empty(t, competingUser.TelegramId)
+	competingFlow, err := model.GetAuthFlow(competingFlowToken, model.AuthFlowMatch{Purpose: model.AuthFlowPurposeTelegramBind})
+	require.NoError(t, err)
+	assert.Nil(t, competingFlow.ConsumedAt)
+	competingAssertion, competingAssertionExpiry, err := telegramAuthorizationClaim(competingParams, time.Now())
+	require.NoError(t, err)
+	require.NoError(t, model.ClaimExternalAuthAssertion(
+		model.AuthFlowPurposeTelegramAssertion,
+		competingAssertion,
+		competingAssertionExpiry,
+	))
+
+	disabledUser, disabledFlowToken := createTelegramBindTestFlow(
+		t, db, "telegram-bind-disabled-user", common.UserStatusDisabled, now,
+	)
+	disabledParams := signedTelegramAuthorization(common.TelegramBotToken, now)
+	disabledParams.Set("id", "disabled-telegram-id")
+	disabledParams.Set("first_name", "Disabled")
+	signTelegramAuthorization(common.TelegramBotToken, disabledParams)
+	request = httptest.NewRequest(
+		http.MethodGet,
+		"/api/oauth/telegram/bind/"+disabledFlowToken+"?"+disabledParams.Encode(),
+		nil,
+	)
+	response = httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	assertTelegramBindRedirect(t, response, disabledFlowToken, telegramBindErrorUserDisabled)
+	var storedDisabledUser model.User
+	require.NoError(t, db.First(&storedDisabledUser, disabledUser.Id).Error)
+	assert.Empty(t, storedDisabledUser.TelegramId)
+	disabledFlow, err := model.GetAuthFlow(disabledFlowToken, model.AuthFlowMatch{Purpose: model.AuthFlowPurposeTelegramBind})
+	require.NoError(t, err)
+	assert.Nil(t, disabledFlow.ConsumedAt)
+	disabledAssertion, disabledAssertionExpiry, err := telegramAuthorizationClaim(disabledParams, time.Now())
+	require.NoError(t, err)
+	require.NoError(t, model.ClaimExternalAuthAssertion(
+		model.AuthFlowPurposeTelegramAssertion,
+		disabledAssertion,
+		disabledAssertionExpiry,
+	))
+
+	deletedUser, deletedFlowToken := createTelegramBindTestFlow(
+		t, db, "telegram-bind-deleted-user", common.UserStatusEnabled, now,
+	)
+	require.NoError(t, db.Delete(deletedUser).Error)
+	deletedParams := signedTelegramAuthorization(common.TelegramBotToken, now)
+	deletedParams.Set("id", "deleted-telegram-id")
+	deletedParams.Set("first_name", "Deleted")
+	signTelegramAuthorization(common.TelegramBotToken, deletedParams)
+	request = httptest.NewRequest(
+		http.MethodGet,
+		"/api/oauth/telegram/bind/"+deletedFlowToken+"?"+deletedParams.Encode(),
+		nil,
+	)
+	response = httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	assertTelegramBindRedirect(t, response, deletedFlowToken, telegramBindErrorUserDeleted)
+	deletedFlow, err := model.GetAuthFlow(deletedFlowToken, model.AuthFlowMatch{Purpose: model.AuthFlowPurposeTelegramBind})
+	require.NoError(t, err)
+	assert.Nil(t, deletedFlow.ConsumedAt)
+	deletedAssertion, deletedAssertionExpiry, err := telegramAuthorizationClaim(deletedParams, time.Now())
+	require.NoError(t, err)
+	require.NoError(t, model.ClaimExternalAuthAssertion(
+		model.AuthFlowPurposeTelegramAssertion,
+		deletedAssertion,
+		deletedAssertionExpiry,
+	))
+
+	_, internalFlowToken := createTelegramBindTestFlow(
+		t, db, "telegram-bind-internal-error", common.UserStatusEnabled, now,
+	)
+	internalParams := signedTelegramAuthorization(common.TelegramBotToken, now)
+	internalParams.Set("id", "internal-error-telegram-id")
+	internalParams.Set("first_name", "Internal")
+	signTelegramAuthorization(common.TelegramBotToken, internalParams)
+	forcedError := errors.New("forced telegram session query failure")
+	const callbackName = "test:telegram-bind-session-query-failure"
+	require.NoError(t, db.Callback().Query().Before("gorm:query").Register(callbackName, func(tx *gorm.DB) {
+		if tx.Statement.Table != "user_sessions" {
+			return
+		}
+		if _, inTransaction := tx.Statement.ConnPool.(gorm.TxCommitter); inTransaction {
+			tx.AddError(forcedError)
+		}
+	}))
+	request = httptest.NewRequest(
+		http.MethodGet,
+		"/api/oauth/telegram/bind/"+internalFlowToken+"?"+internalParams.Encode(),
+		nil,
+	)
+	response = httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	db.Callback().Query().Remove(callbackName)
+	assertTelegramBindRedirect(t, response, internalFlowToken, telegramBindErrorInternal)
+	assert.NotContains(t, response.Header().Get("Location"), forcedError.Error())
+	internalFlow, err := model.GetAuthFlow(internalFlowToken, model.AuthFlowMatch{Purpose: model.AuthFlowPurposeTelegramBind})
+	require.NoError(t, err)
+	assert.Nil(t, internalFlow.ConsumedAt)
+	internalAssertion, internalAssertionExpiry, err := telegramAuthorizationClaim(internalParams, time.Now())
+	require.NoError(t, err)
+	require.NoError(t, model.ClaimExternalAuthAssertion(
+		model.AuthFlowPurposeTelegramAssertion,
+		internalAssertion,
+		internalAssertionExpiry,
+	))
+
 }

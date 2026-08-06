@@ -1,9 +1,0 @@
-{
-  "footer": "1 つの API で Seedance 動画生成を利用",
-  "meta": {
-    "title": "動画生成向け Seedance API | Vancine",
-    "description": "サポートされる Seedance のテキスト→動画 / 画像→動画ワークフローを 1 つの API キーで統合。1 ドル相当の無料クレジットでクレカ不要。",
-    "ogTitle": "1 つの API で Seedance を活用",
-    "ogDescription": "Vancine のドキュメント化された API で非同期動画タスクを送信し、ステータスを確認し、結果を取得できます。"
-  }
-}
