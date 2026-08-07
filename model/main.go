@@ -257,9 +257,6 @@ func migrateDB() error {
 	if err := migrateTokenModelLimitsToText(); err != nil {
 		return err
 	}
-	if err := MigrateLongcatChannelType(); err != nil {
-		return err
-	}
 
 	err := DB.AutoMigrate(
 		&Channel{},
@@ -275,7 +272,7 @@ func migrateDB() error {
 		&Log{},
 		&Midjourney{},
 		&TopUp{},
-	&PayPalSettlementEvent{},
+		&PayPalSettlementEvent{},
 		&QuotaData{},
 		&Task{},
 		&Model{},
@@ -298,6 +295,12 @@ func migrateDB() error {
 		&AuthzRole{},
 	)
 	if err != nil {
+		return err
+	}
+	// Run after AutoMigrate so the Channel and Option tables always exist,
+	// including on fresh installs where the marker must be written before any
+	// Advanced Custom channel can be created.
+	if err := MigrateLongcatChannelType(); err != nil {
 		return err
 	}
 	if err := InitializeUserAuthVersions(); err != nil {
@@ -380,6 +383,12 @@ func migrateDBFast() error {
 		if err != nil {
 			return err
 		}
+	}
+	// Run serially after all parallel AutoMigrate goroutines finished and all
+	// errors were checked, so the Channel and Option tables are guaranteed to
+	// exist. Never run this inside the parallel goroutines above.
+	if err := MigrateLongcatChannelType(); err != nil {
+		return err
 	}
 	if err := InitializeUserAuthVersions(); err != nil {
 		return err
