@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -165,12 +166,58 @@ func GetStatus(c *gin.Context) {
 		data["custom_oauth_providers"] = providersInfo
 	}
 
+	// Google account binding builds the authorize URL client-side, so the
+	// public client ID and the exact authorized redirect URI are served here
+	// only when they can actually support the popup bind protocol. That
+	// protocol stamps the popup's sessionStorage on the frontend origin and
+	// exchanges same-origin postMessage on /oauth/google, so the redirect URI
+	// must be an absolute http(s) URL; a relative path or any other scheme is
+	// never served and the frontend must never guess a substitute. The
+	// redirect URI comes from oauth.GoogleRedirectUri() (admin override or
+	// server address + /oauth/google). The Google client secret is never
+	// exposed here.
+	if clientID, redirectURI, ok := googleBindConfiguration(); ok {
+		data["google_client_id"] = clientID
+		data["google_redirect_uri"] = redirectURI
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
 		"data":    data,
 	})
 	return
+}
+
+// googleBindConfiguration returns the public Google client ID and authorized
+// redirect URI for client-side account binding, or ok=false when the
+// configuration cannot support the popup bind protocol. The bind popup and
+// the /oauth/google callback must share the frontend origin (sessionStorage
+// stamp plus same-origin postMessage), so the redirect URI must be an
+// absolute http or https URL with a host, without userinfo or fragment.
+// Relative paths, javascript:/data: URLs and empty values are treated as
+// unusable instead of being served for the frontend to guess at. The login
+// endpoint keeps its own behavior; this only gates the public bind config.
+func googleBindConfiguration() (clientID string, redirectURI string, ok bool) {
+	if !common.GoogleOAuthEnabled {
+		return "", "", false
+	}
+	clientID = strings.TrimSpace(common.GoogleClientId)
+	if clientID == "" {
+		return "", "", false
+	}
+	redirectURI = oauth.GoogleRedirectUri()
+	parsed, err := url.Parse(redirectURI)
+	if err != nil {
+		return "", "", false
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return "", "", false
+	}
+	if parsed.Host == "" || parsed.User != nil || parsed.Fragment != "" {
+		return "", "", false
+	}
+	return clientID, redirectURI, true
 }
 
 func GetNotice(c *gin.Context) {

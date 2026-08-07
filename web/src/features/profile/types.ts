@@ -75,6 +75,8 @@ export interface UserProfile {
   github_id?: string
   /** Discord ID (OAuth) */
   discord_id?: string
+  /** Google subject identifier (OAuth) */
+  google_sub?: string
   /** OIDC ID (OAuth) */
   oidc_id?: string
   /** Telegram ID (OAuth) */

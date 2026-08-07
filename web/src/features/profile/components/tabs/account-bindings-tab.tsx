@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import GoogleColor from '@lobehub/icons/es/Google/components/Color'
 import { Mail, Shield, Send, Link2, Unlink } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -44,8 +45,10 @@ import { api } from '@/lib/api'
 import {
   buildDiscordOAuthUrl,
   buildGitHubOAuthUrl,
+  buildGoogleOAuthUrl,
   buildLinuxDOOAuthUrl,
   buildOIDCOAuthUrl,
+  resolveGoogleBindingConfiguration,
 } from '@/lib/oauth'
 
 import {
@@ -294,6 +297,20 @@ export function AccountBindingsTab({
   const bindings: BindingItem[] = useMemo(() => {
     if (!profile || !status) return []
 
+    // The Google bind popup and the /oauth/google callback must share this
+    // window's origin (sessionStorage stamp + same-origin postMessage), so
+    // the entry only exists when Google OAuth is switched on AND the
+    // status-served redirect URI is a same-origin absolute http(s) callback
+    // URL with a supported path.
+    const googleBinding =
+      status.google_oauth === true
+        ? resolveGoogleBindingConfiguration(
+            status.google_client_id,
+            status.google_redirect_uri,
+            window.location.origin
+          )
+        : null
+
     return [
       {
         id: 'email',
@@ -331,6 +348,27 @@ export function AccountBindingsTab({
           if (clientId) {
             void startOAuthBinding('github', (state) =>
               buildGitHubOAuthUrl(clientId, state)
+            )
+          }
+        },
+      },
+      {
+        id: 'google',
+        label: t('Google'),
+        icon: (props: { className?: string }) => (
+          <GoogleColor size={16} className={props.className} />
+        ),
+        value: profile.google_sub,
+        isBound: Boolean(profile.google_sub),
+        isEnabled: googleBinding !== null,
+        onBind: () => {
+          if (googleBinding) {
+            void startOAuthBinding('google', (state) =>
+              buildGoogleOAuthUrl(
+                googleBinding.clientId,
+                googleBinding.redirectUri,
+                state
+              )
             )
           }
         },
@@ -457,6 +495,7 @@ export function AccountBindingsTab({
                 className='h-7 shrink-0 px-2.5 text-xs'
                 onClick={binding.onBind}
                 disabled={binding.isBound && binding.id !== 'email'}
+                aria-label={`${actionLabel} ${binding.label}`}
               >
                 {actionLabel}
               </Button>
