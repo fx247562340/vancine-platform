@@ -18,8 +18,9 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import type { QueryClient } from '@tanstack/react-query'
 import axios from 'axios'
-import { t } from 'i18next'
+import i18n, { t } from 'i18next'
 
+import { toLanguageTag } from '@/i18n/languages'
 import { publishAuthSessionEvent } from '@/lib/auth-session-sync'
 import {
   useAuthStore,
@@ -380,6 +381,7 @@ export async function bootstrapAuthentication(): Promise<RefreshOutcome> {
 export function getCommonHeaders(): Record<string, string> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    'Accept-Language': toLanguageTag(i18n.language),
   }
   const accessToken = useAuthStore.getState().auth.accessToken
   if (accessToken) {

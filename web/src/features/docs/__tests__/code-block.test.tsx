@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { DocsCodeBlock } from '../components/code-block'
 import { initTestI18n, setDocsBundle, EN_DOCS } from './test-utils'
 
@@ -36,15 +37,6 @@ function removeClipboard() {
     value: undefined,
     configurable: true,
   })
-}
-
-function hasAncestorWithClass(el: Element, cls: string): boolean {
-  let node = el.parentElement
-  while (node) {
-    if (node.classList.contains(cls)) return true
-    node = node.parentElement
-  }
-  return false
 }
 
 beforeEach(async () => {
@@ -114,17 +106,15 @@ describe('DocsCodeBlock horizontal scroll (mobile)', () => {
   const LONG_CODE = `curl -X POST https://vancine.com/v1/chat/completions -H "Content-Type: application/json" -H "Authorization: Bearer sk-your-api-key" -d '{"model":"glm-5.1","messages":[{"role":"user","content":"a very very very long line that must scroll horizontally on narrow mobile viewports"}]}'`
 
   it('renders long code in a horizontally scrollable container (not clipped)', async () => {
-    const { container } = render(<DocsCodeBlock code={LONG_CODE} />)
+    render(<DocsCodeBlock code={LONG_CODE} />)
 
-    const pre = await waitFor(() => {
-      const el = container.querySelector('pre')
-      expect(el).not.toBeNull()
-      return el as Element
-    })
-
-    // The fix: an overflow-x-auto ancestor exists ...
-    expect(hasAncestorWithClass(pre, 'overflow-x-auto')).toBe(true)
-    // ... and no ancestor clips with overflow-hidden (the original defect).
-    expect(hasAncestorWithClass(pre, 'overflow-hidden')).toBe(false)
+    // rc23 renders CodeMirror (role=textbox, accessible name = language);
+    // the legacy <pre> no longer exists. The scroll carrier is
+    // .code-block-scroll, which grants horizontal scrolling so the long line
+    // is reachable instead of being clipped by the rounded outer container.
+    const editor = await screen.findByRole('textbox', { name: 'bash' })
+    const scrollCarrier = editor.closest('.code-block-scroll')
+    expect(scrollCarrier).not.toBeNull()
+    expect(scrollCarrier?.className).toMatch(/overflow-auto/)
   })
 })

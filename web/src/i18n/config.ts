@@ -63,8 +63,10 @@ export const i18nInitPromise: Promise<void> = i18n
     detection: {
       order: ['localStorage', 'navigator'],
       caches: ['localStorage'],
-      // Browsers report `zh-CN`/`zh-TW`/`zh`; map them onto our `zhCN`/`zhTW`
-      // codes (non-Chinese codes pass through for normal supportedLngs matching).
+      // Browsers report BCP-47 tags (`zh-CN`/`zh-TW`/`zh`, `fr-FR`, ...);
+      // normalizeInterfaceLanguage maps every one of them onto a supported
+      // interface code — Chinese onto `zhCN`/`zhTW`, other languages onto
+      // their base code, unknown tags onto `en`.
       convertDetectedLanguage,
     },
     react: {

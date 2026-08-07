@@ -31,9 +31,11 @@ import { beforeAll, describe, expect, it } from 'vitest'
 let i18n: typeof i18nType
 
 beforeAll(async () => {
-  // Seed the stored language so the real detector initializes to zh-TW.
+  // Seed the stored language with the rc23 internal code so the real detector
+  // initializes to zhTW; legacy variant compatibility is covered separately
+  // by auth-language-restore.
   window.localStorage.clear()
-  window.localStorage.setItem('i18nextLng', 'zh-TW')
+  window.localStorage.setItem('i18nextLng', 'zhTW')
   // Dynamically import the REAL production config (runs init + wiring once).
   const config = await import('@/i18n/config')
   await config.i18nInitPromise
@@ -41,18 +43,18 @@ beforeAll(async () => {
 })
 
 describe('real config.ts <html lang> production wiring', () => {
-  it('initializes <html lang> to zh-TW from the cached language', () => {
-    expect(i18n.resolvedLanguage).toBe('zh-TW')
+  it('initializes <html lang> to zh-TW from the cached zhTW language', () => {
+    expect(i18n.resolvedLanguage).toBe('zhTW')
     expect(document.documentElement.lang).toBe('zh-TW')
   })
 
-  it("changeLanguage('zh') syncs <html lang> to zh-CN", async () => {
-    await i18n.changeLanguage('zh')
+  it("changeLanguage('zhCN') syncs <html lang> to zh-CN", async () => {
+    await i18n.changeLanguage('zhCN')
     expect(document.documentElement.lang).toBe('zh-CN')
   })
 
   it('keeps <html lang> in sync across further switches', async () => {
-    await i18n.changeLanguage('zh-TW')
+    await i18n.changeLanguage('zhTW')
     expect(document.documentElement.lang).toBe('zh-TW')
 
     await i18n.changeLanguage('fr')

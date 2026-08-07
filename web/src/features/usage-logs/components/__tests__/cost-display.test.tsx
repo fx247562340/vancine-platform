@@ -16,42 +16,17 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import assert from 'node:assert/strict'
-import { after, describe, test } from 'node:test'
-
-import { Window } from 'happy-dom'
+import { render } from '@testing-library/react'
+import i18next from 'i18next'
 import type React from 'react'
+import { I18nextProvider, initReactI18next } from 'react-i18next'
+import { describe, expect, it } from 'vitest'
 
-const domWindow = new Window()
-const domGlobals = [
-  'window',
-  'document',
-  'navigator',
-  'HTMLElement',
-  'SVGElement',
-  'Node',
-  'Element',
-  'Event',
-  'CustomEvent',
-  'MutationObserver',
-  'requestAnimationFrame',
-  'cancelAnimationFrame',
-  'getComputedStyle',
-] as const
+import { formatLogQuota } from '@/lib/format'
 
-for (const key of domGlobals) {
-  Object.defineProperty(globalThis, key, {
-    configurable: true,
-    value: domWindow[key],
-  })
-}
+import { LogCostDisplay } from '../log-cost-display'
 
-const { act } = await import('react')
-const { createRoot } = await import('react-dom/client')
-const { createInstance } = await import('i18next')
-const { I18nextProvider, initReactI18next } = await import('react-i18next')
-
-const i18n = createInstance()
+const i18n = i18next.createInstance()
 await i18n.use(initReactI18next).init({
   lng: 'en',
   resources: {
@@ -65,39 +40,12 @@ await i18n.use(initReactI18next).init({
   },
 })
 
-const { LogCostDisplay } = await import('../log-cost-display')
-const { formatLogQuota } = await import('@/lib/format')
-const reactTestGlobals = globalThis as typeof globalThis & {
-  IS_REACT_ACT_ENVIRONMENT?: boolean
-}
-reactTestGlobals.IS_REACT_ACT_ENVIRONMENT = true
-
-type RenderedCost = {
-  container: HTMLDivElement
-  root: ReturnType<typeof createRoot>
-}
-
-async function renderCost(
-  props: React.ComponentProps<typeof LogCostDisplay>
-): Promise<RenderedCost> {
-  const container = document.createElement('div')
-  document.body.append(container)
-  const root = createRoot(container)
-
-  await act(async () => {
-    root.render(
-      <I18nextProvider i18n={i18n}>
-        <LogCostDisplay {...props} />
-      </I18nextProvider>
-    )
-  })
-
-  return { container, root }
-}
-
-async function unmountCost(rendered: RenderedCost) {
-  await act(async () => rendered.root.unmount())
-  rendered.container.remove()
+function renderCost(props: React.ComponentProps<typeof LogCostDisplay>) {
+  return render(
+    <I18nextProvider i18n={i18n}>
+      <LogCostDisplay {...props} />
+    </I18nextProvider>
+  )
 }
 
 function normalizedText(value: string | null): string {
@@ -105,39 +53,31 @@ function normalizedText(value: string | null): string {
 }
 
 describe('log cost display', () => {
-  after(() => {
-    domWindow.close()
-  })
-
-  test('keeps the regular cost visible and adds an accessible surcharge marker', async () => {
-    const rendered = await renderCost({
+  it('keeps the regular cost visible and adds an accessible surcharge marker', () => {
+    const { container } = renderCost({
       quota: 12500,
       other: {
         tool_surcharges: [{ name: 'lookup_customer', count: 1, price: 5 }],
       },
     })
 
-    assert.equal(
-      normalizedText(rendered.container.textContent).includes(
+    expect(
+      normalizedText(container.textContent).includes(
         normalizedText(formatLogQuota(12500))
-      ),
-      true
-    )
-    const marker = rendered.container.querySelector(
+      )
+    ).toBe(true)
+    const marker = container.querySelector(
       '[data-tool-surcharge-indicator="true"]'
     )
-    assert.ok(marker)
-    assert.equal(
-      marker.getAttribute('aria-label'),
+    expect(marker).not.toBeNull()
+    expect(marker?.getAttribute('aria-label')).toBe(
       'Includes tool-call surcharge'
     )
-    assert.equal(marker.getAttribute('tabindex'), '0')
-
-    await unmountCost(rendered)
+    expect(marker?.getAttribute('tabindex')).toBe('0')
   })
 
-  test('preserves the subscription badge and adds the same legacy surcharge marker', async () => {
-    const rendered = await renderCost({
+  it('preserves the subscription badge and adds the same legacy surcharge marker', () => {
+    const { container } = renderCost({
       quota: 5000,
       other: {
         billing_source: 'subscription',
@@ -147,11 +87,9 @@ describe('log cost display', () => {
       },
     })
 
-    assert.equal(rendered.container.textContent?.includes('Subscription'), true)
-    assert.ok(
-      rendered.container.querySelector('[data-tool-surcharge-indicator="true"]')
-    )
-
-    await unmountCost(rendered)
+    expect(container.textContent?.includes('Subscription')).toBe(true)
+    expect(
+      container.querySelector('[data-tool-surcharge-indicator="true"]')
+    ).not.toBeNull()
   })
 })

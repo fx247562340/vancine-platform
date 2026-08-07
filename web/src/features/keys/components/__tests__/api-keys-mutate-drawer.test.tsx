@@ -16,79 +16,46 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import assert from 'node:assert/strict'
-import { after, afterEach, describe, test } from 'node:test'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import i18next from 'i18next'
+import { I18nextProvider, initReactI18next } from 'react-i18next'
+import { afterEach, describe, expect, it } from 'vitest'
 
-import { Window } from 'happy-dom'
+import { api } from '@/lib/api'
 
-const domWindow = new Window()
-const domGlobals = [
-  'window',
-  'document',
-  'navigator',
-  'HTMLElement',
-  'HTMLButtonElement',
-  'HTMLInputElement',
-  'HTMLFormElement',
-  'SVGElement',
-  'Node',
-  'Element',
-  'Event',
-  'KeyboardEvent',
-  'PointerEvent',
-  'MouseEvent',
-  'FocusEvent',
-  'CustomEvent',
-  'MutationObserver',
-  'ResizeObserver',
-  'requestAnimationFrame',
-  'cancelAnimationFrame',
-  'getComputedStyle',
-] as const
+import { ApiKeysMutateDrawer } from '../api-keys-mutate-drawer'
+import { ApiKeysProvider } from '../api-keys-provider'
 
-for (const key of domGlobals) {
-  Object.defineProperty(globalThis, key, {
-    configurable: true,
-    value: domWindow[key],
-  })
-}
-
-const { act } = await import('react')
-const { createRoot } = await import('react-dom/client')
-const { createInstance } = await import('i18next')
-const { I18nextProvider, initReactI18next } = await import('react-i18next')
-const { QueryClient, QueryClientProvider } =
-  await import('@tanstack/react-query')
-const { api } = await import('@/lib/api')
-const { ApiKeysProvider } = await import('../api-keys-provider')
-const { ApiKeysMutateDrawer } = await import('../api-keys-mutate-drawer')
-
-const i18n = createInstance()
+const i18n = i18next.createInstance()
 await i18n.use(initReactI18next).init({
   lng: 'en',
   resources: { en: { translation: {} } },
 })
 
-const reactTestGlobals = globalThis as typeof globalThis & {
-  IS_REACT_ACT_ENVIRONMENT?: boolean
-}
-reactTestGlobals.IS_REACT_ACT_ENVIRONMENT = true
-
 type ApiMethod = (url: string, data?: unknown) => Promise<{ data: unknown }>
-type MockableApi = {
-  get: ApiMethod
-  post: ApiMethod
-}
-type RenderedDrawer = {
-  host: HTMLDivElement
-  queryClient: InstanceType<typeof QueryClient>
-  root: ReturnType<typeof createRoot>
-}
+type MockableApi = { get: ApiMethod; post: ApiMethod }
 
 const apiClient = api as unknown as MockableApi
 const originalGet = apiClient.get
 const originalPost = apiClient.post
-let renderedDrawer: RenderedDrawer | null = null
+
+let queryClient: QueryClient
+
+afterEach(() => {
+  apiClient.get = originalGet
+  apiClient.post = originalPost
+  window.localStorage.clear()
+  cleanup()
+  if (queryClient) queryClient.clear()
+})
 
 function installApiFixtures(createdPayloads: Array<Record<string, unknown>>) {
   apiClient.get = async (url) => {
@@ -120,45 +87,15 @@ function installApiFixtures(createdPayloads: Array<Record<string, unknown>>) {
     }
   }
   apiClient.post = async (url, data) => {
-    assert.equal(url, '/api/token/')
-    assert.ok(data && typeof data === 'object')
+    expect(url).toBe('/api/token/')
+    expect(data && typeof data === 'object').toBe(true)
     createdPayloads.push(data as Record<string, unknown>)
     return { data: { success: true, data: {} } }
   }
 }
 
-async function waitForCondition(
-  condition: () => boolean,
-  failureMessage: string
-): Promise<void> {
-  if (condition()) return
-
-  await new Promise<void>((resolve, reject) => {
-    const observer = new MutationObserver(() => {
-      if (!condition()) return
-      clearTimeout(timeoutId)
-      observer.disconnect()
-      resolve()
-    })
-    const timeoutId = setTimeout(() => {
-      observer.disconnect()
-      reject(new Error(`${failureMessage}: ${document.body.textContent}`))
-    }, 1500)
-
-    observer.observe(document, {
-      attributes: true,
-      childList: true,
-      characterData: true,
-      subtree: true,
-    })
-  })
-}
-
 async function renderCreateDrawer(): Promise<void> {
-  const host = document.createElement('div')
-  document.body.append(host)
-  const root = createRoot(host)
-  const queryClient = new QueryClient({
+  queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   })
   const freshAt = Date.now() + 60_000
@@ -192,43 +129,29 @@ async function renderCreateDrawer(): Promise<void> {
     },
     { updatedAt: freshAt }
   )
-  renderedDrawer = { host, queryClient, root }
 
-  await act(async () =>
-    root.render(
-      <QueryClientProvider client={queryClient}>
-        <I18nextProvider i18n={i18n}>
-          <ApiKeysProvider>
-            <ApiKeysMutateDrawer open onOpenChange={() => undefined} />
-          </ApiKeysProvider>
-        </I18nextProvider>
-      </QueryClientProvider>
-    )
+  render(
+    <QueryClientProvider client={queryClient}>
+      <I18nextProvider i18n={i18n}>
+        <ApiKeysProvider>
+          <ApiKeysMutateDrawer open onOpenChange={() => undefined} />
+        </ApiKeysProvider>
+      </I18nextProvider>
+    </QueryClientProvider>
   )
-  await act(async () =>
-    waitForCondition(() => {
-      const saveButton = findButton('Save changes', false)
-      return saveButton !== null && !saveButton.disabled
-    }, 'API key drawer did not finish initializing')
-  )
-}
 
-function findButton(text: string, required: true): HTMLButtonElement
-function findButton(text: string, required: false): HTMLButtonElement | null
-function findButton(text: string, required = true): HTMLButtonElement | null {
-  const button = [
-    ...document.querySelectorAll<HTMLButtonElement>('button'),
-  ].find((candidate) => candidate.textContent?.includes(text))
-  if (required) assert.ok(button, `Expected button containing "${text}"`)
-  return button ?? null
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled()
+  })
 }
 
 function getControlByLabel<T extends HTMLElement>(labelText: string): T {
-  const label = [...document.querySelectorAll<HTMLLabelElement>('label')].find(
-    (candidate) => candidate.textContent?.trim() === labelText
-  )
-  assert.ok(label, `Expected label "${labelText}"`)
-  assert.ok(label.htmlFor)
+  const found = [
+    ...document.body.querySelectorAll<HTMLLabelElement>('label'),
+  ].find((candidate) => candidate.textContent?.trim() === labelText)
+  expect(found).not.toBeUndefined()
+  const label = found as HTMLLabelElement
+  expect(label.htmlFor).toBeTruthy()
   const control =
     label.control ??
     label
@@ -236,95 +159,75 @@ function getControlByLabel<T extends HTMLElement>(labelText: string): T {
       ?.querySelector<HTMLElement>(
         '[data-slot="form-control"], input, textarea, button[role="combobox"], [role="group"]'
       )
-  assert.ok(control)
+  expect(control).not.toBeNull()
   return control as T
 }
 
-async function changeInput(input: HTMLInputElement, value: string) {
-  await act(async () => {
-    const valueSetter = Object.getOwnPropertyDescriptor(
-      domWindow.HTMLInputElement.prototype,
-      'value'
-    )?.set
-    assert.ok(valueSetter)
-    valueSetter.call(input, value)
-    input.dispatchEvent(
-      new domWindow.Event('input', { bubbles: true }) as unknown as Event
-    )
-  })
+function setNativeValue(input: HTMLInputElement, value: string) {
+  const valueSetter = Object.getOwnPropertyDescriptor(
+    HTMLInputElement.prototype,
+    'value'
+  )?.set
+  expect(valueSetter).toBeDefined()
+  if (valueSetter) valueSetter.call(input, value)
+  fireEvent.input(input)
 }
 
 async function selectComboboxOption(
+  user: ReturnType<typeof userEvent.setup>,
   trigger: HTMLButtonElement,
   optionDescription: string
 ) {
-  await act(async () => trigger.click())
+  await user.click(trigger)
   const option = [
-    ...document.querySelectorAll<HTMLElement>('[data-slot="command-item"]'),
+    ...document.body.querySelectorAll<HTMLElement>(
+      '[data-slot="command-item"]'
+    ),
   ].find((candidate) => candidate.textContent?.includes(optionDescription))
-  assert.ok(option, `Expected option containing "${optionDescription}"`)
-  await act(async () => option.click())
+  expect(option).not.toBeUndefined()
+  await user.click(option as HTMLElement)
 }
 
-afterEach(async () => {
-  apiClient.get = originalGet
-  apiClient.post = originalPost
-  domWindow.localStorage.clear()
-  if (renderedDrawer) {
-    await act(async () => renderedDrawer?.root.unmount())
-    renderedDrawer.queryClient.clear()
-    renderedDrawer.host.remove()
-    renderedDrawer = null
-  }
-  document.body.replaceChildren()
-})
-
-after(() => {
-  domWindow.close()
-})
-
 describe('API keys mutate drawer Auto group integration', () => {
-  test('inherits the root Auto order and sends an empty override for every batch-created key', async () => {
+  it('inherits the root Auto order and sends an empty override for every batch-created key', async () => {
+    const user = userEvent.setup()
     const createdPayloads: Array<Record<string, unknown>> = []
     installApiFixtures(createdPayloads)
     await renderCreateDrawer()
 
     const groupTrigger = getControlByLabel<HTMLButtonElement>('Group')
-    assert.equal(groupTrigger.textContent?.includes('auto'), true)
-    assert.equal(
+    expect(groupTrigger.textContent?.includes('auto')).toBe(true)
+    expect(
       document.body.textContent?.includes(
         'Using the complete global Auto order (2 groups)'
-      ),
-      true
-    )
-    assert.deepEqual(
-      [
-        ...document.querySelectorAll('[data-slot="global-auto-order-name"]'),
-      ].map((item) => item.textContent),
-      ['vip', 'default']
-    )
-    assert.equal(findButton('Restore global Auto', true).disabled, true)
-
-    await changeInput(getControlByLabel<HTMLInputElement>('Name'), 'batch')
-    await changeInput(getControlByLabel<HTMLInputElement>('Quantity'), '2')
-    await act(async () => findButton('Save changes', true).click())
-    await act(async () =>
-      waitForCondition(
-        () => createdPayloads.length === 2,
-        'batch API keys were not created'
       )
-    )
+    ).toBe(true)
+    expect(
+      [
+        ...document.body.querySelectorAll(
+          '[data-slot="global-auto-order-name"]'
+        ),
+      ].map((item) => item.textContent)
+    ).toEqual(['vip', 'default'])
+    expect(
+      screen.getByRole('button', { name: 'Restore global Auto' })
+    ).toBeDisabled()
 
-    assert.equal(createdPayloads.length, 2)
-    assert.equal(createdPayloads[0]?.name, 'batch')
+    setNativeValue(getControlByLabel<HTMLInputElement>('Name'), 'batch')
+    setNativeValue(getControlByLabel<HTMLInputElement>('Quantity'), '2')
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+    await waitFor(() => expect(createdPayloads).toHaveLength(2))
+
+    expect(createdPayloads[0]?.name).toBe('batch')
     for (const payload of createdPayloads) {
-      assert.equal(payload.group, 'auto')
-      assert.deepEqual(payload.auto_groups, [])
-      assert.equal(payload.cross_group_retry, true)
+      expect(payload.group).toBe('auto')
+      expect(payload.auto_groups).toEqual([])
+      expect(payload.cross_group_retry).toBe(true)
     }
   })
 
-  test('preserves an unsaved custom order and mode after Auto to ordinary to Auto changes', async () => {
+  it('preserves an unsaved custom order and mode after Auto to ordinary to Auto changes', async () => {
+    const user = userEvent.setup()
     const createdPayloads: Array<Record<string, unknown>> = []
     installApiFixtures(createdPayloads)
     await renderCreateDrawer()
@@ -333,39 +236,43 @@ describe('API keys mutate drawer Auto group integration', () => {
     const addGroupTrigger = autoOrderControl.querySelector<HTMLButtonElement>(
       'button[role="combobox"]'
     )
-    assert.ok(addGroupTrigger)
-    await selectComboboxOption(addGroupTrigger, 'Priority access')
+    expect(addGroupTrigger).not.toBeNull()
+    await selectComboboxOption(
+      user,
+      addGroupTrigger as HTMLButtonElement,
+      'Priority access'
+    )
 
-    assert.ok(document.querySelector('button[aria-label="Remove vip"]'))
-    assert.equal(
-      document.body.textContent?.includes('1 / 3 groups selected'),
+    expect(
+      document.body.querySelector('button[aria-label="Remove vip"]')
+    ).not.toBeNull()
+    expect(document.body.textContent?.includes('1 / 3 groups selected')).toBe(
       true
     )
-    assert.equal(findButton('Restore global Auto', true).disabled, false)
+    expect(
+      screen.getByRole('button', { name: 'Restore global Auto' })
+    ).toBeEnabled()
 
     const groupTrigger = getControlByLabel<HTMLButtonElement>('Group')
-    await selectComboboxOption(groupTrigger, 'Standard access')
-    assert.equal(
-      document.querySelector('button[aria-label="Remove vip"]'),
-      null
-    )
-    await selectComboboxOption(groupTrigger, 'Automatic routing')
+    await selectComboboxOption(user, groupTrigger, 'Standard access')
+    expect(
+      document.body.querySelector('button[aria-label="Remove vip"]')
+    ).toBeNull()
+    await selectComboboxOption(user, groupTrigger, 'Automatic routing')
 
-    assert.ok(document.querySelector('button[aria-label="Remove vip"]'))
-    assert.equal(
-      document.body.textContent?.includes('1 / 3 groups selected'),
+    expect(
+      document.body.querySelector('button[aria-label="Remove vip"]')
+    ).not.toBeNull()
+    expect(document.body.textContent?.includes('1 / 3 groups selected')).toBe(
       true
     )
-    assert.equal(findButton('Restore global Auto', true).disabled, false)
+    expect(
+      screen.getByRole('button', { name: 'Restore global Auto' })
+    ).toBeEnabled()
 
-    await changeInput(getControlByLabel<HTMLInputElement>('Name'), 'custom')
-    await act(async () => findButton('Save changes', true).click())
-    await act(async () =>
-      waitForCondition(
-        () => createdPayloads.length === 1,
-        'custom-order API key was not created'
-      )
-    )
-    assert.deepEqual(createdPayloads[0]?.auto_groups, ['vip'])
+    setNativeValue(getControlByLabel<HTMLInputElement>('Name'), 'custom')
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+    await waitFor(() => expect(createdPayloads).toHaveLength(1))
+    expect(createdPayloads[0]?.auto_groups).toEqual(['vip'])
   })
 })

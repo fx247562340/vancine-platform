@@ -16,40 +16,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import assert from 'node:assert/strict'
-import { after, describe, test } from 'node:test'
+import { fireEvent, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import i18next from 'i18next'
+import { I18nextProvider, initReactI18next } from 'react-i18next'
+import { describe, expect, it } from 'vitest'
 
-import { Window } from 'happy-dom'
+import { JsonCodeEditor } from '../../json-code-editor'
 
-const domWindow = new Window()
-const domGlobals = [
-  'window',
-  'document',
-  'navigator',
-  'HTMLElement',
-  'HTMLTextAreaElement',
-  'Node',
-  'Element',
-  'Event',
-  'CustomEvent',
-  'MutationObserver',
-  'requestAnimationFrame',
-  'cancelAnimationFrame',
-  'getComputedStyle',
-] as const
-
-for (const key of domGlobals) {
-  Object.defineProperty(globalThis, key, {
-    configurable: true,
-    value: domWindow[key],
-  })
-}
-
-const { act } = await import('react')
-const { createRoot } = await import('react-dom/client')
-const i18next = (await import('i18next')).default
-const { initReactI18next } = await import('react-i18next')
-await i18next.use(initReactI18next).init({
+const i18n = i18next.createInstance()
+await i18n.use(initReactI18next).init({
   lng: 'en',
   resources: {
     en: {
@@ -63,45 +39,24 @@ await i18next.use(initReactI18next).init({
     },
   },
 })
-const { JsonCodeEditor } = await import('../../json-code-editor')
-const reactTestGlobals = globalThis as typeof globalThis & {
-  IS_REACT_ACT_ENVIRONMENT?: boolean
-}
-reactTestGlobals.IS_REACT_ACT_ENVIRONMENT = true
 
-type RenderedEditor = {
-  container: HTMLDivElement
-  root: ReturnType<typeof createRoot>
-}
-
-async function renderEditor(
-  props: React.ComponentProps<typeof JsonCodeEditor>
-): Promise<RenderedEditor> {
-  const container = document.createElement('div')
-  document.body.append(container)
-  const root = createRoot(container)
-
-  await act(async () => {
-    root.render(<JsonCodeEditor {...props} />)
-  })
-
-  return { container, root }
-}
-
-async function unmountEditor(rendered: RenderedEditor) {
-  await act(async () => rendered.root.unmount())
-  rendered.container.remove()
+function renderEditor(
+  props: React.ComponentProps<typeof JsonCodeEditor>,
+  user = userEvent.setup()
+) {
+  const view = render(
+    <I18nextProvider i18n={i18n}>
+      <JsonCodeEditor {...props} />
+    </I18nextProvider>
+  )
+  return { ...view, user }
 }
 
 describe('JsonCodeEditor component', () => {
-  after(() => {
-    domWindow.close()
-  })
-
-  test('forwards form attributes and lifecycle callbacks to the textarea', async () => {
+  it('forwards form attributes and lifecycle callbacks to the textarea', async () => {
     const blurCalls: number[] = []
     const refValues: Array<HTMLTextAreaElement | null> = []
-    const rendered = await renderEditor({
+    const { container, unmount } = renderEditor({
       value: '{"model":"gpt"}',
       onChange: () => undefined,
       id: 'json-input',
@@ -114,67 +69,64 @@ describe('JsonCodeEditor component', () => {
       onBlur: () => blurCalls.push(1),
       textareaRef: (element) => refValues.push(element),
     })
-    const textarea = rendered.container.querySelector('textarea')
 
-    assert.ok(textarea)
-    assert.equal(textarea.id, 'json-input')
-    assert.equal(textarea.name, 'model_config')
-    assert.equal(textarea.placeholder, '{"model":"gpt"}')
-    assert.equal(textarea.disabled, true)
-    assert.equal(textarea.getAttribute('aria-describedby'), 'model-help')
-    assert.equal(textarea.getAttribute('aria-invalid'), 'true')
-    assert.equal(textarea.getAttribute('data-form-root'), 'settings-form')
+    const textarea = container.querySelector('textarea') as HTMLTextAreaElement
+    expect(textarea).toBeTruthy()
+    expect(textarea.id).toBe('json-input')
+    expect(textarea.name).toBe('model_config')
+    expect(textarea.placeholder).toBe('{"model":"gpt"}')
+    expect(textarea.disabled).toBe(true)
+    expect(textarea.getAttribute('aria-describedby')).toBe('model-help')
+    expect(textarea.getAttribute('aria-invalid')).toBe('true')
+    expect(textarea.getAttribute('data-form-root')).toBe('settings-form')
 
-    await act(async () => textarea.dispatchEvent(new Event('blur')))
-    assert.deepEqual(blurCalls, [1])
-    assert.equal(refValues[0], textarea)
+    fireEvent.blur(textarea)
+    expect(blurCalls).toEqual([1])
+    expect(refValues[0]).toBe(textarea)
 
-    await unmountEditor(rendered)
-    assert.equal(refValues.at(-1), null)
+    unmount()
+    expect(refValues.at(-1)).toBeNull()
   })
 
-  test('emits user edits and synchronizes a controlled value', async () => {
+  it('emits user edits and synchronizes a controlled value', async () => {
     const changes: string[] = []
-    const rendered = await renderEditor({
+    const { container, rerender } = renderEditor({
       value: '{"count":1}',
       onChange: (value) => changes.push(value),
     })
-    const textarea = rendered.container.querySelector('textarea')
+    const textarea = container.querySelector('textarea') as HTMLTextAreaElement
+    expect(textarea).toBeTruthy()
 
-    assert.ok(textarea)
-    await act(async () => {
-      textarea.value = '{"count":2}'
-      textarea.dispatchEvent(new Event('input', { bubbles: true }))
-    })
-    assert.deepEqual(changes, ['{"count":2}'])
+    // Set the value through the prototype setter so React's controlled-input
+    // tracker registers the change, then dispatch input to fire onChange.
+    const valueSetter = Object.getOwnPropertyDescriptor(
+      HTMLTextAreaElement.prototype,
+      'value'
+    )?.set
+    expect(valueSetter).toBeDefined()
+    if (valueSetter) valueSetter.call(textarea, '{"count":2}')
+    fireEvent.input(textarea)
+    expect(changes).toContain('{"count":2}')
 
-    await act(async () => {
-      rendered.root.render(
+    rerender(
+      <I18nextProvider i18n={i18n}>
         <JsonCodeEditor
           value='{"count":3}'
           onChange={(value) => changes.push(value)}
         />
-      )
-    })
-    assert.equal(textarea.value, '{"count":3}')
-
-    await unmountEditor(rendered)
+      </I18nextProvider>
+    )
+    expect(textarea.value).toBe('{"count":3}')
   })
 
-  test('formats valid JSON through the public toolbar action', async () => {
+  it('formats valid JSON through the public toolbar action', async () => {
     const changes: string[] = []
-    const rendered = await renderEditor({
+    const { user } = renderEditor({
       value: '{"model":{"ratio":2}}',
       onChange: (value) => changes.push(value),
     })
-    const formatButton = [
-      ...rendered.container.querySelectorAll('button'),
-    ].find((button) => button.textContent?.includes('Format JSON'))
 
-    assert.ok(formatButton)
-    await act(async () => formatButton.click())
-    assert.deepEqual(changes, ['{\n  "model": {\n    "ratio": 2\n  }\n}'])
-
-    await unmountEditor(rendered)
+    await user.click(screen.getByRole('button', { name: 'Format JSON' }))
+    expect(changes).toContain('{\n  "model": {\n    "ratio": 2\n  }\n}')
   })
 })

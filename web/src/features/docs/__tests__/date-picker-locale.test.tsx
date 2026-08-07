@@ -30,6 +30,7 @@ import userEvent from '@testing-library/user-event'
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { DatePicker } from '@/components/date-picker'
 import { DateTimePicker } from '@/components/datetime-picker'
 
@@ -49,16 +50,16 @@ beforeAll(async () => {
             'Select date': 'Select date',
           },
         },
-        zh: {
+        zhCN: {
           translation: { 'Pick a date': '选择日期', 'Select date': '选择日期' },
         },
-        'zh-TW': {
+        zhTW: {
           translation: { 'Pick a date': '選擇日期', 'Select date': '選擇日期' },
         },
       },
       lng: 'en',
       fallbackLng: 'en',
-      supportedLngs: ['en', 'zh', 'zh-TW'],
+      supportedLngs: ['en', 'zhCN', 'zhTW'],
       load: 'currentOnly',
       interpolation: { escapeValue: false },
       react: { useSuspense: false },
@@ -78,15 +79,15 @@ async function openFirstPopover() {
 }
 
 describe('DatePicker locale wiring', () => {
-  it('zh-TW selects the zhTW locale (code zh-TW)', async () => {
-    await i18n.changeLanguage('zh-TW')
+  it('zhTW selects the zhTW locale (code zh-TW)', async () => {
+    await i18n.changeLanguage('zhTW')
     render(<DatePicker selected={new Date(2024, 0, 15)} onSelect={() => {}} />)
     await openFirstPopover()
     expect(screen.getByTestId('calendar-locale').textContent).toBe('zh-TW')
   })
 
-  it('zh selects the zhCN locale (code zh-CN)', async () => {
-    await i18n.changeLanguage('zh')
+  it('zhCN selects the zhCN locale (code zh-CN)', async () => {
+    await i18n.changeLanguage('zhCN')
     render(<DatePicker selected={new Date(2024, 0, 15)} onSelect={() => {}} />)
     await openFirstPopover()
     expect(screen.getByTestId('calendar-locale').textContent).toBe('zh-CN')
@@ -100,15 +101,15 @@ describe('DatePicker locale wiring', () => {
 })
 
 describe('DateTimePicker locale wiring', () => {
-  it('zh-TW selects the zhTW locale (code zh-TW)', async () => {
-    await i18n.changeLanguage('zh-TW')
+  it('zhTW selects the zhTW locale (code zh-TW)', async () => {
+    await i18n.changeLanguage('zhTW')
     render(<DateTimePicker value={new Date(2024, 0, 15)} onChange={() => {}} />)
     await openFirstPopover()
     expect(screen.getByTestId('calendar-locale').textContent).toBe('zh-TW')
   })
 
-  it('zh selects the zhCN locale (code zh-CN)', async () => {
-    await i18n.changeLanguage('zh')
+  it('zhCN selects the zhCN locale (code zh-CN)', async () => {
+    await i18n.changeLanguage('zhCN')
     render(<DateTimePicker value={new Date(2024, 0, 15)} onChange={() => {}} />)
     await openFirstPopover()
     expect(screen.getByTestId('calendar-locale').textContent).toBe('zh-CN')

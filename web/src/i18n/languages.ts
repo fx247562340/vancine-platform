@@ -29,49 +29,64 @@ export const INTERFACE_LANGUAGE_OPTIONS = [
 export type InterfaceLanguageCode =
   (typeof INTERFACE_LANGUAGE_OPTIONS)[number]['code']
 
-export function normalizeInterfaceLanguage(value?: string | null): string {
+export function normalizeInterfaceLanguage(
+  value?: string | null
+): InterfaceLanguageCode {
   if (!value) return 'en'
 
-  let normalized = value.trim().replaceAll('_', '-').toLowerCase()
-  if (
-    value === 'zh-TW' ||
-    value === 'zh-HK' ||
-    value === 'zh-MO' ||
-    value === 'zhTW'
-  ) {
-    normalized = 'zhTW'
-  }
-  if (value === 'zh-CN' || value === 'zh-Hans' || value === 'zhCN') {
-    normalized = 'zhCN'
+  // Unify separators and case first, so every comparison below is
+  // case-insensitive (e.g. `ZH-Hant`, `zh_TW`, `ZHCN` all resolve).
+  const lower = value.trim().replaceAll('_', '-').toLowerCase()
+
+  // Idempotent on the internal camelCase codes themselves.
+  if (lower === 'zhcn') return 'zhCN'
+  if (lower === 'zhtw') return 'zhTW'
+
+  const subtags = lower.split('-')
+
+  // Chinese: decide Traditional vs Simplified from the tag's CORE subtags
+  // only. Iteration stops at the first singleton (a 1-character subtag such
+  // as `u`, `t`, `a` or `x`) that opens an extension or private-use section,
+  // so extension/private-use content is never mistaken for a script or region.
+  // Traditional regions/scripts are TW, HK, MO and Hant; anything else in the
+  // zh macrolanguage (bare `zh`, zh-CN, zh-Hans, zh-SG, ...) is Simplified,
+  // the project default. No whole-string prefix matching is used.
+  if (subtags[0] === 'zh') {
+    for (const subtag of subtags) {
+      if (subtag.length === 1) break
+      if (
+        subtag === 'tw' ||
+        subtag === 'hk' ||
+        subtag === 'mo' ||
+        subtag === 'hant'
+      ) {
+        return 'zhTW'
+      }
+    }
+    return 'zhCN'
   }
 
-  return INTERFACE_LANGUAGE_OPTIONS.some((lang) => lang.code === normalized)
-    ? normalized
-    : 'en'
+  // Non-Chinese: strip the region/script subtag and match a supported code
+  // (e.g. fr-FR -> fr, en-US -> en, ja-JP -> ja).
+  const base = subtags[0]
+  const match = INTERFACE_LANGUAGE_OPTIONS.find((lang) => lang.code === base)
+  return match ? match.code : 'en'
 }
 
 /**
  * Map a browser-detected locale onto the interface language codes this project
- * uses with i18next (`zhCN` / `zhTW`).
+ * uses with i18next (`zhCN` / `zhTW`). Browsers report standard BCP-47 tags
+ * (`zh-CN`, `zh-TW`, `zh-Hant`, `zh`, ...), but `supportedLngs`/resources use
+ * the non-standard camelCase codes, so without this mapping a Chinese browser
+ * would never match and fall back to English.
  *
- * Browsers report standard BCP-47 tags (`zh-CN`, `zh-TW`, `zh-Hant`, `zh`, ...),
- * but `supportedLngs`/resources use the non-standard camelCase codes, so without
- * this mapping a Chinese browser would never match and fall back to English.
- * Non-Chinese codes are returned unchanged so i18next's own `supportedLngs`
- * matching still applies (e.g. `fr-FR` -> `fr`, `ja` -> `ja`).
+ * Delegates to `normalizeInterfaceLanguage` so detection, the saved user
+ * preference, `<html lang>`, Intl and Accept-Language all share a single
+ * normalization entry point. Non-Chinese tags are likewise normalized to a
+ * supported code (region/script subtags stripped, unknown -> `en`).
  */
-export function convertDetectedLanguage(value: string): string {
-  const lower = value.trim().replaceAll('_', '-').toLowerCase()
-  if (!lower.startsWith('zh')) return value
-  if (
-    lower === 'zh-tw' ||
-    lower === 'zh-hk' ||
-    lower === 'zh-mo' ||
-    lower.startsWith('zh-hant')
-  ) {
-    return 'zhTW'
-  }
-  return 'zhCN'
+export function convertDetectedLanguage(value: string): InterfaceLanguageCode {
+  return normalizeInterfaceLanguage(value)
 }
 
 /**
@@ -80,36 +95,39 @@ export function convertDetectedLanguage(value: string): string {
  *
  * `new Intl.NumberFormat('zhCN')` throws `RangeError: Invalid language tag`, so
  * any locale derived from `i18n.language` / `i18n.resolvedLanguage` MUST be run
- * through this before it reaches an `Intl` constructor. Unknown values fall back
- * to `undefined`, which makes `Intl` use the runtime default locale.
+ * through this before it reaches an `Intl` constructor.
+ *
+ * Contract: an empty / null / undefined input returns `undefined` (letting
+ * `Intl` use the runtime default locale); any other value is first run through
+ * the shared normalization entry, so an unknown non-empty value resolves to
+ * `en` rather than `undefined`.
  */
 export function toIntlLocale(value?: string | null): string | undefined {
   if (!value) return undefined
-  switch (value) {
-    case 'zhCN':
-      return 'zh-CN'
-    case 'zhTW':
-      return 'zh-TW'
-    default:
-      break
-  }
+  // Reuse the single normalization entry so raw variants (e.g. a stale
+  // `zh-TW` reaching an Intl constructor) resolve before canonicalization.
+  const normalized = normalizeInterfaceLanguage(value)
+  if (normalized === 'zhCN') return 'zh-CN'
+  if (normalized === 'zhTW') return 'zh-TW'
   try {
-    return Intl.getCanonicalLocales(value)[0]
+    return Intl.getCanonicalLocales(normalized)[0]
   } catch {
     return undefined
   }
 }
 
 /**
- * Map an interface language code to the BCP 47 tag written to
- * `document.documentElement.lang`.
+ * Convert an interface language code to the canonical BCP 47 language tag —
+ * the single shared conversion consumed by `document.documentElement.lang`,
+ * the `Accept-Language` request header, and anywhere else a BCP 47 tag is
+ * needed (named for that general responsibility, not just the document).
  *
  * Simplified Chinese uses the unambiguous `zh-CN` form; Traditional Chinese
  * uses the precise `zh-TW` tag; every other supported language uses its code
- * verbatim (en, fr, ru, ja, vi). Shared by the production config wiring and the
- * tests so the `<html lang>` behavior cannot drift.
+ * verbatim (en, fr, ru, ja, vi). Input is normalized first, so legacy variant
+ * values resolve identically to the global interface.
  */
-export function getDocumentLanguage(code?: string | null): string {
+export function toLanguageTag(code?: string | null): string {
   const normalized = normalizeInterfaceLanguage(code)
   if (normalized === 'zhCN') return 'zh-CN'
   if (normalized === 'zhTW') return 'zh-TW'
@@ -125,7 +143,7 @@ export function getDocumentLanguage(code?: string | null): string {
  */
 export function applyDocumentLanguage(lng: string): void {
   if (typeof document !== 'undefined' && document.documentElement) {
-    const next = getDocumentLanguage(lng)
+    const next = toLanguageTag(lng)
     if (document.documentElement.lang !== next) {
       document.documentElement.lang = next
     }

@@ -16,30 +16,37 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-// Global auth saved-language restore behavior test. Housed under docs/__tests__
-// only because that is the fixed vitest scope (jsdom + `@` alias); it is not a
-// Docs feature test. It verifies that after login, a saved user language that
-// is a Traditional-Chinese VARIANT (e.g. zh-HK) is normalized to zh-TW (not
-// passed through verbatim or collapsed to zh) when restored.
+// Global auth saved-language restore behavior test. Not a Docs feature test;
+// it lives under docs/__tests__ only as legacy directory placement (relocating
+// it is tracked as non-blocking cleanup debt). It verifies that after login the
+// authenticated user's saved language preference (from `user.language` or
+// `user.setting`, object or JSON string) is normalized to a supported rc23
+// interface code before being applied to i18next: Traditional variants
+// (zh-TW, zh-HK, zh-Hant) restore as zhTW and Simplified variants (zh-Hans)
+// as zhCN, never falling back to English. The redirect target is navigated
+// with replace.
 import { act, renderHook, waitFor } from '@testing-library/react'
 import i18n from 'i18next'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { useAuthRedirect } from '@/features/auth/hooks/use-auth-redirect'
+import type { AuthBundle, AuthUser } from '@/stores/auth-store'
 
 const navigateMock = vi.fn()
 vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => navigateMock,
 }))
 
-const getSelfMock = vi.fn()
+const applyAuthBundleMock = vi.fn()
 vi.mock('@/lib/api', () => ({
-  getSelf: (...args: unknown[]) => getSelfMock(...args),
+  applyAuthBundle: (...args: unknown[]) => applyAuthBundleMock(...args),
 }))
 
 const resources = {
   en: { translation: {} },
-  zh: { translation: {} },
-  'zh-TW': { translation: {} },
+  zhCN: { translation: {} },
+  zhTW: { translation: {} },
+  fr: { translation: {} },
 }
 
 beforeAll(async () => {
@@ -48,7 +55,7 @@ beforeAll(async () => {
       resources,
       lng: 'en',
       fallbackLng: 'en',
-      supportedLngs: ['en', 'zh', 'zh-TW'],
+      supportedLngs: ['en', 'zhCN', 'zhTW', 'fr'],
       load: 'currentOnly',
       interpolation: { escapeValue: false },
     })
@@ -57,66 +64,87 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   navigateMock.mockReset()
-  getSelfMock.mockReset()
+  applyAuthBundleMock.mockReset()
   await i18n.changeLanguage('en')
 })
 
-function userWithLanguage(language: string) {
+function bundleWithUser(user: Partial<AuthUser>): AuthBundle {
   return {
-    success: true,
-    data: { id: 1, setting: JSON.stringify({ language }) },
+    access_token: 'access-token',
+    token_type: 'Bearer',
+    access_expires_at: 2_000_000_000,
+    user: {
+      id: 1,
+      username: 'tester',
+      role: 1,
+      ...user,
+    },
+    session: {
+      sid: 'session-1',
+      current: true,
+      login_method: 'password',
+      ip: '127.0.0.1',
+      user_agent: 'test-agent',
+      created_at: 0,
+      last_active_at: 0,
+      expires_at: 2_000_000_000,
+    },
   }
 }
 
 describe('useAuthRedirect — saved language restore', () => {
-  it('restores a saved zh-TW preference', async () => {
-    getSelfMock.mockResolvedValue(userWithLanguage('zh-TW'))
+  it('restores a saved zh-TW preference and applies the auth bundle', async () => {
+    const bundle = bundleWithUser({
+      setting: JSON.stringify({ language: 'zh-TW' }),
+    })
     const { result } = renderHook(() => useAuthRedirect())
 
     await act(async () => {
-      await result.current.handleLoginSuccess({ id: 1 }, '/dashboard')
+      await result.current.handleLoginSuccess(bundle, '/dashboard')
     })
 
-    await waitFor(() => expect(i18n.language).toBe('zh-TW'))
+    expect(applyAuthBundleMock).toHaveBeenCalledWith(bundle)
+    await waitFor(() => expect(i18n.language).toBe('zhTW'))
     expect(navigateMock).toHaveBeenCalledWith({
-      to: '/dashboard',
+      href: '/dashboard',
       replace: true,
     })
   })
 
-  it('normalizes a saved zh-HK variant to zh-TW on restore', async () => {
-    getSelfMock.mockResolvedValue(userWithLanguage('zh-HK'))
+  it('normalizes a saved zh-HK variant to zhTW on restore', async () => {
+    const bundle = bundleWithUser({
+      setting: JSON.stringify({ language: 'zh-HK' }),
+    })
     const { result } = renderHook(() => useAuthRedirect())
 
     await act(async () => {
-      await result.current.handleLoginSuccess({ id: 1 })
+      await result.current.handleLoginSuccess(bundle)
     })
 
-    await waitFor(() => expect(i18n.language).toBe('zh-TW'))
+    await waitFor(() => expect(i18n.language).toBe('zhTW'))
   })
 
-  it('normalizes a saved zh-Hans variant to zh on restore', async () => {
-    getSelfMock.mockResolvedValue(userWithLanguage('zh-Hans'))
+  it('normalizes a saved zh-Hans variant to zhCN on restore', async () => {
+    const bundle = bundleWithUser({
+      setting: JSON.stringify({ language: 'zh-Hans' }),
+    })
     const { result } = renderHook(() => useAuthRedirect())
 
     await act(async () => {
-      await result.current.handleLoginSuccess({ id: 1 })
+      await result.current.handleLoginSuccess(bundle)
     })
 
-    await waitFor(() => expect(i18n.language).toBe('zh'))
+    await waitFor(() => expect(i18n.language).toBe('zhCN'))
   })
 
-  it('reads language from a top-level user.language field too', async () => {
-    getSelfMock.mockResolvedValue({
-      success: true,
-      data: { id: 1, language: 'zh-Hant' },
-    })
+  it('reads a top-level user.language variant and normalizes it too', async () => {
+    const bundle = bundleWithUser({ language: 'zh-Hant' })
     const { result } = renderHook(() => useAuthRedirect())
 
     await act(async () => {
-      await result.current.handleLoginSuccess({ id: 1 })
+      await result.current.handleLoginSuccess(bundle)
     })
 
-    await waitFor(() => expect(i18n.language).toBe('zh-TW'))
+    await waitFor(() => expect(i18n.language).toBe('zhTW'))
   })
 })

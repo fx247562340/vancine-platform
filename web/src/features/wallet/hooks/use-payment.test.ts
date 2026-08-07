@@ -42,6 +42,10 @@ describe('payment amount routing', () => {
         calls.push('pancake')
         return { success: true, data: '4' }
       },
+      paypal: async () => {
+        calls.push('paypal')
+        return { success: true, data: '5' }
+      },
     })
 
     assert.equal(amount, 18.75)

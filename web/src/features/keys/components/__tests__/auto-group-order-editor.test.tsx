@@ -16,47 +16,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import assert from 'node:assert/strict'
-import { after, describe, test } from 'node:test'
+import { fireEvent, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import i18next from 'i18next'
+import { useState } from 'react'
+import { I18nextProvider, initReactI18next } from 'react-i18next'
+import { describe, expect, it } from 'vitest'
 
-import { Window } from 'happy-dom'
+import { AutoGroupOrderEditor } from '../auto-group-order-editor'
 
-const domWindow = new Window()
-const domGlobals = [
-  'window',
-  'document',
-  'navigator',
-  'HTMLElement',
-  'HTMLButtonElement',
-  'HTMLInputElement',
-  'SVGElement',
-  'Node',
-  'Element',
-  'Event',
-  'KeyboardEvent',
-  'PointerEvent',
-  'CustomEvent',
-  'MutationObserver',
-  'ResizeObserver',
-  'requestAnimationFrame',
-  'cancelAnimationFrame',
-  'getComputedStyle',
-] as const
-
-for (const key of domGlobals) {
-  Object.defineProperty(globalThis, key, {
-    configurable: true,
-    value: domWindow[key],
-  })
-}
-
-const { act, useState } = await import('react')
-const { createRoot } = await import('react-dom/client')
-const { createInstance } = await import('i18next')
-const { I18nextProvider, initReactI18next } = await import('react-i18next')
-const { AutoGroupOrderEditor } = await import('../auto-group-order-editor')
-
-const i18n = createInstance()
+const i18n = i18next.createInstance()
 await i18n.use(initReactI18next).init({
   lng: 'en',
   resources: {
@@ -89,11 +58,6 @@ await i18n.use(initReactI18next).init({
     },
   },
 })
-
-const reactTestGlobals = globalThis as typeof globalThis & {
-  IS_REACT_ACT_ENVIRONMENT?: boolean
-}
-reactTestGlobals.IS_REACT_ACT_ENVIRONMENT = true
 
 const globalOptions = [
   { value: 'vip', label: 'VIP', desc: 'Priority access', ratio: 3 },
@@ -176,163 +140,108 @@ function CustomEmptyHarness() {
   )
 }
 
-function findButton(container: ParentNode, label: string): HTMLButtonElement {
-  const button = container.querySelector<HTMLButtonElement>(
-    `button[aria-label="${label}"]`
-  )
-  assert.ok(button)
-  return button
+function findButton(label: string): HTMLButtonElement {
+  return screen.getByRole('button', { name: label }) as HTMLButtonElement
+}
+
+async function openAddAndPick(
+  user: ReturnType<typeof userEvent.setup>,
+  label: string
+) {
+  const addButton = screen.getByRole('combobox')
+  await user.click(addButton)
+  const option = [
+    ...document.body.querySelectorAll<HTMLElement>(
+      '[data-slot="command-item"]'
+    ),
+  ].find((candidate) => candidate.textContent?.includes(label))
+  expect(option).not.toBeUndefined()
+  await user.click(option as HTMLElement)
 }
 
 describe('Auto group order editor', () => {
-  after(() => {
-    domWindow.close()
-  })
+  it('enforces the limit and exposes accessible reorder controls', async () => {
+    const user = userEvent.setup()
+    const { container } = render(<Harness />)
 
-  test('enforces the limit and exposes accessible reorder controls', async () => {
-    const container = document.createElement('div')
-    document.body.append(container)
-    const root = createRoot(container)
-
-    await act(async () => root.render(<Harness />))
-
-    const addButton = container.querySelector<HTMLButtonElement>(
-      'button[role="combobox"]'
-    )
-    assert.ok(addButton)
-    assert.equal(addButton.disabled, true)
-    assert.equal(container.textContent?.includes('2 / 2 groups selected'), true)
-    assert.ok(
+    const addButton = screen.getByRole('combobox')
+    expect(addButton).toBeDisabled()
+    expect(container.textContent?.includes('2 / 2 groups selected')).toBe(true)
+    expect(
       container.querySelector('[role="group"][aria-label="Auto group order"]')
-    )
-    assert.equal(
-      findButton(container, 'Drag default to reorder').type,
-      'button'
-    )
+    ).not.toBeNull()
+    expect(findButton('Drag default to reorder').type).toBe('button')
 
-    await act(async () => findButton(container, 'Move default down').click())
-    assert.equal(
-      container.querySelector('[data-testid="order"]')?.textContent,
-      'vip,default'
-    )
+    await user.click(findButton('Move default down'))
+    expect(screen.getByTestId('order').textContent).toBe('vip,default')
 
-    await act(async () => {
-      findButton(container, 'Drag vip to reorder').dispatchEvent(
-        new domWindow.KeyboardEvent('keydown', {
-          key: 'ArrowDown',
-          bubbles: true,
-        }) as unknown as KeyboardEvent
-      )
+    fireEvent.keyDown(findButton('Drag vip to reorder'), {
+      key: 'ArrowDown',
     })
-    assert.equal(
-      container.querySelector('[data-testid="order"]')?.textContent,
-      'default,vip'
-    )
-
-    await act(async () => root.unmount())
-    container.remove()
+    expect(screen.getByTestId('order').textContent).toBe('default,vip')
   })
 
-  test('adds and removes groups, then restores inheritance as an empty value', async () => {
-    const container = document.createElement('div')
-    document.body.append(container)
-    const root = createRoot(container)
+  it('adds and removes groups, then restores inheritance as an empty value', async () => {
+    const user = userEvent.setup()
+    const { container } = render(<Harness />)
 
-    await act(async () => root.render(<Harness />))
-    await act(async () => findButton(container, 'Remove vip').click())
+    await user.click(findButton('Remove vip'))
+    expect(screen.getByTestId('order').textContent).toBe('default')
 
-    assert.equal(
-      container.querySelector('[data-testid="order"]')?.textContent,
-      'default'
-    )
-    const addButton = container.querySelector<HTMLButtonElement>(
-      'button[role="combobox"]'
-    )
-    assert.ok(addButton)
-    assert.equal(addButton.disabled, false)
+    const addButton = screen.getByRole('combobox')
+    expect(addButton).toBeEnabled()
+    await openAddAndPick(user, 'team')
+    expect(screen.getByTestId('order').textContent).toBe('default,team')
+    expect(screen.getByRole('combobox')).toBeDisabled()
 
-    await act(async () => addButton.click())
-    const teamOption = [
-      ...document.querySelectorAll<HTMLElement>('[data-slot="command-item"]'),
-    ].find((option) => option.textContent?.includes('team'))
-    assert.ok(teamOption)
-    await act(async () => teamOption.click())
-    assert.equal(
-      container.querySelector('[data-testid="order"]')?.textContent,
-      'default,team'
-    )
-    assert.equal(addButton.disabled, true)
+    const restoreButton = screen.getByRole('button', {
+      name: 'Restore global Auto',
+    })
+    await user.click(restoreButton)
 
-    const restoreButton = [...container.querySelectorAll('button')].find(
-      (button) => button.textContent?.includes('Restore global Auto')
-    )
-    assert.ok(restoreButton)
-    await act(async () => restoreButton.click())
-
-    assert.equal(
-      container.querySelector('[data-testid="order"]')?.textContent,
-      ''
-    )
-    assert.equal(
-      container.querySelector('[data-testid="mode"]')?.textContent,
-      'inherit'
-    )
-    assert.equal(
+    expect(screen.getByTestId('order').textContent).toBe('')
+    expect(screen.getByTestId('mode').textContent).toBe('inherit')
+    expect(
       container.textContent?.includes(
         'Using the complete global Auto order (3 groups)'
-      ),
-      true
-    )
+      )
+    ).toBe(true)
 
     const inheritedItems = container.querySelectorAll(
       '[data-slot="global-auto-order"] > li'
     )
-    assert.deepEqual(
+    expect(
       [...inheritedItems].map(
         (item) =>
           item.querySelector('[data-slot="global-auto-order-name"]')
             ?.textContent
-      ),
-      ['VIP', 'Default', 'Team']
-    )
-
-    await act(async () => root.unmount())
-    container.remove()
+      )
+    ).toEqual(['VIP', 'Default', 'Team'])
   })
 
-  test('shows the complete inherited order with metadata beyond the custom limit', async () => {
-    const container = document.createElement('div')
-    document.body.append(container)
-    const root = createRoot(container)
+  it('shows the complete inherited order with metadata beyond the custom limit', () => {
+    const { container } = render(<InheritanceHarness />)
 
-    await act(async () => root.render(<InheritanceHarness />))
-
-    assert.equal(
+    expect(
       container.textContent?.includes(
         'Using the complete global Auto order (3 groups)'
-      ),
-      true
-    )
-    assert.equal(
-      container.textContent?.includes('0 / 2 groups selected'),
-      false
-    )
+      )
+    ).toBe(true)
+    expect(container.textContent?.includes('0 / 2 groups selected')).toBe(false)
 
-    const order = container.querySelector<HTMLOListElement>(
+    const order = container.querySelector(
       '[data-slot="global-auto-order"]'
-    )
-    assert.ok(order)
-    assert.equal(order.classList.contains('overflow-y-auto'), true)
-    assert.equal(order.classList.contains('flex-wrap'), true)
+    ) as HTMLOListElement
+    expect(order).toBeTruthy()
+    expect(order.classList.contains('overflow-y-auto')).toBe(true)
+    expect(order.classList.contains('flex-wrap')).toBe(true)
 
     const items = [...order.querySelectorAll('li')]
-    assert.equal(items.length, 3)
-    assert.equal(
-      order.querySelectorAll('[data-slot="global-auto-order-connector"]')
-        .length,
-      2
-    )
-    assert.deepEqual(
+    expect(items.length).toBe(3)
+    expect(
+      order.querySelectorAll('[data-slot="global-auto-order-connector"]').length
+    ).toBe(2)
+    expect(
       items.map((item) => ({
         index: item.querySelector('[data-slot="global-auto-order-index"]')
           ?.textContent,
@@ -345,196 +254,130 @@ describe('Auto group order editor', () => {
           '[data-slot="global-auto-order-description"]'
         )?.textContent,
         ratio: item.querySelector('[data-slot="badge"]')?.textContent,
-      })),
-      [
-        {
-          index: '1',
-          name: 'VIP',
-          title: 'Priority access',
-          description: 'Priority access',
-          ratio: '3x Ratio',
-        },
-        {
-          index: '2',
-          name: 'Default',
-          title: 'Standard access',
-          description: 'Standard access',
-          ratio: '1x Ratio',
-        },
-        {
-          index: '3',
-          name: 'Team',
-          title: 'Shared access',
-          description: 'Shared access',
-          ratio: '2x Ratio',
-        },
-      ]
-    )
+      }))
+    ).toEqual([
+      {
+        index: '1',
+        name: 'VIP',
+        title: 'Priority access',
+        description: 'Priority access',
+        ratio: '3x Ratio',
+      },
+      {
+        index: '2',
+        name: 'Default',
+        title: 'Standard access',
+        description: 'Standard access',
+        ratio: '1x Ratio',
+      },
+      {
+        index: '3',
+        name: 'Team',
+        title: 'Shared access',
+        description: 'Shared access',
+        ratio: '2x Ratio',
+      },
+    ])
 
     for (const item of items) {
       const chip = item.querySelector('[data-slot="global-auto-order-chip"]')
-      assert.ok(chip)
+      expect(chip).not.toBeNull()
       const description = item.querySelector(
         '[data-slot="global-auto-order-description"]'
       )
-      assert.ok(description)
-      assert.equal(description.classList.contains('sr-only'), true)
+      expect(description).not.toBeNull()
+      expect(description?.classList.contains('sr-only')).toBe(true)
     }
 
-    assert.equal(
-      items[0]?.querySelector('[data-slot="global-auto-order-connector"]'),
-      null
-    )
+    expect(
+      items[0]?.querySelector('[data-slot="global-auto-order-connector"]')
+    ).toBeNull()
     for (const item of items.slice(1)) {
       const connector = item.querySelector(
         '[data-slot="global-auto-order-connector"]'
       )
-      assert.ok(connector)
-      assert.equal(connector.getAttribute('aria-hidden'), 'true')
+      expect(connector).not.toBeNull()
+      expect(connector?.getAttribute('aria-hidden')).toBe('true')
     }
 
-    assert.equal(container.querySelector('[aria-label^="Drag "]'), null)
-    assert.equal(container.querySelector('[aria-label^="Move "]'), null)
-    assert.equal(container.querySelector('[aria-label^="Remove "]'), null)
+    expect(container.querySelector('[aria-label^="Drag "]')).toBeNull()
+    expect(container.querySelector('[aria-label^="Move "]')).toBeNull()
+    expect(container.querySelector('[aria-label^="Remove "]')).toBeNull()
 
-    const restoreButton = [...container.querySelectorAll('button')].find(
-      (button) => button.textContent?.includes('Restore global Auto')
-    )
-    assert.ok(restoreButton)
-    assert.equal(restoreButton.disabled, true)
-
-    await act(async () => root.unmount())
-    container.remove()
+    const restoreButton = screen.getByRole('button', {
+      name: 'Restore global Auto',
+    })
+    expect(restoreButton).toBeDisabled()
   })
 
-  test('shows an explicit empty state when the global Auto order has no groups', async () => {
-    const container = document.createElement('div')
-    document.body.append(container)
-    const root = createRoot(container)
+  it('shows an explicit empty state when the global Auto order has no groups', () => {
+    const { container } = render(<InheritanceHarness globalOptions={[]} />)
 
-    await act(async () =>
-      root.render(<InheritanceHarness globalOptions={[]} />)
-    )
-
-    assert.equal(
+    expect(
       container.textContent?.includes(
         'Using the complete global Auto order (0 groups)'
-      ),
-      true
-    )
-    assert.equal(
+      )
+    ).toBe(true)
+    expect(
       container.textContent?.includes(
         'No available groups in the global Auto order.'
-      ),
-      true
-    )
-    assert.equal(
-      container.querySelector('[data-slot="global-auto-order"]'),
-      null
-    )
-
-    await act(async () => root.unmount())
-    container.remove()
+      )
+    ).toBe(true)
+    expect(
+      container.querySelector('[data-slot="global-auto-order"]')
+    ).toBeNull()
   })
 
-  test('keeps an empty custom order distinct from global inheritance', async () => {
-    const container = document.createElement('div')
-    document.body.append(container)
-    const root = createRoot(container)
+  it('keeps an empty custom order distinct from global inheritance', async () => {
+    const user = userEvent.setup()
+    const { container } = render(<CustomEmptyHarness />)
 
-    await act(async () => root.render(<CustomEmptyHarness />))
-
-    assert.equal(
-      container.querySelector('[data-testid="mode"]')?.textContent,
-      'custom'
-    )
-    assert.equal(
+    expect(screen.getByTestId('mode').textContent).toBe('custom')
+    expect(
       container.textContent?.includes(
         'No valid custom Auto groups remain. Add a group or restore global Auto.'
-      ),
-      true
-    )
-    assert.equal(
-      container.querySelector('[data-slot="global-auto-order"]'),
-      null
-    )
+      )
+    ).toBe(true)
+    expect(
+      container.querySelector('[data-slot="global-auto-order"]')
+    ).toBeNull()
 
-    const restoreButton = [...container.querySelectorAll('button')].find(
-      (button) => button.textContent?.includes('Restore global Auto')
-    )
-    assert.ok(restoreButton)
-    assert.equal(restoreButton.disabled, false)
-    await act(async () => restoreButton.click())
+    const restoreButton = screen.getByRole('button', {
+      name: 'Restore global Auto',
+    })
+    expect(restoreButton).toBeEnabled()
+    await user.click(restoreButton)
 
-    assert.equal(
-      container.querySelector('[data-testid="mode"]')?.textContent,
-      'inherit'
-    )
-    assert.ok(container.querySelector('[data-slot="global-auto-order"]'))
-
-    await act(async () => root.unmount())
-    container.remove()
+    expect(screen.getByTestId('mode').textContent).toBe('inherit')
+    expect(
+      container.querySelector('[data-slot="global-auto-order"]')
+    ).not.toBeNull()
   })
 
-  test('adding a group from inheritance explicitly creates a custom order', async () => {
-    const container = document.createElement('div')
-    document.body.append(container)
-    const root = createRoot(container)
+  it('adding a group from inheritance explicitly creates a custom order', async () => {
+    const user = userEvent.setup()
+    const { container } = render(<InheritanceHarness />)
 
-    await act(async () => root.render(<InheritanceHarness />))
+    await openAddAndPick(user, 'VIP')
 
-    const addButton = container.querySelector<HTMLButtonElement>(
-      'button[role="combobox"]'
-    )
-    assert.ok(addButton)
-    await act(async () => addButton.click())
-    const vipOption = [
-      ...document.querySelectorAll<HTMLElement>('[data-slot="command-item"]'),
-    ].find((option) => option.textContent?.includes('VIP'))
-    assert.ok(vipOption)
-    await act(async () => vipOption.click())
-
-    assert.equal(
-      container.querySelector('[data-testid="mode"]')?.textContent,
-      'custom'
-    )
-    assert.equal(
-      container.querySelector('[data-testid="order"]')?.textContent,
-      'vip'
-    )
-    assert.equal(
-      container.querySelector('[data-slot="global-auto-order"]'),
-      null
-    )
-
-    await act(async () => root.unmount())
-    container.remove()
+    expect(screen.getByTestId('mode').textContent).toBe('custom')
+    expect(screen.getByTestId('order').textContent).toBe('vip')
+    expect(
+      container.querySelector('[data-slot="global-auto-order"]')
+    ).toBeNull()
   })
 
-  test('removing the last custom group does not silently enable inheritance', async () => {
-    const container = document.createElement('div')
-    document.body.append(container)
-    const root = createRoot(container)
+  it('removing the last custom group does not silently enable inheritance', async () => {
+    const user = userEvent.setup()
+    const { container } = render(<Harness initialGroups={['default']} />)
 
-    await act(async () => root.render(<Harness initialGroups={['default']} />))
-    await act(async () => findButton(container, 'Remove default').click())
-
-    assert.equal(
-      container.querySelector('[data-testid="order"]')?.textContent,
-      ''
-    )
-    assert.equal(
-      container.querySelector('[data-testid="mode"]')?.textContent,
-      'custom'
-    )
-    assert.equal(
+    await user.click(findButton('Remove default'))
+    expect(screen.getByTestId('order').textContent).toBe('')
+    expect(screen.getByTestId('mode').textContent).toBe('custom')
+    expect(
       container.textContent?.includes(
         'No valid custom Auto groups remain. Add a group or restore global Auto.'
-      ),
-      true
-    )
-
-    await act(async () => root.unmount())
-    container.remove()
+      )
+    ).toBe(true)
   })
 })

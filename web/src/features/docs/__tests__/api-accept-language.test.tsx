@@ -16,21 +16,22 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-// Global API Accept-Language behavior test. Housed under docs/__tests__ only
-// because that is the fixed vitest scope (jsdom + `@` alias); it is not a Docs
-// feature test. It verifies BOTH request paths in @/lib/api send the same
-// Accept-Language for a given UI language: the Axios request interceptor and
-// getCommonHeaders (used for SSE/fetch-style calls).
+// Global API Accept-Language behavior test. Not a Docs feature test; it lives
+// under docs/__tests__ only as legacy directory placement (relocating it is
+// tracked as non-blocking cleanup debt). It verifies BOTH request paths in
+// @/lib/api send the same Accept-Language for a given UI language: the Axios
+// request interceptor and getCommonHeaders (used for SSE/fetch-style calls).
 import type { AxiosAdapter, AxiosRequestConfig } from 'axios'
-import { normalizeInterfaceLanguage } from '@/i18n/languages'
 import i18n from 'i18next'
 import { beforeAll, describe, expect, it } from 'vitest'
+
+import { normalizeInterfaceLanguage } from '@/i18n/languages'
 import { api, getCommonHeaders } from '@/lib/api'
 
 const resources = {
   en: { translation: {} },
-  zh: { translation: {} },
-  'zh-TW': { translation: {} },
+  zhCN: { translation: {} },
+  zhTW: { translation: {} },
 }
 
 beforeAll(async () => {
@@ -39,7 +40,7 @@ beforeAll(async () => {
       resources,
       lng: 'en',
       fallbackLng: 'en',
-      supportedLngs: ['en', 'zh', 'zh-TW'],
+      supportedLngs: ['en', 'zhCN', 'zhTW'],
       load: 'currentOnly',
       interpolation: { escapeValue: false },
     })

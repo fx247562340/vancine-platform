@@ -16,11 +16,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useMemo } from 'react'
 import { Link } from '@tanstack/react-router'
 import { ArrowRight, Braces, Globe } from 'lucide-react'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+
 import { Badge } from '@/components/ui/badge'
+
 import { DocsCallout } from '../components/callout'
 import { DocsCodeBlock } from '../components/code-block'
 import { DocsCodeTabs } from '../components/code-tabs'
@@ -194,7 +196,7 @@ console.log(response.choices[0].message.content);`,
       <DocsP>{t('quickstart.step1.desc')}</DocsP>
       <div className='mb-4 flex gap-2'>
         <Link
-          to='/console/token'
+          to='/keys'
           className='bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-colors focus-visible:ring-2'
         >
           {t('quickstart.step1.cta')}

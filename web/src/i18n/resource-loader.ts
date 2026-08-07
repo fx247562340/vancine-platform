@@ -55,23 +55,46 @@ export const LOCALE_LOADERS = {
 export type SupportedLocaleCode = keyof typeof LOCALE_LOADERS
 
 /**
+ * Injectable loader table for `loadTranslationBundle`. Defaults to the
+ * production `LOCALE_LOADERS`; tests pass a local table (e.g. containing a
+ * rejecting loader) so failure paths can be exercised without mutating the
+ * shared module-level loaders.
+ */
+export type LocaleLoaderTable = Partial<
+  Record<SupportedLocaleCode, () => Promise<unknown>>
+>
+
+/**
  * Extract the `translation` namespace bundle from a dynamically imported
  * locale JSON module. The locale files wrap their keys under a top-level
  * `translation` field (see locales/*.json); i18next backends must hand
  * back the namespace bundle itself, so unwrap it here.
  */
 export function unwrapTranslationBundle(mod: unknown): Record<string, unknown> {
-  const json = (
+  // Unwrap a dynamic-import module's `default` export when present.
+  const json: unknown =
     mod && typeof mod === 'object' && 'default' in mod
       ? (mod as { default: unknown }).default
       : mod
-  ) as Record<string, unknown> | null | undefined
-  if (!json || typeof json !== 'object') return {}
-  const wrapped = json.translation
-  if (wrapped && typeof wrapped === 'object') {
-    return wrapped as Record<string, unknown>
+
+  // Only a non-null, non-array object can be a bundle.
+  if (!json || typeof json !== 'object' || Array.isArray(json)) return {}
+
+  const bundle = json as Record<string, unknown>
+
+  // When a `translation` wrapper exists it must itself be a non-array object;
+  // any other shape (null, array, string, number, ...) is treated as invalid
+  // and yields an empty bundle.
+  if ('translation' in bundle) {
+    const wrapped = bundle.translation
+    if (wrapped && typeof wrapped === 'object' && !Array.isArray(wrapped)) {
+      return wrapped as Record<string, unknown>
+    }
+    return {}
   }
-  return json
+
+  // No `translation` wrapper: hand the plain object back unchanged.
+  return bundle
 }
 
 /**
@@ -81,11 +104,10 @@ export function unwrapTranslationBundle(mod: unknown): Record<string, unknown> {
  * the `en` fallback instead of hanging on a white screen. Never rejects.
  */
 export async function loadTranslationBundle(
-  language: string
+  language: string,
+  loaders: LocaleLoaderTable = LOCALE_LOADERS
 ): Promise<Record<string, unknown>> {
-  const loader = LOCALE_LOADERS[language as SupportedLocaleCode] as
-    | (() => Promise<unknown>)
-    | undefined
+  const loader = loaders[language as SupportedLocaleCode]
   if (typeof loader !== 'function') return {}
   try {
     return unwrapTranslationBundle(await loader())
@@ -105,28 +127,43 @@ export async function loadTranslationBundle(
  * i18next instances — e.g. tests using `createInstance()` — from
  * interfering with each other.
  */
-export function createLazyResourceBackend(): BackendModule {
+export function createLazyResourceBackend(
+  loadBundle: (
+    language: string
+  ) => Promise<Record<string, unknown>> = loadTranslationBundle
+): BackendModule {
   return {
     type: 'backend',
     init() {
       // No backend-level options to configure.
     },
-    read(language: string, namespace: string, callback: ReadCallback): void {
+    async read(
+      language: string,
+      namespace: string,
+      callback: ReadCallback
+    ): Promise<void> {
       // The app uses a single `translation` namespace managed by this
       // backend. Other namespaces (e.g. 'docs') are loaded independently
       // by their own providers. Returning an error tells i18next the load
       // failed so it does NOT register an empty bundle — which would
       // shadow the real bundle loaded later by the namespace's own provider.
       if (namespace !== 'translation') {
-        callback(true, undefined)
+        callback(
+          new Error(`Namespace "${namespace}" is loaded by its own provider`),
+          null
+        )
         return
       }
-      loadTranslationBundle(language).then(
-        (data) => callback(null, data),
-        // loadTranslationBundle never rejects, but guard anyway so the app
-        // never hangs waiting on resources.
-        () => callback(null, {})
-      )
+      // loadTranslationBundle never rejects (it catches internally), but guard
+      // anyway so the callback is always invoked exactly once with a real
+      // (possibly empty) bundle rather than left dangling.
+      let data: Record<string, unknown> = {}
+      try {
+        data = await loadBundle(language)
+      } catch {
+        data = {}
+      }
+      callback(null, data)
     },
   }
 }

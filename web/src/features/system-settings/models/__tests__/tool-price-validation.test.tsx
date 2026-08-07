@@ -16,45 +16,15 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import assert from 'node:assert/strict'
-import { after, describe, test } from 'node:test'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { fireEvent, render, screen } from '@testing-library/react'
+import i18next from 'i18next'
+import { I18nextProvider, initReactI18next } from 'react-i18next'
+import { afterEach, describe, expect, it } from 'vitest'
 
-import { Window } from 'happy-dom'
+import { ToolPriceSettings } from '../tool-price-settings'
 
-const domWindow = new Window()
-const domGlobals = [
-  'window',
-  'document',
-  'navigator',
-  'HTMLElement',
-  'HTMLInputElement',
-  'SVGElement',
-  'Node',
-  'Element',
-  'Event',
-  'CustomEvent',
-  'MutationObserver',
-  'requestAnimationFrame',
-  'cancelAnimationFrame',
-  'getComputedStyle',
-] as const
-
-for (const key of domGlobals) {
-  Object.defineProperty(globalThis, key, {
-    configurable: true,
-    value: domWindow[key],
-  })
-}
-
-const { act } = await import('react')
-const { createRoot } = await import('react-dom/client')
-const { QueryClient, QueryClientProvider } =
-  await import('@tanstack/react-query')
-const { createInstance } = await import('i18next')
-const { I18nextProvider, initReactI18next } = await import('react-i18next')
-const { ToolPriceSettings } = await import('../tool-price-settings')
-
-const i18n = createInstance()
+const i18n = i18next.createInstance()
 await i18n.use(initReactI18next).init({
   lng: 'en',
   resources: {
@@ -68,76 +38,58 @@ await i18n.use(initReactI18next).init({
   },
 })
 
-const reactTestGlobals = globalThis as typeof globalThis & {
-  IS_REACT_ACT_ENVIRONMENT?: boolean
-}
-reactTestGlobals.IS_REACT_ACT_ENVIRONMENT = true
+let queryClient: QueryClient
 
-function changeInputValue(input: HTMLInputElement, value: string) {
+afterEach(() => {
+  queryClient.clear()
+})
+
+function setNativeValue(input: HTMLInputElement, value: string) {
+  // Set the value through the prototype setter so React's controlled-input
+  // tracker registers the change, then dispatch input to fire onChange.
   const valueSetter = Object.getOwnPropertyDescriptor(
-    domWindow.HTMLInputElement.prototype,
+    HTMLInputElement.prototype,
     'value'
   )?.set
-  assert.ok(valueSetter)
-  valueSetter.call(input, value)
-  input.dispatchEvent(
-    new domWindow.Event('input', { bubbles: true }) as unknown as Event
+  expect(valueSetter).toBeDefined()
+  if (valueSetter) valueSetter.call(input, value)
+  fireEvent.input(input)
+}
+
+function renderSettings(props: React.ComponentProps<typeof ToolPriceSettings>) {
+  queryClient = new QueryClient({
+    defaultOptions: { mutations: { retry: false } },
+  })
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <I18nextProvider i18n={i18n}>
+        <ToolPriceSettings {...props} />
+      </I18nextProvider>
+    </QueryClientProvider>
   )
 }
 
 describe('tool price validation', () => {
-  after(() => {
-    domWindow.close()
-  })
+  it('blocks an empty price without converting it to an explicit zero', () => {
+    renderSettings({ defaultValue: '{"web_search":10}' })
 
-  test('blocks an empty price without converting it to an explicit zero', async () => {
-    const container = document.createElement('div')
-    document.body.append(container)
-    const root = createRoot(container)
-    const queryClient = new QueryClient({
-      defaultOptions: { mutations: { retry: false } },
-    })
+    const priceInput = screen.getByLabelText(
+      'Price ($/1K calls): web_search'
+    ) as HTMLInputElement
 
-    await act(async () => {
-      root.render(
-        <QueryClientProvider client={queryClient}>
-          <I18nextProvider i18n={i18n}>
-            <ToolPriceSettings defaultValue='{"web_search":10}' />
-          </I18nextProvider>
-        </QueryClientProvider>
-      )
-    })
+    setNativeValue(priceInput, '')
 
-    const priceInput = container.querySelector<HTMLInputElement>(
-      'input[aria-label="Price ($/1K calls): web_search"]'
-    )
-    assert.ok(priceInput)
-
-    await act(async () => {
-      changeInputValue(priceInput, '')
-    })
-
-    assert.equal(priceInput.getAttribute('aria-invalid'), 'true')
-    assert.equal(
+    expect(priceInput.getAttribute('aria-invalid')).toBe('true')
+    expect(
       priceInput.closest('[data-slot="field"]')?.querySelector('[role="alert"]')
-        ?.textContent,
-      'Please enter a valid number'
-    )
-    const saveButton = [...container.querySelectorAll('button')].find(
-      (button) => button.textContent === 'Save tool prices'
-    )
-    assert.ok(saveButton)
-    assert.equal(saveButton.disabled, true)
+        ?.textContent
+    ).toBe('Please enter a valid number')
+    const saveButton = screen.getByRole('button', { name: 'Save tool prices' })
+    expect(saveButton).toBeDisabled()
 
-    await act(async () => {
-      changeInputValue(priceInput, '0')
-    })
+    setNativeValue(priceInput, '0')
 
-    assert.equal(priceInput.getAttribute('aria-invalid'), 'false')
-    assert.equal(saveButton.disabled, false)
-
-    await act(async () => root.unmount())
-    container.remove()
-    queryClient.clear()
+    expect(priceInput.getAttribute('aria-invalid')).toBe('false')
+    expect(saveButton).toBeEnabled()
   })
 })

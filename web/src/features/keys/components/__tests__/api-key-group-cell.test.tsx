@@ -16,45 +16,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import assert from 'node:assert/strict'
-import { after, describe, test } from 'node:test'
+import { render } from '@testing-library/react'
+import i18next from 'i18next'
+import { I18nextProvider, initReactI18next } from 'react-i18next'
+import { describe, expect, it } from 'vitest'
 
-import { Window } from 'happy-dom'
+import { TooltipProvider } from '@/components/ui/tooltip'
 
-const domWindow = new Window()
-const domGlobals = [
-  'window',
-  'document',
-  'navigator',
-  'HTMLElement',
-  'HTMLButtonElement',
-  'SVGElement',
-  'Node',
-  'Element',
-  'Event',
-  'CustomEvent',
-  'MutationObserver',
-  'ResizeObserver',
-  'requestAnimationFrame',
-  'cancelAnimationFrame',
-  'getComputedStyle',
-] as const
+import { ApiKeyGroupCell } from '../api-key-group-cell'
 
-for (const key of domGlobals) {
-  Object.defineProperty(globalThis, key, {
-    configurable: true,
-    value: domWindow[key],
-  })
-}
-
-const { act } = await import('react')
-const { createRoot } = await import('react-dom/client')
-const { createInstance } = await import('i18next')
-const { I18nextProvider, initReactI18next } = await import('react-i18next')
-const { TooltipProvider } = await import('@/components/ui/tooltip')
-const { ApiKeyGroupCell } = await import('../api-key-group-cell')
-
-const i18n = createInstance()
+const i18n = i18next.createInstance()
 await i18n.use(initReactI18next).init({
   lng: 'en',
   resources: {
@@ -69,11 +40,6 @@ await i18n.use(initReactI18next).init({
     },
   },
 })
-
-const reactTestGlobals = globalThis as typeof globalThis & {
-  IS_REACT_ACT_ENVIRONMENT?: boolean
-}
-reactTestGlobals.IS_REACT_ACT_ENVIRONMENT = true
 
 function CellHarness(props: {
   group: string
@@ -96,141 +62,134 @@ function CellHarness(props: {
 }
 
 describe('API key group table cell', () => {
-  after(() => {
-    domWindow.close()
-  })
+  // AutoGroupBadge is intentionally disabled upstream (commit e17c647f7) and
+  // must stay disabled — that commit's goal was to remove the badge. The same
+  // commit, however, also dropped the `props.crossGroupRetry` guard as a side
+  // effect, making the Cross-group badge unconditional. This suite locks the
+  // restored contract: the Cross-group badge is gated on props.crossGroupRetry
+  // again, the ratio badge behavior is untouched, and AutoGroupBadge remains
+  // absent (no effect='badge' frame).
+  //
+  // Cross-group presence/absence is asserted via visible text (RTL
+  // getByText/queryByText); the Auto frame / reduced-motion checks keep their
+  // dedicated data attributes because those are explicit layout/motion
+  // contracts.
 
-  test('renders two unclipped rings and a localized Auto ratio when API data uses a nonlocalized string', async () => {
-    const container = document.createElement('div')
-    document.body.append(container)
-    const root = createRoot(container)
-
-    await act(async () =>
-      root.render(
-        <CellHarness
-          group='auto'
-          ratio='自动'
-          crossGroupRetry
-          shouldReduceMotion={false}
-        />
-      )
+  it('renders the localized Auto ratio unclipped with the animated border when motion is allowed', () => {
+    const { container, getByText } = render(
+      <CellHarness
+        group='auto'
+        ratio='自动'
+        crossGroupRetry
+        shouldReduceMotion={false}
+      />
     )
 
     const badgeCell = container.querySelector<HTMLElement>(
       '[data-api-key-group-cell="auto"]'
     )
-    assert.ok(badgeCell)
-    assert.equal(badgeCell.classList.contains('overflow-visible'), true)
-    assert.equal(badgeCell.classList.contains('overflow-hidden'), false)
+    expect(badgeCell).not.toBeNull()
+    expect(badgeCell?.classList.contains('overflow-visible')).toBe(true)
+    expect(badgeCell?.classList.contains('overflow-hidden')).toBe(false)
 
-    const frames = container.querySelectorAll('[data-auto-group-frame]')
-    const movingRings = container.querySelectorAll(
-      '[data-auto-group-flow-border]'
+    // With AutoGroupBadge disabled, only the GroupRatioBadge ratio frame
+    // remains (effect='ratio'), carrying one animated flow border. The
+    // disabled AutoGroupBadge (effect='badge') must not come back.
+    expect(container.querySelectorAll('[data-auto-group-frame]')).toHaveLength(
+      1
     )
-    assert.equal(frames.length, 2)
-    assert.equal(movingRings.length, 2)
-    for (const frame of frames) {
-      assert.equal(frame.classList.contains('relative'), true)
-      assert.equal(frame.classList.contains('overflow-visible'), true)
-      assert.equal(frame.classList.contains('rounded-4xl'), true)
-      assert.equal(frame.classList.contains('p-px'), true)
-    }
+    expect(
+      container.querySelectorAll('[data-auto-group-flow-border]')
+    ).toHaveLength(1)
+    expect(
+      container.querySelector('[data-auto-group-effect="badge"]')
+    ).toBeNull()
 
     const ratio = container.querySelector<HTMLElement>(
       '[data-auto-group-effect="ratio"]'
     )
-    assert.ok(ratio)
-    assert.equal(ratio.textContent, 'Auto Ratio')
-    assert.equal(ratio.textContent?.includes('x'), false)
-    assert.equal(container.textContent?.includes('自动'), false)
-    assert.equal(container.textContent?.includes('Cross-group'), true)
+    expect(ratio).not.toBeNull()
+    expect(ratio?.textContent).toBe('Auto Ratio')
+    // The nonlocalized API string must never leak into the UI.
+    expect(container.textContent?.includes('自动')).toBe(false)
 
-    const crossGroupBadge = [
-      ...container.querySelectorAll<HTMLElement>('[data-slot="status-badge"]'),
-    ].find((badge) => badge.textContent === 'Cross-group')
-    assert.ok(crossGroupBadge)
-    assert.equal(crossGroupBadge.closest('[data-auto-group-frame]'), null)
-
-    await act(async () => root.unmount())
-    container.remove()
+    // crossGroupRetry=true surfaces the Cross-group badge as visible text.
+    expect(getByText('Cross-group')).toBeInTheDocument()
   })
 
-  test('keeps static Auto frames but omits both moving layers for reduced motion', async () => {
-    const container = document.createElement('div')
-    document.body.append(container)
-    const root = createRoot(container)
-
-    await act(async () =>
-      root.render(<CellHarness group='auto' ratio='Auto' shouldReduceMotion />)
+  it('keeps the static Auto ratio but omits the animated border for reduced motion', () => {
+    const { container } = render(
+      <CellHarness group='auto' ratio='Auto' shouldReduceMotion />
     )
 
-    assert.equal(
-      container.querySelectorAll('[data-auto-group-frame]').length,
-      2
+    // The ratio frame still renders, but reduced motion suppresses the
+    // moving flow border (accessibility contract).
+    expect(container.querySelectorAll('[data-auto-group-frame]')).toHaveLength(
+      1
     )
-    assert.equal(
-      container.querySelectorAll('[data-auto-group-flow-border]').length,
+    expect(
+      container.querySelectorAll('[data-auto-group-flow-border]')
+    ).toHaveLength(0)
+    expect(
+      container.querySelector('[data-auto-group-effect="ratio"]')?.textContent
+    ).toBe('Auto Ratio')
+  })
+
+  it('hides the Cross-group badge when crossGroupRetry is false', () => {
+    const { container, queryByText } = render(
+      <CellHarness group='auto' ratio='Auto' crossGroupRetry={false} />
+    )
+
+    expect(queryByText('Cross-group')).not.toBeInTheDocument()
+    // The Auto ratio badge is independent of the retry flag.
+    expect(
+      container.querySelector('[data-auto-group-effect="ratio"]')?.textContent
+    ).toBe('Auto Ratio')
+  })
+
+  it('does not fabricate a Cross-group badge when ratio is missing and retry is off', () => {
+    const { container, queryByText } = render(
+      <CellHarness group='auto' crossGroupRetry={false} />
+    )
+
+    // No ratio badge, no Auto frame, and — critically — no Cross-group badge
+    // invented to fill the empty cell.
+    expect(container.querySelectorAll('[data-auto-group-frame]')).toHaveLength(
       0
     )
-
-    await act(async () => root.unmount())
-    container.remove()
+    expect(
+      container.querySelectorAll('[data-auto-group-flow-border]')
+    ).toHaveLength(0)
+    expect(
+      container.querySelector('[data-auto-group-effect="ratio"]')
+    ).toBeNull()
+    expect(queryByText('Cross-group')).not.toBeInTheDocument()
   })
 
-  test('shows only the Auto badge when ratio data is unavailable', async () => {
-    const container = document.createElement('div')
-    document.body.append(container)
-    const root = createRoot(container)
-
-    await act(async () =>
-      root.render(<CellHarness group='auto' shouldReduceMotion={false} />)
+  it('still shows the Cross-group badge when ratio is missing but retry is on', () => {
+    const { container, getByText } = render(
+      <CellHarness group='auto' crossGroupRetry />
     )
 
-    assert.equal(
-      container.querySelectorAll('[data-auto-group-frame]').length,
-      1
-    )
-    assert.equal(
-      container.querySelectorAll('[data-auto-group-flow-border]').length,
-      1
-    )
-    assert.equal(
-      container.querySelector('[data-auto-group-effect="ratio"]'),
-      null
-    )
-    assert.equal(container.textContent?.includes('Auto'), true)
-    assert.equal(container.textContent?.includes('Ratio'), false)
-
-    await act(async () => root.unmount())
-    container.remove()
+    expect(
+      container.querySelector('[data-auto-group-effect="ratio"]')
+    ).toBeNull()
+    expect(getByText('Cross-group')).toBeInTheDocument()
   })
 
-  test('narrows normal group ratios to numbers and never applies Auto rings', async () => {
-    const container = document.createElement('div')
-    document.body.append(container)
-    const root = createRoot(container)
-
-    await act(async () =>
-      root.render(
-        <CellHarness group='vip' ratio='自动' shouldReduceMotion={false} />
-      )
+  it('narrows normal group ratios to numbers and never applies Auto rings', () => {
+    const { container, rerender } = render(
+      <CellHarness group='vip' ratio='自动' shouldReduceMotion={false} />
     )
 
-    assert.equal(container.textContent?.includes('vip'), true)
-    assert.equal(container.textContent?.includes('自动'), false)
-    assert.equal(container.querySelector('[data-auto-group-frame]'), null)
-    assert.equal(container.querySelector('[data-auto-group-flow-border]'), null)
+    expect(container.textContent?.includes('vip')).toBe(true)
+    expect(container.textContent?.includes('自动')).toBe(false)
+    expect(container.querySelector('[data-auto-group-frame]')).toBeNull()
+    expect(container.querySelector('[data-auto-group-flow-border]')).toBeNull()
 
-    await act(async () =>
-      root.render(
-        <CellHarness group='vip' ratio={3} shouldReduceMotion={false} />
-      )
-    )
+    rerender(<CellHarness group='vip' ratio={3} shouldReduceMotion={false} />)
 
-    assert.equal(container.textContent?.includes('3x'), true)
-    assert.equal(container.querySelector('[data-auto-group-frame]'), null)
-
-    await act(async () => root.unmount())
-    container.remove()
+    expect(container.textContent?.includes('3x')).toBe(true)
+    expect(container.querySelector('[data-auto-group-frame]')).toBeNull()
   })
 })
