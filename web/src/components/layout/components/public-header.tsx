@@ -35,6 +35,10 @@ import { useAuthStore } from '@/stores/auth-store'
 
 import { defaultTopNavLinks } from '../config/top-nav.config'
 import type { TopNavLink } from '../types'
+import {
+  DeveloperSolutionsMobileLinks,
+  DeveloperSolutionsNav,
+} from './developer-solutions-nav'
 import { HeaderLogo } from './header-logo'
 
 const AUTH_PROMPT_SECONDS = 5
@@ -256,6 +260,8 @@ export function PublicHeader(props: PublicHeaderProps) {
                 )
               })}
 
+              <DeveloperSolutionsNav />
+
               {(showLanguageSwitcher ||
                 showThemeSwitch ||
                 showNotifications) && (
@@ -337,8 +343,13 @@ export function PublicHeader(props: PublicHeaderProps) {
         </div>
       </header>
 
-      {/* Mobile full-screen overlay */}
+      {/* Mobile full-screen overlay. When closed, aria-hidden removes the
+          whole subtree from the accessibility tree and inert removes every
+          descendant from the tab order (React 19 renders the boolean inert
+          attribute natively); both are lifted again when the menu opens. */}
       <div
+        aria-hidden={!mobileOpen}
+        inert={!mobileOpen}
         className={cn(
           'bg-background/98 fixed inset-0 z-40 backdrop-blur-2xl transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] sm:pointer-events-none sm:hidden',
           mobileOpen
@@ -391,6 +402,10 @@ export function PublicHeader(props: PublicHeaderProps) {
                 </Link>
               )
             })}
+
+            <DeveloperSolutionsMobileLinks
+              onNavigate={() => setMobileOpen(false)}
+            />
           </nav>
 
           <div

@@ -16,9 +16,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-export { CTA } from './sections/cta'
-export { DeveloperSolutions } from './sections/developer-solutions'
-export { Features } from './sections/features'
-export { Hero } from './sections/hero'
-export { HowItWorks } from './sections/how-it-works'
-export { Stats } from './sections/stats'
+import { createFileRoute } from '@tanstack/react-router'
+
+import { AiMediaApiPage } from '@/features/ai-media-api'
+
+export const Route = createFileRoute('/ai-media-api/')({
+  component: AiMediaApiPage,
+})

@@ -29,6 +29,7 @@ import { Route as errors503RouteImport } from './routes/(errors)/503'
 import { Route as AuthenticatedChat2linkRouteImport } from './routes/_authenticated/chat2link'
 import { Route as AuthenticatedSystemSettingsRouteRouteImport } from './routes/_authenticated/system-settings/route'
 import { Route as AboutIndexRouteImport } from './routes/about/index'
+import { Route as AiMediaApiIndexRouteImport } from './routes/ai-media-api/index'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as DocsSlugRouteImport } from './routes/docs/$slug'
 import { Route as KimiK3ApiIndexRouteImport } from './routes/kimi-k3-api/index'
@@ -168,6 +169,11 @@ const AuthenticatedSystemSettingsRouteRoute =
 const AboutIndexRoute = AboutIndexRouteImport.update({
   id: '/about/',
   path: '/about/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AiMediaApiIndexRoute = AiMediaApiIndexRouteImport.update({
+  id: '/ai-media-api/',
+  path: '/ai-media-api/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocsIndexRoute = DocsIndexRouteImport.update({
@@ -426,6 +432,7 @@ export interface FileRoutesByFullPath {
   '/docs/$slug': typeof DocsSlugRoute
   '/oauth/$provider': typeof OauthProviderRoute
   '/about/': typeof AboutIndexRoute
+  '/ai-media-api/': typeof AiMediaApiIndexRoute
   '/docs/': typeof DocsIndexRoute
   '/kimi-k3-api/': typeof KimiK3ApiIndexRoute
   '/pricing/': typeof PricingIndexRoute
@@ -486,6 +493,7 @@ export interface FileRoutesByTo {
   '/docs/$slug': typeof DocsSlugRoute
   '/oauth/$provider': typeof OauthProviderRoute
   '/about': typeof AboutIndexRoute
+  '/ai-media-api': typeof AiMediaApiIndexRoute
   '/docs': typeof DocsIndexRoute
   '/kimi-k3-api': typeof KimiK3ApiIndexRoute
   '/pricing': typeof PricingIndexRoute
@@ -550,6 +558,7 @@ export interface FileRoutesById {
   '/docs/$slug': typeof DocsSlugRoute
   '/oauth/$provider': typeof OauthProviderRoute
   '/about/': typeof AboutIndexRoute
+  '/ai-media-api/': typeof AiMediaApiIndexRoute
   '/docs/': typeof DocsIndexRoute
   '/kimi-k3-api/': typeof KimiK3ApiIndexRoute
   '/pricing/': typeof PricingIndexRoute
@@ -613,6 +622,7 @@ export interface FileRouteTypes {
     | '/docs/$slug'
     | '/oauth/$provider'
     | '/about/'
+    | '/ai-media-api/'
     | '/docs/'
     | '/kimi-k3-api/'
     | '/pricing/'
@@ -673,6 +683,7 @@ export interface FileRouteTypes {
     | '/docs/$slug'
     | '/oauth/$provider'
     | '/about'
+    | '/ai-media-api'
     | '/docs'
     | '/kimi-k3-api'
     | '/pricing'
@@ -736,6 +747,7 @@ export interface FileRouteTypes {
     | '/docs/$slug'
     | '/oauth/$provider'
     | '/about/'
+    | '/ai-media-api/'
     | '/docs/'
     | '/kimi-k3-api/'
     | '/pricing/'
@@ -791,6 +803,7 @@ export interface RootRouteChildren {
   DocsSlugRoute: typeof DocsSlugRoute
   OauthProviderRoute: typeof OauthProviderRoute
   AboutIndexRoute: typeof AboutIndexRoute
+  AiMediaApiIndexRoute: typeof AiMediaApiIndexRoute
   DocsIndexRoute: typeof DocsIndexRoute
   KimiK3ApiIndexRoute: typeof KimiK3ApiIndexRoute
   PricingIndexRoute: typeof PricingIndexRoute
@@ -939,6 +952,13 @@ declare module '@tanstack/react-router' {
       path: '/about'
       fullPath: '/about/'
       preLoaderRoute: typeof AboutIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ai-media-api/': {
+      id: '/ai-media-api/'
+      path: '/ai-media-api'
+      fullPath: '/ai-media-api/'
+      preLoaderRoute: typeof AiMediaApiIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/docs/': {
@@ -1377,6 +1397,7 @@ const rootRouteChildren: RootRouteChildren = {
   DocsSlugRoute: DocsSlugRoute,
   OauthProviderRoute: OauthProviderRoute,
   AboutIndexRoute: AboutIndexRoute,
+  AiMediaApiIndexRoute: AiMediaApiIndexRoute,
   DocsIndexRoute: DocsIndexRoute,
   KimiK3ApiIndexRoute: KimiK3ApiIndexRoute,
   PricingIndexRoute: PricingIndexRoute,
