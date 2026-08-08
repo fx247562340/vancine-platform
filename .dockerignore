@@ -9,4 +9,63 @@ docs
 .gocache
 /web/node_modules
 /web/dist
+
+# --- RC23 context hardening: denylist of local-only state, secrets, and build artifacts ---
+
+# AI agent / tooling workspaces (local-only, largest offender: .claude/worktrees)
+.claude/
+.gstack/
+.cursor/
+.codex/
+.cache/
+
+# Dev agent / tool metadata (tracked by Git, not a production build input)
+.agents/
+
+# Local environment / secrets (never enter the build context);
+# .env.example is a safe, tracked template and stays included
+.env
+.env.*
+!.env.example
+
+# Local compose overrides
+docker-compose.override.yml
+
+# Runtime data, logs and uploads (anchored to repo root)
+/data/
+/logs/
+/uploads/
+
+# Image archives / export artifacts
+*.tar.gz
+
+# OS cruft (any directory depth)
+.DS_Store
+**/.DS_Store
+
+# Electron local build output and dependencies
+/electron/node_modules/
+/electron/dist/
+
+# Frontend local caches and build output
+/web/.tanstack/
+
+# Local Go module cache, scratch cache and test binaries
+# (anchored to repo root so Go sources and relaykit/ are never affected)
+/.gomodcache/
+/.gocache-temp
+/*.test
+
+# Root-level local build output
+/output/
+
+# Locally built root-level binaries (mirroring root .gitignore);
+# anchored to the repo root so source dirs, relaykit/ and license files are untouched
+/vancine
+/vancine-*
+/vancine-platform
+/new-api
+/new-api.exe
+
+# Re-includes MUST stay after the exclusion rules above
 !THIRD-PARTY-LICENSES.md
