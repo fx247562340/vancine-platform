@@ -73,6 +73,14 @@ func SetApiRouter(router *gin.Engine) {
 		// Universal secure verification routes
 		apiRouter.POST("/verify", middleware.UserAuth(), middleware.CriticalRateLimit(), middleware.DisableCache(), controller.UniversalVerify)
 
+		// First-touch acquisition attribution: anonymous milestone capture
+		// (public, rate + body limited) and admin-only read-only funnel.
+		acquisitionRoute := apiRouter.Group("/acquisition")
+		{
+			acquisitionRoute.POST("/touch", middleware.CriticalRateLimit(), anonymousRequestBodyLimit, controller.PostAcquisitionTouch)
+			acquisitionRoute.GET("/funnel", middleware.AdminAuth(), controller.GetAcquisitionFunnel)
+		}
+
 		userRoute := apiRouter.Group("/user")
 		{
 			userRoute.POST("/auth/refresh", middleware.SessionCookieOriginGuard(), middleware.CriticalRateLimit(), middleware.DisableCache(), controller.RefreshAuth)

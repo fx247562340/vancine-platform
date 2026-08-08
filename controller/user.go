@@ -17,6 +17,7 @@ import (
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/service/acquisition"
 	"github.com/QuantumNous/new-api/service/authz"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
@@ -315,6 +316,11 @@ func Register(c *gin.Context) {
 			return
 		}
 	}
+
+	// 首次触达获客归因：仅在持久化账户供给（用户插入 + 重新读取 +
+	// 可选默认令牌创建）全部成功后、返回成功响应之前绑定。
+	// 绑定为软失败：无 cookie 或归因库异常都不影响注册成功。
+	acquisition.BindTouchToUser(c, insertedUser.Id)
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,

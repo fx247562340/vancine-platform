@@ -13,6 +13,7 @@ import (
 	"github.com/QuantumNous/new-api/middleware"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/oauth"
+	"github.com/QuantumNous/new-api/service/acquisition"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -430,6 +431,11 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 		// Perform post-transaction tasks
 		user.FinalizeOAuthUserCreation(inviterId)
 	}
+
+	// First-touch acquisition attribution: only brand-new users reach this
+	// point. Existing-user logins, legacy-ID migration logins, and account
+	// binds (handleOAuthBind) all returned earlier and never bind.
+	acquisition.BindTouchToUser(c, user.Id)
 
 	return user, nil
 }

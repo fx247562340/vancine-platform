@@ -293,6 +293,7 @@ func migrateDB() error {
 		&SystemTaskLock{},
 		&CasbinRule{},
 		&AuthzRole{},
+		&AcquisitionTouch{},
 	)
 	if err != nil {
 		return err
@@ -317,6 +318,13 @@ func migrateDB() error {
 		if err := DB.AutoMigrate(&SubscriptionPlan{}); err != nil {
 			return err
 		}
+	}
+	// First-touch acquisition coverage marker: only after the full serial
+	// migration path (Option + AcquisitionTouch tables, LongCat, auth init,
+	// SubscriptionPlan) succeeded. Insert-if-absent; never overwritten; a
+	// failure here must fail startup.
+	if _, err := EnsureAcquisitionCoverageStartedAt(); err != nil {
+		return fmt.Errorf("acquisition coverage marker init failed: %w", err)
 	}
 	return nil
 }
@@ -360,6 +368,7 @@ func migrateDBFast() error {
 		{&SystemInstance{}, "SystemInstance"},
 		{&SystemTask{}, "SystemTask"},
 		{&SystemTaskLock{}, "SystemTaskLock"},
+		{&AcquisitionTouch{}, "AcquisitionTouch"},
 	}
 	// 动态计算migration数量，确保errChan缓冲区足够大
 	errChan := make(chan error, len(migrations))
@@ -404,6 +413,13 @@ func migrateDBFast() error {
 		if err := DB.AutoMigrate(&SubscriptionPlan{}); err != nil {
 			return err
 		}
+	}
+	// First-touch acquisition coverage marker: only after the wg.Wait barrier,
+	// the full migration-error drain above, LongCat, auth init, and the
+	// SubscriptionPlan migration all succeeded. Runs on the main migrate
+	// goroutine, never inside the parallel AutoMigrate goroutines.
+	if _, err := EnsureAcquisitionCoverageStartedAt(); err != nil {
+		return fmt.Errorf("acquisition coverage marker init failed: %w", err)
 	}
 	common.SysLog("database migrated")
 	return nil
