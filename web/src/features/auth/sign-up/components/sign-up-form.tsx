@@ -50,6 +50,7 @@ import {
   saveAffiliateCode,
 } from '@/features/auth/lib/storage'
 import { useStatus } from '@/hooks/use-status'
+import { reportSignupStarted } from '@/lib/acquisition'
 import { isAuthBundle } from '@/lib/api'
 import { getServerErrorMessageKey } from '@/lib/server-error-message'
 import { cn } from '@/lib/utils'
@@ -160,6 +161,11 @@ export function SignUpForm({
 
     setIsLoading(true)
     try {
+      // Bounded, soft-failing first-party signup_started: settles the
+      // HttpOnly first-touch cookie before register binds the touch. It can
+      // never block or fail registration.
+      await reportSignupStarted({ keepalive: true })
+
       const res = await register({
         username: data.username,
         password: data.password,
@@ -195,6 +201,11 @@ export function SignUpForm({
       return
     }
 
+    // Opening the dialog expresses WeChat register intent. Start the deduped
+    // signup_started capture fire-and-forget so the QR dialog opens without
+    // delay; handleWeChatLogin awaits the same bounded promise before the
+    // real WeChat request.
+    void reportSignupStarted()
     setIsWeChatDialogOpen(true)
   }
 
@@ -214,6 +225,11 @@ export function SignUpForm({
 
     setIsWeChatSubmitting(true)
     try {
+      // Await the same deduped, budget-bounded signup_started promise
+      // started when the dialog opened, so the first-touch cookie has the
+      // best chance to settle before the backend binds it. Soft-fails and
+      // never blocks the WeChat login.
+      await reportSignupStarted()
       const res = await wechatLoginByCode(wechatCode)
       if (res?.success && isAuthBundle(res.data)) {
         await handleLoginSuccess(res.data)
@@ -384,6 +400,9 @@ export function SignUpForm({
             disabled={isLoading || (requiresLegalConsent && !agreedToLegal)}
             onWeChatLogin={hasWeChatLogin ? handleOpenWeChatDialog : undefined}
             isWeChatLoading={isWeChatSubmitting}
+            onBeforeOAuthRedirect={() =>
+              reportSignupStarted({ keepalive: true })
+            }
             className='pt-2'
           />
         )}

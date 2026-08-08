@@ -16,8 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import type { ReactNode } from 'react'
 import GoogleColor from '@lobehub/icons/es/Google/components/Color'
+import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -41,6 +41,12 @@ type OAuthProvidersProps = {
   onWeChatLogin?: () => void
   isWeChatLoading?: boolean
   redirectTo?: string
+  /**
+   * Register-page-only. When provided, redirect-based OAuth providers await
+   * this after their prerequisites succeed and before the browser leaves the
+   * page. Sign-in must omit it so it never produces signup_started.
+   */
+  onBeforeOAuthRedirect?: () => void | Promise<void>
 }
 
 type ProviderButton = {
@@ -58,6 +64,7 @@ export function OAuthProviders({
   onWeChatLogin,
   isWeChatLoading = false,
   redirectTo,
+  onBeforeOAuthRedirect,
 }: OAuthProvidersProps) {
   const { t } = useTranslation()
   const {
@@ -75,7 +82,7 @@ export function OAuthProviders({
     isTelegramPending,
     handleTelegramAuthorization,
     setIsTelegramDialogOpen,
-  } = useOAuthLogin(status, redirectTo)
+  } = useOAuthLogin(status, redirectTo, { onBeforeOAuthRedirect })
 
   const providerButtons: ProviderButton[] = []
 

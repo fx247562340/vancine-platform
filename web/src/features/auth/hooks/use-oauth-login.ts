@@ -34,12 +34,23 @@ import { pickTelegramAuthorization } from '../lib/telegram-login'
 import type { SystemStatus, CustomOAuthProviderInfo } from '../types'
 import { useAuthRedirect } from './use-auth-redirect'
 
+export type UseOAuthLoginOptions = {
+  /**
+   * Optional register-page-only callback, invoked (and awaited) after the
+   * OAuth prerequisites succeed and before the browser leaves the page, so
+   * first-party signup_started can settle. The shared hook never hardcodes
+   * acquisition: the sign-in page simply does not pass this.
+   */
+  onBeforeOAuthRedirect?: () => void | Promise<void>
+}
+
 /**
  * Hook for managing OAuth login
  */
 export function useOAuthLogin(
   status: SystemStatus | null,
-  redirectTo?: string
+  redirectTo?: string,
+  options?: UseOAuthLoginOptions
 ) {
   const { t } = useTranslation()
   const { handleLoginSuccess } = useAuthRedirect()
@@ -68,6 +79,15 @@ export function useOAuthLogin(
     clearAuthentication()
   }
 
+  const runBeforeOAuthRedirect = async (): Promise<void> => {
+    if (!options?.onBeforeOAuthRedirect) return
+    try {
+      await options.onBeforeOAuthRedirect()
+    } catch {
+      // soft-fail: attribution must never block the OAuth redirect
+    }
+  }
+
   const handleGitHubLogin = async () => {
     if (!status?.github_client_id) return
     if (githubButtonDisabled) return
@@ -92,6 +112,7 @@ export function useOAuthLogin(
       await resetSession()
       const state = await createOAuthFlow('github', 'login')
 
+      await runBeforeOAuthRedirect()
       const url = buildGitHubOAuthUrl(status.github_client_id, state)
       window.open(url, '_self')
     } catch {
@@ -113,6 +134,7 @@ export function useOAuthLogin(
       // generates the CSRF state itself (an auth_flows token) and redirects
       // the browser to Google, so there is no client-side state or authorize
       // URL to build here.
+      await runBeforeOAuthRedirect()
       window.location.href = buildGoogleOAuthLoginUrl('/dashboard')
     } catch {
       toast.error(t('Failed to start Google login'))
@@ -128,6 +150,7 @@ export function useOAuthLogin(
       await resetSession()
       const state = await createOAuthFlow('discord', 'login')
 
+      await runBeforeOAuthRedirect()
       const url = buildDiscordOAuthUrl(status.discord_client_id, state)
       window.open(url, '_self')
     } catch {
@@ -145,6 +168,7 @@ export function useOAuthLogin(
       await resetSession()
       const state = await createOAuthFlow('oidc', 'login')
 
+      await runBeforeOAuthRedirect()
       const url = buildOIDCOAuthUrl(
         status.oidc_authorization_endpoint,
         status.oidc_client_id,
@@ -166,6 +190,7 @@ export function useOAuthLogin(
       await resetSession()
       const state = await createOAuthFlow('linuxdo', 'login')
 
+      await runBeforeOAuthRedirect()
       const url = buildLinuxDOOAuthUrl(status.linuxdo_client_id, state)
       window.open(url, '_self')
     } catch {
@@ -176,6 +201,9 @@ export function useOAuthLogin(
   }
 
   const handleTelegramLogin = async () => {
+    // Telegram only matches users with an existing TelegramId; it never
+    // creates accounts, so it intentionally never invokes the register-page
+    // callback even when one is provided.
     if (!status?.telegram_bot_name?.trim()) {
       toast.error(t('Login failed'))
       return
@@ -227,6 +255,7 @@ export function useOAuthLogin(
       await resetSession()
       const state = await createOAuthFlow(provider.slug, 'login')
 
+      await runBeforeOAuthRedirect()
       const redirectUri = `${window.location.origin}/oauth/${provider.slug}`
       const url = new URL(provider.authorization_endpoint)
       url.searchParams.set('client_id', provider.client_id)
