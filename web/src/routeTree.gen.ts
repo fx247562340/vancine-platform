@@ -36,6 +36,7 @@ import { Route as KimiK3ApiIndexRouteImport } from './routes/kimi-k3-api/index'
 import { Route as OauthProviderRouteImport } from './routes/oauth/$provider'
 import { Route as PricingIndexRouteImport } from './routes/pricing/index'
 import { Route as RankingsIndexRouteImport } from './routes/rankings/index'
+import { Route as SeedanceApiIndexRouteImport } from './routes/seedance-api/index'
 import { Route as SetupIndexRouteImport } from './routes/setup/index'
 import { Route as authUserResetRouteImport } from './routes/(auth)/user/reset'
 import { Route as AuthenticatedChannelsIndexRouteImport } from './routes/_authenticated/channels/index'
@@ -204,6 +205,11 @@ const PricingIndexRoute = PricingIndexRouteImport.update({
 const RankingsIndexRoute = RankingsIndexRouteImport.update({
   id: '/rankings/',
   path: '/rankings/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SeedanceApiIndexRoute = SeedanceApiIndexRouteImport.update({
+  id: '/seedance-api/',
+  path: '/seedance-api/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SetupIndexRoute = SetupIndexRouteImport.update({
@@ -437,6 +443,7 @@ export interface FileRoutesByFullPath {
   '/kimi-k3-api/': typeof KimiK3ApiIndexRoute
   '/pricing/': typeof PricingIndexRoute
   '/rankings/': typeof RankingsIndexRoute
+  '/seedance-api/': typeof SeedanceApiIndexRoute
   '/setup/': typeof SetupIndexRoute
   '/user/reset': typeof authUserResetRoute
   '/chat/$chatId': typeof AuthenticatedChatChatIdRoute
@@ -498,6 +505,7 @@ export interface FileRoutesByTo {
   '/kimi-k3-api': typeof KimiK3ApiIndexRoute
   '/pricing': typeof PricingIndexRoute
   '/rankings': typeof RankingsIndexRoute
+  '/seedance-api': typeof SeedanceApiIndexRoute
   '/setup': typeof SetupIndexRoute
   '/user/reset': typeof authUserResetRoute
   '/chat/$chatId': typeof AuthenticatedChatChatIdRoute
@@ -563,6 +571,7 @@ export interface FileRoutesById {
   '/kimi-k3-api/': typeof KimiK3ApiIndexRoute
   '/pricing/': typeof PricingIndexRoute
   '/rankings/': typeof RankingsIndexRoute
+  '/seedance-api/': typeof SeedanceApiIndexRoute
   '/setup/': typeof SetupIndexRoute
   '/(auth)/user/reset': typeof authUserResetRoute
   '/_authenticated/chat/$chatId': typeof AuthenticatedChatChatIdRoute
@@ -627,6 +636,7 @@ export interface FileRouteTypes {
     | '/kimi-k3-api/'
     | '/pricing/'
     | '/rankings/'
+    | '/seedance-api/'
     | '/setup/'
     | '/user/reset'
     | '/chat/$chatId'
@@ -688,6 +698,7 @@ export interface FileRouteTypes {
     | '/kimi-k3-api'
     | '/pricing'
     | '/rankings'
+    | '/seedance-api'
     | '/setup'
     | '/user/reset'
     | '/chat/$chatId'
@@ -752,6 +763,7 @@ export interface FileRouteTypes {
     | '/kimi-k3-api/'
     | '/pricing/'
     | '/rankings/'
+    | '/seedance-api/'
     | '/setup/'
     | '/(auth)/user/reset'
     | '/_authenticated/chat/$chatId'
@@ -808,6 +820,7 @@ export interface RootRouteChildren {
   KimiK3ApiIndexRoute: typeof KimiK3ApiIndexRoute
   PricingIndexRoute: typeof PricingIndexRoute
   RankingsIndexRoute: typeof RankingsIndexRoute
+  SeedanceApiIndexRoute: typeof SeedanceApiIndexRoute
   SetupIndexRoute: typeof SetupIndexRoute
   PricingModelIdIndexRoute: typeof PricingModelIdIndexRoute
 }
@@ -1001,6 +1014,13 @@ declare module '@tanstack/react-router' {
       path: '/rankings'
       fullPath: '/rankings/'
       preLoaderRoute: typeof RankingsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/seedance-api/': {
+      id: '/seedance-api/'
+      path: '/seedance-api'
+      fullPath: '/seedance-api/'
+      preLoaderRoute: typeof SeedanceApiIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/setup/': {
@@ -1402,6 +1422,7 @@ const rootRouteChildren: RootRouteChildren = {
   KimiK3ApiIndexRoute: KimiK3ApiIndexRoute,
   PricingIndexRoute: PricingIndexRoute,
   RankingsIndexRoute: RankingsIndexRoute,
+  SeedanceApiIndexRoute: SeedanceApiIndexRoute,
   SetupIndexRoute: SetupIndexRoute,
   PricingModelIdIndexRoute: PricingModelIdIndexRoute,
 }

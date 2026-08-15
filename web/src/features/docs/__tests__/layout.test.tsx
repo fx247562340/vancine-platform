@@ -16,7 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import type { ReactNode } from 'react'
 import {
   createMemoryHistory,
   createRootRoute,
@@ -24,12 +23,16 @@ import {
   Outlet,
   RouterProvider,
 } from '@tanstack/react-router'
+import { act, render, screen, waitFor } from '@testing-library/react'
+import type { ReactNode } from 'react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { Route as DocsSlugRouteImport } from '@/routes/docs/$slug'
 import { Route as DocsIndexRouteImport } from '@/routes/docs/index'
-import { act, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { DocsLayout } from '../index'
-import { initTestI18n, renderWithProviders } from './test-utils'
+import { initTestI18n } from './test-i18n'
+import { renderWithProviders } from './test-utils'
 
 // Isolate the Docs layout from the full site header/footer.
 vi.mock('@/components/layout', async (importActual) => {

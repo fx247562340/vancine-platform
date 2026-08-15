@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { lazy, type LazyExoticComponent } from 'react'
+
 import type { DocsPageComponent, DocsSlug } from './types.ts'
 
 type LazyPage = LazyExoticComponent<DocsPageComponent>

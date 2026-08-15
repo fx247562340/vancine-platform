@@ -3,7 +3,6 @@ package service
 import (
 	"errors"
 	"fmt"
-	"math"
 	"strings"
 	"time"
 
@@ -258,9 +257,9 @@ func PostWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, mod
 	})
 }
 
-func CalcOpenRouterCacheCreateTokens(usage dto.Usage, priceData types.PriceData) int {
+func CalcOpenRouterCacheCreateTokens(usage dto.Usage, priceData types.PriceData) (int, *common.QuotaClamp) {
 	if priceData.CacheCreationRatio == 1 {
-		return 0
+		return 0, nil
 	}
 	quotaPrice := priceData.ModelRatio / common.QuotaPerUnit
 	promptCacheCreatePrice := quotaPrice * priceData.CacheCreationRatio
@@ -272,11 +271,12 @@ func CalcOpenRouterCacheCreateTokens(usage dto.Usage, priceData types.PriceData)
 	completionTokens := float64(usage.CompletionTokens)
 	promptCacheReadTokens := float64(usage.PromptTokensDetails.CachedTokens)
 
-	return int(math.Round((cost -
+	tokens := (cost -
 		totalPromptTokens*quotaPrice +
 		promptCacheReadTokens*(quotaPrice-promptCacheReadPrice) -
 		completionTokens*completionPrice) /
-		(promptCacheCreatePrice - quotaPrice)))
+		(promptCacheCreatePrice - quotaPrice)
+	return common.QuotaRoundChecked(tokens)
 }
 
 func PostAudioConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usage *dto.Usage, extraContent string) {

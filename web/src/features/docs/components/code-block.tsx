@@ -16,12 +16,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useState } from 'react'
 import { CheckIcon, CopyIcon } from 'lucide-react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { BundledLanguage } from 'shiki/bundle/web'
-import { cn } from '@/lib/utils'
+
 import { CodeBlock } from '@/components/ai-elements/code-block'
+import { cn } from '@/lib/utils'
+
 import { DOCS_NS } from '../i18n/loader'
 import { copyToClipboard } from '../lib/clipboard'
 

@@ -145,6 +145,10 @@ func SetApiRouter(router *gin.Engine) {
 				// Custom OAuth bindings
 				selfRoute.GET("/oauth/bindings", controller.GetUserOAuthBindings)
 				selfRoute.DELETE("/oauth/bindings/:provider_id", controller.UnbindCustomOAuth)
+
+				// Google self-unbind: fixed narrow route (no binding_type
+				// parameter), lockout-protected in the handler.
+				selfRoute.DELETE("/self/bindings/google", controller.UnbindGoogleSelf)
 			}
 
 			adminRoute := userRoute.Group("/")

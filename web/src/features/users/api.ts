@@ -196,13 +196,21 @@ export async function getUserOAuthBindings(
 }
 
 /**
- * Clear a user's built-in binding (admin)
+ * Clear a user's built-in binding (admin).
+ *
+ * Error display is owned solely by the calling component: both the business
+ * failure toast and the HTTP/transport error toast are suppressed here so the
+ * interceptor never double-toasts. The 401 auth refresh/redirect security
+ * behavior in the interceptor is unaffected by these flags.
  */
 export async function adminClearUserBinding(
   userId: number,
   bindingType: string
 ): Promise<ApiResponse> {
-  const res = await api.delete(`/api/user/${userId}/bindings/${bindingType}`)
+  const res = await api.delete(`/api/user/${userId}/bindings/${bindingType}`, {
+    skipBusinessError: true,
+    skipErrorHandler: true,
+  })
   return res.data
 }
 

@@ -18,7 +18,9 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+
 import { Badge } from '@/components/ui/badge'
+
 import { DocsH2 } from '../components/headings'
 import { useRegisterHeadings } from '../components/register-headings'
 import type { TocHeading } from '../types'

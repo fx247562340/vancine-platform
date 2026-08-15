@@ -16,16 +16,18 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useState, type ReactElement } from 'react'
 import { Link } from '@tanstack/react-router'
 import { ChevronDownIcon } from 'lucide-react'
+import { useState, type ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
+
 import { trackEvent } from '@/lib/analytics'
 import {
   DEVELOPER_SOLUTIONS,
   DEVELOPER_SOLUTIONS_SECTION_LABEL_KEY,
 } from '@/lib/developer-solutions'
 import { cn } from '@/lib/utils'
+
 import { DOCS_NS } from '../i18n/loader'
 import { DOCS_NAV_GROUPS } from '../nav'
 import type { DocsSlug } from '../types'

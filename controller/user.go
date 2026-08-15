@@ -15,12 +15,14 @@ import (
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/middleware"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/oauth"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/service/acquisition"
 	"github.com/QuantumNous/new-api/service/authz"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
+	"github.com/QuantumNous/new-api/setting/system_setting"
 
 	"github.com/QuantumNous/new-api/constant"
 
@@ -792,6 +794,60 @@ func AdminClearUserBinding(c *gin.Context) {
 		"success": true,
 		"message": "success",
 	})
+}
+
+func UnbindGoogleSelf(c *gin.Context) {
+	userId := c.GetInt("id")
+	if userId == 0 {
+		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "未登录"})
+		return
+	}
+	err := model.ReleaseGoogleIdentitySelf(userId, googleSelfUnbindPolicy())
+	if err != nil {
+		switch {
+		case errors.Is(err, model.ErrNoAlternativeLoginMethod):
+			common.ApiErrorI18n(c, i18n.MsgUserGoogleUnbindNoAlternative)
+		case errors.Is(err, model.ErrGoogleIdentityNotBound):
+			common.ApiErrorI18n(c, i18n.MsgUserGoogleNotBound)
+		default:
+			common.ApiError(c, err)
+		}
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+	})
+}
+
+// googleSelfUnbindPolicy builds the alternative-login policy from live
+// provider state: the passkey feature switch and the built-in OAuth registry
+// with google excluded. Custom providers are deliberately not listed: their
+// enablement is judged inside the unbind transaction from the persisted
+// custom_oauth_providers and user_oauth_bindings rows.
+func googleSelfUnbindPolicy() model.AlternativeLoginPolicy {
+	policy := model.AlternativeLoginPolicy{
+		PasswordLoginEnabled:               common.PasswordLoginEnabled,
+		PasskeyFeatureEnabled:              system_setting.GetPasskeySettings().Enabled,
+		EnabledBuiltInProviders:            map[string]bool{},
+		RegisteredEnabledCustomProviderIds: map[int]bool{},
+	}
+	for name, provider := range oauth.GetAllProviders() {
+		if name == model.ExternalIdentityProviderGoogle {
+			continue
+		}
+		if genericProvider, isCustom := provider.(*oauth.GenericOAuthProvider); isCustom {
+			// Custom providers must be both registered in the runtime OAuth
+			// registry and enabled there; the model intersects this snapshot
+			// with the persisted DB state inside the unbind transaction.
+			if genericProvider.IsEnabled() {
+				policy.RegisteredEnabledCustomProviderIds[genericProvider.GetProviderId()] = true
+			}
+			continue
+		}
+		policy.EnabledBuiltInProviders[name] = provider.IsEnabled()
+	}
+	return policy
 }
 
 func UpdateSelf(c *gin.Context) {

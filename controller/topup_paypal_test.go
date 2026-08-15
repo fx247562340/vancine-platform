@@ -9,12 +9,16 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/middleware"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/setting"
+	"github.com/QuantumNous/new-api/setting/operation_setting"
 
 	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
@@ -500,6 +504,67 @@ func TestGenPayPalOrder(t *testing.T) {
 		})
 		_, _, err := genPayPalOrder(tradeNo, 9.99, "user@example.com")
 		assertPayPalErrorBounded(t, err)
+	})
+
+	// B04 P1-B04 PayPal cancel feedback: the create-order request body must
+	// carry an explicit, stable cancel query parameter on cancel_url so the
+	// wallet can render a localized cancel toast (distinct from error/pending/
+	// show_history) and the return flow can reject the cancel without crediting.
+	t.Run("cancel url carries explicit payment_cancel param and never reuses other payment status flags", func(t *testing.T) {
+		// Pre-generate the response bytes in the main goroutine before the
+		// handler starts; the mock only writes this pre-generated result and
+		// records any read/write error through a mutex-guarded slot.
+		approveBody := payPalApproveOrderResponse(t, "ORDER001")
+		var capturedBody []byte
+		var mockErr error
+		setupPayPalTestServer(t, func(w http.ResponseWriter, r *http.Request) {
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				mockErr = err
+				return
+			}
+			capturedBody = body
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusCreated)
+			if _, err := w.Write(approveBody); err != nil {
+				mockErr = err
+			}
+		})
+
+		_, _, err := genPayPalOrder(tradeNo, 9.99, "user@example.com")
+		require.NoError(t, err)
+		require.NoError(t, mockErr, "the loopback PayPal mock must not have recorded an error")
+
+		var payload map[string]interface{}
+		require.NoError(t, common.Unmarshal(capturedBody, &payload))
+		appCtx, ok := payload["application_context"].(map[string]interface{})
+		require.True(t, ok, "application_context must be a map")
+
+		cancelURL, ok := appCtx["cancel_url"].(string)
+		require.True(t, ok, "cancel_url must be a string")
+		require.NotEmpty(t, cancelURL, "cancel_url must not be empty")
+
+		parsed, parseErr := url.Parse(cancelURL)
+		require.NoError(t, parseErr, "cancel_url must be a parseable URL")
+		q := parsed.Query()
+		// Stable, explicit cancel flag must be present; PayPal reuses the
+		// cancel_url query verbatim on the user redirect.
+		assert.Equal(t, "true", q.Get("payment_cancel"),
+			"cancel_url must carry an explicit payment_cancel=true query parameter so the wallet can render a cancel toast")
+
+		// cancel must not piggy-back on the same keys used by error/pending/
+		// show_history; doing so would route a cancel into the wrong feedback.
+		for _, reserved := range []string{"payment_error", "payment_pending", "show_history"} {
+			assert.Empty(t, q.Get(reserved),
+				"cancel_url must not carry reserved payment status key %q", reserved)
+		}
+
+		// return_url still goes to the order return endpoint, never to the
+		// cancel path: PayPal dispatches to one of the two, never both.
+		returnURL, ok := appCtx["return_url"].(string)
+		require.True(t, ok)
+		assert.NotEqual(t, cancelURL, returnURL,
+			"return_url and cancel_url must be distinct so PayPal cannot pick the cancel branch on success")
 	})
 }
 
@@ -2260,4 +2325,599 @@ func TestPayPalSettlementWebhookIntegration(t *testing.T) {
 		assert.Equal(t, common.TopUpStatusRefunded, getPayPalReturnTopUp(t, tradeNo).Status)
 		assert.EqualValues(t, 1, settlementLedgerCount(t, getPayPalReturnTopUp(t, tradeNo).Id))
 	})
+}
+
+// --- CP1 P1-B08 Real handler tests for paypal_min_topup ---
+//
+// The B08 spec requires the *real* RequestPayPalAmount and RequestPayPalPay
+// handlers to be exercised against real authenticated users, the real
+// PayPal checkout gate (compliance + enabled + credentials), and a
+// loopback PayPal mock. Pseudo coverage that copies the production
+// comparison (`amount >= getPayPalMinTopup()`) is removed; the gate is
+// observed through the production handler's response envelope, the
+// downstream DB rows, and the wire hits.
+
+// paypalAmountRouter wires the real UserAuth middleware in front of the
+// real RequestPayPalAmount handler.
+func paypalAmountRouter() *gin.Engine {
+	r := gin.New()
+	r.POST("/api/user/paypal/amount", middleware.UserAuth(), RequestPayPalAmount)
+	return r
+}
+
+// paypalPayRouter wires the real UserAuth middleware in front of the real
+// RequestPayPalPay handler.
+func paypalPayRouter() *gin.Engine {
+	r := gin.New()
+	r.POST("/api/user/paypal/pay", middleware.UserAuth(), RequestPayPalPay)
+	return r
+}
+
+// callPayPalRequestAmount drives the real RequestPayPalAmount handler
+// through UserAuth with a real user token and returns the decoded envelope.
+// Any failure to satisfy the production gate surfaces as an HTTP error
+// envelope with the real minimum embedded in the message.
+func callPayPalRequestAmount(t *testing.T, token string, amount int64) (int, map[string]interface{}) {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodPost, "/api/user/paypal/amount",
+		strings.NewReader(fmt.Sprintf(`{"amount":%d,"payment_method":"paypal"}`, amount)))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+	paypalAmountRouter().ServeHTTP(rec, req)
+	var envelope map[string]interface{}
+	if rec.Code == http.StatusOK {
+		require.NoError(t, common.Unmarshal(rec.Body.Bytes(), &envelope))
+	}
+	return rec.Code, envelope
+}
+
+// paypalMockHitCounters records the upstream call counts the loopback
+// PayPal mock observed, plus any handler error (ordinary error, asserted by
+// the main goroutine). Mutated only from the mock goroutine; read from the
+// main goroutine after the client response has been observed.
+type paypalMockHitCounters struct {
+	create  int64
+	get     int64
+	capture int64
+	err     error
+}
+
+// setupPayPalMinTopupLoopbackMock stands up a loopback httptest PayPal
+// server, primes the OAuth2 token cache so genPayPalOrder does not hit
+// /v1/oauth2/token, and rewires the package-level seams. Counts are
+// captured via atomic counters; no testing.T is referenced from the mock,
+// and any read/write error is recorded into the counters.err slot.
+func setupPayPalMinTopupLoopbackMock(t *testing.T) (*httptest.Server, *paypalMockHitCounters) {
+	t.Helper()
+
+	counters := &paypalMockHitCounters{}
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.Method {
+		case http.MethodPost:
+			if strings.HasSuffix(r.URL.Path, "/v2/checkout/orders") {
+				atomic.AddInt64(&counters.create, 1)
+				w.WriteHeader(http.StatusCreated)
+				if _, err := w.Write([]byte(`{
+					"id":"ORDER-MIN-001",
+					"status":"CREATED",
+					"links":[{"href":"https://loopback/approve/ORDER-MIN-001","rel":"approve"}]
+				}`)); err != nil {
+					counters.err = err
+				}
+				return
+			}
+			if strings.Contains(r.URL.Path, "/capture") {
+				atomic.AddInt64(&counters.capture, 1)
+				w.WriteHeader(http.StatusCreated)
+				if _, err := w.Write([]byte(`{"id":"ORDER-MIN-001","status":"COMPLETED"}`)); err != nil {
+					counters.err = err
+				}
+				return
+			}
+		case http.MethodGet:
+			if strings.Contains(r.URL.Path, "/v2/checkout/orders/") {
+				atomic.AddInt64(&counters.get, 1)
+				w.WriteHeader(http.StatusOK)
+				if _, err := w.Write([]byte(`{"id":"ORDER-MIN-001","status":"APPROVED"}`)); err != nil {
+					counters.err = err
+				}
+				return
+			}
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	t.Cleanup(upstream.Close)
+
+	origBase := paypalAPIBase
+	origClient := paypalHTTPClient
+	paypalAPIBase = func() string { return upstream.URL }
+	paypalHTTPClient = &http.Client{Timeout: 5 * time.Second}
+	t.Cleanup(func() {
+		paypalAPIBase = origBase
+		paypalHTTPClient = origClient
+	})
+
+	tokenCache.mu.Lock()
+	origToken := tokenCache.accessToken
+	origExpires := tokenCache.expiresAt
+	origTestMode := tokenCache.testMode
+	tokenCache.accessToken = "b08-paypal-test-token"
+	tokenCache.expiresAt = time.Now().Add(time.Hour)
+	tokenCache.testMode = setting.PayPalTestMode
+	tokenCache.mu.Unlock()
+	t.Cleanup(func() {
+		tokenCache.mu.Lock()
+		tokenCache.accessToken = origToken
+		tokenCache.expiresAt = origExpires
+		tokenCache.testMode = origTestMode
+		tokenCache.mu.Unlock()
+	})
+
+	return upstream, counters
+}
+
+// TestRequestPayPalAmountRealHandlerMinTopupBoundary drives the real
+// RequestPayPalAmount handler against a real authenticated user with the
+// PayPal checkout gate switched on, on both SQLite and PostgreSQL fixtures.
+// It observes the response envelope at every boundary the B08 spec calls out.
+func TestRequestPayPalAmountRealHandlerMinTopupBoundary(t *testing.T) {
+	p10RunAcrossDatabases(t, "boundary", b08AmountBoundaryBody)
+}
+
+func b08AmountBoundaryBody(t *testing.T, dbType common.DatabaseType) {
+	setupPayPalCancelDB(t, dbType)
+	withPayPalMinTopup(t, 10)
+	_, token := seedPayPalCancelUser(t, "b08-amt-user", 1000)
+
+	t.Run("amount 9 is rejected with real error envelope containing the configured minimum", func(t *testing.T) {
+		code, envelope := callPayPalRequestAmount(t, token, 9)
+		require.Equal(t, http.StatusOK, code)
+		// RequestPayPalAmount rejects with message="error", data=<reason>.
+		assert.Equal(t, "error", envelope["message"])
+		data, ok := envelope["data"].(string)
+		require.True(t, ok, "rejection data must be a string, got %T", envelope["data"])
+		assert.Contains(t, data, "10",
+			"the rejection message must reference the configured minimum (10)")
+	})
+
+	t.Run("amount 10 at the boundary is accepted with success envelope and correct amount", func(t *testing.T) {
+		code, envelope := callPayPalRequestAmount(t, token, 10)
+		require.Equal(t, http.StatusOK, code)
+		assert.Equal(t, "success", envelope["message"],
+			"amount=10 with the configured minimum must succeed, body=%v", envelope)
+		data, ok := envelope["data"].(string)
+		require.True(t, ok, "success data must be a formatted-money string")
+		assert.Equal(t, "10.00", data,
+			"amount=10 with default group ratio=1 must yield 10.00")
+	})
+
+	t.Run("amount 25 well above the minimum is accepted with correct amount", func(t *testing.T) {
+		code, envelope := callPayPalRequestAmount(t, token, 25)
+		require.Equal(t, http.StatusOK, code)
+		assert.Equal(t, "success", envelope["message"],
+			"amount=25 with the configured minimum must succeed, body=%v", envelope)
+		data, ok := envelope["data"].(string)
+		require.True(t, ok, "success data must be a formatted-money string")
+		assert.Equal(t, "25.00", data,
+			"amount=25 with default group ratio=1 must yield 25.00")
+	})
+}
+
+// TestRequestPayPalPayRealHandlerMinTopupRejection exercises the real
+// RequestPayPalPay handler with a real authenticated user, on both SQLite
+// and PostgreSQL fixtures. Below-min amounts must reject, make no PayPal
+// call, and create no TopUp row. The production handler returns
+// message=<reason-string> (NOT literal "error") on rejection, with data=10
+// for legacy clients.
+func TestRequestPayPalPayRealHandlerMinTopupRejection(t *testing.T) {
+	p10RunAcrossDatabases(t, "rejection", b08PayRejectionBody)
+}
+
+func b08PayRejectionBody(t *testing.T, dbType common.DatabaseType) {
+	setupPayPalCancelDB(t, dbType)
+	withPayPalMinTopup(t, 10)
+	_, counters := setupPayPalMinTopupLoopbackMock(t)
+	_, token := seedPayPalCancelUser(t, "b08-pay-reject-user", 1000)
+
+	t.Run("below-min amount rejects without calling PayPal or creating a row", func(t *testing.T) {
+		var rowsBefore int64
+		require.NoError(t, model.DB.Model(&model.TopUp{}).Count(&rowsBefore).Error)
+
+		atomic.StoreInt64(&counters.create, 0)
+		atomic.StoreInt64(&counters.get, 0)
+		atomic.StoreInt64(&counters.capture, 0)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/user/paypal/pay",
+			strings.NewReader(`{"amount":9,"payment_method":"paypal"}`))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		rec := httptest.NewRecorder()
+		paypalPayRouter().ServeHTTP(rec, req)
+
+		require.Equal(t, http.StatusOK, rec.Code)
+		var envelope map[string]interface{}
+		require.NoError(t, common.Unmarshal(rec.Body.Bytes(), &envelope))
+		// RequestPayPalPay rejection shape: message is the formatted reason.
+		message, ok := envelope["message"].(string)
+		require.True(t, ok, "message must be a string, got %T", envelope["message"])
+		assert.Contains(t, message, "10",
+			"the rejection message must reference the configured minimum (10)")
+
+		assert.Equal(t, int64(0), atomic.LoadInt64(&counters.create),
+			"below-min amount must not reach PayPal create-order")
+		assert.Equal(t, int64(0), atomic.LoadInt64(&counters.get),
+			"below-min amount must not reach PayPal order-detail GET")
+		assert.Equal(t, int64(0), atomic.LoadInt64(&counters.capture),
+			"below-min amount must not reach PayPal capture")
+
+		var rowsAfter int64
+		require.NoError(t, model.DB.Model(&model.TopUp{}).Count(&rowsAfter).Error)
+		assert.Equal(t, rowsBefore, rowsAfter,
+			"no TopUp row must be created for an amount below the configured minimum")
+
+		require.NoError(t, counters.err, "the loopback PayPal mock must not have recorded an error")
+	})
+}
+
+// TestRequestPayPalPayRealHandlerMinTopupSuccess exercises the real
+// RequestPayPalPay handler with a real authenticated user, on both SQLite
+// and PostgreSQL fixtures. At-min amount must reach the wire exactly once,
+// create exactly one pending TopUp row, return a real pay_link from the
+// loopback mock, and leave the user quota untouched.
+func TestRequestPayPalPayRealHandlerMinTopupSuccess(t *testing.T) {
+	p10RunAcrossDatabases(t, "success", b08PaySuccessBody)
+}
+
+func b08PaySuccessBody(t *testing.T, dbType common.DatabaseType) {
+	setupPayPalCancelDB(t, dbType)
+	withPayPalMinTopup(t, 10)
+	_, counters := setupPayPalMinTopupLoopbackMock(t)
+
+	const startQuota = 5000
+	user, token := seedPayPalCancelUser(t, "b08-pay-success-user", startQuota)
+
+	atomic.StoreInt64(&counters.create, 0)
+	atomic.StoreInt64(&counters.get, 0)
+	atomic.StoreInt64(&counters.capture, 0)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/user/paypal/pay",
+		strings.NewReader(`{"amount":10,"payment_method":"paypal"}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+	paypalPayRouter().ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	var envelope struct {
+		Message string                 `json:"message"`
+		Data    map[string]interface{} `json:"data"`
+	}
+	require.NoError(t, common.Unmarshal(rec.Body.Bytes(), &envelope))
+	assert.Equal(t, "success", envelope.Message)
+	payLink, ok := envelope.Data["pay_link"].(string)
+	require.True(t, ok, "data.pay_link must be a string")
+	assert.Contains(t, payLink, "loopback",
+		"pay_link must come from the loopback PayPal mock")
+
+	assert.Equal(t, int64(1), atomic.LoadInt64(&counters.create),
+		"successful order creation must hit PayPal create-order exactly once")
+	assert.Equal(t, int64(0), atomic.LoadInt64(&counters.capture),
+		"creation must not trigger a capture (capture only happens in HandlePayPalReturn / webhook)")
+	assert.Equal(t, int64(0), atomic.LoadInt64(&counters.get))
+
+	var topUps []model.TopUp
+	require.NoError(t, model.DB.Where("user_id = ?", user.Id).Find(&topUps).Error)
+	require.Len(t, topUps, 1, "exactly one TopUp row must be created")
+	assert.Equal(t, common.TopUpStatusPending, topUps[0].Status)
+	assert.Equal(t, "ORDER-MIN-001", topUps[0].PaymentId)
+	assert.Empty(t, topUps[0].TransactionId, "creation must not record a capture id")
+
+	assert.Equal(t, startQuota, getPayPalReturnUserQuota(t, user.Id),
+		"order creation must not credit the user quota")
+
+	var consumeCount int64
+	require.NoError(t, model.DB.Model(&model.Log{}).
+		Where("user_id = ? AND type = ?", user.Id, model.LogTypeConsume).
+		Count(&consumeCount).Error)
+	assert.Equal(t, int64(0), consumeCount,
+		"order creation must not produce a consume log entry")
+
+	require.NoError(t, counters.err, "the loopback PayPal mock must not have recorded an error")
+}
+
+// --- B04 P1-B04 Real order creation evidence (cancel path) —
+
+// setupPayPalCancelDB initializes the P10 database-run fixture (real
+// model.InitDB / model.InitLogDB chain, so reserved-word columns are set)
+// and enables the PayPal checkout gate. It migrates the tables the real
+// top-up / cancel flow touches.
+func setupPayPalCancelDB(t *testing.T, dbType common.DatabaseType) {
+	t.Helper()
+
+	p10SetupDatabase(t, dbType,
+		&model.User{}, &model.TopUp{}, &model.Log{},
+		&model.PayPalSettlementEvent{}, &model.UserSession{},
+	)
+
+	prevCryptoSecret := common.CryptoSecret
+	prevGroupRatio := common.TopupGroupRatio2JSONString()
+	prevPayPalEnabled := setting.PayPalEnabled
+	prevPayPalTestMode := setting.PayPalTestMode
+	prevPayPalClientID := setting.PayPalClientId
+	prevPayPalClientSecret := setting.PayPalClientSecret
+	prevPayPalSandboxClientID := setting.PayPalSandboxClientId
+	prevPayPalSandboxClientSecret := setting.PayPalSandboxClientSecret
+	prevCompliance := operation_setting.GetPaymentSetting().ComplianceConfirmed
+	prevComplianceVer := operation_setting.GetPaymentSetting().ComplianceTermsVersion
+
+	common.CryptoSecret = "b04-cancel-secret"
+	require.NoError(t, common.UpdateTopupGroupRatioByJSONString(`{"default":1}`))
+
+	// PayPal checkout gate must be on or the handler short-circuits before
+	// genPayPalOrder.
+	setting.PayPalTestMode = false
+	setting.PayPalEnabled = true
+	setting.PayPalClientId = "test-client-id"
+	setting.PayPalClientSecret = "test-client-secret"
+	setting.PayPalSandboxClientId = ""
+	setting.PayPalSandboxClientSecret = ""
+	paySetting := operation_setting.GetPaymentSetting()
+	paySetting.ComplianceConfirmed = true
+	paySetting.ComplianceTermsVersion = operation_setting.CurrentComplianceTermsVersion
+
+	t.Cleanup(func() {
+		common.CryptoSecret = prevCryptoSecret
+		setting.PayPalEnabled = prevPayPalEnabled
+		setting.PayPalTestMode = prevPayPalTestMode
+		setting.PayPalClientId = prevPayPalClientID
+		setting.PayPalClientSecret = prevPayPalClientSecret
+		setting.PayPalSandboxClientId = prevPayPalSandboxClientID
+		setting.PayPalSandboxClientSecret = prevPayPalSandboxClientSecret
+		_ = common.UpdateTopupGroupRatioByJSONString(prevGroupRatio)
+		operation_setting.GetPaymentSetting().ComplianceConfirmed = prevCompliance
+		operation_setting.GetPaymentSetting().ComplianceTermsVersion = prevComplianceVer
+	})
+}
+
+// seedPayPalCancelUser inserts a real enabled user with a real opaque
+// access token that the UserAuth middleware will recognize.
+func seedPayPalCancelUser(t *testing.T, username string, quota int) (*model.User, string) {
+	t.Helper()
+	token := common.GetRandomString(32)
+	user := &model.User{
+		Username:    username,
+		Password:    "ignored-hash",
+		Role:        common.RoleCommonUser,
+		Status:      common.UserStatusEnabled,
+		Group:       "default",
+		AffCode:     username,
+		AuthVersion: 1,
+		Quota:       quota,
+		AccessToken: &token,
+	}
+	require.NoError(t, model.DB.Create(user).Error)
+	return user, token
+}
+
+// payPalCancelRouter wires the real UserAuth middleware in front of the real
+// RequestPayPalPay handler so the slice exercises production auth +
+// production handler + loopback PayPal mock.
+func payPalCancelRouter() *gin.Engine {
+	r := gin.New()
+	r.POST("/api/user/paypal/pay", middleware.UserAuth(), RequestPayPalPay)
+	return r
+}
+
+// TestPayPalCancelRealOrderCreationAndCancelContract drives a real
+// authenticated RequestPayPalPay through a loopback PayPal mock and proves:
+//
+//   - the PayPal order request body carries cancel_url with explicit
+//     payment_cancel=true and never reuses payment_error/payment_pending/show_history
+//   - the local TopUp row is inserted as pending and quota is unchanged
+//   - the cancel "path" never reaches capture, settlement, or success:
+//     the sentinel PayPal server records zero GET (no order detail fetch)
+//     and zero POST /capture calls, and the local TopUp row remains in
+//     pending status with quota unchanged for as long as the test waits
+//
+// Handler discipline: the PayPal mock and the upstream closure do NOT call
+// testing.T / require / assert. Errors and hit counts are recorded through
+// atomic counters and read by the main goroutine after the client
+// response has been observed.
+func TestPayPalCancelRealOrderCreationAndCancelContract(t *testing.T) {
+	p10RunAcrossDatabases(t, "cancel", b04CancelBody)
+}
+
+func b04CancelBody(t *testing.T, dbType common.DatabaseType) {
+	setupPayPalCancelDB(t, dbType)
+	withPayPalCurrencyForTest(t, "USD")
+	withPayPalMinTopup(t, 10)
+
+	const startQuota = 100000
+	user, token := seedPayPalCancelUser(t, "b04-cancel-user", startQuota)
+
+	// Capture both the order request body and a hit counter. The mock
+	// MUST NOT call testing.T; it only mutates atomics and shared state, and
+	// records any read/unmarshal/write error into a mutex-guarded slot that
+	// the main goroutine asserts after the client response.
+	var mu sync.Mutex
+	var capturedCancelURL string
+	var capturedPayPalRequestID string
+	var createHits int64
+	var getOrderHits int64
+	var captureHits int64
+	var mockErr error
+
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			mu.Lock()
+			mockErr = err
+			mu.Unlock()
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		switch r.Method {
+		case http.MethodPost:
+			if strings.HasSuffix(r.URL.Path, "/v2/checkout/orders") {
+				atomic.AddInt64(&createHits, 1)
+				mu.Lock()
+				capturedPayPalRequestID = r.Header.Get("PayPal-Request-Id")
+				var payload map[string]interface{}
+				if err := common.Unmarshal(body, &payload); err != nil {
+					mockErr = err
+				}
+				if appCtx, ok := payload["application_context"].(map[string]interface{}); ok {
+					if cancelURL, ok := appCtx["cancel_url"].(string); ok {
+						capturedCancelURL = cancelURL
+					}
+				}
+				mu.Unlock()
+				w.WriteHeader(http.StatusCreated)
+				if _, err := w.Write([]byte(`{
+					"id":"ORDER-CANCEL-001",
+					"status":"CREATED",
+					"links":[{"href":"https://loopback/approve/ORDER-CANCEL-001","rel":"approve"}]
+				}`)); err != nil {
+					mu.Lock()
+					mockErr = err
+					mu.Unlock()
+				}
+				return
+			}
+			if strings.Contains(r.URL.Path, "/capture") {
+				atomic.AddInt64(&captureHits, 1)
+				w.WriteHeader(http.StatusCreated)
+				if _, err := w.Write([]byte(`{"id":"ORDER-CANCEL-001","status":"COMPLETED"}`)); err != nil {
+					mu.Lock()
+					mockErr = err
+					mu.Unlock()
+				}
+				return
+			}
+		case http.MethodGet:
+			if strings.Contains(r.URL.Path, "/v2/checkout/orders/") {
+				atomic.AddInt64(&getOrderHits, 1)
+				w.WriteHeader(http.StatusOK)
+				if _, err := w.Write([]byte(`{"id":"ORDER-CANCEL-001","status":"CREATED"}`)); err != nil {
+					mu.Lock()
+					mockErr = err
+					mu.Unlock()
+				}
+				return
+			}
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	t.Cleanup(upstream.Close)
+
+	origBase := paypalAPIBase
+	origClient := paypalHTTPClient
+	paypalAPIBase = func() string { return upstream.URL }
+	paypalHTTPClient = &http.Client{Timeout: 5 * time.Second}
+	t.Cleanup(func() {
+		paypalAPIBase = origBase
+		paypalHTTPClient = origClient
+	})
+
+	tokenCache.mu.Lock()
+	origToken := tokenCache.accessToken
+	origExpires := tokenCache.expiresAt
+	origTestMode := tokenCache.testMode
+	tokenCache.accessToken = "b04-paypal-test-token"
+	tokenCache.expiresAt = time.Now().Add(time.Hour)
+	tokenCache.testMode = setting.PayPalTestMode
+	tokenCache.mu.Unlock()
+	t.Cleanup(func() {
+		tokenCache.mu.Lock()
+		tokenCache.accessToken = origToken
+		tokenCache.expiresAt = origExpires
+		tokenCache.testMode = origTestMode
+		tokenCache.mu.Unlock()
+	})
+
+	// Drive the real handler with real auth.
+	req := httptest.NewRequest(http.MethodPost, "/api/user/paypal/pay",
+		strings.NewReader(`{"amount":15,"payment_method":"paypal"}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+	payPalCancelRouter().ServeHTTP(rec, req)
+
+	// Assert from the main goroutine AFTER the client response is observed.
+	require.Equal(t, http.StatusOK, rec.Code, "real handler must return 2xx, body=%s", rec.Body.String())
+	var envelope struct {
+		Message string                 `json:"message"`
+		Data    map[string]interface{} `json:"data"`
+	}
+	require.NoError(t, common.Unmarshal(rec.Body.Bytes(), &envelope))
+	assert.Equal(t, "success", envelope.Message, "RequestPayPalPay must succeed and return success envelope")
+	payLink, ok := envelope.Data["pay_link"].(string)
+	require.True(t, ok, "data.pay_link must be a string")
+	assert.Contains(t, payLink, "loopback", "pay_link must come from the loopback PayPal mock")
+
+	// cancel_url invariants recorded by the loopback mock.
+	mu.Lock()
+	gotCancelURL := capturedCancelURL
+	gotReqID := capturedPayPalRequestID
+	mu.Unlock()
+	require.NotEmpty(t, gotCancelURL, "the loopback mock must have observed a cancel_url")
+	parsed, parseErr := url.Parse(gotCancelURL)
+	require.NoError(t, parseErr)
+	assert.Equal(t, "true", parsed.Query().Get("payment_cancel"),
+		"cancel_url must carry an explicit payment_cancel=true query parameter")
+	for _, reserved := range []string{"payment_error", "payment_pending", "show_history"} {
+		assert.Empty(t, parsed.Query().Get(reserved),
+			"cancel_url must not carry reserved payment status key %q", reserved)
+	}
+	// PayPal-Request-Id must be a deterministic create digest, not the raw
+	// trade number — defensive coverage for the request-id invariant.
+	require.NotEmpty(t, gotReqID, "PayPal-Request-Id must be set on the create request")
+	assert.LessOrEqual(t, len(gotReqID), 38, "PayPal-Request-Id must be within PayPal's 38-byte cap")
+	assert.NotContains(t, gotReqID, "b04-cancel", "PayPal-Request-Id must not leak the trade number")
+
+	// Wire hit counts: one POST /v2/checkout/orders for create, ZERO captures,
+	// ZERO order-detail GETs. The user "cancels" by not completing PayPal, so
+	// HandlePayPalReturn is never invoked.
+	assert.Equal(t, int64(1), atomic.LoadInt64(&createHits), "create-order must hit the mock exactly once")
+	assert.Equal(t, int64(0), atomic.LoadInt64(&captureHits), "cancel must not reach capture")
+	assert.Equal(t, int64(0), atomic.LoadInt64(&getOrderHits), "cancel must not reach order detail fetch")
+
+	// The loopback mock must not have recorded a read/unmarshal/write error.
+	mu.Lock()
+	mockErrCopy := mockErr
+	mu.Unlock()
+	require.NoError(t, mockErrCopy, "the loopback PayPal mock must not have recorded an error")
+
+	// Local TopUp state: exactly one pending row, quota unchanged.
+	var topUps []model.TopUp
+	require.NoError(t, model.DB.Where("user_id = ?", user.Id).Find(&topUps).Error)
+	require.Len(t, topUps, 1, "exactly one TopUp row must be created on successful order creation")
+	assert.Equal(t, common.TopUpStatusPending, topUps[0].Status,
+		"cancel path must leave the TopUp in pending (no success mark)")
+	assert.Equal(t, "ORDER-CANCEL-001", topUps[0].PaymentId)
+	assert.Equal(t, model.PaymentProviderPayPal, topUps[0].PaymentProvider)
+	assert.Equal(t, model.PaymentMethodPayPal, topUps[0].PaymentMethod)
+	assert.Empty(t, topUps[0].TransactionId, "cancel must not record a capture transaction id")
+	assert.Equal(t, startQuota, getPayPalReturnUserQuota(t, user.Id),
+		"cancel path must not credit the user")
+
+	// No consume log must have been written for the cancel path.
+	var consumeCount int64
+	require.NoError(t, model.DB.Model(&model.Log{}).
+		Where("user_id = ? AND type = ?", user.Id, model.LogTypeConsume).
+		Count(&consumeCount).Error)
+	assert.Equal(t, int64(0), consumeCount,
+		"cancel must not produce a consume log entry")
+
+	// No PayPalSettlementEvent rows must have been written (the direct-capture
+	// path is the only writer; cancel skips it).
+	var settlementCount int64
+	require.NoError(t, model.DB.Model(&model.PayPalSettlementEvent{}).
+		Where("top_up_id = ?", topUps[0].Id).
+		Count(&settlementCount).Error)
+	assert.Equal(t, int64(0), settlementCount,
+		"cancel must not produce a settlement ledger row")
 }

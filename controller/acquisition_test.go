@@ -126,6 +126,7 @@ func setupAcquisitionTest(t *testing.T) *gorm.DB {
 		&model.AuthFlow{},
 		&model.UserSession{},
 		&model.UserOAuthBinding{},
+		&model.ExternalIdentityClaim{},
 	))
 	require.NoError(t, db.Create(&model.Option{Key: model.AcquisitionCoverageStartedAtKey, Value: "1"}).Error)
 

@@ -254,9 +254,8 @@ curl -X POST https://vancine.com/v1/video/generations \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer $VANCINE_API_KEY" \\
   -d '{
-    "model": "Doubao-Seedance-1.5-pro",
-    "prompt": "a cat walking on a beach",
-    "size": "1280x720"
+    "model": "Doubao-Seedance-2.5",
+    "prompt": "a cat walking on a beach"
   }'
 
 # 2. Poll the task status with the returned task_id

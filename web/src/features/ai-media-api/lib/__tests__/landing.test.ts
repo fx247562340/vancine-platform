@@ -169,9 +169,14 @@ describe('API example contract', () => {
     const speech = exampleById.get('speech')
     assert.ok(image && video && speech)
     assert.ok(image.code.includes('"qwen-image-2.0"'))
-    assert.ok(video.code.includes('"Doubao-Seedance-1.5-pro"'))
+    assert.ok(video.code.includes('"Doubao-Seedance-2.5"'))
     assert.ok(speech.code.includes('"Doubao-tts2.0"'))
-    assert.ok(!video.code.includes('Seedance-2.5'))
+    assert.ok(!video.code.includes('Doubao-Seedance-1.5-pro'))
+    assert.ok(!video.code.includes('Doubao-Seedance-2.0-fast'))
+    assert.ok(!video.code.includes('Doubao-Seedance-2.0'))
+    // The minimal safe Seedance 2.5 request carries only model + prompt.
+    assert.ok(!video.code.includes('1280x720'))
+    assert.ok(!video.code.includes('"size"'))
   })
 
   test('keys come only from the VANCINE_API_KEY environment variable', () => {
@@ -236,8 +241,6 @@ describe('page content contract', () => {
     assert.ok(!/free credit/i.test(joined))
     assert.ok(!/no credit card/i.test(joined))
     assert.ok(!/credit card required/i.test(joined))
-    assert.ok(!joined.includes('Seedance 2.5'))
-    assert.ok(!joined.includes('Seedance-2.5'))
     assert.ok(!/leading|state of the art|latest/i.test(joined))
     assert.ok(!joined.includes('api.vancine.com'))
   })

@@ -1,8 +1,8 @@
 <div align="center">
 
-![new-api](/web/default/public/logo.png)
+![Vancine](/web/default/public/logo.png)
 
-# New API
+# Vancine
 
 🍥 **次世代大規模モデルゲートウェイとAI資産管理システム**
 
@@ -491,7 +491,7 @@ Token、Origin 検証、PAT の契約については[ユーザー認証とログ
 
 <div align="center">
 
-### 💖 New APIをご利用いただきありがとうございます
+### 💖 Vancineをご利用いただきありがとうございます
 
 このプロジェクトがあなたのお役に立てたなら、ぜひ ⭐️ スターをください！
 

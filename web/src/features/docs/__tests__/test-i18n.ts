@@ -1,0 +1,61 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+import i18n from 'i18next'
+import { initReactI18next } from 'react-i18next'
+
+import enDocs from '../i18n/locales/en.json'
+import zhDocs from '../i18n/locales/zhCN.json'
+
+const DOCS_NS = 'docs'
+
+let i18nReady = false
+
+/**
+ * Initialize the shared i18next instance for tests. Starts with NO docs
+ * resources so the DocsI18nProvider's lazy loading can be exercised; tests
+ * that need a pre-loaded bundle call `setDocsBundle`.
+ */
+export async function initTestI18n(language = 'en'): Promise<void> {
+  if (!i18nReady) {
+    await i18n.use(initReactI18next).init({
+      resources: {},
+      lng: language,
+      fallbackLng: 'en',
+      nsSeparator: false,
+      interpolation: { escapeValue: false },
+      react: { useSuspense: false },
+    })
+    i18nReady = true
+  }
+  await i18n.changeLanguage(language)
+}
+
+export function setDocsBundle(
+  locale: string,
+  data: Record<string, unknown>
+): void {
+  i18n.addResourceBundle(locale, DOCS_NS, data, true, true)
+}
+
+export function clearDocsBundle(locale: string): void {
+  i18n.removeResourceBundle(locale, DOCS_NS)
+}
+
+export const EN_DOCS = enDocs as unknown as Record<string, unknown>
+export const ZH_DOCS = zhDocs as unknown as Record<string, unknown>

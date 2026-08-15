@@ -159,4 +159,31 @@ describe('analytics payload privacy boundary', () => {
     } as unknown as Parameters<typeof trackEvent>[1])
     assert.deepEqual(calls[0].eventData, { location: 'kimi_k3_hero' })
   })
+
+  test('passes model field through to the tracker', () => {
+    const { calls } = installWindow('vancine.com')
+    trackEvent('featured_model_clicked', {
+      location: 'available_now',
+      model: 'kimi-k3',
+    })
+    assert.equal(calls.length, 1)
+    assert.deepEqual(calls[0].eventData, {
+      location: 'available_now',
+      model: 'kimi-k3',
+    })
+  })
+
+  test('drops unauthorized keys even when model is present', () => {
+    const { calls } = installWindow('vancine.com')
+    trackEvent('featured_model_clicked', {
+      location: 'available_now',
+      model: 'kimi-k3',
+      email: 'user@example.com',
+      api_key: 'secret',
+    } as unknown as Parameters<typeof trackEvent>[1])
+    assert.deepEqual(calls[0].eventData, {
+      location: 'available_now',
+      model: 'kimi-k3',
+    })
+  })
 })

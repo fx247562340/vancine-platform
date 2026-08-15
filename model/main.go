@@ -307,6 +307,9 @@ func migrateDB() error {
 	if err := InitializeUserAuthVersions(); err != nil {
 		return err
 	}
+	if err := InitializePasskeyCredentialIDHashes(); err != nil {
+		return err
+	}
 	if err := InitializeExternalIdentityClaims(); err != nil {
 		return err
 	}
@@ -400,6 +403,9 @@ func migrateDBFast() error {
 		return err
 	}
 	if err := InitializeUserAuthVersions(); err != nil {
+		return err
+	}
+	if err := InitializePasskeyCredentialIDHashes(); err != nil {
 		return err
 	}
 	if err := InitializeExternalIdentityClaims(); err != nil {

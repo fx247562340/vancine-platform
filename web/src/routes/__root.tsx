@@ -97,8 +97,14 @@ function RootComponent() {
     <ThemeCustomizationProvider>
       <AcquisitionBootstrap />
       <NavigationProgress />
-      <Outlet />
+      {/* The Toaster must mount and subscribe BEFORE the Outlet subtree: React
+          flushes mount effects children-first, then siblings in JSX order, and
+          sonner registers its store subscription in a passive effect with no
+          replay of earlier toasts. A page child effect (e.g. the wallet
+          payment-return toast) that runs before the Toaster subscribes would
+          drop the toast on a full-page load. */}
       <Toaster closeButton duration={5000} position='top-center' richColors />
+      <Outlet />
       {import.meta.env.MODE === 'development' && (
         <>
           <ReactQueryDevtools buttonPosition='bottom-left' />

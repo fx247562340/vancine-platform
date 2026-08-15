@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -81,22 +82,25 @@ func shouldChargeViolationFee(err *types.NewAPIError) bool {
 	return HasCSAMViolationMarker(err)
 }
 
-func calcViolationFeeQuota(amount, groupRatio float64) int {
-	if amount <= 0 {
-		return 0
+func calcViolationFeeQuota(amount, groupRatio float64) (int, *common.QuotaClamp) {
+	if amount <= 0 || groupRatio <= 0 {
+		return 0, nil
 	}
-	if groupRatio <= 0 {
-		return 0
+	if !isFinite(amount) || !isFinite(groupRatio) {
+		return 0, nil
 	}
-	quota := decimal.NewFromFloat(amount).
+	product := decimal.NewFromFloat(amount).
 		Mul(decimal.NewFromFloat(common.QuotaPerUnit)).
-		Mul(decimal.NewFromFloat(groupRatio)).
-		Round(0).
-		IntPart()
+		Mul(decimal.NewFromFloat(groupRatio))
+	quota, clamp := common.QuotaFromDecimalChecked(product)
 	if quota <= 0 {
-		return 0
+		return 0, clamp
 	}
-	return int(quota)
+	return quota, clamp
+}
+
+func isFinite(v float64) bool {
+	return !math.IsNaN(v) && !math.IsInf(v, 0)
 }
 
 // ChargeViolationFeeIfNeeded charges an additional fee after the normal flow finishes (including refund).
@@ -118,9 +122,12 @@ func ChargeViolationFeeIfNeeded(ctx *gin.Context, relayInfo *relaycommon.RelayIn
 	}
 
 	groupRatio := relayInfo.PriceData.GroupRatioInfo.GroupRatio
-	feeQuota := calcViolationFeeQuota(settings.ViolationDeductionAmount, groupRatio)
+	feeQuota, clamp := calcViolationFeeQuota(settings.ViolationDeductionAmount, groupRatio)
 	if feeQuota <= 0 {
 		return false
+	}
+	if clamp != nil {
+		relayInfo.QuotaClamp = clamp
 	}
 
 	if err := PostConsumeQuota(relayInfo, feeQuota, 0, true); err != nil {
@@ -135,7 +142,7 @@ func ChargeViolationFeeIfNeeded(ctx *gin.Context, relayInfo *relaycommon.RelayIn
 	tokenName := ctx.GetString("token_name")
 	oai := apiErr.ToOpenAIError()
 
-	other := map[string]any{
+	other := map[string]interface{}{
 		"violation_fee":        true,
 		"violation_fee_code":   string(types.ErrorCodeViolationFeeGrokCSAM),
 		"fee_quota":            feeQuota,
@@ -146,6 +153,8 @@ func ChargeViolationFeeIfNeeded(ctx *gin.Context, relayInfo *relaycommon.RelayIn
 		"upstream_error_code":  fmt.Sprintf("%v", oai.Code),
 		"violation_fee_marker": CSAMViolationMarker,
 	}
+
+	attachQuotaSaturation(ctx, relayInfo, other)
 
 	model.RecordConsumeLog(ctx, relayInfo.UserId, model.RecordConsumeLogParams{
 		ChannelId:      relayInfo.ChannelId,

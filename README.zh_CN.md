@@ -1,8 +1,8 @@
 <div align="center">
 
-![new-api](/web/default/public/logo.png)
+![Vancine](/web/default/public/logo.png)
 
-# New API
+# Vancine
 
 🍥 **新一代大模型网关与AI资产管理系统**
 
@@ -491,7 +491,7 @@ Token、Origin 校验和 PAT 契约见[用户鉴权与登录会话](./docs/authe
 
 <div align="center">
 
-### 💖 感谢使用 New API
+### 💖 感谢使用 Vancine
 
 如果这个项目对你有帮助，欢迎给我们一个 ⭐️ Star！
 

@@ -18,7 +18,9 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+
 import { Badge } from '@/components/ui/badge'
+
 import { DocsCodeBlock } from '../components/code-block'
 import { DocsH2, DocsH3, DocsP } from '../components/headings'
 import { DocsTable, DocsTd, DocsTr } from '../components/primitives'
@@ -59,11 +61,7 @@ const IMAGE_MODELS: [model: string, size: string, note: string][] = [
   ['wan2.7-image-pro', 'WxH', ''],
 ]
 
-const VIDEO_MODELS: [model: string, price: string, note: string][] = [
-  ['Doubao-Seedance-1.5-pro', '¥0.24 / call', '~37s in verification'],
-  ['Doubao-Seedance-2.0-fast', '¥0.55 / call', 'async generation'],
-  ['Doubao-Seedance-2.0', '¥0.68 / call', 'async generation'],
-]
+const VIDEO_MODELS: [model: string][] = [['Doubao-Seedance-2.5']]
 
 const THREE_D_MODELS: [model: string, input: string, state: string][] = [
   ['Hyper3D-Gen2', 'images optional', 'text or image reference'],
@@ -122,10 +120,10 @@ export default function ModelsPage(props: { baseUrl: string }) {
         })
       ),
       ...VIDEO_MODELS.map(
-        ([model, price, note]): MultimodalRow => ({
+        ([model]): MultimodalRow => ({
           model,
           type: 'video',
-          note: `${price}; ${note}`,
+          note: t('models.fetchPricing'),
         })
       ),
       ...THREE_D_MODELS.map(

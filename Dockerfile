@@ -29,6 +29,14 @@ RUN go build -ldflags "-s -w -X 'github.com/QuantumNous/new-api/common.Version=$
 
 FROM debian:bookworm-slim@sha256:f06537653ac770703bc45b4b113475bd402f451e85223f0f2837acbf89ab020a
 
+# Immutable-image provenance labels. The deployment orchestrator passes the
+# full commit SHA and bare version at build time and later refuses to reuse an
+# existing image tag unless BOTH labels match exactly.
+ARG TARGET_SHA=""
+ARG TARGET_VERSION=""
+LABEL org.opencontainers.image.revision="$TARGET_SHA" \
+      org.opencontainers.image.version="$TARGET_VERSION"
+
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates tzdata libasan8 wget \
     && rm -rf /var/lib/apt/lists/* \

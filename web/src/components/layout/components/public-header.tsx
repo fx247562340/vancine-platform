@@ -102,6 +102,47 @@ export function PublicHeader(props: PublicHeaderProps) {
   const displaySiteName = customSiteName || systemName
   const links = dynamicLinks.length > 0 ? dynamicLinks : navLinks
 
+  // Logo render: the loading skeleton wins over the custom logo, which wins
+  // over the system logo (single-layer priority chain, no nesting).
+  let logoContent: React.ReactNode
+  if (loading) {
+    logoContent = <Skeleton className='size-full rounded-lg' />
+  } else if (customLogo) {
+    logoContent = customLogo
+  } else {
+    logoContent = (
+      <HeaderLogo
+        src={systemLogo}
+        loading={loading}
+        logoLoaded={logoLoaded}
+        className='size-full rounded-lg object-contain'
+      />
+    )
+  }
+
+  // Desktop auth entry: the loading skeleton wins over the signed-in
+  // dropdown, which wins over the anonymous sign-in button. The
+  // showAuthButtons gate stays outside, so a closed header never builds the
+  // entry at all.
+  let desktopAuthEntry: React.ReactNode = null
+  if (showAuthButtons) {
+    if (loading) {
+      desktopAuthEntry = <Skeleton className='h-8 w-20 rounded-lg' />
+    } else if (isAuthenticated) {
+      desktopAuthEntry = <ProfileDropdown />
+    } else {
+      desktopAuthEntry = (
+        <Button
+          size='sm'
+          className='h-8 rounded-lg px-3.5 text-xs font-medium'
+          render={<Link to='/sign-in' />}
+        >
+          {t('Sign in')}
+        </Button>
+      )
+    }
+  }
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
     onScroll()
@@ -200,18 +241,7 @@ export function PublicHeader(props: PublicHeaderProps) {
               className='group flex shrink-0 items-center gap-2.5'
             >
               <div className='flex size-7 shrink-0 items-center justify-center transition-all duration-300 group-hover:scale-105'>
-                {loading ? (
-                  <Skeleton className='size-full rounded-lg' />
-                ) : customLogo ? (
-                  customLogo
-                ) : (
-                  <HeaderLogo
-                    src={systemLogo}
-                    loading={loading}
-                    logoLoaded={logoLoaded}
-                    className='size-full rounded-lg object-contain'
-                  />
-                )}
+                {logoContent}
               </div>
               <span className='text-sm font-semibold tracking-tight'>
                 {loading ? <Skeleton className='h-4 w-16' /> : displaySiteName}
@@ -220,12 +250,12 @@ export function PublicHeader(props: PublicHeaderProps) {
 
             {/* Desktop nav */}
             <div className='hidden items-center gap-0.5 sm:flex'>
-              {links.map((link, i) => {
+              {links.map((link) => {
                 const isActive = pathname === link.href
                 if (link.external) {
                   return (
                     <a
-                      key={i}
+                      key={link.id}
                       href={link.href}
                       target='_blank'
                       rel='noopener noreferrer'
@@ -243,7 +273,7 @@ export function PublicHeader(props: PublicHeaderProps) {
                 }
                 return (
                   <Link
-                    key={i}
+                    key={link.id}
                     to={link.href}
                     disabled={link.disabled}
                     onClick={(event) => handleNavLinkClick(event, link)}
@@ -286,19 +316,7 @@ export function PublicHeader(props: PublicHeaderProps) {
               {showAuthButtons && (
                 <>
                   <div className='bg-border/40 mx-1 h-4 w-px' />
-                  {loading ? (
-                    <Skeleton className='h-8 w-20 rounded-lg' />
-                  ) : isAuthenticated ? (
-                    <ProfileDropdown />
-                  ) : (
-                    <Button
-                      size='sm'
-                      className='h-8 rounded-lg px-3.5 text-xs font-medium'
-                      render={<Link to='/sign-in' />}
-                    >
-                      {t('Sign in')}
-                    </Button>
-                  )}
+                  {desktopAuthEntry}
                 </>
               )}
             </div>
@@ -375,7 +393,7 @@ export function PublicHeader(props: PublicHeaderProps) {
               if (link.external) {
                 return (
                   <a
-                    key={i}
+                    key={link.id}
                     href={link.href}
                     target='_blank'
                     rel='noopener noreferrer'
@@ -391,7 +409,7 @@ export function PublicHeader(props: PublicHeaderProps) {
               }
               return (
                 <Link
-                  key={i}
+                  key={link.id}
                   to={link.href}
                   disabled={link.disabled}
                   onClick={(event) => handleNavLinkClick(event, link, true)}

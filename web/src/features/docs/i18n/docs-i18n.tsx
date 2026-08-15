@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+
 import { DocsI18nContext } from './docs-i18n-context'
 import {
   ensureDocsBundle,
@@ -53,7 +54,12 @@ export function DocsI18nProvider(props: DocsI18nProviderProps) {
 
   // Status is fully derived (no synchronous setState in the effect body):
   // current locale failed -> 'error'; bundle present -> 'ready'; else loading.
-  const status = failedLocale === locale ? 'error' : ready ? 'ready' : 'loading'
+  let status: 'loading' | 'ready' | 'error' = 'loading'
+  if (failedLocale === locale) {
+    status = 'error'
+  } else if (ready) {
+    status = 'ready'
+  }
 
   useEffect(() => {
     if (isDocsBundleReady(locale)) return

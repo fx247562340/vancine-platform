@@ -63,6 +63,10 @@ import { AmountOptionsVisualEditor } from './amount-options-visual-editor'
 import { CreemProductsVisualEditor } from './creem-products-visual-editor'
 import { PaymentMethodsVisualEditor } from './payment-methods-visual-editor'
 import {
+  PayPalSettingsSection,
+  type PayPalSettingsValues,
+} from './paypal-settings-section'
+import {
   formatJsonForEditor,
   getJsonError,
   normalizeJsonForComparison,
@@ -74,10 +78,6 @@ import {
   type WaffoPancakeBinding,
   type WaffoPancakeSettingsValues,
 } from './waffo-pancake-settings-section'
-import {
-  PayPalSettingsSection,
-  type PayPalSettingsValues,
-} from './paypal-settings-section'
 import {
   type PayMethod,
   WaffoSettingsSection,
@@ -309,23 +309,39 @@ export function PaymentSettingsSection({
   const complianceRequiredTextParts = React.useMemo(
     () => [
       {
+        id: 'compliance-read-reminder',
         type: 'input' as const,
         text: t('I have read and understood the above compliance reminder'),
       },
-      { type: 'static' as const, text: t('，') },
       {
+        id: 'compliance-separator-after-read',
+        type: 'static' as const,
+        text: t('，'),
+      },
+      {
+        id: 'compliance-acknowledge-risk',
         type: 'input' as const,
         text: t('acknowledge the related legal risks'),
       },
-      { type: 'static' as const, text: t('，and ') },
       {
+        id: 'compliance-separator-before-responsibility',
+        type: 'static' as const,
+        text: t('，and '),
+      },
+      {
+        id: 'compliance-confirm-legal-responsibility',
         type: 'input' as const,
         text: t(
           'confirm that I bear legal responsibility arising from deployment'
         ),
       },
-      { type: 'static' as const, text: t('、') },
       {
+        id: 'compliance-separator-before-operations',
+        type: 'static' as const,
+        text: t('、'),
+      },
+      {
+        id: 'compliance-confirm-operation-and-charging',
         type: 'input' as const,
         text: t('operation and charging behavior'),
       },
@@ -1634,10 +1650,7 @@ export function PaymentSettingsSection({
               />
             </TabsContent>
 
-            <TabsContent
-              value='paypal'
-              className={paymentTabContentClassName}
-            >
+            <TabsContent value='paypal' className={paymentTabContentClassName}>
               <PayPalSettingsSection defaultValues={paypalDefaultValues} />
             </TabsContent>
           </Tabs>

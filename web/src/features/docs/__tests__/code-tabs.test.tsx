@@ -19,9 +19,10 @@ For commercial licensing, please contact support@quantumnous.com
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
+
 import { DocsCodeTabs } from '../components/code-tabs'
 import { buildCodeTabItems } from '../lib/code-tabs'
-import { initTestI18n, setDocsBundle, EN_DOCS } from './test-utils'
+import { initTestI18n, setDocsBundle, EN_DOCS } from './test-i18n'
 
 const items = buildCodeTabItems(
   {

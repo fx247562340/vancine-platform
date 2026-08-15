@@ -61,7 +61,7 @@ jobs:
     name: Frontend typecheck and test
     if: github.event.action != 'closed' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: web
@@ -85,4 +85,13 @@ jobs:
         run: bun run typecheck
 
       - name: Test
-        run: bun test
+        run: bun run test
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Format check
+        run: bun run format:check
+
+      - name: Build
+        run: bun run build

@@ -16,16 +16,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import type { ReactNode } from 'react'
 import { act, screen, waitFor } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { DocsBundleLoader, DocsLocale } from '../i18n/loader'
 import { DocsLayout } from '../index'
-import {
-  clearDocsBundle,
-  initTestI18n,
-  renderWithProviders,
-} from './test-utils'
+import { clearDocsBundle, initTestI18n } from './test-i18n'
+import { renderWithProviders } from './test-utils'
 
 // Defer ensureDocsBundle so the Docs bundle stays "loading" until the test
 // releases it. This makes the cold first-load frame deterministic instead of
@@ -41,7 +39,10 @@ vi.mock('../i18n/loader', async (importActual) => {
     ) =>
       new Promise<void>((resolve, reject) => {
         triggerLoad = () => {
-          actual.ensureDocsBundle(locale, loaders).then(resolve, reject)
+          // The two-handler then propagates both settlement branches into
+          // the deferred promise; the void only acknowledges the discarded
+          // return value of the chain.
+          void actual.ensureDocsBundle(locale, loaders).then(resolve, reject)
         }
       }),
   }

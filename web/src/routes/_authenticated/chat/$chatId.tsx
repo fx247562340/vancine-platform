@@ -23,6 +23,7 @@ import { useTranslation } from 'react-i18next'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { ChatWebFrame } from '@/features/chat/components/chat-web-frame'
 import { useActiveChatKey } from '@/features/chat/hooks/use-active-chat-key'
 import { useChatPresets } from '@/features/chat/hooks/use-chat-presets'
 import {
@@ -153,13 +154,5 @@ function ChatRouteComponent() {
     )
   }
 
-  return (
-    <iframe
-      src={iframeSrc}
-      key={iframeSrc}
-      className='h-full w-full border-0'
-      allow='camera; microphone'
-      title={`Chat preset: ${preset.name}`}
-    />
-  )
+  return <ChatWebFrame url={iframeSrc} presetName={preset.name} />
 }

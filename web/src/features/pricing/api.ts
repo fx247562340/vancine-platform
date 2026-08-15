@@ -24,8 +24,20 @@ import type { PricingData } from './types'
 // Pricing APIs
 // ----------------------------------------------------------------------------
 
-// Get model pricing data
-export async function getPricing(): Promise<PricingData> {
-  const res = await api.get('/api/pricing')
+// Get model pricing data — bypasses global GET dedup and supports abort.
+// Works both as a direct call with AbortSignal and as a TanStack Query queryFn.
+export async function getPricing(
+  signalOrContext?: AbortSignal | { signal?: AbortSignal }
+): Promise<PricingData> {
+  let signal: AbortSignal | undefined
+  if (signalOrContext instanceof AbortSignal) {
+    signal = signalOrContext
+  } else if (signalOrContext && 'signal' in signalOrContext) {
+    signal = signalOrContext.signal
+  }
+  const res = await api.get('/api/pricing', {
+    signal,
+    disableDuplicate: true,
+  })
   return res.data
 }

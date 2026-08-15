@@ -127,6 +127,7 @@ const testRouteTree = testRootRoute.addChildren([
     component: () => <PublicHeader />,
   }),
   stubRoute('/kimi-k3-api', 'kimi-page'),
+  stubRoute('/seedance-api', 'seedance-page'),
   stubRoute('/ai-media-api', 'ai-media-page'),
   stubRoute('/pricing', 'pricing-page'),
 ])
@@ -196,6 +197,9 @@ describe('desktop API Solutions menu', () => {
       within(popup).getByRole('link', { name: /Kimi K3 API/ })
     ).toHaveAttribute('href', '/kimi-k3-api')
     expect(
+      within(popup).getByRole('link', { name: /Seedance 2.5 API/ })
+    ).toHaveAttribute('href', '/seedance-api')
+    expect(
       within(popup).getByRole('link', { name: /AI Media API/ })
     ).toHaveAttribute('href', '/ai-media-api')
   })
@@ -231,7 +235,7 @@ describe('desktop API Solutions menu', () => {
 
   it('keeps dynamic backend-configured nav links untouched', async () => {
     useTopNavLinksMock.mockReturnValue([
-      { title: 'Custom Backend Link', href: '/pricing' },
+      { id: 'custom-backend', title: 'Custom Backend Link', href: '/pricing' },
     ])
     renderHeader()
 
@@ -269,14 +273,21 @@ describe('mobile menu Developer solutions group', () => {
       screen.queryAllByRole('link', { name: 'Kimi K3 API', hidden: true })
     ).not.toHaveLength(0)
     expect(
+      screen.queryAllByRole('link', {
+        name: 'Seedance 2.5 API',
+        hidden: true,
+      })
+    ).not.toHaveLength(0)
+    expect(
       screen.queryAllByRole('link', { name: 'AI Media API', hidden: true })
     ).not.toHaveLength(0)
     // ... but are not exposed to the accessibility tree.
     expect(screen.queryByRole('link', { name: 'Kimi K3 API' })).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Seedance 2.5 API' })).toBeNull()
     expect(screen.queryByRole('link', { name: 'AI Media API' })).toBeNull()
   })
 
-  it('exposes both solution links in the accessibility tree when the menu opens', async () => {
+  it('exposes all three solution links in the accessibility tree when the menu opens', async () => {
     const user = userEvent.setup()
     const { container } = renderHeader()
 
@@ -291,10 +302,14 @@ describe('mobile menu Developer solutions group', () => {
     expect(overlay?.hasAttribute('inert')).toBe(false)
 
     const kimiLink = await screen.findByRole('link', { name: 'Kimi K3 API' })
+    const seedanceLink = await screen.findByRole('link', {
+      name: 'Seedance 2.5 API',
+    })
     const aiMediaLink = await screen.findByRole('link', {
       name: 'AI Media API',
     })
     expect(kimiLink).toHaveAttribute('href', '/kimi-k3-api')
+    expect(seedanceLink).toHaveAttribute('href', '/seedance-api')
     expect(aiMediaLink).toHaveAttribute('href', '/ai-media-api')
   })
 
@@ -319,7 +334,14 @@ describe('mobile menu Developer solutions group', () => {
     expect(
       screen.queryAllByRole('link', { name: 'Kimi K3 API', hidden: true })
     ).not.toHaveLength(0)
+    expect(
+      screen.queryAllByRole('link', {
+        name: 'Seedance 2.5 API',
+        hidden: true,
+      })
+    ).not.toHaveLength(0)
     expect(screen.queryByRole('link', { name: 'Kimi K3 API' })).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Seedance 2.5 API' })).toBeNull()
     expect(screen.queryByRole('link', { name: 'AI Media API' })).toBeNull()
   })
 
@@ -339,6 +361,7 @@ describe('mobile menu Developer solutions group', () => {
     await waitFor(() => {
       expect(screen.queryByRole('link', { name: 'Kimi K3 API' })).toBeNull()
     })
+    expect(screen.queryByRole('link', { name: 'Seedance 2.5 API' })).toBeNull()
     expect(screen.queryByRole('link', { name: 'AI Media API' })).toBeNull()
   })
 

@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next'
 
 import { AnimateInView } from '@/components/animate-in-view'
 import { Button } from '@/components/ui/button'
+import { trackEvent } from '@/lib/analytics'
 
 interface CTAProps {
   className?: string
@@ -31,9 +32,7 @@ interface CTAProps {
 export function CTA(props: CTAProps) {
   const { t } = useTranslation()
 
-  if (props.isAuthenticated) {
-    return null
-  }
+  const ctaDestination = props.isAuthenticated ? '/dashboard' : '/sign-up'
 
   return (
     <section className='relative z-10 overflow-hidden px-6 py-24 md:py-32'>
@@ -54,20 +53,22 @@ export function CTA(props: CTAProps) {
         animation='scale-in'
       >
         <h2 className='text-2xl leading-tight font-bold tracking-tight md:text-4xl'>
-          {t('Ready to simplify')}
-          <br />
-          <span className='bg-gradient-to-r from-blue-400 via-violet-400 to-purple-500 bg-clip-text text-transparent'>
-            {t('your AI integration?')}
-          </span>
+          {t("Start building with China's frontier models")}
         </h2>
         <p className='text-muted-foreground/80 mx-auto mt-5 max-w-md text-sm leading-relaxed md:text-base'>
           {t(
-            'Deploy your own gateway and start routing requests through your configured upstream services.'
+            'New accounts may receive $1 in promotional API credit when the current signup bonus is enabled. Credit, eligibility, and availability can change; usage depends on model and workload.'
           )}
         </p>
         <div className='mt-8 flex items-center justify-center gap-3'>
-          <Button className='group rounded-lg' render={<Link to='/sign-up' />}>
-            {t('Get Started')}
+          <Button
+            className='group rounded-lg'
+            render={<Link to={ctaDestination} />}
+            onClick={() =>
+              trackEvent('get_started_clicked', { location: 'final_cta' })
+            }
+          >
+            {t('Start building free')}
             <ArrowRight className='ml-1 size-3.5 transition-transform duration-200 group-hover:translate-x-0.5' />
           </Button>
           <Button
@@ -75,7 +76,7 @@ export function CTA(props: CTAProps) {
             className='border-border/50 hover:border-border hover:bg-muted/50 rounded-lg'
             render={<Link to='/pricing' />}
           >
-            {t('View Pricing')}
+            {t('Explore live models')}
           </Button>
         </div>
       </AnimateInView>

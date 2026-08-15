@@ -162,11 +162,10 @@ Emergency DNS-based rollback to the old Japan server is only available while
 `64.83.35.21` is retained as cold backup. See
 [Deployment Reference](deployment.md#rollback).
 
-## Notes on npm and lockfiles
+## Notes on the frontend build
 
-Both frontend themes use npm and committed `package-lock.json` files.
+The project uses a single Bun frontend under `web/` with a committed `web/bun.lock`.
 
-- Do not reintroduce `bun.lock`.
-- Do not use `bun install` for production builds.
-- `web/classic` requires `npm install --legacy-peer-deps`.
-- `web/classic` pins `react-icons` to `5.3.0` because later versions removed `SiLinkedin`.
+- Build the frontend with `cd web && bun install --frozen-lockfile && bun run build`.
+- The Dockerfile and CI both build from `web/bun.lock`; keep it in sync with `web/package.json`.
+- There is no separate `web/classic` or `web/default` theme and no `package-lock.json` files.

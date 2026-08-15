@@ -52,6 +52,11 @@ func GenerateOAuthCode(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
 		return
 	}
+	// Validate the provider is currently usable (DB row + runtime in sync)
+	// so custom providers disabled mid-flight do not generate a state token.
+	if _, ok := resolveValidOAuthProvider(c, request.Provider); !ok {
+		return
+	}
 	userID := 0
 	sessionID := ""
 	if request.Intent == model.AuthFlowIntentBind {
@@ -92,9 +97,53 @@ func GenerateOAuthCode(c *gin.Context) {
 	})
 }
 
+// resolveValidOAuthProvider resolves the OAuth provider by name and validates
+// it is currently usable, re-reading the persisted CustomOAuthProvider row
+// for custom providers so a split state (runtime enabled, DB disabled,
+// runtime/persisted ID mismatch, persisted row missing) is rejected before
+// the caller proceeds. The returned bool is false and the response is
+// already written when the caller should stop.
+//
+// Classification is based on both the runtime type and the registry custom
+// marker. Inconsistency (isGeneric != isCustom) always fails closed.
+func resolveValidOAuthProvider(c *gin.Context, providerName string) (oauth.Provider, bool) {
+	provider := oauth.GetProvider(providerName)
+	if provider == nil || !provider.IsEnabled() {
+		common.ApiErrorI18n(c, i18n.MsgOAuthNotEnabled, providerParams(providerName))
+		return nil, false
+	}
+	generic, isGeneric := provider.(*oauth.GenericOAuthProvider)
+	isCustom := oauth.IsCustomProvider(providerName)
+
+	switch {
+	case isGeneric && isCustom:
+		// Custom provider: persisted DB row must exist, be enabled, and
+		// match the runtime registry by ID and slug.
+		persisted, err := model.GetCustomOAuthProviderBySlug(providerName)
+		if err != nil || persisted == nil {
+			common.ApiErrorI18n(c, i18n.MsgOAuthNotEnabled, providerParams(providerName))
+			return nil, false
+		}
+		if !persisted.Enabled || persisted.Id != generic.GetProviderId() || persisted.Slug != providerName {
+			common.ApiErrorI18n(c, i18n.MsgOAuthNotEnabled, providerParams(providerName))
+			return nil, false
+		}
+		return provider, true
+	case !isGeneric && !isCustom:
+		// Built-in provider: runtime registry is the source of truth.
+		return provider, true
+	default:
+		// Inconsistent: registry says custom but runtime is not Generic,
+		// or vice versa. Fail-closed.
+		common.ApiErrorI18n(c, i18n.MsgOAuthNotEnabled, providerParams(providerName))
+		return nil, false
+	}
+}
+
 // HandleOAuth handles OAuth callback for all standard OAuth providers
 func HandleOAuth(c *gin.Context) {
 	providerName := c.Param("provider")
+	// 1. Basic existence check.
 	provider := oauth.GetProvider(providerName)
 	if provider == nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -104,7 +153,7 @@ func HandleOAuth(c *gin.Context) {
 		return
 	}
 
-	// 1. Validate state (CSRF protection)
+	// 2. Validate state (CSRF protection).
 	state := c.Query("state")
 	pendingFlow, err := model.GetAuthFlow(state, model.AuthFlowMatch{
 		Purpose:  model.AuthFlowPurposeOAuth,
@@ -123,7 +172,7 @@ func HandleOAuth(c *gin.Context) {
 		Provider: providerName,
 		Intent:   pendingFlow.Intent,
 	}
-	// 2. Bind flows are bound to the live dashboard Session that created them.
+	// Bind flows are bound to the live dashboard Session that created them.
 	if pendingFlow.Intent == model.AuthFlowIntentBind {
 		identity, ok := middleware.GetSessionAuthIdentity(c)
 		if !ok || identity.UserID != pendingFlow.UserId || identity.SessionID != pendingFlow.SessionId {
@@ -140,13 +189,15 @@ func HandleOAuth(c *gin.Context) {
 		return
 	}
 
-	// 3. Check if provider is enabled
-	if !provider.IsEnabled() {
-		common.ApiErrorI18n(c, i18n.MsgOAuthNotEnabled, providerParams(provider.GetName()))
+	// 3. Pre-wire validate: provider must be usable before any external
+	// call. Uses the returned provider for all subsequent logic so a stale
+	// registry pointer is never used.
+	provider, ok := resolveValidOAuthProvider(c, providerName)
+	if !ok {
 		return
 	}
 
-	// 4. Handle error from provider
+	// 4. Handle error from provider.
 	errorCode := c.Query("error")
 	if errorCode != "" {
 		if _, err := model.ConsumeAuthFlow(state, consumeMatch); err != nil {
@@ -168,7 +219,7 @@ func HandleOAuth(c *gin.Context) {
 		return
 	}
 
-	// 5. Exchange code for token
+	// 5. Exchange code for token.
 	code := c.Query("code")
 	token, err := provider.ExchangeToken(c.Request.Context(), code, c)
 	if err != nil {
@@ -176,25 +227,40 @@ func HandleOAuth(c *gin.Context) {
 		return
 	}
 
-	// 6. Get user info
+	// 6. Get user info.
 	oauthUser, err := provider.GetUserInfo(c.Request.Context(), token)
 	if err != nil {
 		handleOAuthError(c, err)
 		return
 	}
+
+	// 7. Post-wire validate: re-check the provider is still usable after
+	// the external HTTP calls but BEFORE consuming the flow, creating a
+	// user, binding, or session. Uses the returned provider for all
+	// subsequent logic.
+	provider, ok = resolveValidOAuthProvider(c, providerName)
+	if !ok {
+		return
+	}
+
+	// 8. Consume flow, parse payload, find/create user, status check.
 	flow, err := model.ConsumeAuthFlow(state, consumeMatch)
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"success": false, "message": i18n.T(c, i18n.MsgOAuthStateInvalid)})
 		return
 	}
 
-	// 7. Find or create user
 	var payload oauthFlowPayload
 	if err := common.UnmarshalJsonStr(flow.Payload, &payload); err != nil {
 		common.ApiError(c, err)
 		return
 	}
-	user, err := findOrCreateOAuthUser(c, provider, oauthUser, payload.AffiliateCode)
+	var user *model.User
+	if googleProvider, isGoogle := provider.(*oauth.GoogleProvider); isGoogle {
+		user, err = findOrCreateGoogleUser(c, googleProvider, oauthUser, payload.AffiliateCode)
+	} else {
+		user, err = findOrCreateOAuthUser(c, provider, oauthUser, payload.AffiliateCode)
+	}
 	if err != nil {
 		if errors.Is(err, model.ErrEmailAlreadyTaken) {
 			common.ApiErrorI18n(c, i18n.MsgUserEmailAlreadyTaken)
@@ -213,13 +279,12 @@ func HandleOAuth(c *gin.Context) {
 		return
 	}
 
-	// 8. Check user status
 	if user.Status != common.UserStatusEnabled {
 		common.ApiErrorI18n(c, i18n.MsgOAuthUserBanned)
 		return
 	}
 
-	// 9. Setup login
+	// 9. Setup login.
 	setupLogin(user, c)
 }
 
@@ -240,16 +305,30 @@ func handleOAuthBind(c *gin.Context, provider oauth.Provider, pendingFlow *model
 		return
 	}
 
-	// Check if this OAuth account is already bound (check both new ID and legacy ID)
-	if provider.IsUserIDTaken(oauthUser.ProviderUserID) {
-		common.ApiErrorI18n(c, i18n.MsgOAuthAlreadyBound, providerParams(provider.GetName()))
+	// Post-wire validate: re-check the provider is still usable after the
+	// external HTTP calls but BEFORE IsUserIDTaken, ConsumeAuthFlow, or
+	// any binding/claim/mirror write. Uses the returned provider for all
+	// subsequent logic so a stale registry pointer is never used.
+	provider, ok := resolveValidOAuthProvider(c, c.Param("provider"))
+	if !ok {
 		return
 	}
-	// Also check legacy ID to prevent duplicate bindings during migration period
-	if legacyID, ok := oauthUser.Extra["legacy_id"].(string); ok && legacyID != "" {
-		if provider.IsUserIDTaken(legacyID) {
+
+	// Check if this OAuth account is already bound (check both new ID and
+	// legacy ID). Google is skipped here: its ownership lives in
+	// external_identity_claims and is enforced atomically inside the bind
+	// transaction below, never by a check-then-write on the mirror column.
+	if _, isGoogle := provider.(*oauth.GoogleProvider); !isGoogle {
+		if provider.IsUserIDTaken(oauthUser.ProviderUserID) {
 			common.ApiErrorI18n(c, i18n.MsgOAuthAlreadyBound, providerParams(provider.GetName()))
 			return
+		}
+		// Also check legacy ID to prevent duplicate bindings during migration period
+		if legacyID, ok := oauthUser.Extra["legacy_id"].(string); ok && legacyID != "" {
+			if provider.IsUserIDTaken(legacyID) {
+				common.ApiErrorI18n(c, i18n.MsgOAuthAlreadyBound, providerParams(provider.GetName()))
+				return
+			}
 		}
 	}
 
@@ -276,6 +355,22 @@ func handleOAuthBind(c *gin.Context, provider oauth.Provider, pendingFlow *model
 		// Custom provider: use user_oauth_bindings table
 		err = model.UpdateUserOAuthBinding(user.Id, genericProvider.GetProviderId(), oauthUser.ProviderUserID)
 		if err != nil {
+			common.ApiError(c, err)
+			return
+		}
+	} else if _, isGoogle := provider.(*oauth.GoogleProvider); isGoogle {
+		// Google: the durable claim is the single ownership source. Claim and
+		// google_sub mirror commit as one unit; the claim's unique indexes
+		// reject a subject owned by another user and any rebind by an
+		// already-bound user, including concurrent attempts.
+		err = model.DB.Transaction(func(tx *gorm.DB) error {
+			return model.BindGoogleIdentityWithTx(tx, strings.TrimSpace(oauthUser.ProviderUserID), user.Id)
+		})
+		if err != nil {
+			if errors.Is(err, model.ErrExternalIdentityAlreadyClaimed) {
+				common.ApiErrorI18n(c, i18n.MsgOAuthAlreadyBound, providerParams(provider.GetName()))
+				return
+			}
 			common.ApiError(c, err)
 			return
 		}
@@ -435,6 +530,87 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 	// First-touch acquisition attribution: only brand-new users reach this
 	// point. Existing-user logins, legacy-ID migration logins, and account
 	// binds (handleOAuthBind) all returned earlier and never bind.
+	acquisition.BindTouchToUser(c, user.Id)
+
+	return user, nil
+}
+
+// findOrCreateGoogleUser resolves a Google callback identity through
+// external_identity_claims, the single ownership source for Google logins,
+// registrations and binds. users.google_sub is only written as a
+// compatibility mirror inside the same transaction as the claim and is never
+// consulted for ownership, so forged or duplicate mirror rows cannot hijack a
+// login.
+func findOrCreateGoogleUser(c *gin.Context, provider *oauth.GoogleProvider, oauthUser *oauth.OAuthUser, affiliateCode string) (*model.User, error) {
+	subject := strings.TrimSpace(oauthUser.ProviderUserID)
+	if subject == "" {
+		return nil, errors.New("google subject is empty")
+	}
+
+	owner, err := model.FindExternalIdentityOwner(model.ExternalIdentityProviderGoogle, subject)
+	if err == nil {
+		if owner.DeletedAt.Valid {
+			return nil, &OAuthUserDeletedError{}
+		}
+		return owner, nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+
+	if !common.RegisterEnabled {
+		return nil, &OAuthRegistrationDisabledError{}
+	}
+
+	user := &model.User{}
+	user.Username = provider.GetProviderPrefix() + strconv.Itoa(model.GetMaxUserId()+1)
+	if oauthUser.DisplayName != "" {
+		user.DisplayName = oauthUser.DisplayName
+	} else {
+		user.DisplayName = provider.GetName() + " User"
+	}
+	if oauthUser.Email != "" {
+		user.Email = model.NormalizeEmail(oauthUser.Email)
+		if err := model.EnsureEmailAvailable(user.Email, 0); err != nil {
+			if errors.Is(err, model.ErrEmailAlreadyTaken) {
+				return nil, &OAuthEmailAlreadyTakenError{}
+			}
+			return nil, err
+		}
+	}
+	user.Role = common.RoleCommonUser
+	user.Status = common.UserStatusEnabled
+	user.GoogleSub = subject
+
+	inviterId := 0
+	if affiliateCode != "" {
+		inviterId, _ = model.GetUserIdByAffCode(affiliateCode)
+	}
+
+	// User creation, durable claim and google_sub mirror commit as one unit;
+	// any failure rolls all three back together.
+	if err := model.DB.Transaction(func(tx *gorm.DB) error {
+		if err := user.InsertWithTx(tx, inviterId); err != nil {
+			return err
+		}
+		return model.ClaimExternalIdentityWithTx(tx, model.ExternalIdentityProviderGoogle, subject, user.Id)
+	}); err != nil {
+		// A concurrent callback may have claimed the subject between the owner
+		// lookup and this transaction. Re-read the durable owner and log into
+		// it instead of turning the unique conflict into a second account.
+		if owner, ownerErr := model.FindExternalIdentityOwner(model.ExternalIdentityProviderGoogle, subject); ownerErr == nil {
+			if owner.DeletedAt.Valid {
+				return nil, &OAuthUserDeletedError{}
+			}
+			return owner, nil
+		}
+		return nil, err
+	}
+
+	user.FinalizeOAuthUserCreation(inviterId)
+
+	// First-touch acquisition attribution: only brand-new Google users reach
+	// this point; owner logins returned above and never bind.
 	acquisition.BindTouchToUser(c, user.Id)
 
 	return user, nil

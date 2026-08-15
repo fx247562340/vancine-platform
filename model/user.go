@@ -825,6 +825,7 @@ func (user *User) ClearBinding(bindingType string) error {
 		"wechat":   "wechat_id",
 		"telegram": "telegram_id",
 		"linuxdo":  "linux_do_id",
+		"google":   "google_sub",
 	}
 
 	column, ok := bindingColumnMap[bindingType]
@@ -833,6 +834,13 @@ func (user *User) ClearBinding(bindingType string) error {
 	}
 
 	if err := DB.Transaction(func(tx *gorm.DB) error {
+		if bindingType == ExternalIdentityProviderGoogle {
+			// Durable Google release: claim and mirror are cleared together
+			// with persisted read-back verification. This is the
+			// administrator recovery path; the self-service lockout guard
+			// lives in ReleaseGoogleIdentitySelf and is not applied here.
+			return releaseGoogleIdentityWithTx(tx, user.Id)
+		}
 		if err := tx.Model(&User{}).Where("id = ?", user.Id).Update(column, "").Error; err != nil {
 			return err
 		}
@@ -842,6 +850,17 @@ func (user *User) ClearBinding(bindingType string) error {
 		return nil
 	}); err != nil {
 		return err
+	}
+
+	// Google committed outcome, scoped to this branch only: sync the
+	// receiver's mirror field with the committed state, then return. UserBase
+	// carries no Google/OAuth binding fields, so no DB reload or cache
+	// refresh is needed and nothing after the commit can fail. Non-Google
+	// bindings keep the original contract below: UserBase caches fields such
+	// as email, so reload and cache errors must still surface.
+	if bindingType == ExternalIdentityProviderGoogle {
+		user.GoogleSub = ""
+		return nil
 	}
 
 	if err := DB.Where("id = ?", user.Id).First(user).Error; err != nil {

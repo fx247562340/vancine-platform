@@ -66,7 +66,7 @@ function makeSnippet(text: string, query: string, queryLower: string): string {
   if (idx === -1) return ''
   const start = Math.max(0, idx - SNIPPET_RADIUS)
   const end = Math.min(text.length, idx + query.length + SNIPPET_RADIUS)
-  let snippet = text.slice(start, end).replace(/\s+/g, ' ').trim()
+  let snippet = text.slice(start, end).replaceAll(/\s+/g, ' ').trim()
   if (start > 0) snippet = `…${snippet}`
   if (end < text.length) snippet = `${snippet}…`
   return snippet

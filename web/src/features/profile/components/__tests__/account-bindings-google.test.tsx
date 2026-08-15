@@ -33,7 +33,9 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import i18next from 'i18next'
+import { useState } from 'react'
 import { initReactI18next, I18nextProvider } from 'react-i18next'
+import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { UserProfile } from '@/features/profile/types'
@@ -53,7 +55,10 @@ await i18n.use(initReactI18next).init({
       translation: {
         Bind: 'Bind',
         Bound: 'Bound',
+        Cancel: 'Cancel',
         Change: 'Change',
+        'Confirm Unbind': 'Confirm Unbind',
+        Continue: 'Continue',
         Discord: 'Discord',
         Email: 'Email',
         GitHub: 'GitHub',
@@ -62,9 +67,14 @@ await i18n.use(initReactI18next).init({
         'Not bound': 'Not bound',
         OIDC: 'OIDC',
         Telegram: 'Telegram',
+        Unbind: 'Unbind',
+        'Unbind failed': 'Unbind failed',
+        'Unbound {{provider}}': 'Unbound {{provider}}',
         WeChat: 'WeChat',
         'OAuth pop-up was blocked': 'OAuth pop-up was blocked',
         'Failed to initialize OAuth': 'Failed to initialize OAuth',
+        'Are you sure you want to unbind Google? After unbinding, you will no longer be able to sign in with Google. The system only allows unbinding when you still have another usable sign-in method.':
+          'Are you sure you want to unbind Google? After unbinding, you will no longer be able to sign in with Google. The system only allows unbinding when you still have another usable sign-in method.',
       },
     },
   },
@@ -98,6 +108,39 @@ function createDeferred<T>(): Deferred<T> {
 const recordedRequests: RecordedRequest[] = []
 let stateRequestArrived: Deferred<RecordedRequest> = createDeferred()
 
+// Controllable Google self-unbind endpoint behavior (per-test).
+let googleUnbindResponse: { success: boolean; message: string } = {
+  success: true,
+  message: '',
+}
+let googleUnbindArrived: Deferred<RecordedRequest> = createDeferred()
+// When non-null the unbind request rejects with an HTTP error carrying this
+// backend message (or an empty body when the message is ''), letting tests
+// exercise the HTTP-failure path.
+let googleUnbindHttpErrorMessage: string | null = null
+// When true, the unbind request is recorded but its response is held until
+// releaseGoogleUnbind resolves, letting tests observe the in-flight state.
+let holdGoogleUnbind = false
+let releaseGoogleUnbind: Deferred<void> = createDeferred()
+
+function httpError(
+  config: InternalAxiosRequestConfig,
+  status: number,
+  message?: string
+) {
+  const err = new Error(
+    `Request failed with status code ${status}`
+  ) as Error & {
+    config: InternalAxiosRequestConfig
+    response: { status: number; data: Record<string, unknown> }
+    isAxiosError: boolean
+  }
+  err.config = config
+  err.response = { status, data: message === undefined ? {} : { message } }
+  err.isAxiosError = true
+  return err
+}
+
 function jsonResponse(
   config: InternalAxiosRequestConfig,
   data: unknown
@@ -127,6 +170,26 @@ const recordingAdapter = async (
       success: true,
       message: '',
       data: { flow_token: flowToken, expires_at: 2_000_000_000 },
+    })
+  }
+  if (url.includes('/api/user/self/bindings/google')) {
+    googleUnbindArrived.resolve(request)
+    if (holdGoogleUnbind) {
+      await releaseGoogleUnbind.promise
+    }
+    if (googleUnbindHttpErrorMessage !== null) {
+      throw httpError(
+        config,
+        500,
+        googleUnbindHttpErrorMessage === ''
+          ? undefined
+          : googleUnbindHttpErrorMessage
+      )
+    }
+    return jsonResponse(config, {
+      success: googleUnbindResponse.success,
+      message: googleUnbindResponse.message,
+      data: null,
     })
   }
   if (url.includes('/api/user/oauth/bindings')) {
@@ -172,7 +235,11 @@ function testProfile(overrides: Partial<UserProfile> = {}): UserProfile {
 // Track the QueryClient created per render so afterEach can clear its cache.
 let activeQueryClient: QueryClient | null = null
 
-function renderTab(profile: UserProfile, status: Record<string, unknown>) {
+function renderTab(
+  profile: UserProfile,
+  status: Record<string, unknown>,
+  onUpdate: () => void | Promise<void> = () => undefined
+) {
   // Pre-seed the status query so the bindings render synchronously from the
   // cache; no fetch, no loading state, no timers.
   const queryClient = new QueryClient({
@@ -184,7 +251,49 @@ function renderTab(profile: UserProfile, status: Record<string, unknown>) {
   return render(
     <I18nextProvider i18n={i18n}>
       <QueryClientProvider client={queryClient}>
-        <AccountBindingsTab profile={profile} onUpdate={() => undefined} />
+        <AccountBindingsTab profile={profile} onUpdate={onUpdate} />
+      </QueryClientProvider>
+    </I18nextProvider>
+  )
+}
+
+// A wrapper that owns the profile state so a successful unbind can
+// re-render the tab with the cleared google_sub, exactly like the real page
+// refreshing the profile after onUpdate resolves.
+function ControlledBindingsTab(props: {
+  initialProfile: UserProfile
+  onRefresh?: () => void
+}) {
+  const [profile, setProfile] = useState(props.initialProfile)
+  return (
+    <AccountBindingsTab
+      profile={profile}
+      onUpdate={async () => {
+        setProfile((prev) => ({ ...prev, google_sub: undefined }))
+        props.onRefresh?.()
+      }}
+    />
+  )
+}
+
+function renderControlledTab(
+  initialProfile: UserProfile,
+  status: Record<string, unknown>,
+  onRefresh?: () => void
+) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
+  activeQueryClient = queryClient
+  queryClient.setQueryData(['status'], status)
+
+  return render(
+    <I18nextProvider i18n={i18n}>
+      <QueryClientProvider client={queryClient}>
+        <ControlledBindingsTab
+          initialProfile={initialProfile}
+          onRefresh={onRefresh}
+        />
       </QueryClientProvider>
     </I18nextProvider>
   )
@@ -276,6 +385,11 @@ const originalAdapter = api.defaults.adapter
 beforeEach(() => {
   recordedRequests.length = 0
   stateRequestArrived = createDeferred()
+  googleUnbindArrived = createDeferred()
+  googleUnbindResponse = { success: true, message: '' }
+  googleUnbindHttpErrorMessage = null
+  holdGoogleUnbind = false
+  releaseGoogleUnbind = createDeferred()
   window.localStorage.clear()
   api.defaults.adapter = recordingAdapter
 })
@@ -307,16 +421,46 @@ describe('AccountBindingsTab Google binding entry', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('shows the bound Google account and disables re-binding', () => {
+  it('shows the bound Google account with an unbind action instead of re-binding', () => {
     renderTab(testProfile({ google_sub: 'google-sub-1' }), fullGoogleStatus())
 
-    const button = screen.getByRole('button', { name: 'Bound Google' })
-    expect(button).toBeDisabled()
-    // The bound account id is unique to the Google entry.
-    expect(screen.getByText('google-sub-1')).toBeInTheDocument()
+    const button = screen.getByRole('button', { name: 'Unbind Google' })
+    expect(button).toBeEnabled()
+    // The bound state is still visible as localized 'Bound' copy; the raw
+    // google_sub never enters textContent / innerHTML / aria-label / title.
+    expect(screen.getAllByText('Bound').length).toBeGreaterThanOrEqual(1)
+    expect(document.body.textContent).not.toContain('google-sub-1')
+    expect(document.body.innerHTML).not.toContain('google-sub-1')
+    for (const el of document.body.querySelectorAll('*')) {
+      expect(el.getAttribute('aria-label') ?? '').not.toContain('google-sub-1')
+      expect(el.getAttribute('title') ?? '').not.toContain('google-sub-1')
+    }
     expect(
       screen.queryByRole('button', { name: 'Bind Google' })
     ).not.toBeInTheDocument()
+  })
+
+  it('never leaks the raw google_sub into the unbind confirmation copy or the DOM', async () => {
+    renderTab(testProfile({ google_sub: 'google-sub-1' }), fullGoogleStatus())
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Unbind Google' }))
+
+    // Confirmation dialog is open; its copy and every attribute stay clean.
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Confirm Unbind' })
+      ).toBeInTheDocument()
+    )
+    expect(document.body.textContent).not.toContain('google-sub-1')
+    expect(document.body.innerHTML).not.toContain('google-sub-1')
+    for (const el of document.body.querySelectorAll('*')) {
+      expect(el.getAttribute('aria-label') ?? '').not.toContain('google-sub-1')
+      expect(el.getAttribute('title') ?? '').not.toContain('google-sub-1')
+    }
+    // Dismiss without a request.
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(countUnbindRequests()).toBe(0)
   })
 
   it('hides the Google entry when Google OAuth configuration is missing', () => {
@@ -463,6 +607,210 @@ describe('AccountBindingsTab Google binding entry', () => {
     // Exactly the state request happened: no logout, no callback, nothing
     // else — the current login state is untouched.
     expect(recordedRequests).toHaveLength(1)
+    assertNoLogoutOrCallback()
+  })
+})
+
+// ============================================================================
+// Google self-unbind (Phase B2)
+// ============================================================================
+
+function countUnbindRequests(): number {
+  return recordedRequests.filter(
+    (request) =>
+      request.method === 'delete' &&
+      request.url.includes('/api/user/self/bindings/google')
+  ).length
+}
+
+describe('AccountBindingsTab Google self-unbind', () => {
+  it('shows an enabled "Unbind Google" action when bound and Google OAuth is available', () => {
+    renderTab(testProfile({ google_sub: 'google-sub-1' }), fullGoogleStatus())
+
+    const button = screen.getByRole('button', { name: 'Unbind Google' })
+    expect(button).toBeEnabled()
+    // The bound row no longer renders a dead "Bound Google" control.
+    expect(
+      screen.queryByRole('button', { name: 'Bound Google' })
+    ).not.toBeInTheDocument()
+  })
+
+  it('still shows the unbind entry when bound but Google OAuth is disabled', () => {
+    renderTab(testProfile({ google_sub: 'google-sub-1' }), {
+      google_oauth: false,
+    })
+
+    expect(screen.getByRole('button', { name: 'Unbind Google' })).toBeEnabled()
+  })
+
+  it('still shows the unbind entry when bound but the redirect URI is invalid', () => {
+    renderTab(testProfile({ google_sub: 'google-sub-1' }), {
+      google_oauth: true,
+      google_client_id: googleClientId,
+      google_redirect_uri: 'javascript:alert(1)',
+    })
+
+    expect(screen.getByRole('button', { name: 'Unbind Google' })).toBeEnabled()
+  })
+
+  it('shows no Google entry at all when unbound and Google OAuth is unavailable', () => {
+    renderTab(testProfile(), { google_oauth: false })
+
+    expect(
+      screen.queryByRole('button', { name: 'Unbind Google' })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Bind Google' })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Bound Google' })
+    ).not.toBeInTheDocument()
+  })
+
+  it('sends no request when the unbind confirmation is cancelled', async () => {
+    renderTab(testProfile({ google_sub: 'google-sub-1' }), fullGoogleStatus())
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Unbind Google' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(countUnbindRequests()).toBe(0)
+    assertNoLogoutOrCallback()
+  })
+
+  it('sends exactly one request when confirm is clicked repeatedly while pending', async () => {
+    holdGoogleUnbind = true
+    renderTab(testProfile({ google_sub: 'google-sub-1' }), fullGoogleStatus())
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Unbind Google' }))
+    const confirm = screen.getByRole('button', { name: 'Confirm Unbind' })
+    await user.click(confirm)
+    // The request is now in flight; the confirm control is disabled, so a
+    // second click must not produce a second request.
+    await googleUnbindArrived.promise
+    expect(confirm).toBeDisabled()
+    await user.click(confirm).catch(() => undefined)
+
+    expect(countUnbindRequests()).toBe(1)
+
+    releaseGoogleUnbind.resolve()
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('button', { name: 'Confirm Unbind' })
+      ).not.toBeInTheDocument()
+    )
+  })
+
+  it('keeps the binding and shows the backend message when no alternative login remains', async () => {
+    const backendMessage =
+      'Please set up another sign-in method before unbinding Google'
+    googleUnbindResponse = { success: false, message: backendMessage }
+    const errorSpy = vi.spyOn(toast, 'error')
+    const onUpdate = vi.fn(() => Promise.resolve())
+    renderTab(
+      testProfile({ google_sub: 'google-sub-1' }),
+      fullGoogleStatus(),
+      onUpdate
+    )
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Unbind Google' }))
+    await user.click(screen.getByRole('button', { name: 'Confirm Unbind' }))
+
+    await googleUnbindArrived.promise
+    await waitFor(() => expect(errorSpy).toHaveBeenCalledWith(backendMessage))
+    // No success refresh on a refused unbind.
+    expect(onUpdate).not.toHaveBeenCalled()
+    expect(countUnbindRequests()).toBe(1)
+    assertNoLogoutOrCallback()
+  })
+
+  it('shows the backend message as-is for a not-bound business failure without duplicate toast', async () => {
+    const backendMessage = 'Google account is not bound'
+    googleUnbindResponse = { success: false, message: backendMessage }
+    const errorSpy = vi.spyOn(toast, 'error')
+    renderTab(testProfile({ google_sub: 'google-sub-1' }), fullGoogleStatus())
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Unbind Google' }))
+    await user.click(screen.getByRole('button', { name: 'Confirm Unbind' }))
+
+    await googleUnbindArrived.promise
+    await waitFor(() => expect(errorSpy).toHaveBeenCalledTimes(1))
+    expect(errorSpy).toHaveBeenCalledWith(backendMessage)
+    assertNoLogoutOrCallback()
+  })
+
+  it('unbinds through the real endpoint, refreshes the profile, and keeps the session', async () => {
+    const successSpy = vi.spyOn(toast, 'success')
+    const onRefresh = vi.fn()
+    renderControlledTab(
+      testProfile({ google_sub: 'google-sub-1' }),
+      fullGoogleStatus(),
+      onRefresh
+    )
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Unbind Google' }))
+    await user.click(screen.getByRole('button', { name: 'Confirm Unbind' }))
+
+    const request = await googleUnbindArrived.promise
+    expect(request.method).toBe('delete')
+    expect(request.url).toContain('/api/user/self/bindings/google')
+
+    // After onUpdate resolves the refreshed profile has no google_sub, so the
+    // bound entry (and its Unbind action) disappears from the UI.
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('button', { name: 'Unbind Google' })
+      ).not.toBeInTheDocument()
+    )
+    await waitFor(() => expect(onRefresh).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(successSpy).toHaveBeenCalled())
+    expect(countUnbindRequests()).toBe(1)
+    // Confirm dialog closed after the refresh completed.
+    expect(
+      screen.queryByRole('button', { name: 'Confirm Unbind' })
+    ).not.toBeInTheDocument()
+    assertNoLogoutOrCallback()
+  })
+
+  it('shows exactly one toast on an HTTP failure (no duplicate with the interceptor)', async () => {
+    googleUnbindHttpErrorMessage = 'http failure backend message'
+    const errorSpy = vi.spyOn(toast, 'error')
+    const onUpdate = vi.fn(() => Promise.resolve())
+    renderTab(
+      testProfile({ google_sub: 'google-sub-1' }),
+      fullGoogleStatus(),
+      onUpdate
+    )
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Unbind Google' }))
+    await user.click(screen.getByRole('button', { name: 'Confirm Unbind' }))
+
+    await googleUnbindArrived.promise
+    await waitFor(() => expect(errorSpy).toHaveBeenCalledTimes(1))
+    expect(errorSpy).toHaveBeenCalledWith('http failure backend message')
+    // A failed unbind must not refresh the profile.
+    expect(onUpdate).not.toHaveBeenCalled()
+    expect(countUnbindRequests()).toBe(1)
+    assertNoLogoutOrCallback()
+  })
+
+  it('shows exactly one localized toast on an HTTP failure without a backend message', async () => {
+    googleUnbindHttpErrorMessage = ''
+    const errorSpy = vi.spyOn(toast, 'error')
+    renderTab(testProfile({ google_sub: 'google-sub-1' }), fullGoogleStatus())
+
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: 'Unbind Google' }))
+    await user.click(screen.getByRole('button', { name: 'Confirm Unbind' }))
+
+    await googleUnbindArrived.promise
+    await waitFor(() => expect(errorSpy).toHaveBeenCalledTimes(1))
+    expect(errorSpy).toHaveBeenCalledWith('Unbind failed')
     assertNoLogoutOrCallback()
   })
 })

@@ -16,7 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { type ReactElement, type ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import {
   createMemoryHistory,
@@ -26,48 +25,7 @@ import {
   RouterProvider,
 } from '@tanstack/react-router'
 import { render } from '@testing-library/react'
-import i18n from 'i18next'
-import { initReactI18next } from 'react-i18next'
-import enDocs from '../i18n/locales/en.json'
-import zhDocs from '../i18n/locales/zhCN.json'
-
-const DOCS_NS = 'docs'
-
-let i18nReady = false
-
-/**
- * Initialize the shared i18next instance for tests. Starts with NO docs
- * resources so the DocsI18nProvider's lazy loading can be exercised; tests
- * that need a pre-loaded bundle call `setDocsBundle`.
- */
-export async function initTestI18n(language = 'en'): Promise<void> {
-  if (!i18nReady) {
-    await i18n.use(initReactI18next).init({
-      resources: {},
-      lng: language,
-      fallbackLng: 'en',
-      nsSeparator: false,
-      interpolation: { escapeValue: false },
-      react: { useSuspense: false },
-    })
-    i18nReady = true
-  }
-  await i18n.changeLanguage(language)
-}
-
-export function setDocsBundle(
-  locale: string,
-  data: Record<string, unknown>
-): void {
-  i18n.addResourceBundle(locale, DOCS_NS, data, true, true)
-}
-
-export function clearDocsBundle(locale: string): void {
-  i18n.removeResourceBundle(locale, DOCS_NS)
-}
-
-export const EN_DOCS = enDocs as unknown as Record<string, unknown>
-export const ZH_DOCS = zhDocs as unknown as Record<string, unknown>
+import type { ReactElement, ReactNode } from 'react'
 
 interface RenderWithProvidersOptions {
   initialPath?: string
@@ -79,10 +37,10 @@ interface RenderWithProvidersOptions {
  * navigation target. The subject is mounted at the index route. The return
  * type (including the router) is inferred so we don't name the Router generic.
  */
-export function renderWithProviders(
+export const renderWithProviders = (
   ui: ReactElement,
   options: RenderWithProvidersOptions = {}
-) {
+) => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   })

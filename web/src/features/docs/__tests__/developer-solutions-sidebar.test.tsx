@@ -89,6 +89,7 @@ const testRouteTree = testRootRoute.addChildren([
   }),
   stubRoute('/docs/$slug', 'docs-page'),
   stubRoute('/kimi-k3-api', 'kimi-page'),
+  stubRoute('/seedance-api', 'seedance-page'),
   stubRoute('/ai-media-api', 'ai-media-page'),
 ])
 
@@ -115,6 +116,12 @@ describe('Docs sidebar Developer solutions block', () => {
     const kimiLink = await screen.findByRole('link', { name: 'Kimi K3 API' })
     expect(kimiLink).toHaveAttribute('href', '/kimi-k3-api')
     expect(kimiLink).not.toHaveAttribute('target')
+
+    const seedanceLink = await screen.findByRole('link', {
+      name: 'Seedance 2.5 API',
+    })
+    expect(seedanceLink).toHaveAttribute('href', '/seedance-api')
+    expect(seedanceLink).not.toHaveAttribute('target')
 
     const aiMediaLink = await screen.findByRole('link', {
       name: 'AI Media API',
@@ -184,6 +191,10 @@ describe('Docs sidebar Developer solutions block', () => {
     // Every registry link navigates OUT of /docs to a real landing route.
     const kimiLink = await screen.findByRole('link', { name: 'Kimi K3 API' })
     expect(String(kimiLink.getAttribute('href'))).not.toMatch(/^\/docs\//)
+    const seedanceLink = await screen.findByRole('link', {
+      name: 'Seedance 2.5 API',
+    })
+    expect(String(seedanceLink.getAttribute('href'))).not.toMatch(/^\/docs\//)
     const aiMediaLink = await screen.findByRole('link', {
       name: 'AI Media API',
     })

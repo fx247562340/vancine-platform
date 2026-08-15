@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+
 import { defaultCodeTabValue, type CodeTabItem } from '../lib/code-tabs'
 import { DocsCodeBlock } from './code-block'
 

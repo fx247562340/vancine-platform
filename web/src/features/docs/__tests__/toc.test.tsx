@@ -19,11 +19,12 @@ For commercial licensing, please contact support@quantumnous.com
 import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { DocsToc } from '../components/headings'
 import { useRegisterHeadings } from '../components/register-headings'
 import { TocProvider } from '../components/toc-context'
 import type { TocHeading } from '../types'
-import { initTestI18n, setDocsBundle, EN_DOCS } from './test-utils'
+import { initTestI18n, setDocsBundle, EN_DOCS } from './test-i18n'
 
 const HEADINGS: TocHeading[] = [
   { id: 'a', title: 'Section A', level: 2 },

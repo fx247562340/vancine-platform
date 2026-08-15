@@ -573,13 +573,82 @@ export const STATIC_I18N_KEYS = [
   'Telegram binding failed. Please try again.',
   'Verification scope is missing',
 
+  // Homepage acquisition (P11-A): Hero/CTA evergreen copy.
+  "OpenAI-compatible access to China's frontier AI",
+  "China's frontier AI models. One API.",
+  'Build with leading Chinese models through one OpenAI-compatible endpoint. Use the SDKs and agent tools you already know.',
+
+  // Homepage P11-C: Stack section (Works with your stack).
+  'Works with your stack',
+  'Point your existing OpenAI-compatible clients at Vancine. Compatibility depth differs by client — we label what is live-verified versus configuration-ready.',
+  'OpenCode',
+  'Live-verified with Kimi K3 in a controlled coding-agent run. View the evidence section below.',
+  'Live-verified',
+  'Cline',
+  'Configuration-ready OpenAI-compatible setup. Not claimed as a completed Vancine live coding-agent verification on the homepage.',
+  'Configuration-ready',
+  'Roo Code',
+  'Claude Code',
+  'Compatible via OpenAI-compatible / documented gateway usage patterns. No Vancine-owned end-to-end coding-agent benchmark is claimed on the homepage.',
+  'OpenAI SDK',
+  'First-class: standard OpenAI SDK against https://vancine.com/v1.',
+  'Pi Coding Agent',
+  "Configuration-ready through Pi's custom OpenAI-compatible provider support. Not claimed as a completed Vancine live coding-agent verification on the homepage.",
+
+  // Homepage P11-B: Available now + Hero stats.
+  'Available now',
+  'Featured models live on the public catalog. Open a model or browse the full marketplace.',
+  'Explore all available models',
+  '{{count}} models available',
+  'AI Models',
+  'OpenAI-compatible',
+  'Loading featured models',
+  'Start building free',
+  'Explore live models',
+  "Start building with China's frontier models",
+  'Supports one-click configuration and works with Vancine multi-protocol routing.',
+  'New accounts may receive $1 in promotional API credit when the current signup bonus is enabled. Credit, eligibility, and availability can change; usage depends on model and workload.',
+  "Independent API infrastructure for China's frontier AI models.",
+  'Documentation',
+  'API Base URL',
+
+  // Homepage P11-D: Evidence section.
+  'Verified in real agent workflows',
+  'One controlled historical run — not a promise that every request will match these numbers.',
+  'OpenCode version',
+  'Model under test',
+  'Model steps',
+  'Tool calls',
+  'Passed',
+  'Tests',
+  'Duration',
+  'Agent telemetry tokens',
+  'Vancine measured usage',
+  'Single controlled OpenCode run. Latency, tokens, and Vancine usage vary by task. This is historical evidence, not a guarantee for future calls.',
+  'View Kimi K3 page',
+  'View starter & verified evidence',
+  'Verified evidence JSON',
+
+  // Homepage P11-D: Why section.
+  'Why developers use Vancine',
+  'Fast access to new Chinese models',
+  'New Chinese model releases can be added to one endpoint instead of a new vendor integration each time.',
+  'One compatible API',
+  'OpenAI-compatible requests, streaming, and tooling patterns you already use.',
+  'Unified balance and billing',
+  'One account, one balance, and one usage log across supported models.',
+  'Tested integration examples',
+  'Public starters and measured agent evidence for supported workflows.',
+
   // Developer solutions registry (P6-C): titles/descriptions and labels are
   // passed to t() from the shared registry, not from literal t('...') calls.
   'API Solutions',
   'Developer solutions',
   'Kimi K3 API',
+  'Seedance 2.5 API',
   'AI Media API',
   'Kimi K3 for coding agents and OpenAI-compatible clients.',
+  'Async Doubao-Seedance-2.5 video generation through one API.',
   'Image, video, speech, and 3D generation through one API.',
 
   // AI Media landing page (P6-C): data-driven section copy and FAQ keys.

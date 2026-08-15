@@ -22,8 +22,8 @@ import {
   DEFAULT_PAYMENT_TYPE,
   DEFAULT_MIN_TOPUP,
 } from '../constants'
-import { isSafeHttpPaymentUrl } from './validate-payment-url'
 import type { PaymentMethod, PresetAmount, TopupInfo } from '../types'
+import { isSafeHttpPaymentUrl } from './validate-payment-url'
 
 // ============================================================================
 // Payment Processing Functions

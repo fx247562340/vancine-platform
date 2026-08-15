@@ -132,9 +132,7 @@ export function usePayment() {
             payment_method: 'paypal',
           })
           if (!isApiSuccess(response)) {
-            toast.error(
-              response.message || i18next.t('Payment request failed')
-            )
+            toast.error(response.message || i18next.t('Payment request failed'))
             return false
           }
           const redirect = resolvePayPalRedirect(response)

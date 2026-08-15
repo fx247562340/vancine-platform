@@ -82,10 +82,16 @@ export function useNotifications() {
   // Fetch Announcements from status
   const { status, loading: statusLoading } = useStatus()
   const announcementsEnabled = status?.announcements_enabled ?? false
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const announcements: Record<string, unknown>[] = announcementsEnabled
-    ? ((status?.announcements || []) as Record<string, unknown>[]).slice(0, 20)
-    : []
+  // Stable derivation: memoized on its real inputs so the unread-count memo
+  // below does not recompute on every render (the previous inline slice
+  // produced a fresh array per render).
+  const announcements = useMemo<Record<string, unknown>[]>(() => {
+    if (!announcementsEnabled) return []
+    return ((status?.announcements || []) as Record<string, unknown>[]).slice(
+      0,
+      20
+    )
+  }, [announcementsEnabled, status?.announcements])
 
   // Notification store
   const {

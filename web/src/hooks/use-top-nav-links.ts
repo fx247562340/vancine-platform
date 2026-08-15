@@ -19,17 +19,10 @@ For commercial licensing, please contact support@quantumnous.com
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import type { TopNavLink } from '@/components/layout/types'
 import { useStatus } from '@/hooks/use-status'
 import { parseHeaderNavModulesFromStatus } from '@/lib/nav-modules'
 import { useAuthStore } from '@/stores/auth-store'
-
-export type TopNavLink = {
-  title: string
-  href: string
-  disabled?: boolean
-  requiresAuth?: boolean
-  external?: boolean
-}
 
 /**
  * Generate top navigation links based on HeaderNavModules configuration from backend /api/status
@@ -64,26 +57,36 @@ export function useTopNavLinks(): TopNavLink[] {
 
   // Home
   if (modules?.home !== false) {
-    links.push({ title: t('Home'), href: '/' })
+    links.push({ id: 'home', title: t('Home'), href: '/' })
   }
 
   // Console -> /dashboard (new console path)
   if (modules?.console !== false) {
-    links.push({ title: t('Console'), href: '/dashboard' })
+    links.push({ id: 'console', title: t('Console'), href: '/dashboard' })
   }
 
   // Pricing
   const pricing = modules?.pricing
   if (pricing && typeof pricing === 'object' && pricing.enabled) {
     const requiresAuth = pricing.requireAuth && !isAuthed
-    links.push({ title: t('Model Square'), href: '/pricing', requiresAuth })
+    links.push({
+      id: 'pricing',
+      title: t('Model Square'),
+      href: '/pricing',
+      requiresAuth,
+    })
   }
 
   // Rankings
   const rankings = modules?.rankings
   if (rankings && typeof rankings === 'object' && rankings.enabled) {
     const requiresAuth = rankings.requireAuth && !isAuthed
-    links.push({ title: t('Rankings'), href: '/rankings', requiresAuth })
+    links.push({
+      id: 'rankings',
+      title: t('Rankings'),
+      href: '/rankings',
+      requiresAuth,
+    })
   }
 
   // Docs (supports external links)
@@ -93,16 +96,18 @@ export function useTopNavLinks(): TopNavLink[] {
     // Paths like '/docs' or same-origin URLs should open in the same tab.
     let external = false
     try {
-      external = /^https?:\/\//.test(href) && new URL(href).origin !== window.location.origin
+      external =
+        /^https?:\/\//.test(href) &&
+        new URL(href).origin !== window.location.origin
     } catch {
       external = false
     }
-    links.push({ title: t('Docs'), href, external })
+    links.push({ id: 'docs', title: t('Docs'), href, external })
   }
 
   // About
   if (modules?.about !== false) {
-    links.push({ title: t('About'), href: '/about' })
+    links.push({ id: 'about', title: t('About'), href: '/about' })
   }
 
   return links

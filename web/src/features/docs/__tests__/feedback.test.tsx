@@ -19,8 +19,9 @@ For commercial licensing, please contact support@quantumnous.com
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { DocsFeedback } from '../components/prev-next'
-import { initTestI18n, setDocsBundle, EN_DOCS } from './test-utils'
+import { initTestI18n, setDocsBundle, EN_DOCS } from './test-i18n'
 
 beforeEach(async () => {
   await initTestI18n('en')

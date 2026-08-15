@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { zodResolver } from '@hookform/resolvers/zod'
-import { type FormEvent, useEffect, useState } from 'react'
+import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -55,7 +55,7 @@ import { formatQuota, parseQuotaFromDollars } from '@/lib/format'
 import { addTimeToDate } from '@/lib/time'
 
 import { createRedemption, updateRedemption, getRedemption } from '../api'
-import { SUCCESS_MESSAGES } from '../constants'
+import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '../constants'
 import {
   getRedemptionFormSchema,
   type RedemptionFormValues,
@@ -63,7 +63,7 @@ import {
   transformFormDataToPayload,
   transformRedemptionToFormDefaults,
 } from '../lib'
-import { type Redemption } from '../types'
+import type { Redemption } from '../types'
 import { useRedemptions } from './redemptions-provider'
 
 type RedemptionsMutateDrawerProps = {
@@ -87,20 +87,38 @@ export function RedemptionsMutateDrawer({
     defaultValues: REDEMPTION_FORM_DEFAULT_VALUES,
   })
 
+  // Sequence guard: every effect run (and unmount) invalidates in-flight
+  // loads so a stale completion can never reset a newer record's form or
+  // toast after the drawer closed.
+  const loadSeqRef = useRef(0)
+
   // Load existing data when updating
   useEffect(() => {
     if (open && isUpdate && currentRow) {
+      const seq = ++loadSeqRef.current
+      const rowId = currentRow.id
       // For update, fetch fresh data
-      getRedemption(currentRow.id).then((result) => {
-        if (result.success && result.data) {
-          form.reset(transformRedemptionToFormDefaults(result.data))
-        }
-      })
+      getRedemption(rowId)
+        .then((result) => {
+          if (seq !== loadSeqRef.current) return
+          if (result.success && result.data) {
+            form.reset(transformRedemptionToFormDefaults(result.data))
+          } else {
+            toast.error(result.message || t(ERROR_MESSAGES.LOAD_FAILED))
+          }
+        })
+        .catch(() => {
+          if (seq !== loadSeqRef.current) return
+          toast.error(t(ERROR_MESSAGES.LOAD_FAILED))
+        })
     } else if (open && !isUpdate) {
       // For create, reset to defaults
       form.reset(REDEMPTION_FORM_DEFAULT_VALUES)
     }
-  }, [open, isUpdate, currentRow, form])
+    return () => {
+      loadSeqRef.current += 1
+    }
+  }, [open, isUpdate, currentRow, form, t])
 
   const onSubmit = async (data: RedemptionFormValues) => {
     setIsSubmitting(true)

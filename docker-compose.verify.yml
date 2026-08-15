@@ -1,0 +1,51 @@
+# Isolated verification environment — dirty pre-commit acceptance image.
+# NOT a reproducible production artifact: built from a dirty working tree.
+name: vancine-verify
+services:
+  verify-vancine:
+    image: vancine-custom:1.1.0-rc4
+    container_name: verify-vancine
+    restart: "no"
+    command: --log-dir /app/logs
+    ports:
+      - "127.0.0.1:3001:3000"
+    volumes:
+      - verify_logs:/app/logs
+    environment:
+      - SQL_DSN=postgresql://root:123456@verify-postgres:5432/new-api?sslmode=disable
+      - REDIS_CONN_STRING=redis://:123456@verify-redis:6379/0
+      - VERSION=1.1.0
+      - SESSION_SECRET=verify-session-secret-do-not-use-in-prod
+      - TZ=Asia/Shanghai
+    depends_on:
+      - verify-postgres
+      - verify-redis
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:3000/api/status | grep -o '\"success\":\\s*true' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  verify-redis:
+    image: redis:7-alpine
+    container_name: verify-redis
+    restart: "no"
+    command: ["redis-server", "--requirepass", "123456"]
+    volumes:
+      - verify_redis_data:/data
+
+  verify-postgres:
+    image: postgres:15-alpine
+    container_name: verify-postgres
+    restart: "no"
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_DB: new-api
+    volumes:
+      - verify_pg_data:/var/lib/postgresql/data
+
+volumes:
+  verify_pg_data:
+  verify_redis_data:
+  verify_logs:

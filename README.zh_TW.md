@@ -1,8 +1,8 @@
 <div align="center">
 
-![new-api](/web/default/public/logo.png)
+![Vancine](/web/default/public/logo.png)
 
-# New API
+# Vancine
 
 🍥 **新一代大模型網關與AI資產管理系統**
 
@@ -490,7 +490,7 @@ Token、Origin 驗證和 PAT 契約請參閱[使用者鑑權與登入工作階�
 
 <div align="center">
 
-### 💖 感謝使用 New API
+### 💖 感謝使用 Vancine
 
 如果這個項目對你有幫助，歡迎給我們一個 ⭐️ Star！
 

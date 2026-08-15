@@ -19,10 +19,12 @@ For commercial licensing, please contact support@quantumnous.com
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
+
 import { DocsSearchBox } from '../components/search-box'
 import { DocsI18nProvider } from '../i18n/docs-i18n'
 import type { DocsBundleLoader, DocsLocale } from '../i18n/loader'
-import { initTestI18n, EN_DOCS, renderWithProviders } from './test-utils'
+import { initTestI18n, EN_DOCS } from './test-i18n'
+import { renderWithProviders } from './test-utils'
 
 const enLoaders = {
   en: async () => EN_DOCS,

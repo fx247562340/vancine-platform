@@ -54,6 +54,7 @@ import {
 import {
   getSelfOAuthBindings,
   unbindCustomOAuth,
+  unbindGoogleSelf,
   type CustomOAuthBinding,
 } from '../../api'
 import type { UserProfile, BindingItem } from '../../types'
@@ -67,7 +68,7 @@ import { WeChatBindDialog } from '../dialogs/wechat-bind-dialog'
 
 interface AccountBindingsTabProps {
   profile: UserProfile | null
-  onUpdate: () => void
+  onUpdate: () => void | Promise<void>
 }
 
 type DialogKey = 'email' | 'wechat' | 'telegram'
@@ -100,6 +101,8 @@ export function AccountBindingsTab({
     null
   )
   const [unbinding, setUnbinding] = useState(false)
+  const [googleUnbindOpen, setGoogleUnbindOpen] = useState(false)
+  const [unbindingGoogle, setUnbindingGoogle] = useState(false)
   const pendingOAuthBinding = useRef<PendingOAuthBinding | null>(null)
 
   const clearPendingOAuthBinding = useCallback(
@@ -153,6 +156,33 @@ export function AccountBindingsTab({
     } finally {
       setUnbinding(false)
       setUnbindTarget(null)
+    }
+  }
+
+  // Google self-unbind runs the mutation directly in the confirm handler.
+  // Business failures surface the backend message as-is (the request skips the
+  // global duplicate toast); on failure the binding is left untouched and no
+  // refresh happens. On success the profile refresh is awaited before the
+  // dialog closes and the success toast shows.
+  const handleUnbindGoogle = async () => {
+    if (unbindingGoogle) return
+    setUnbindingGoogle(true)
+    try {
+      const res = await unbindGoogleSelf()
+      if (res.success) {
+        await onUpdate()
+        setGoogleUnbindOpen(false)
+        toast.success(t('Unbound {{provider}}', { provider: t('Google') }))
+      } else {
+        toast.error(res.message || t('Unbind failed'))
+      }
+    } catch (error) {
+      const backendMessage = (
+        error as { response?: { data?: { message?: string } } }
+      )?.response?.data?.message
+      toast.error(backendMessage || t('Unbind failed'))
+    } finally {
+      setUnbindingGoogle(false)
     }
   }
 
@@ -358,7 +388,11 @@ export function AccountBindingsTab({
         icon: (props: { className?: string }) => (
           <GoogleColor size={16} className={props.className} />
         ),
-        value: profile.google_sub,
+        // google_sub is a sensitive identifier: it only determines the bound
+        // state and is never exposed as a displayable value (same semantic as
+        // the admin user-binding dialog's hideValue binding). The raw value
+        // must not reach textContent, innerHTML, aria-label or title.
+        value: undefined,
         isBound: Boolean(profile.google_sub),
         isEnabled: googleBinding !== null,
         onBind: () => {
@@ -447,7 +481,10 @@ export function AccountBindingsTab({
           }
         },
       },
-    ].filter((binding) => binding.isEnabled)
+    ].filter(
+      (binding) =>
+        binding.isEnabled || (binding.id === 'google' && binding.isBound)
+    )
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile, status, t])
 
@@ -457,9 +494,20 @@ export function AccountBindingsTab({
     <>
       <div className='grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3'>
         {bindings.map((binding) => {
+          const isGoogleBound = binding.id === 'google' && binding.isBound
           let actionLabel = t('Bind')
+          let isActionDisabled = binding.isBound && binding.id !== 'email'
+          let handleAction = binding.onBind
           if (binding.isBound && binding.id === 'email') {
             actionLabel = t('Change')
+            isActionDisabled = false
+          } else if (isGoogleBound) {
+            // A bound Google account always exposes an unbind action, even
+            // when Google OAuth is currently switched off or misconfigured:
+            // the durable binding can still be managed.
+            actionLabel = t('Unbind')
+            isActionDisabled = false
+            handleAction = () => setGoogleUnbindOpen(true)
           } else if (binding.isBound) {
             actionLabel = t('Bound')
           }
@@ -485,16 +533,22 @@ export function AccountBindingsTab({
                     )}
                   </div>
                   <p className='text-muted-foreground truncate text-xs'>
-                    {binding.value || t('Not bound')}
+                    {binding.isBound
+                      ? binding.value || t('Bound')
+                      : t('Not bound')}
                   </p>
                 </div>
               </div>
               <Button
-                variant='outline'
+                variant={isGoogleBound ? 'ghost' : 'outline'}
                 size='sm'
-                className='h-7 shrink-0 px-2.5 text-xs'
-                onClick={binding.onBind}
-                disabled={binding.isBound && binding.id !== 'email'}
+                className={
+                  isGoogleBound
+                    ? 'text-destructive h-7 shrink-0 px-2.5 text-xs'
+                    : 'h-7 shrink-0 px-2.5 text-xs'
+                }
+                onClick={handleAction}
+                disabled={isActionDisabled}
                 aria-label={`${actionLabel} ${binding.label}`}
               >
                 {actionLabel}
@@ -586,6 +640,20 @@ export function AccountBindingsTab({
         destructive
         handleConfirm={handleUnbindCustom}
         isLoading={unbinding}
+      />
+
+      {/* Google Self-Unbind Confirmation */}
+      <ConfirmDialog
+        open={googleUnbindOpen}
+        onOpenChange={(open) => !open && setGoogleUnbindOpen(false)}
+        title={t('Confirm Unbind')}
+        desc={t(
+          'Are you sure you want to unbind Google? After unbinding, you will no longer be able to sign in with Google. The system only allows unbinding when you still have another usable sign-in method.'
+        )}
+        confirmText={t('Confirm Unbind')}
+        destructive
+        handleConfirm={handleUnbindGoogle}
+        isLoading={unbindingGoogle}
       />
 
       {/* Email Bind Dialog */}

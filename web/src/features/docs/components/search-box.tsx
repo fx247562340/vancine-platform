@@ -16,11 +16,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { SearchIcon } from 'lucide-react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+
 import { cn } from '@/lib/utils'
+
 import { useDocsI18n } from '../i18n/docs-i18n-context'
 import { DOCS_NS, getDocsBundle } from '../i18n/loader'
 import { buildSearchIndex, searchDocs } from '../lib/search'

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/logger"
@@ -158,10 +159,33 @@ func rateLimitFactory(maxRequestNum int, duration int64, mark string) func(c *gi
 }
 
 func GlobalWebRateLimit() func(c *gin.Context) {
-	if common.GlobalWebRateLimitEnable {
-		return rateLimitFactory(common.GlobalWebRateLimitNum, common.GlobalWebRateLimitDuration, "GW")
+	if !common.GlobalWebRateLimitEnable {
+		return defNext
 	}
-	return defNext
+	limiter := rateLimitFactory(common.GlobalWebRateLimitNum, common.GlobalWebRateLimitDuration, "GW")
+	return func(c *gin.Context) {
+		// Frontend build assets are exempt from the Global Web quota so a
+		// single page load (which fetches many hashed chunks) cannot exhaust
+		// the per-IP allowance. The exemption lives in this Web-specific
+		// wrapper, ahead of the limiter, so the in-memory and Redis branches
+		// share exactly the same contract and exempt requests never touch the
+		// rate-limit counter.
+		if isExemptBuildAssetPath(c.Request.URL.Path) {
+			c.Next()
+			return
+		}
+		limiter(c)
+	}
+}
+
+// isExemptBuildAssetPath reports whether the request targets a frontend build
+// asset that must not consume the Global Web rate-limit quota. Only resources
+// served directly under the top-level /assets/ or /static/ directories are
+// exempt. Bare directory names (/assets, /static), look-alike prefixes
+// (/assets-old, /static-page), nested paths and API routes are not. Matching
+// uses URL.Path only, so query strings cannot change the decision.
+func isExemptBuildAssetPath(path string) bool {
+	return strings.HasPrefix(path, "/assets/") || strings.HasPrefix(path, "/static/")
 }
 
 func GlobalAPIRateLimit() func(c *gin.Context) {

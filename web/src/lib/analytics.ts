@@ -30,17 +30,19 @@ For commercial licensing, please contact support@quantumnous.com
  * - Never calls `umami.identify`; Umami never receives a user identity.
  * - Never reads cookies, localStorage, user stores, or auth state, and never
  *   attaches user ids, emails, URLs, query strings, referrers, or IPs.
- * - Page event payloads are restricted to the fixed keys `location` and
- *   `resource`; anything else is dropped before it can reach the tracker.
+ * - Page event payloads are restricted to the fixed keys `location`,
+ *   `resource`, and `model`; anything else is dropped before it can reach
+ *   the tracker.
  */
 
 /** The only payload keys a page event may carry. */
-const ALLOWED_PAYLOAD_KEYS = ['location', 'resource'] as const
+const ALLOWED_PAYLOAD_KEYS = ['location', 'resource', 'model'] as const
 
 /** Fixed, enumerated page event payload. No free-form fields allowed. */
 export interface AnalyticsEventData {
   location?: string
   resource?: string
+  model?: string
 }
 
 /**
@@ -72,8 +74,8 @@ function isProductionHostname(): boolean {
 /**
  * Send a single anonymous analytics event to Umami. Silently no-ops when off
  * the production hostnames, when the Umami script is unavailable, or when
- * `track` throws. Payload keys outside the fixed `location` / `resource`
- * enumeration are dropped. Callers never need to handle errors.
+ * `track` throws. Payload keys outside the fixed `location` / `resource` /
+ * `model` enumeration are dropped. Callers never need to handle errors.
  */
 export function trackEvent(
   eventName: string,

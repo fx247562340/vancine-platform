@@ -17,7 +17,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useTranslation } from 'react-i18next'
+
 import { Badge } from '@/components/ui/badge'
+
 import { DOCS_NS } from '../i18n/loader'
 
 export interface ParamRow {

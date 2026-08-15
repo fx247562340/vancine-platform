@@ -23,12 +23,15 @@ import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import { useStatus } from '@/hooks/use-status'
+import { trackEvent } from '@/lib/analytics'
 
+import type { HomepagePricingState } from '../../lib/homepage-pricing'
 import { HeroTerminalDemo } from '../hero-terminal-demo'
 
 interface HeroProps {
   className?: string
   isAuthenticated?: boolean
+  pricing?: HomepagePricingState
 }
 
 // Stylized three-dots indicator representing "More"
@@ -48,33 +51,33 @@ const MoreIcon = () => (
 export function Hero(props: HeroProps) {
   const { t } = useTranslation()
   const { status } = useStatus()
-  const docsUrl =
-    (status?.docs_link as string | undefined) || 'https://docs.newapi.pro'
+  const docsUrl = (status?.docs_link as string | undefined)?.trim() || ''
 
   const renderDocsButton = () => {
+    if (!docsUrl) return null
     const isExternal = docsUrl.startsWith('http')
     if (isExternal) {
       return (
         <Button
-          variant='outline'
-          className='group border-border/50 hover:border-border hover:bg-muted/50 inline-flex h-11 items-center gap-1.5 rounded-lg px-5 text-sm font-medium'
+          variant='ghost'
+          className='text-muted-foreground hover:text-foreground inline-flex h-11 items-center gap-1.5 px-3 text-sm font-medium'
           render={
             <a href={docsUrl} target='_blank' rel='noopener noreferrer' />
           }
         >
-          <BookOpen className='text-muted-foreground/80 group-hover:text-foreground size-4 transition-colors duration-200' />
-          <span>{t('Docs')}</span>
+          <BookOpen className='size-4' />
+          <span>{t('Documentation')}</span>
         </Button>
       )
     }
     return (
       <Button
-        variant='outline'
-        className='group border-border/50 hover:border-border hover:bg-muted/50 inline-flex h-11 items-center gap-1.5 rounded-lg px-5 text-sm font-medium'
+        variant='ghost'
+        className='text-muted-foreground hover:text-foreground inline-flex h-11 items-center gap-1.5 px-3 text-sm font-medium'
         render={<Link to={docsUrl} />}
       >
-        <BookOpen className='text-muted-foreground/80 group-hover:text-foreground size-4 transition-colors duration-200' />
-        <span>{t('Docs')}</span>
+        <BookOpen className='size-4' />
+        <span>{t('Documentation')}</span>
       </Button>
     )
   }
@@ -102,7 +105,7 @@ export function Hero(props: HeroProps) {
       <div className='mx-auto grid max-w-6xl grid-cols-1 items-start gap-12 lg:grid-cols-12 lg:gap-8'>
         {/* Left Column: Title, description, action buttons and application support */}
         <div className='flex flex-col items-start text-left lg:col-span-6'>
-          {/* Top Pill Badge */}
+          {/* Eyebrow */}
           <div
             className='landing-animate-fade-up mb-5 inline-flex items-center gap-1.5 rounded-full border border-blue-500/20 bg-blue-500/5 px-3 py-1.5 text-[11px] font-medium text-blue-600 opacity-0 shadow-xs dark:border-blue-400/20 dark:bg-blue-400/5 dark:text-blue-400'
             style={{ animationDelay: '0ms' }}
@@ -111,25 +114,21 @@ export function Hero(props: HeroProps) {
               <span className='absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75' />
               <span className='relative inline-flex size-1.5 rounded-full bg-blue-500 dark:bg-blue-400' />
             </span>
-            <span>{t('AI Application Infrastructure Foundation')}</span>
+            <span>{t("OpenAI-compatible access to China's frontier AI")}</span>
           </div>
 
           <h1
             className='landing-animate-fade-up text-[clamp(2.25rem,4.5vw,3.25rem)] leading-[1.15] font-bold tracking-tight'
             style={{ animationDelay: '60ms' }}
           >
-            {t('Unified API Gateway for')}
-            <br />
-            <span className='bg-gradient-to-r from-blue-400 via-violet-400 to-purple-500 bg-clip-text text-transparent'>
-              {t('Vast Range of AI Models')}
-            </span>
+            {t("China's frontier AI models. One API.")}
           </h1>
           <p
             className='landing-animate-fade-up text-muted-foreground/80 mt-5 max-w-xl text-base leading-relaxed opacity-0 md:text-[15px]'
             style={{ animationDelay: '120ms' }}
           >
             {t(
-              'Access a vast selection of models via a standard, unified API protocol. Power AI applications, manage digital assets, and connect the Future.'
+              'Build with leading Chinese models through one OpenAI-compatible endpoint. Use the SDKs and agent tools you already know.'
             )}
           </p>
 
@@ -142,9 +141,22 @@ export function Hero(props: HeroProps) {
                 <Button
                   className='group h-11 rounded-lg px-5 text-sm font-medium'
                   render={<Link to='/dashboard' />}
+                  onClick={() =>
+                    trackEvent('get_started_clicked', { location: 'hero' })
+                  }
                 >
-                  {t('Go to Dashboard')}
+                  {t('Start building free')}
                   <ArrowRight className='ml-1.5 size-4 transition-transform duration-200 group-hover:translate-x-0.5' />
+                </Button>
+                <Button
+                  variant='outline'
+                  className='border-border/50 hover:border-border hover:bg-muted/50 h-11 rounded-lg px-5 text-sm font-medium'
+                  render={<Link to='/pricing' />}
+                  onClick={() =>
+                    trackEvent('explore_models_clicked', { location: 'hero' })
+                  }
+                >
+                  {t('Explore live models')}
                 </Button>
                 {renderDocsButton()}
               </>
@@ -153,23 +165,29 @@ export function Hero(props: HeroProps) {
                 <Button
                   className='group h-11 rounded-lg px-5 text-sm font-medium'
                   render={<Link to='/sign-up' />}
+                  onClick={() =>
+                    trackEvent('get_started_clicked', { location: 'hero' })
+                  }
                 >
-                  {t('Get Started')}
+                  {t('Start building free')}
                   <ArrowRight className='ml-1.5 size-4 transition-transform duration-200 group-hover:translate-x-0.5' />
                 </Button>
                 <Button
                   variant='outline'
                   className='border-border/50 hover:border-border hover:bg-muted/50 h-11 rounded-lg px-5 text-sm font-medium'
                   render={<Link to='/pricing' />}
+                  onClick={() =>
+                    trackEvent('explore_models_clicked', { location: 'hero' })
+                  }
                 >
-                  {t('View Pricing')}
+                  {t('Explore live models')}
                 </Button>
                 {renderDocsButton()}
               </>
             )}
           </div>
 
-          {/* Supported Apps (参考图二样式，进行卡片化和信息扩充设计，增加视觉高度) */}
+          {/* Supported Apps */}
           <div
             className='landing-animate-fade-up mt-10 w-full max-w-xl opacity-0'
             style={{ animationDelay: '240ms' }}
@@ -180,7 +198,7 @@ export function Hero(props: HeroProps) {
               </span>
               <p className='text-muted-foreground/60 text-xs leading-relaxed'>
                 {t(
-                  'Supports one-click configuration and perfectly adapts to NewAPI multi-protocol configuration.'
+                  'Supports one-click configuration and works with Vancine multi-protocol routing.'
                 )}
               </p>
             </div>
@@ -208,7 +226,6 @@ export function Hero(props: HeroProps) {
                   alt='CC Switch'
                   className='size-6 shrink-0 rounded-md object-contain'
                   onError={(e) => {
-                    // Fallback to a styled text avatar if the remote favicon fails to load in sandbox or local environments
                     e.currentTarget.style.display = 'none'
                     const fallback = e.currentTarget.nextSibling as HTMLElement
                     if (fallback) fallback.style.display = 'flex'
@@ -228,6 +245,37 @@ export function Hero(props: HeroProps) {
                 <MoreIcon />
                 <span>{t('More Apps')}</span>
               </div>
+            </div>
+          </div>
+
+          {/* Hero stats: real model count + constants */}
+          <div
+            className='landing-animate-fade-up mt-8 flex flex-wrap items-center gap-6 opacity-0'
+            style={{ animationDelay: '300ms' }}
+          >
+            {props.pricing?.status === 'ready' &&
+            typeof props.pricing.count === 'number' &&
+            props.pricing.count >= 1 ? (
+              <div className='flex flex-col'>
+                <span className='text-2xl font-bold tracking-tight'>
+                  {props.pricing.count}
+                </span>
+                <span className='text-muted-foreground text-xs'>
+                  {t('AI Models')}
+                </span>
+              </div>
+            ) : null}
+            <div className='flex flex-col'>
+              <span className='text-2xl font-bold tracking-tight'>✓</span>
+              <span className='text-muted-foreground text-xs'>
+                {t('OpenAI-compatible')}
+              </span>
+            </div>
+            <div className='flex flex-col'>
+              <span className='text-2xl font-bold tracking-tight'>1</span>
+              <span className='text-muted-foreground text-xs'>
+                {t('One API')}
+              </span>
             </div>
           </div>
         </div>

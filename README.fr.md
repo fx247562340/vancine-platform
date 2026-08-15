@@ -1,8 +1,8 @@
 <div align="center">
 
-![new-api](/web/default/public/logo.png)
+![Vancine](/web/default/public/logo.png)
 
-# New API
+# Vancine
 
 🍥 **Passerelle de modèles étendus de nouvelle génération et système de gestion d'actifs d'IA**
 
@@ -491,7 +491,7 @@ Si les politiques de votre organisation ne permettent pas l'utilisation de logic
 
 <div align="center">
 
-### 💖 Merci d'utiliser New API
+### 💖 Merci d'utiliser Vancine
 
 Si ce projet vous est utile, bienvenue à nous donner une ⭐️ Étoile！
 

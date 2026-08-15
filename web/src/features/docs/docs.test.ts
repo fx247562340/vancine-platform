@@ -16,11 +16,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import i18n from 'i18next'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import { beforeEach, describe, it } from 'node:test'
+
+import i18n from 'i18next'
 
 // Initialize the shared i18next singleton so the resource-bundle APIs used by
 // the Docs loader exist (in the app this happens in src/i18n/config.ts).
@@ -550,8 +551,9 @@ describe('Docs locale parity', () => {
       for (const [key, enVal] of enMap) {
         const enPh = collectPlaceholders(enVal)
         const locPh = collectPlaceholders(locMap.get(key) ?? '')
-        if (enPh.size !== locPh.size || ![...enPh].every((p) => locPh.has(p)))
+        if (enPh.size !== locPh.size || ![...enPh].every((p) => locPh.has(p))) {
           mismatches.push(key)
+        }
       }
       assert.deepEqual(
         mismatches,

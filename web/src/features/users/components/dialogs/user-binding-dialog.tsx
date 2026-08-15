@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import GoogleColor from '@lobehub/icons/es/Google/components/Color'
 import {
   Mail,
   Globe,
@@ -69,6 +70,12 @@ interface BindingItem {
   value: string
   type: 'builtin' | 'custom'
   providerId?: string
+  /**
+   * The backend binding_type sent to the clear endpoint. Kept separate from
+   * `key`/the model field name so e.g. Google reads `google_sub` but clears
+   * via `binding_type=google`.
+   */
+  bindingType?: string
   isBound: boolean
   isEnabled: boolean
 }
@@ -80,6 +87,7 @@ interface StatusInfo {
   wechat_login?: boolean
   telegram_oauth?: boolean
   linuxdo_oauth?: boolean
+  google_oauth?: boolean
   custom_oauth_providers?: Array<{
     id: string
     name: string
@@ -90,9 +98,17 @@ interface StatusInfo {
 const BUILTIN_BINDINGS: ReadonlyArray<{
   key: string
   field: string
+  /** Backend binding_type; falls back to `key` when omitted. */
+  bindingType?: string
   label: string
   icon: React.ReactNode
   statusKey: keyof StatusInfo | null
+  /**
+   * When true the bound identifier is sensitive (e.g. google_sub) and is
+   * used only to detect the bound state — it is never exposed as a
+   * displayable value.
+   */
+  hideValue?: boolean
 }> = [
   {
     key: 'email',
@@ -142,6 +158,15 @@ const BUILTIN_BINDINGS: ReadonlyArray<{
     label: 'LinuxDO',
     icon: <Globe className='h-4 w-4' />,
     statusKey: 'linuxdo_oauth',
+  },
+  {
+    key: 'google',
+    field: 'google_sub',
+    bindingType: 'google',
+    label: 'Google',
+    icon: <GoogleColor size={16} className='h-4 w-4' />,
+    statusKey: 'google_oauth',
+    hideValue: true,
   },
 ]
 
@@ -218,10 +243,10 @@ export function UserBindingDialog(props: Props) {
     const items: BindingItem[] = []
 
     for (const field of BUILTIN_BINDINGS) {
-      const value = user
+      const rawValue = user
         ? String((user as Record<string, unknown>)[field.field] || '')
         : ''
-      const isBound = !!value
+      const isBound = rawValue !== ''
       const isEnabled =
         field.statusKey == null ? true : Boolean(statusInfo[field.statusKey])
 
@@ -229,8 +254,11 @@ export function UserBindingDialog(props: Props) {
         key: field.key,
         label: field.label,
         icon: field.icon,
-        value: isBound ? value : '',
+        // Sensitive identifiers (e.g. google_sub) only determine the bound
+        // state; they never enter the DOM as a displayable value.
+        value: isBound && !field.hideValue ? rawValue : '',
         type: 'builtin',
+        bindingType: field.bindingType ?? field.key,
         isBound,
         isEnabled,
       })
@@ -288,7 +316,10 @@ export function UserBindingDialog(props: Props) {
     try {
       let res
       if (unbindTarget.type === 'builtin') {
-        res = await adminClearUserBinding(props.userId, unbindTarget.key)
+        res = await adminClearUserBinding(
+          props.userId,
+          unbindTarget.bindingType ?? unbindTarget.key
+        )
       } else if (unbindTarget.providerId) {
         res = await adminUnbindCustomOAuth(
           props.userId,
@@ -304,8 +335,11 @@ export function UserBindingDialog(props: Props) {
       } else {
         toast.error(res?.message || t('Unbind failed'))
       }
-    } catch {
-      toast.error(t('Unbind failed'))
+    } catch (error) {
+      const backendMessage = (
+        error as { response?: { data?: { message?: string } } }
+      )?.response?.data?.message
+      toast.error(backendMessage || t('Unbind failed'))
     } finally {
       setUnbinding(false)
       setUnbindTarget(null)
@@ -407,7 +441,9 @@ export function UserBindingDialog(props: Props) {
                             )}
                           </div>
                           <p className='text-muted-foreground max-w-[140px] truncate text-xs'>
-                            {binding.isBound ? binding.value : t('Not bound')}
+                            {binding.isBound
+                              ? binding.value || t('Bound')
+                              : t('Not bound')}
                           </p>
                         </div>
                       </div>
@@ -417,6 +453,7 @@ export function UserBindingDialog(props: Props) {
                           size='sm'
                           className='text-destructive hover:text-destructive h-7 w-7 shrink-0 p-0'
                           onClick={() => setUnbindTarget(binding)}
+                          aria-label={`${t('Unbind')} ${binding.label}`}
                         >
                           <Unlink className='h-3.5 w-3.5' />
                         </Button>

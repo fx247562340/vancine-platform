@@ -19,7 +19,9 @@ For commercial licensing, please contact support@quantumnous.com
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { BundledLanguage } from 'shiki/bundle/web'
+
 import { Badge } from '@/components/ui/badge'
+
 import { DocsCallout } from '../components/callout'
 import { DocsCodeBlock } from '../components/code-block'
 import { DocsH2, DocsH3, DocsP } from '../components/headings'

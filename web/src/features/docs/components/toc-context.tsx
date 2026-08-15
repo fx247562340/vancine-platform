@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useState, type ReactNode } from 'react'
+
 import type { TocHeading } from '../types'
 import { TocContext } from './toc-store'
 

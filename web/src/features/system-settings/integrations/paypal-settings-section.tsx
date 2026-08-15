@@ -18,10 +18,12 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+
 import { SettingsSwitchField } from '../components/settings-form-layout'
 import { useUpdateOption } from '../hooks/use-update-option'
 import type { UpdateOptionRequest } from '../types'

@@ -36,6 +36,7 @@ describe('legacy frontend route migration', () => {
       '/console/redemption': '/redemption-codes',
       '/console/user': '/users',
       '/console/personal': '/profile',
+      '/console/profile': '/profile',
       '/console/log': '/usage-logs',
       '/console/midjourney': '/usage-logs/drawing',
       '/console/task': '/usage-logs/task',
@@ -55,6 +56,17 @@ describe('legacy frontend route migration', () => {
     assert.equal(
       resolveLegacyRoute('/console/topup?source=email#orders'),
       '/wallet?source=email#orders'
+    )
+    assert.equal(
+      resolveLegacyRoute('/console/profile?tab=account#section'),
+      '/profile?tab=account#section'
+    )
+    // trailing slash is normalized the same way as other legacy routes
+    assert.equal(resolveLegacyRoute('/console/profile/'), '/profile')
+    // /console/personal keeps its existing contract
+    assert.equal(
+      resolveLegacyRoute('/console/personal?from=bookmark#top'),
+      '/profile?from=bookmark#top'
     )
   })
 

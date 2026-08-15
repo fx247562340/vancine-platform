@@ -195,6 +195,13 @@ export const WebPreviewUrl = ({
   )
 }
 
+// Untrusted-preview sandbox policy: scripts may run inside an opaque origin
+// but never reach the parent document, so cookie/storage access is denied.
+// The attribute is pinned here and `sandbox` is deliberately dropped from
+// the spread props, so callers cannot widen this policy through props.
+const WEB_PREVIEW_SANDBOX =
+  'allow-scripts allow-forms allow-popups allow-presentation'
+
 export type WebPreviewBodyProps = ComponentProps<'iframe'> & {
   loading?: ReactNode
 }
@@ -203,6 +210,7 @@ export const WebPreviewBody = ({
   className,
   loading,
   src,
+  sandbox: _ignoredSandbox,
   ...props
 }: WebPreviewBodyProps) => {
   const { t } = useTranslation()
@@ -212,7 +220,7 @@ export const WebPreviewBody = ({
     <div className='flex-1'>
       <iframe
         className={cn('size-full', className)}
-        sandbox='allow-scripts allow-same-origin allow-forms allow-popups allow-presentation'
+        sandbox={WEB_PREVIEW_SANDBOX}
         src={(src ?? url) || undefined}
         title={t('Preview')}
         {...props}
@@ -222,12 +230,16 @@ export const WebPreviewBody = ({
   )
 }
 
+export type WebPreviewLog = {
+  /** Stable identity provided by the caller; used as the React key. */
+  id: string
+  level: 'log' | 'warn' | 'error'
+  message: string
+  timestamp: Date
+}
+
 export type WebPreviewConsoleProps = ComponentProps<'div'> & {
-  logs?: Array<{
-    level: 'log' | 'warn' | 'error'
-    message: string
-    timestamp: Date
-  }>
+  logs?: WebPreviewLog[]
 }
 
 export const WebPreviewConsole = ({
@@ -272,7 +284,7 @@ export const WebPreviewConsole = ({
           {logs.length === 0 ? (
             <p className='text-muted-foreground'>{t('No console output')}</p>
           ) : (
-            logs.map((log, index) => (
+            logs.map((log) => (
               <div
                 className={cn(
                   'text-xs',
@@ -280,7 +292,7 @@ export const WebPreviewConsole = ({
                   log.level === 'warn' && 'text-warning',
                   log.level === 'log' && 'text-foreground'
                 )}
-                key={`${log.timestamp.getTime()}-${index}`}
+                key={log.id}
               >
                 <span className='text-muted-foreground'>
                   {dayjs(log.timestamp).format('HH:mm:ss')}

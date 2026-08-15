@@ -20,6 +20,7 @@ import { act, render, screen, waitFor } from '@testing-library/react'
 import i18n from 'i18next'
 import { useTranslation } from 'react-i18next'
 import { beforeEach, describe, expect, it } from 'vitest'
+
 import { DocsI18nProvider } from '../i18n/docs-i18n'
 import { useDocsI18n } from '../i18n/docs-i18n-context'
 import {
@@ -28,7 +29,7 @@ import {
   type DocsLocale,
 } from '../i18n/loader'
 import zhTwDocs from '../i18n/locales/zhTW.json'
-import { clearDocsBundle, EN_DOCS, initTestI18n } from './test-utils'
+import { clearDocsBundle, EN_DOCS, initTestI18n } from './test-i18n'
 
 const ZH_TW_DOCS = zhTwDocs as unknown as Record<string, unknown>
 

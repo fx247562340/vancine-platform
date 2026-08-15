@@ -27,24 +27,30 @@ import type { HomePageContentResult } from '../types'
 
 const STORAGE_KEY = 'home_page_content'
 
+function readCachedContent(): string {
+  try {
+    return localStorage.getItem(STORAGE_KEY) ?? ''
+  } catch {
+    // localStorage may be unavailable (private browsing, quota, sandbox).
+    return ''
+  }
+}
+
 /**
- * Hook to load and manage custom home page content
- * Supports both Markdown/HTML content and iframe URLs
+ * Hook to load and manage custom home page content.
+ * Reads localStorage synchronously via a lazy initializer so cached content
+ * is available on the very first render — no network round-trip required.
+ * The useEffect then fetches the latest value from the API.
  */
 export function useHomePageContent(): HomePageContentResult {
-  const [content, setContent] = useState<string>('')
-  const [isLoaded, setIsLoaded] = useState(false)
+  // Lazy initializer: reads localStorage once, synchronously, before the first
+  // render commit.  This ensures cached content is available immediately.
+  const [content, setContent] = useState<string>(readCachedContent)
 
   useEffect(() => {
     let mounted = true
 
     const loadContent = async () => {
-      // Load from localStorage first for immediate display
-      const cached = localStorage.getItem(STORAGE_KEY)
-      if (cached && mounted) {
-        setContent(cached)
-      }
-
       try {
         const response = await getHomePageContent()
         const { success, data } = response
@@ -55,7 +61,6 @@ export function useHomePageContent(): HomePageContentResult {
           setContent(data)
           localStorage.setItem(STORAGE_KEY, data)
         } else {
-          // Clear content if API returns empty
           setContent('')
           localStorage.removeItem(STORAGE_KEY)
         }
@@ -64,10 +69,7 @@ export function useHomePageContent(): HomePageContentResult {
         // eslint-disable-next-line no-console
         console.error('Failed to load home page content:', error)
         toast.error(i18next.t('Failed to load home page content'))
-      } finally {
-        if (mounted) {
-          setIsLoaded(true)
-        }
+        // On network failure the cached content (if any) remains.
       }
     }
 
@@ -80,5 +82,5 @@ export function useHomePageContent(): HomePageContentResult {
 
   const isUrl = isHttpUrl(content)
 
-  return { content, isLoaded, isUrl }
+  return { content, isUrl }
 }

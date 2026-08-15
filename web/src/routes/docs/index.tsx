@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { createFileRoute, redirect } from '@tanstack/react-router'
+
 import { resolveDocsAnchor } from '@/features/docs/lib/anchor-map'
 import { DOCS_DEFAULT_SLUG } from '@/features/docs/nav'
 

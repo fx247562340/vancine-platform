@@ -21,8 +21,16 @@ import { z } from 'zod'
 
 import { Wallet } from '@/features/wallet'
 
+// One-shot payment-return status flags appended by the payment redirect flow
+// (e.g. PayPal return). They are consumed exactly once by the wallet page.
+// `payment_cancel` is set by PayPal's cancel_url when the user abandons the
+// checkout and is distinct from error/pending/show_history so the wallet can
+// surface a localized cancel toast without confusing it with any other state.
 const walletSearchSchema = z.object({
   show_history: z.boolean().optional(),
+  payment_error: z.boolean().optional(),
+  payment_pending: z.boolean().optional(),
+  payment_cancel: z.boolean().optional(),
 })
 
 export const Route = createFileRoute('/_authenticated/wallet/')({
@@ -31,6 +39,14 @@ export const Route = createFileRoute('/_authenticated/wallet/')({
 })
 
 function RouteComponent() {
-  const { show_history } = Route.useSearch()
-  return <Wallet initialShowHistory={show_history} />
+  const { show_history, payment_error, payment_pending, payment_cancel } =
+    Route.useSearch()
+  return (
+    <Wallet
+      initialShowHistory={show_history}
+      paymentError={payment_error}
+      paymentPending={payment_pending}
+      paymentCancel={payment_cancel}
+    />
+  )
 }

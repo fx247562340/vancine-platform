@@ -115,6 +115,7 @@ func GetTopUpInfo(c *gin.Context) {
 		"pay_methods":             payMethods,
 		"min_topup":               operation_setting.MinTopUp,
 		"stripe_min_topup":        setting.StripeMinTopUp,
+		"paypal_min_topup":        getPayPalMinTopup(),
 		"waffo_min_topup":         setting.WaffoMinTopUp,
 		"waffo_pancake_min_topup": setting.WaffoPancakeMinTopUp,
 		"amount_options":          operation_setting.GetPaymentSetting().AmountOptions,

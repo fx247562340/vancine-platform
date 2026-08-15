@@ -337,7 +337,7 @@ func genPayPalOrder(referenceId string, amount float64, email string) (approveUR
 			"landing_page":        "BILLING",
 			"shipping_preference": "NO_SHIPPING",
 			"return_url":          paymentReturnPath("/api/paypal/return"),
-			"cancel_url":          paymentReturnPath("/console/topup"),
+			"cancel_url":          paymentReturnPath("/console/topup?payment_cancel=true"),
 			"user_action":         "PAY_NOW",
 		},
 	}

@@ -16,12 +16,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import type { ReactNode } from 'react'
 import { act, screen, waitFor } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import type { DocsBundleLoader, DocsLocale } from '../i18n/loader'
 import { DocsLayout } from '../index'
-import { initTestI18n, renderWithProviders } from './test-utils'
+import { initTestI18n } from './test-i18n'
+import { renderWithProviders } from './test-utils'
 
 // Controllable loader: each ensureDocsBundle call is counted and returns a
 // promise the test rejects on demand. This drives a deterministic English-load

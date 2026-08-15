@@ -16,6 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { act, screen, waitFor } from '@testing-library/react'
+import i18n from 'i18next'
 // REAL Docs component i18n test: renders the actual DocsLayout + DocsSidebar +
 // the real PAGE_REGISTRY quickstart page (no Probe / self-built spans), starts
 // in Simplified Chinese, switches to zh-TW, and asserts the real navigation
@@ -25,11 +27,11 @@ For commercial licensing, please contact support@quantumnous.com
 // Queries use findByRole / waitFor against real roles (heading, link) — no
 // fixed timers and no DOM-id coupling.
 import type { ReactNode } from 'react'
-import { act, screen, waitFor } from '@testing-library/react'
-import i18n from 'i18next'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { DocsLayout } from '../index'
-import { initTestI18n, renderWithProviders } from './test-utils'
+import { initTestI18n } from './test-i18n'
+import { renderWithProviders } from './test-utils'
 
 // Isolate the Docs layout from the full site header/footer (same as
 // layout.test.tsx).

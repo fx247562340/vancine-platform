@@ -20,6 +20,55 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 import { VIEW_MODES, type ViewMode } from '../constants'
 
+const CARD_SKELETON_KEYS = [
+  'card-skeleton-slot-01',
+  'card-skeleton-slot-02',
+  'card-skeleton-slot-03',
+  'card-skeleton-slot-04',
+  'card-skeleton-slot-05',
+  'card-skeleton-slot-06',
+  'card-skeleton-slot-07',
+  'card-skeleton-slot-08',
+  'card-skeleton-slot-09',
+] as const
+
+const FILTER_SKELETON_SLOTS = [
+  { key: 'filter-skeleton-slot-01', width: 80 },
+  { key: 'filter-skeleton-slot-02', width: 90 },
+  { key: 'filter-skeleton-slot-03', width: 75 },
+  { key: 'filter-skeleton-slot-04', width: 85 },
+  { key: 'filter-skeleton-slot-05', width: 70 },
+] as const
+
+const TABLE_COLUMN_SKELETONS = [
+  { key: 'table-column-skeleton-slot-01', width: 200 },
+  { key: 'table-column-skeleton-slot-02', width: 100 },
+  { key: 'table-column-skeleton-slot-03', width: 100 },
+  { key: 'table-column-skeleton-slot-04', width: 100 },
+  { key: 'table-column-skeleton-slot-05', width: 80 },
+  { key: 'table-column-skeleton-slot-06', width: 100 },
+] as const
+
+const TABLE_ROW_SKELETON_KEYS = [
+  'table-row-skeleton-slot-01',
+  'table-row-skeleton-slot-02',
+  'table-row-skeleton-slot-03',
+  'table-row-skeleton-slot-04',
+  'table-row-skeleton-slot-05',
+  'table-row-skeleton-slot-06',
+  'table-row-skeleton-slot-07',
+  'table-row-skeleton-slot-08',
+  'table-row-skeleton-slot-09',
+  'table-row-skeleton-slot-10',
+] as const
+
+const PAGINATION_SKELETON_KEYS = [
+  'pagination-skeleton-slot-01',
+  'pagination-skeleton-slot-02',
+  'pagination-skeleton-slot-03',
+  'pagination-skeleton-slot-04',
+] as const
+
 export interface LoadingSkeletonProps {
   viewMode?: ViewMode
 }
@@ -47,8 +96,8 @@ export function LoadingSkeleton(props: LoadingSkeletonProps) {
 function CardContentSkeleton() {
   return (
     <div className='grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3'>
-      {Array.from({ length: 9 }).map((_, i) => (
-        <div key={i} className='rounded-xl border p-5'>
+      {CARD_SKELETON_KEYS.map((slotKey) => (
+        <div key={slotKey} className='rounded-xl border p-5'>
           <div className='flex items-start justify-between gap-3'>
             <div className='flex min-w-0 items-start gap-3'>
               <Skeleton className='size-10 shrink-0 rounded-xl' />
@@ -83,11 +132,11 @@ function FilterBarSkeleton() {
     <div className='space-y-3'>
       <div className='flex items-center gap-3'>
         <div className='flex flex-1 flex-wrap items-center gap-2'>
-          {[80, 90, 75, 85, 70].map((width, i) => (
+          {FILTER_SKELETON_SLOTS.map((slot) => (
             <Skeleton
-              key={i}
+              key={slot.key}
               className='h-8 rounded-lg'
-              style={{ width: `${width}px` }}
+              style={{ width: `${slot.width}px` }}
             />
           ))}
         </div>
@@ -104,37 +153,28 @@ function FilterBarSkeleton() {
 }
 
 function TableContentSkeleton() {
-  const columns = [
-    { width: 200 },
-    { width: 100 },
-    { width: 100 },
-    { width: 100 },
-    { width: 80 },
-    { width: 100 },
-  ]
-
   return (
     <div className='space-y-4'>
       <div className='overflow-hidden rounded-lg border'>
         <div className='bg-muted/30 border-b px-4 py-3'>
           <div className='flex items-center gap-4'>
-            {columns.map((col, i) => (
+            {TABLE_COLUMN_SKELETONS.map((col) => (
               <Skeleton
-                key={i}
+                key={col.key}
                 className='h-4'
                 style={{ width: `${col.width}px` }}
               />
             ))}
           </div>
         </div>
-        {Array.from({ length: 10 }).map((_, i) => (
+        {TABLE_ROW_SKELETON_KEYS.map((rowKey) => (
           <div
-            key={i}
+            key={rowKey}
             className='flex items-center gap-4 border-b px-4 py-3 last:border-b-0'
           >
-            {columns.map((col, j) => (
+            {TABLE_COLUMN_SKELETONS.map((col) => (
               <Skeleton
-                key={j}
+                key={col.key}
                 className='h-5'
                 style={{ width: `${col.width}px` }}
               />
@@ -145,8 +185,8 @@ function TableContentSkeleton() {
       <div className='flex items-center justify-between'>
         <Skeleton className='h-5 w-32' />
         <div className='flex items-center gap-2'>
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className='size-8' />
+          {PAGINATION_SKELETON_KEYS.map((slotKey) => (
+            <Skeleton key={slotKey} className='size-8' />
           ))}
         </div>
       </div>

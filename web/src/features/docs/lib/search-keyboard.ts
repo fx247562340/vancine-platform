@@ -16,7 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-
 /**
  * Pure keyboard-navigation state machine for the Docs search combobox.
  * Extracted so the ArrowUp/ArrowDown/Home/End/Enter/Escape behavior is

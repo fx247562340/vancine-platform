@@ -90,6 +90,15 @@ vi.mock('@/lib/analytics', () => ({
   trackEvent: vi.fn(),
 }))
 
+// Isolate the built-in homepage from the real pricing API network boundary.
+// The Home component calls getPricing() on mount; in jsdom the request fails and
+// emits an AggregateError on stderr. A minimal fixture keeps the network
+// boundary explicit and the test focused on the Developer solutions section.
+const getPricingMock = vi.fn()
+vi.mock('@/features/pricing/api', () => ({
+  getPricing: (...args: unknown[]) => getPricingMock(...args),
+}))
+
 const trackEventMock = trackEvent as ReturnType<typeof vi.fn>
 
 // jsdom lacks IntersectionObserver; the built-in home sections (Stats,
@@ -123,6 +132,17 @@ beforeEach(async () => {
   localStorage.clear()
   trackEventMock.mockClear()
   getHomePageContentMock.mockReset()
+  getPricingMock.mockReset()
+  // Default: pricing API returns empty success so tests don't hang.
+  getPricingMock.mockResolvedValue({
+    success: true,
+    data: [],
+    vendors: [],
+    group_ratio: {},
+    usable_group: {},
+    supported_endpoint: {},
+    auto_groups: [],
+  })
 })
 
 afterEach(() => {
@@ -175,6 +195,7 @@ const testRouteTree = testRootRoute.addChildren([
     component: () => <Home />,
   }),
   stubRoute('/kimi-k3-api', 'kimi-page'),
+  stubRoute('/seedance-api', 'seedance-page'),
   stubRoute('/ai-media-api', 'ai-media-page'),
 ])
 
@@ -194,7 +215,7 @@ function renderHome(): RenderResult {
 }
 
 describe('built-in homepage Developer solutions section', () => {
-  it('shows both registry entries between Features and How It Works', async () => {
+  it('shows all three registry entries between Stack and Evidence', async () => {
     getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
     renderHome()
 
@@ -204,32 +225,34 @@ describe('built-in homepage Developer solutions section', () => {
     })
 
     expect(screen.getByText('Kimi K3 API')).toBeInTheDocument()
+    expect(screen.getByText('Seedance 2.5 API')).toBeInTheDocument()
     expect(screen.getByText('AI Media API')).toBeInTheDocument()
 
     const learnMoreLinks = screen.getAllByRole('link', { name: /Learn more/ })
     const hrefs = learnMoreLinks.map((link) => link.getAttribute('href'))
     expect(hrefs).toContain('/kimi-k3-api')
+    expect(hrefs).toContain('/seedance-api')
     expect(hrefs).toContain('/ai-media-api')
     for (const link of learnMoreLinks) {
       expect(link).not.toHaveAttribute('target')
     }
 
-    // Real DOM order contract: Features -> Developer solutions -> How It
-    // Works, asserted through the semantic section headings.
-    const featuresHeading = screen.getByRole('heading', {
+    // Real DOM order contract: Stack -> Developer solutions -> Evidence
+    // -> Why -> CTA, asserted through the semantic section headings.
+    const stackHeading = screen.getByRole('heading', {
       level: 2,
-      name: 'Built for developers, designed for scale',
+      name: 'Works with your stack',
     })
-    const howItWorksHeading = screen.getByRole('heading', {
+    const evidenceHeading = screen.getByRole('heading', {
       level: 2,
-      name: 'Three steps to get started',
+      name: 'Verified in real agent workflows',
     })
     expect(
-      featuresHeading.compareDocumentPosition(devSolutionsHeading) &
+      stackHeading.compareDocumentPosition(devSolutionsHeading) &
         Node.DOCUMENT_POSITION_FOLLOWING
     ).not.toBe(0)
     expect(
-      devSolutionsHeading.compareDocumentPosition(howItWorksHeading) &
+      devSolutionsHeading.compareDocumentPosition(evidenceHeading) &
         Node.DOCUMENT_POSITION_FOLLOWING
     ).not.toBe(0)
   })

@@ -21,7 +21,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { DocsCodeBlock } from '../components/code-block'
-import { initTestI18n, setDocsBundle, EN_DOCS } from './test-utils'
+import { initTestI18n, setDocsBundle, EN_DOCS } from './test-i18n'
 
 function stubClipboard(impl: (text: string) => Promise<void>) {
   const writeText = vi.fn(impl)

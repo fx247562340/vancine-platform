@@ -415,53 +415,69 @@ export function RechargeFormCard({
                       const disabledLabel = belowMin
                         ? `${t('Minimum:')} ${paypalMin}`
                         : undefined
+                      const selectPayPal = () =>
+                        onPaymentMethodSelect({
+                          type: 'paypal',
+                          name: 'PayPal',
+                          min_topup: paypalMin,
+                        })
 
-                      const button = (
-                        <Button
-                          variant='outline'
-                          onClick={() =>
-                            onPaymentMethodSelect({
-                              type: 'paypal',
-                              name: 'PayPal',
-                              min_topup: paypalMin,
-                            })
-                          }
-                          disabled={belowMin || !!paymentLoading}
-                          title={disabledReason}
-                          aria-label={
-                            disabledReason
-                              ? `PayPal. ${disabledReason}`
-                              : 'PayPal'
-                          }
-                          className='min-h-14 min-w-0 justify-start gap-2 rounded-lg px-3 py-2 text-left'
-                        >
+                      const buttonBody = (
+                        <>
                           {paymentLoading === 'paypal' ? (
                             <Loader2 className='h-4 w-4 animate-spin' />
                           ) : (
                             getPaymentIcon('paypal', 'h-4 w-4')
                           )}
                           <span className='flex min-w-0 flex-col items-start gap-0.5'>
-                            <span className='max-w-full truncate'>
-                              PayPal
-                            </span>
+                            <span className='max-w-full truncate'>PayPal</span>
                             {disabledLabel && (
                               <span className='text-muted-foreground max-w-full truncate text-[11px] leading-4 font-normal'>
                                 {disabledLabel}
                               </span>
                             )}
                           </span>
-                        </Button>
+                        </>
                       )
 
-                      return belowMin ? (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger render={button} />
-                            <TooltipContent>{disabledReason}</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      ) : (
-                        button
+                      if (belowMin) {
+                        // The trigger renders the button element without
+                        // children in Base UI, so the visible content is
+                        // passed as the trigger's children to keep the label
+                        // and the minimum-amount helper text in the DOM.
+                        return (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger
+                                render={
+                                  <Button
+                                    variant='outline'
+                                    onClick={selectPayPal}
+                                    disabled
+                                    title={disabledReason}
+                                    aria-label={`PayPal. ${disabledReason}`}
+                                    className='min-h-14 min-w-0 justify-start gap-2 rounded-lg px-3 py-2 text-left'
+                                  />
+                                }
+                              >
+                                {buttonBody}
+                              </TooltipTrigger>
+                              <TooltipContent>{disabledReason}</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )
+                      }
+
+                      return (
+                        <Button
+                          variant='outline'
+                          onClick={selectPayPal}
+                          disabled={!!paymentLoading}
+                          aria-label='PayPal'
+                          className='min-h-14 min-w-0 justify-start gap-2 rounded-lg px-3 py-2 text-left'
+                        >
+                          {buttonBody}
+                        </Button>
                       )
                     })()}
                   </div>

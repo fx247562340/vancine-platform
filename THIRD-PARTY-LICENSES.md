@@ -121,6 +121,7 @@ Transitive dependencies should be audited before a final external release.
 | web | production | npm | `use-stick-to-bottom` | `1.1.6` | MIT |
 | web | production | npm | `vaul` | `1.1.2` | MIT |
 | web | production | npm | `zod` | `4.4.3` | MIT |
+| web | production | npm | `yace` | `1.1.0` | MIT |
 | web | production | npm | `zustand` | `5.0.14` | MIT |
 | web | development | npm | `@rsbuild/core` | `2.1.6` | MIT |
 | web | development | npm | `@rsbuild/plugin-react` | `2.1.0` | MIT |

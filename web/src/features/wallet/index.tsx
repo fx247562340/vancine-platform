@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 
 import { SectionPageLayout } from '@/components/layout'
 import { useStatus } from '@/hooks/use-status'
@@ -46,6 +47,8 @@ import {
   getDefaultPaymentType,
   getMinTopupAmount,
   dispatchSelectedPayment,
+  getPaymentReturnFeedback,
+  withoutPaymentReturnParams,
 } from './lib'
 import type {
   UserWalletData,
@@ -57,6 +60,12 @@ import type {
 
 interface WalletProps {
   initialShowHistory?: boolean
+  /** One-shot PayPal return flag: payment processing failed. */
+  paymentError?: boolean
+  /** One-shot PayPal return flag: payment still processing. */
+  paymentPending?: boolean
+  /** One-shot PayPal return flag: user abandoned checkout at the cancel_url. */
+  paymentCancel?: boolean
 }
 
 export function Wallet(props: WalletProps) {
@@ -129,12 +138,75 @@ export function Wallet(props: WalletProps) {
     fetchUser()
   }, [fetchUser])
 
+  // Payment-return status flags (payment_error / payment_pending /
+  // show_history) are consumed exactly once in a single pass: one localized
+  // toast (error wins over pending), the billing history dialog for
+  // show_history, and a replaceState URL cleanup that preserves unrelated
+  // query params and the hash. The consumed ref keeps StrictMode
+  // double-effects and ordinary re-renders from re-prompting, and this
+  // effect never triggers a payment mutation.
+  const paymentReturnConsumedRef = useRef(false)
   useEffect(() => {
-    if (props.initialShowHistory) {
-      setBillingDialogOpen(true)
-      window.history.replaceState({}, '', window.location.pathname)
+    if (paymentReturnConsumedRef.current) return
+    // CP1 P1-B04 priority order: error > pending > cancel. cancel is the
+    // most benign state and must never displace a more serious one; it is
+    // only shown when neither error nor pending is set. cancel does NOT
+    // open the billing history dialog and never claims success or error.
+    const feedback = getPaymentReturnFeedback(
+      props.paymentError,
+      props.paymentPending
+    )
+    const cancelFeedback =
+      feedback === null && props.paymentCancel === true
+        ? ('cancel' as const)
+        : null
+    const finalFeedback = cancelFeedback ?? feedback
+    const showHistory = props.initialShowHistory === true
+    if (finalFeedback === null && !showHistory) return
+    paymentReturnConsumedRef.current = true
+    if (finalFeedback === 'error') {
+      toast.error(
+        t(
+          'PayPal payment processing failed. Please try again or contact support.'
+        )
+      )
+    } else if (finalFeedback === 'pending') {
+      toast.warning(
+        t(
+          'Your PayPal payment is still being processed. Please check your billing history later.'
+        )
+      )
+    } else if (finalFeedback === 'cancel') {
+      // Localized cancel toast. Never opens history, never displays success
+      // or error, and never re-prompts on re-render (ref above). The key
+      // is registered in all 7 supported locales (en, zh, zh-TW, fr, ru,
+      // ja, vi); i18next falls back to en if a key is missing. The cancel
+      // branch suppresses the history dialog even if show_history was
+      // appended alongside it: cancel means "no credit, no history".
+      toast.info(
+        t(
+          'PayPal checkout was cancelled. No payment was made and your balance is unchanged.'
+        )
+      )
     }
-  }, [props.initialShowHistory])
+    // show_history opens the dialog only when the chosen feedback is not
+    // cancel; cancel explicitly suppresses the dialog because the user
+    // never completed checkout.
+    if (showHistory && finalFeedback !== 'cancel') {
+      setBillingDialogOpen(true)
+    }
+    window.history.replaceState(
+      window.history.state,
+      '',
+      withoutPaymentReturnParams(window.location.href)
+    )
+  }, [
+    props.paymentCancel,
+    props.paymentError,
+    props.paymentPending,
+    props.initialShowHistory,
+    t,
+  ])
 
   // Initialize topup amount when topup info is loaded
   const topupAmountInitializedRef = useRef(false)

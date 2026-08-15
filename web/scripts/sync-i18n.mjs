@@ -22,12 +22,6 @@ import path from 'node:path'
 // This script is executed from the web/ package root (see package.json script).
 const LOCALES_DIR = path.resolve('src/i18n/locales')
 const FALLBACK_COMPARE_LOCALE = 'en' // used for "still English" detection only
-const OBFUSCATED_KEYS = [
-  {
-    runtime: ['footer', 'new' + 'api', 'projectAttributionSuffix'].join('.'),
-    serialized: 'footer.new\\u0061pi.projectAttributionSuffix',
-  },
-]
 
 const BRAND_AND_LITERAL_KEYS = new Set([
   'AI Proxy',
@@ -118,12 +112,29 @@ function isPlainObject(v) {
   return typeof v === 'object' && v !== null && !Array.isArray(v)
 }
 
-function stableStringify(obj) {
-  let text = JSON.stringify(obj, null, 2)
-  for (const key of OBFUSCATED_KEYS) {
-    text = text.replaceAll(`"${key.runtime}":`, `"${key.serialized}":`)
+function stringifyLocaleCompare(value, indent = 0) {
+  const pad = '  '.repeat(indent)
+  if (Array.isArray(value)) {
+    if (value.length === 0) return '[]'
+    const items = value.map(
+      (item) => `${pad}  ${stringifyLocaleCompare(item, indent + 1)}`
+    )
+    return `[\n${items.join(',\n')}\n${pad}]`
   }
-  return text + '\n'
+  if (isPlainObject(value)) {
+    const keys = Object.keys(value).sort((a, b) => a.localeCompare(b))
+    if (keys.length === 0) return '{}'
+    const lines = keys.map((key, index) => {
+      const suffix = index < keys.length - 1 ? ',' : ''
+      return `${pad}  ${JSON.stringify(key)}: ${stringifyLocaleCompare(value[key], indent + 1)}${suffix}`
+    })
+    return `{\n${lines.join('\n')}\n${pad}}`
+  }
+  return JSON.stringify(value)
+}
+
+function stableStringify(obj) {
+  return `${stringifyLocaleCompare(obj)}\n`
 }
 
 function countLeafKeys(obj) {
@@ -152,7 +163,7 @@ function reorderLikeBase(
     const t = isPlainObject(target) ? target : {}
     const f = isPlainObject(fill) ? fill : {}
 
-    for (const key of Object.keys(base)) {
+    for (const key of Object.keys(base).sort((a, b) => a.localeCompare(b))) {
       const nextPath = [...currentPath, key]
       if (Object.prototype.hasOwnProperty.call(t, key)) {
         out[key] = reorderLikeBase(
@@ -229,8 +240,9 @@ function isLikelyUntranslated({ locale, baseValue, value }) {
   if (locale === 'ru') return true
 
   // For fr/vi: still useful but noisier; keep it conservative.
-  if (locale === 'fr' || locale === 'vi')
+  if (locale === 'fr' || locale === 'vi') {
     return /\b(the|and|or|to|with|please)\b/i.test(s)
+  }
 
   return false
 }

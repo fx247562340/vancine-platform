@@ -27,14 +27,16 @@ import { isLikelyHtml } from '@/lib/content-format'
 import { useAuthStore } from '@/stores/auth-store'
 
 import {
+  AvailableNow,
   CTA,
   DeveloperSolutions,
-  Features,
+  Evidence,
   Hero,
-  HowItWorks,
-  Stats,
+  Marketplace,
+  Stack,
+  Why,
 } from './components'
-import { useHomePageContent } from './hooks'
+import { useHomePageContent, useHomepagePricing } from './hooks'
 
 export function Home() {
   const { i18n, t } = useTranslation()
@@ -42,7 +44,8 @@ export function Home() {
   const { resolvedTheme } = useTheme()
   const { auth } = useAuthStore()
   const isAuthenticated = !!auth.user
-  const { content, isLoaded, isUrl } = useHomePageContent()
+  const { content, isUrl } = useHomePageContent()
+  const pricing = useHomepagePricing(!content)
 
   const syncIframePreferences = useCallback(() => {
     try {
@@ -65,16 +68,9 @@ export function Home() {
     }
   }, [isUrl, syncIframePreferences])
 
-  if (!isLoaded) {
-    return (
-      <PublicLayout showMainContainer={false}>
-        <main className='flex min-h-screen items-center justify-center'>
-          <div className='text-muted-foreground'>{t('Loading...')}</div>
-        </main>
-      </PublicLayout>
-    )
-  }
-
+  // Custom content: render as soon as content is non-empty (from cache or API).
+  // The built-in homepage shell renders immediately when there is no cached
+  // override and the API has not yet responded, so visitors never see blank.
   if (content) {
     if (isUrl) {
       return (
@@ -129,11 +125,13 @@ export function Home() {
 
   return (
     <PublicLayout showMainContainer={false}>
-      <Hero isAuthenticated={isAuthenticated} />
-      <Stats />
-      <Features />
+      <Hero isAuthenticated={isAuthenticated} pricing={pricing} />
+      <AvailableNow pricing={pricing} />
+      <Stack />
       <DeveloperSolutions />
-      <HowItWorks />
+      <Evidence />
+      <Why />
+      <Marketplace pricing={pricing} />
       <CTA isAuthenticated={isAuthenticated} />
       <Footer />
     </PublicLayout>

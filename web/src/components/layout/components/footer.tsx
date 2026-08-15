@@ -25,11 +25,15 @@ import { useSystemConfig } from '@/hooks/use-system-config'
 import { cn } from '@/lib/utils'
 
 interface FooterLink {
+  /** Stable semantic identity; the React key for this link. */
+  id: string
   text: string
   href: string
 }
 
 interface FooterColumnProps {
+  /** Stable semantic identity; the React key for this column. */
+  id: string
   title: string
   links: FooterLink[]
 }
@@ -41,12 +45,6 @@ interface FooterProps {
   copyright?: string
   className?: string
 }
-
-const NEW_API_FOOTER_ATTRIBUTION_KEY = [
-  'footer',
-  'new' + 'api',
-  'projectAttributionSuffix',
-].join('.')
 
 function FooterLinkItem(props: { link: FooterLink }) {
   const { t } = useTranslation()
@@ -121,10 +119,15 @@ function LegalLinks(props: { leadingSeparator?: boolean }) {
   )
 }
 
+// The NOTICE-mandated attribution string, verbatim, as one continuous ASCII
+// literal. It is both the visible text and the accessible name of the link to
+// the upstream project; it must never be split, escaped, or translated.
+const UPSTREAM_ATTRIBUTION_TEXT =
+  'Frontend design and development by New API contributors.'
+
 // inline=true returns just the inner span for composition in a parent flex
 // row. inline=false wraps in a centered/right-aligned div (default).
 function ProjectAttribution(props: { currentYear: number; inline?: boolean }) {
-  const { t } = useTranslation()
   const content = (
     <span className='text-muted-foreground/45'>
       &copy; {props.currentYear}{' '}
@@ -134,9 +137,8 @@ function ProjectAttribution(props: { currentYear: number; inline?: boolean }) {
         rel='noopener noreferrer'
         className='text-foreground/70 hover:text-foreground font-medium transition-colors'
       >
-        {t('New API')}
+        {UPSTREAM_ATTRIBUTION_TEXT}
       </a>
-      . {t(NEW_API_FOOTER_ATTRIBUTION_KEY)}
     </span>
   )
   if (props.inline) {
@@ -159,58 +161,70 @@ export function Footer(props: FooterProps) {
   } = useSystemConfig()
 
   const displayLogo = systemLogo || props.logo || '/logo.png'
-  const displayName = systemName || props.name || 'New API'
+  const displayName = systemName || props.name || 'Vancine'
   const isDemoSiteMode = Boolean(demoSiteEnabled)
   const currentYear = new Date().getFullYear()
 
   const fallbackColumns = useMemo<FooterColumnProps[]>(
     () => [
       {
+        id: 'about',
         title: t('footer.columns.about.title'),
         links: [
           {
+            id: 'about-project',
             text: t('footer.columns.about.links.aboutProject'),
             href: 'https://docs.newapi.pro/wiki/project-introduction/',
           },
           {
+            id: 'contact',
             text: t('footer.columns.about.links.contact'),
             href: 'https://docs.newapi.pro/support/community-interaction/',
           },
           {
+            id: 'features',
             text: t('footer.columns.about.links.features'),
             href: 'https://docs.newapi.pro/wiki/features-introduction/',
           },
         ],
       },
       {
+        id: 'docs',
         title: t('footer.columns.docs.title'),
         links: [
           {
+            id: 'quick-start',
             text: t('footer.columns.docs.links.quickStart'),
             href: 'https://docs.newapi.pro/getting-started/',
           },
           {
+            id: 'installation',
             text: t('footer.columns.docs.links.installation'),
             href: 'https://docs.newapi.pro/installation/',
           },
           {
+            id: 'api-docs',
             text: t('footer.columns.docs.links.apiDocs'),
             href: 'https://docs.newapi.pro/api/',
           },
         ],
       },
       {
+        id: 'related',
         title: t('footer.columns.related.title'),
         links: [
           {
+            id: 'one-api',
             text: t('footer.columns.related.links.oneApi'),
             href: 'https://github.com/songquanpeng/one-api',
           },
           {
+            id: 'midjourney-proxy',
             text: t('footer.columns.related.links.midjourney'),
             href: 'https://github.com/novicezk/midjourney-proxy',
           },
           {
+            id: 'new-api-key-tool',
             text: t('footer.columns.related.links.newApiKeyTool'),
             href: 'https://github.com/Calcium-Ion/new-api-key-tool',
           },
@@ -272,14 +286,14 @@ export function Footer(props: FooterProps) {
           {/* Links columns */}
           {isDemoSiteMode && (
             <div className='grid grid-cols-3 gap-8 md:gap-16'>
-              {displayColumns.map((column, index) => (
-                <div key={index}>
+              {displayColumns.map((column) => (
+                <div key={column.id}>
                   <p className='text-muted-foreground/50 mb-3 text-xs font-medium tracking-wider uppercase'>
                     {t(column.title)}
                   </p>
                   <ul className='space-y-2.5'>
-                    {column.links.map((link, linkIndex) => (
-                      <li key={linkIndex}>
+                    {column.links.map((link) => (
+                      <li key={link.id}>
                         <FooterLinkItem link={link} />
                       </li>
                     ))}

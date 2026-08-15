@@ -198,6 +198,22 @@ export async function unbindCustomOAuth(
   return res.data
 }
 
+/**
+ * Unbind the current user's Google account (self-service).
+ *
+ * Error display is owned solely by the calling component: both the business
+ * failure toast and the HTTP/transport error toast are suppressed here so the
+ * interceptor never double-toasts. The 401 auth refresh/redirect security
+ * behavior in the interceptor is unaffected by these flags.
+ */
+export async function unbindGoogleSelf(): Promise<ApiResponse> {
+  const res = await api.delete('/api/user/self/bindings/google', {
+    skipBusinessError: true,
+    skipErrorHandler: true,
+  })
+  return res.data
+}
+
 // ============================================================================
 // Checkin APIs
 // ============================================================================

@@ -19,7 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
 import { Pencil } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -89,7 +89,7 @@ import {
   transformFormDataToPayload,
   transformUserToFormDefaults,
 } from '../lib'
-import { type User } from '../types'
+import type { User } from '../types'
 import { UserQuotaDialog } from './user-quota-dialog'
 import { useUsers } from './users-provider'
 
@@ -132,20 +132,38 @@ export function UsersMutateDrawer({
     defaultValues: USER_FORM_DEFAULT_VALUES,
   })
 
+  // Sequence guard: every effect run (and unmount) invalidates in-flight
+  // loads so a stale completion can never reset a newer record's form or
+  // toast after the drawer closed.
+  const loadSeqRef = useRef(0)
+
   // Load existing data when updating
   useEffect(() => {
     if (open && isUpdate && currentRow) {
+      const seq = ++loadSeqRef.current
+      const rowId = currentRow.id
       // For update, fetch fresh data
-      getUser(currentRow.id).then((result) => {
-        if (result.success && result.data) {
-          form.reset(transformUserToFormDefaults(result.data))
-        }
-      })
+      getUser(rowId)
+        .then((result) => {
+          if (seq !== loadSeqRef.current) return
+          if (result.success && result.data) {
+            form.reset(transformUserToFormDefaults(result.data))
+          } else {
+            toast.error(result.message || t(ERROR_MESSAGES.LOAD_FAILED))
+          }
+        })
+        .catch(() => {
+          if (seq !== loadSeqRef.current) return
+          toast.error(t(ERROR_MESSAGES.LOAD_FAILED))
+        })
     } else if (open && !isUpdate) {
       // For create, reset to defaults
       form.reset(USER_FORM_DEFAULT_VALUES)
     }
-  }, [open, isUpdate, currentRow, form])
+    return () => {
+      loadSeqRef.current += 1
+    }
+  }, [open, isUpdate, currentRow, form, t])
 
   const { meta: currencyMeta } = getCurrencyDisplay()
   const currencyLabel = getCurrencyLabel()
@@ -195,7 +213,7 @@ export function UsersMutateDrawer({
               : t(ERROR_MESSAGES.CREATE_FAILED))
         )
       }
-    } catch (_error) {
+    } catch {
       toast.error(t(ERROR_MESSAGES.UNEXPECTED))
     } finally {
       setIsSubmitting(false)
@@ -360,12 +378,10 @@ export function UsersMutateDrawer({
                       <FormItem>
                         <FormLabel>{t('Group')}</FormLabel>
                         <Select
-                          items={[
-                            ...groups.map((group) => ({
-                              value: group,
-                              label: group,
-                            })),
-                          ]}
+                          items={groups.map((group) => ({
+                            value: group,
+                            label: group,
+                          }))}
                           onValueChange={field.onChange}
                           value={field.value}
                         >

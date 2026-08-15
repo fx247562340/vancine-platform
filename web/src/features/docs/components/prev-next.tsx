@@ -16,9 +16,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+
 import { DOCS_NS } from '../i18n/loader'
 import { readFeedback, saveFeedback } from '../lib/feedback'
 import { getNextSlug, getPrevSlug, SLUG_TO_TITLE_KEY } from '../nav'

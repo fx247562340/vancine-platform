@@ -26,11 +26,11 @@ import {
 } from '@/lib/developer-solutions'
 
 describe('developer solutions registry', () => {
-  test('contains exactly the two live resources', () => {
-    assert.equal(DEVELOPER_SOLUTIONS.length, 2)
+  test('contains exactly the three live resources', () => {
+    assert.equal(DEVELOPER_SOLUTIONS.length, 3)
     assert.deepEqual(
       DEVELOPER_SOLUTIONS.map((solution) => solution.id),
-      ['kimi-k3-api', 'ai-media-api']
+      ['kimi-k3-api', 'seedance-api', 'ai-media-api']
     )
   })
 
@@ -52,13 +52,30 @@ describe('developer solutions registry', () => {
     }
     const byId = new Map(DEVELOPER_SOLUTIONS.map((s) => [s.id, s]))
     assert.equal(byId.get('kimi-k3-api')?.route, '/kimi-k3-api')
+    assert.equal(byId.get('seedance-api')?.route, '/seedance-api')
     assert.equal(byId.get('ai-media-api')?.route, '/ai-media-api')
+    assert.equal(byId.get('seedance-api')?.resource, 'seedance_api')
+    assert.equal(byId.get('seedance-api')?.titleKey, 'Seedance 2.5 API')
+    assert.equal(
+      byId.get('seedance-api')?.descriptionKey,
+      'Async Doubao-Seedance-2.5 video generation through one API.'
+    )
   })
 
-  test('contains no Seedance or placeholder routes', () => {
+  test('keeps a stable order: Kimi K3 -> Seedance -> AI Media', () => {
+    const ids = DEVELOPER_SOLUTIONS.map((solution) => solution.id)
+    assert.ok(
+      ids.indexOf('kimi-k3-api') < ids.indexOf('seedance-api'),
+      'Kimi K3 API must precede Seedance'
+    )
+    assert.ok(
+      ids.indexOf('seedance-api') < ids.indexOf('ai-media-api'),
+      'Seedance must precede AI Media API'
+    )
+  })
+
+  test('contains no placeholder routes', () => {
     for (const solution of DEVELOPER_SOLUTIONS) {
-      assert.ok(!solution.route.toLowerCase().includes('seedance'))
-      assert.ok(!solution.id.includes('seedance'))
       assert.ok(!solution.route.includes('todo'))
       assert.ok(!solution.route.includes('placeholder'))
     }

@@ -23,7 +23,9 @@ import {
   type ReactNode,
 } from 'react'
 import { useTranslation } from 'react-i18next'
+
 import { cn } from '@/lib/utils'
+
 import { DOCS_NS } from '../i18n/loader'
 import {
   activeHeadingForScroll,

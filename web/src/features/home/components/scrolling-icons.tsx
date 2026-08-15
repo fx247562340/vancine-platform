@@ -20,8 +20,14 @@ import { cn } from '@/lib/utils'
 
 import { IconCard } from './icon-card'
 
+interface ScrollingIcon {
+  /** Stable identity provided by the caller; used for React keys. */
+  id: string
+  iconName: string
+}
+
 interface ScrollingIconsProps {
-  icons: readonly string[]
+  icons: readonly ScrollingIcon[]
   direction?: 'up' | 'down'
   className?: string
 }
@@ -45,15 +51,19 @@ export function ScrollingIcons({
       )}
     >
       <div className={cn('flex flex-col gap-5', animationClass)}>
-        {/* First set */}
-        {icons.map((iconName, i) => (
-          <IconCard key={`${direction}-1-${i}`} iconName={iconName} />
-        ))}
-        {/* Duplicate set for seamless loop */}
-        {icons.map((iconName, i) => (
+        {/* First set: group semantic prefix + icon.id */}
+        {icons.map((icon) => (
           <IconCard
-            key={`${direction}-2-${i}`}
-            iconName={iconName}
+            key={`${direction}-set-1-${icon.id}`}
+            iconName={icon.iconName}
+          />
+        ))}
+        {/* Duplicate set for seamless loop: distinct group prefix so the same
+            icon id in both sets never collides */}
+        {icons.map((icon) => (
+          <IconCard
+            key={`${direction}-set-2-${icon.id}`}
+            iconName={icon.iconName}
             className='aria-hidden'
           />
         ))}

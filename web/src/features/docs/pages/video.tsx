@@ -18,7 +18,9 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+
 import { Badge } from '@/components/ui/badge'
+
 import { DocsCallout } from '../components/callout'
 import { DocsCodeTabs } from '../components/code-tabs'
 import { DocsEndpoint } from '../components/endpoint'
@@ -70,9 +72,8 @@ curl -X POST ${baseUrl}/video/generations \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer sk-your-api-key" \\
   -d '{
-    "model": "Doubao-Seedance-1.5-pro",
-    "prompt": "a cat walking on a beach",
-    "size": "1280x720"
+    "model": "Doubao-Seedance-2.5",
+    "prompt": "a cat walking on a beach"
   }'
 
 # Save task_id from the response
@@ -94,9 +95,8 @@ submit = requests.post(
     f"{BASE_URL}/video/generations",
     headers={"Authorization": f"Bearer {API_KEY}"},
     json={
-        "model": "Doubao-Seedance-1.5-pro",
+        "model": "Doubao-Seedance-2.5",
         "prompt": "a cat walking on a beach",
-        "size": "1280x720",
     },
 ).json()
 
@@ -131,9 +131,8 @@ const submitRes = await fetch(BASE_URL + "/video/generations", {
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    model: "Doubao-Seedance-1.5-pro",
+    model: "Doubao-Seedance-2.5",
     prompt: "a cat walking on a beach",
-    size: "1280x720",
   }),
 });
 

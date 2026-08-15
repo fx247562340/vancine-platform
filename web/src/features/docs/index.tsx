@@ -18,8 +18,10 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { Suspense, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useStatus } from '@/hooks/use-status'
+
 import { PublicLayout } from '@/components/layout'
+import { useStatus } from '@/hooks/use-status'
+
 import { DocsToc } from './components/headings'
 import { DocsFeedback, DocsPrevNext } from './components/prev-next'
 import { DocsSidebar } from './components/sidebar'

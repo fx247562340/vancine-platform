@@ -22,6 +22,12 @@ import { useTranslation } from 'react-i18next'
 import { getSuccessRateDotClass } from '@/features/performance-metrics/lib/format'
 import { cn } from '@/lib/utils'
 
+const MODEL_PERF_STATUS_BAR_SLOTS = [
+  { key: 'model-perf-status-bar-slot-01', rateIndex: 0 },
+  { key: 'model-perf-status-bar-slot-02', rateIndex: 1 },
+  { key: 'model-perf-status-bar-slot-03', rateIndex: 2 },
+] as const
+
 export type ModelPerfBadgeData = {
   avg_latency_ms: number
   success_rate: number
@@ -102,22 +108,30 @@ export const ModelPerfBadge = memo(function ModelPerfBadge(
           {t('Status short')}
         </div>
         <div className='flex h-4 items-center justify-end gap-0.5'>
-          {statusBars.map((rate, index) => (
-            <span
-              key={`${index}-${rate ?? 'empty'}`}
-              className={cn(
-                'w-1 rounded-full',
-                index === 0 && 'h-2',
-                index === 1 && 'h-2.5',
-                index === 2 && 'h-3',
-                rate == null
-                  ? index === 0
-                    ? 'bg-muted-foreground/10'
-                    : 'bg-muted-foreground/15'
-                  : getSuccessRateDotClass(rate)
-              )}
-            />
-          ))}
+          {MODEL_PERF_STATUS_BAR_SLOTS.map((slot) => {
+            const rate = statusBars[slot.rateIndex]
+            let dotClass: string
+            if (rate == null) {
+              dotClass =
+                slot.rateIndex === 0
+                  ? 'bg-muted-foreground/10'
+                  : 'bg-muted-foreground/15'
+            } else {
+              dotClass = getSuccessRateDotClass(rate)
+            }
+            return (
+              <span
+                key={slot.key}
+                className={cn(
+                  'w-1 rounded-full',
+                  slot.rateIndex === 0 && 'h-2',
+                  slot.rateIndex === 1 && 'h-2.5',
+                  slot.rateIndex === 2 && 'h-3',
+                  dotClass
+                )}
+              />
+            )
+          })}
         </div>
       </div>
     </div>

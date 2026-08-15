@@ -25,11 +25,20 @@ For commercial licensing, please contact support@quantumnous.com
  * Only resources that are actually live belong here.
  */
 
-export type DeveloperSolutionId = 'kimi-k3-api' | 'ai-media-api'
+export type DeveloperSolutionId =
+  | 'kimi-k3-api'
+  | 'seedance-api'
+  | 'ai-media-api'
 
-export type DeveloperSolutionRoute = '/kimi-k3-api' | '/ai-media-api'
+export type DeveloperSolutionRoute =
+  | '/kimi-k3-api'
+  | '/seedance-api'
+  | '/ai-media-api'
 
-export type DeveloperSolutionResource = 'kimi_k3_api' | 'ai_media_api'
+export type DeveloperSolutionResource =
+  | 'kimi_k3_api'
+  | 'seedance_api'
+  | 'ai_media_api'
 
 export interface DeveloperSolution {
   /** Stable identifier, unique within the registry. */
@@ -51,6 +60,14 @@ export const DEVELOPER_SOLUTIONS: readonly DeveloperSolution[] = [
     titleKey: 'Kimi K3 API',
     descriptionKey: 'Kimi K3 for coding agents and OpenAI-compatible clients.',
     resource: 'kimi_k3_api',
+  },
+  {
+    id: 'seedance-api',
+    route: '/seedance-api',
+    titleKey: 'Seedance 2.5 API',
+    descriptionKey:
+      'Async Doubao-Seedance-2.5 video generation through one API.',
+    resource: 'seedance_api',
   },
   {
     id: 'ai-media-api',

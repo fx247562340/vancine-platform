@@ -36,42 +36,57 @@ export function sleep(ms: number = 1000) {
 export function sanitizeCssVariableName(name: string): string {
   // 将点号、空格、斜杠替换为连字符
   // 移除其他不允许在 CSS 变量名中的特殊字符
-  return name.replace(/[.\s/]/g, '-').replace(/[^\w-]/g, '')
+  return name.replaceAll(/[.\s/]/g, '-').replaceAll(/[^\w-]/g, '')
 }
+
+/**
+ * A pagination slot with a stable semantic identity, independent of array
+ * position: page identity comes from the page number; ellipsis identity comes
+ * from its placement (start/end) relative to the visible window.
+ */
+export type PageNumberItem =
+  | { kind: 'page'; page: number }
+  | { kind: 'ellipsis'; placement: 'start' | 'end' }
 
 /**
  * Generates page numbers for pagination with ellipsis
  * @param currentPage - Current page number (1-based)
  * @param totalPages - Total number of pages
- * @returns Array of page numbers and ellipsis strings
+ * @returns Array of page/ellipsis slots with stable semantic identities
  *
  * Examples:
- * - Small dataset (≤4 pages): [1, 2, 3, 4]
- * - Near beginning: [1, 2, '...', 10]
- * - In middle: [1, '...', 5, '...', 10]
- * - Near end: [1, '...', 9, 10]
+ * - Small dataset (≤4 pages): [page 1, page 2, page 3, page 4]
+ * - Near beginning: [page 1, page 2, ellipsis-end, page 10]
+ * - In middle: [page 1, ellipsis-start, page 5, ellipsis-end, page 10]
+ * - Near end: [page 1, ellipsis-start, page 9, page 10]
  */
-export function getPageNumbers(currentPage: number, totalPages: number) {
+export function getPageNumbers(
+  currentPage: number,
+  totalPages: number
+): PageNumberItem[] {
   const maxVisiblePages = 4
-  const rangeWithDots = []
+  const rangeWithDots: PageNumberItem[] = []
 
   if (totalPages <= maxVisiblePages) {
     for (let i = 1; i <= totalPages; i++) {
-      rangeWithDots.push(i)
+      rangeWithDots.push({ kind: 'page', page: i })
     }
   } else {
-    rangeWithDots.push(1)
+    rangeWithDots.push({ kind: 'page', page: 1 })
 
     if (currentPage <= 2) {
-      rangeWithDots.push(2)
-      rangeWithDots.push('...', totalPages)
+      rangeWithDots.push({ kind: 'page', page: 2 })
+      rangeWithDots.push({ kind: 'ellipsis', placement: 'end' })
+      rangeWithDots.push({ kind: 'page', page: totalPages })
     } else if (currentPage >= totalPages - 1) {
-      rangeWithDots.push('...')
-      rangeWithDots.push(totalPages - 1, totalPages)
+      rangeWithDots.push({ kind: 'ellipsis', placement: 'start' })
+      rangeWithDots.push({ kind: 'page', page: totalPages - 1 })
+      rangeWithDots.push({ kind: 'page', page: totalPages })
     } else {
-      rangeWithDots.push('...')
-      rangeWithDots.push(currentPage)
-      rangeWithDots.push('...', totalPages)
+      rangeWithDots.push({ kind: 'ellipsis', placement: 'start' })
+      rangeWithDots.push({ kind: 'page', page: currentPage })
+      rangeWithDots.push({ kind: 'ellipsis', placement: 'end' })
+      rangeWithDots.push({ kind: 'page', page: totalPages })
     }
   }
 
