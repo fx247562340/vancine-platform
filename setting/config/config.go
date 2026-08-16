@@ -18,6 +18,17 @@ type ConfigManager struct {
 
 var GlobalConfig = NewConfigManager()
 
+// RawOptionValueDecoder is implemented by config field types whose stored
+// option value may be a legacy raw string that is not valid JSON (for
+// example single-language Markdown written before localized maps existed).
+// Map-kind fields implementing this interface receive the raw database
+// string verbatim during LoadFromDB/UpdateConfigFromMap instead of being
+// parsed by the generic JSON path, which would silently drop non-JSON
+// values.
+type RawOptionValueDecoder interface {
+	DecodeRawOptionValue(value string) error
+}
+
 func NewConfigManager() *ConfigManager {
 	return &ConfigManager{
 		configs: make(map[string]interface{}),
@@ -253,6 +264,16 @@ func updateConfigFromMap(config interface{}, configMap map[string]string) error 
 				}
 			}
 		case reflect.Map:
+			// Field types that understand raw legacy option values get the
+			// database string verbatim; the decode is total (never leaves
+			// the field stale), so in-memory state always matches a fresh
+			// load of the same stored value.
+			if decoder, ok := field.Addr().Interface().(RawOptionValueDecoder); ok {
+				if err := decoder.DecodeRawOptionValue(strValue); err != nil {
+					return err
+				}
+				continue
+			}
 			// json.Unmarshal merges into existing maps (keeps old keys that are
 			// absent from the new JSON). Allocate a fresh map so removed keys
 			// are properly cleared.

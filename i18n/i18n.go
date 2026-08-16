@@ -19,6 +19,10 @@ const (
 	LangZhCN    = "zh-CN"
 	LangZhTW    = "zh-TW"
 	LangEn      = "en"
+	LangFr      = "fr"
+	LangRu      = "ru"
+	LangJa      = "ja"
+	LangVi      = "vi"
 	DefaultLang = LangEn // Fallback to English if language not supported
 )
 
@@ -49,10 +53,16 @@ func Init() error {
 			}
 		}
 
-		// Pre-create localizers for supported languages
+		// Pre-create localizers for supported languages. Locales without
+		// backend message catalogs (fr/ru/ja/vi) list DefaultLang explicitly so
+		// missing messages resolve to English instead of the bundle default.
 		localizers[LangZhCN] = i18n.NewLocalizer(bundle, LangZhCN)
 		localizers[LangZhTW] = i18n.NewLocalizer(bundle, LangZhTW)
 		localizers[LangEn] = i18n.NewLocalizer(bundle, LangEn)
+		localizers[LangFr] = i18n.NewLocalizer(bundle, LangFr, DefaultLang)
+		localizers[LangRu] = i18n.NewLocalizer(bundle, LangRu, DefaultLang)
+		localizers[LangJa] = i18n.NewLocalizer(bundle, LangJa, DefaultLang)
+		localizers[LangVi] = i18n.NewLocalizer(bundle, LangVi, DefaultLang)
 
 		// Set the TranslateMessage function in common package
 		common.TranslateMessage = T
@@ -200,23 +210,37 @@ func ParseAcceptLanguage(header string) string {
 // normalizeLang normalizes language code to supported format
 func normalizeLang(lang string) string {
 	lang = strings.ToLower(strings.TrimSpace(lang))
+	lang = strings.ReplaceAll(lang, "_", "-")
 
 	// Handle common variations
 	switch {
-	case strings.HasPrefix(lang, "zh-tw"):
+	case lang == "zhtw",
+		strings.HasPrefix(lang, "zh-tw"),
+		strings.HasPrefix(lang, "zh-hant"),
+		strings.HasPrefix(lang, "zh-hk"),
+		strings.HasPrefix(lang, "zh-mo"):
 		return LangZhTW
 	case strings.HasPrefix(lang, "zh"):
 		return LangZhCN
 	case strings.HasPrefix(lang, "en"):
 		return LangEn
+	case strings.HasPrefix(lang, "fr"):
+		return LangFr
+	case strings.HasPrefix(lang, "ru"):
+		return LangRu
+	case strings.HasPrefix(lang, "ja"):
+		return LangJa
+	case strings.HasPrefix(lang, "vi"):
+		return LangVi
 	default:
 		return DefaultLang
 	}
 }
 
-// SupportedLanguages returns a list of supported language codes
+// SupportedLanguages returns a list of supported language codes — the same
+// seven interface languages the frontend offers.
 func SupportedLanguages() []string {
-	return []string{LangZhCN, LangZhTW, LangEn}
+	return []string{LangZhCN, LangZhTW, LangEn, LangFr, LangRu, LangJa, LangVi}
 }
 
 // IsSupported checks if a language code is supported

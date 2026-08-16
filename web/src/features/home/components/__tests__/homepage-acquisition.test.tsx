@@ -799,20 +799,20 @@ describe('P6-C discovery routes', () => {
 })
 
 describe('Footer attribution', () => {
-  it('renders upstream New API attribution link', async () => {
+  it('does not render the upstream New API attribution in the footer', async () => {
+    // The statutory attribution moved to the /about page; the homepage
+    // footer must no longer display it.
     getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
     renderHome()
     await screen.findByRole('heading', {
       level: 1,
       name: "China's frontier AI models. One API.",
     })
-    const link = screen.getByRole('link', {
-      name: 'Frontend design and development by New API contributors.',
-    })
-    expect(link).toHaveAttribute(
-      'href',
-      'https://github.com/QuantumNous/new-api'
-    )
+    expect(
+      screen.queryByRole('link', {
+        name: 'Frontend design and development by New API contributors.',
+      })
+    ).not.toBeInTheDocument()
   })
 })
 

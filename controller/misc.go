@@ -122,8 +122,8 @@ func GetStatus(c *gin.Context) {
 		"passkey_user_verification":   passkeySetting.UserVerification,
 		"passkey_attachment":          passkeySetting.AttachmentPreference,
 		"setup":                       constant.Setup,
-		"user_agreement_enabled":      legalSetting.UserAgreement != "",
-		"privacy_policy_enabled":      legalSetting.PrivacyPolicy != "",
+		"user_agreement_enabled":      legalSetting.UserAgreement.HasContent(),
+		"privacy_policy_enabled":      legalSetting.PrivacyPolicy.HasContent(),
 		"checkin_enabled":             operation_setting.GetCheckinSetting().Enabled,
 	}
 
@@ -232,30 +232,46 @@ func GetNotice(c *gin.Context) {
 }
 
 func GetAbout(c *gin.Context) {
+	lang := i18n.GetLangFromContext(c)
 	common.OptionMapRWMutex.RLock()
-	defer common.OptionMapRWMutex.RUnlock()
+	raw := common.OptionMap["About"]
+	common.OptionMapRWMutex.RUnlock()
+
+	// About content is usually a plain string (Markdown/HTML), but it may be
+	// stored as a localized JSON map. Parse defensively: any non-map value
+	// falls through unchanged so legacy plain content keeps working.
+	content := raw
+	if raw != "" {
+		var localized system_setting.LocalizedString
+		if err := common.Unmarshal([]byte(raw), &localized); err == nil && len(localized) > 0 {
+			content = localized.ContentFor(lang)
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
-		"data":    common.OptionMap["About"],
+		"data":    content,
 	})
 	return
 }
 
 func GetUserAgreement(c *gin.Context) {
+	lang := i18n.GetLangFromContext(c)
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
-		"data":    system_setting.GetLegalSettings().UserAgreement,
+		"data":    system_setting.GetLegalSettings().UserAgreement.ContentFor(lang),
 	})
 	return
 }
 
 func GetPrivacyPolicy(c *gin.Context) {
+	lang := i18n.GetLangFromContext(c)
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
-		"data":    system_setting.GetLegalSettings().PrivacyPolicy,
+		"data":    system_setting.GetLegalSettings().PrivacyPolicy.ContentFor(lang),
 	})
 	return
 }

@@ -94,3 +94,35 @@ func TestUpdateConfigFromMap_ScalarFieldsUnchanged(t *testing.T) {
 		t.Errorf("Modes should be unchanged, got %v", cfg.Modes)
 	}
 }
+
+// decoderMap is a map-kind field type that implements RawOptionValueDecoder
+// and records the exact raw option string it received.
+type decoderMap map[string]string
+
+func (dm *decoderMap) DecodeRawOptionValue(value string) error {
+	*dm = decoderMap{"raw": value}
+	return nil
+}
+
+type testConfigWithDecoder struct {
+	Legal decoderMap `json:"legal"`
+}
+
+// Map-kind fields implementing RawOptionValueDecoder must receive the raw,
+// possibly non-JSON, option string from the database instead of being
+// silently skipped by the generic JSON path.
+func TestUpdateConfigFromMap_RawOptionValueDecoder(t *testing.T) {
+	raw := "# Legacy Agreement\n\nBody"
+	cfg := &testConfigWithDecoder{}
+
+	err := UpdateConfigFromMap(cfg, map[string]string{
+		"legal": raw,
+	})
+	if err != nil {
+		t.Fatalf("UpdateConfigFromMap failed: %v", err)
+	}
+
+	if got := cfg.Legal["raw"]; got != raw {
+		t.Errorf("decoder received %q, want raw %q", got, raw)
+	}
+}

@@ -23,9 +23,34 @@ import { useTranslation } from 'react-i18next'
 import { PublicLayout } from '@/components/layout'
 import { RichContent } from '@/components/rich-content'
 import { Skeleton } from '@/components/ui/skeleton'
+import { toLanguageTag } from '@/i18n/languages'
 import { isHttpUrl, isLikelyHtml } from '@/lib/content-format'
 
 import { getAboutContent } from './api'
+
+// The NOTICE-mandated attribution string, verbatim, as one continuous ASCII
+// literal. It is both the visible text and the accessible name of the link to
+// the upstream project; it must never be split, escaped, or translated.
+const UPSTREAM_ATTRIBUTION_TEXT =
+  'Frontend design and development by New API contributors.'
+const UPSTREAM_ATTRIBUTION_HREF = 'https://github.com/QuantumNous/new-api'
+
+// Shown on every About branch (empty, Markdown, HTML, external URL) so the
+// statutory attribution stays visible regardless of the configured content.
+function UpstreamAttribution({ className = '' }: { className?: string }) {
+  return (
+    <p className={`text-muted-foreground text-sm ${className}`.trim()}>
+      <a
+        href={UPSTREAM_ATTRIBUTION_HREF}
+        target='_blank'
+        rel='noopener noreferrer'
+        className='text-primary hover:underline'
+      >
+        {UPSTREAM_ATTRIBUTION_TEXT}
+      </a>
+    </p>
+  )
+}
 
 function EmptyAboutState() {
   const { t } = useTranslation()
@@ -106,6 +131,7 @@ function EmptyAboutState() {
             </a>
             .
           </p>
+          <UpstreamAttribution />
         </div>
       </div>
     </div>
@@ -113,9 +139,13 @@ function EmptyAboutState() {
 }
 
 export function About() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  // About content may be localized server-side; include the normalized
+  // language tag so switching languages refetches instead of serving a
+  // stale locale from the cache.
+  const langTag = toLanguageTag(i18n.language)
   const { data, isLoading } = useQuery({
-    queryKey: ['about-content'],
+    queryKey: ['about-content', langTag],
     queryFn: getAboutContent,
   })
 
@@ -148,12 +178,17 @@ export function About() {
   if (isUrl) {
     return (
       <PublicLayout showMainContainer={false}>
-        <iframe
-          src={rawContent}
-          className='h-[calc(100vh-3.5rem)] w-full border-0'
-          title={t('About')}
-          sandbox='allow-forms allow-popups allow-popups-to-escape-sandbox allow-scripts'
-        />
+        <div className='flex min-h-[calc(100vh-3.5rem)] flex-col'>
+          <iframe
+            src={rawContent}
+            className='w-full flex-1 border-0'
+            title={t('About')}
+            sandbox='allow-forms allow-popups allow-popups-to-escape-sandbox allow-scripts'
+          />
+          <div className='border-border/40 border-t px-4 py-3 text-center'>
+            <UpstreamAttribution />
+          </div>
+        </div>
       </PublicLayout>
     )
   }
@@ -167,6 +202,9 @@ export function About() {
           content={rawContent}
           className='prose-neutral dark:prose-invert max-w-none'
         />
+        <div className='mx-auto max-w-6xl px-4 pb-8'>
+          <UpstreamAttribution />
+        </div>
       </PublicLayout>
     )
   }
@@ -179,6 +217,7 @@ export function About() {
           content={rawContent}
           className='prose-neutral dark:prose-invert max-w-none'
         />
+        <UpstreamAttribution className='mt-8' />
       </div>
     </PublicLayout>
   )

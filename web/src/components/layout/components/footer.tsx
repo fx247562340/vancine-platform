@@ -77,6 +77,7 @@ function FooterLinkItem(props: { link: FooterLink }) {
 // Renders User Agreement / Privacy Policy links inline with the parent's
 // copyright row when either is configured in System Settings → Site. Emits
 // fragmented siblings so the parent flex container's gap controls spacing.
+// Returns null when neither document is configured.
 function LegalLinks(props: { leadingSeparator?: boolean }) {
   const { t } = useTranslation()
   const { status } = useStatus()
@@ -119,34 +120,47 @@ function LegalLinks(props: { leadingSeparator?: boolean }) {
   )
 }
 
-// The NOTICE-mandated attribution string, verbatim, as one continuous ASCII
-// literal. It is both the visible text and the accessible name of the link to
-// the upstream project; it must never be split, escaped, or translated.
-const UPSTREAM_ATTRIBUTION_TEXT =
-  'Frontend design and development by New API contributors.'
-
-// inline=true returns just the inner span for composition in a parent flex
-// row. inline=false wraps in a centered/right-aligned div (default).
-function ProjectAttribution(props: { currentYear: number; inline?: boolean }) {
-  const content = (
-    <span className='text-muted-foreground/45'>
-      &copy; {props.currentYear}{' '}
-      <a
-        href='https://github.com/QuantumNous/new-api'
-        target='_blank'
-        rel='noopener noreferrer'
-        className='text-foreground/70 hover:text-foreground font-medium transition-colors'
-      >
-        {UPSTREAM_ATTRIBUTION_TEXT}
-      </a>
-    </span>
-  )
-  if (props.inline) {
-    return content
+// Renders the legal links as a self-contained block for the custom-HTML
+// footer branch; returns null when neither document is configured so no
+// empty container remains.
+function LegalLinksBlock(props: { className: string }) {
+  const { t } = useTranslation()
+  const { status } = useStatus()
+  const items: { key: string; label: string; href: string }[] = []
+  if (status?.user_agreement_enabled) {
+    items.push({
+      key: 'user-agreement',
+      label: t('User Agreement'),
+      href: '/user-agreement',
+    })
+  }
+  if (status?.privacy_policy_enabled) {
+    items.push({
+      key: 'privacy-policy',
+      label: t('Privacy Policy'),
+      href: '/privacy-policy',
+    })
+  }
+  if (items.length === 0) {
+    return null
   }
   return (
-    <div className='text-muted-foreground/45 text-center text-xs sm:text-right'>
-      {content}
+    <div className={props.className}>
+      {items.map((item, index) => (
+        <Fragment key={item.key}>
+          {index > 0 && (
+            <span aria-hidden='true' className='text-muted-foreground/30'>
+              ·
+            </span>
+          )}
+          <Link
+            to={item.href}
+            className='hover:text-foreground transition-colors duration-200'
+          >
+            {item.label}
+          </Link>
+        </Fragment>
+      ))}
     </div>
   )
 }
@@ -250,10 +264,7 @@ export function Footer(props: FooterProps) {
               className='custom-footer text-muted-foreground min-w-0 text-center text-sm sm:text-left'
               dangerouslySetInnerHTML={{ __html: footerHtml }}
             />
-            <div className='border-border/60 text-muted-foreground/45 flex w-full flex-wrap items-center justify-center gap-x-3 gap-y-1 border-t pt-4 text-xs sm:w-auto sm:justify-end sm:border-t-0 sm:border-l sm:pt-0 sm:pl-5'>
-              <LegalLinks />
-              <ProjectAttribution currentYear={currentYear} inline />
-            </div>
+            <LegalLinksBlock className='border-border/60 text-muted-foreground/45 flex w-full flex-wrap items-center justify-center gap-x-3 gap-y-1 border-t pt-4 text-xs sm:w-auto sm:justify-end sm:border-t-0 sm:border-l sm:pt-0 sm:pl-5' />
           </div>
         </div>
       </footer>
@@ -304,17 +315,14 @@ export function Footer(props: FooterProps) {
           )}
         </div>
 
-        {/* Copyright + optional legal links inline on the left, project
-            attribution on the right; wraps on narrow screens. */}
-        <div className='border-border/30 mt-12 flex flex-col items-center justify-between gap-x-3 gap-y-2 border-t pt-6 sm:flex-row'>
-          <div className='text-muted-foreground/40 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs sm:justify-start'>
-            <span>
-              &copy; {currentYear} {displayName}.{' '}
-              {props.copyright ?? t('footer.defaultCopyright')}
-            </span>
-            <LegalLinks leadingSeparator />
-          </div>
-          <ProjectAttribution currentYear={currentYear} />
+        {/* Copyright with optional inline legal links. The statutory
+            upstream attribution lives on the /about page, not here. */}
+        <div className='border-border/30 text-muted-foreground/40 mt-12 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-t pt-6 text-xs sm:justify-start'>
+          <span>
+            &copy; {currentYear} {displayName}.{' '}
+            {props.copyright ?? t('footer.defaultCopyright')}
+          </span>
+          <LegalLinks leadingSeparator />
         </div>
       </div>
     </footer>

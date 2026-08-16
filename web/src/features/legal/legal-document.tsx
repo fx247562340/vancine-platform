@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
 import { FileWarning } from 'lucide-react'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { PublicLayout } from '@/components/layout'
@@ -25,7 +26,10 @@ import { RichContent } from '@/components/rich-content'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { toLanguageTag } from '@/i18n/languages'
 import { isHttpUrl, isLikelyHtml } from '@/lib/content-format'
+
+import { selectLocalizedContent } from './localized-content'
 
 import type { LegalDocumentResponse } from './types'
 
@@ -42,14 +46,23 @@ export function LegalDocument({
   fetchDocument,
   emptyMessage,
 }: LegalDocumentProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  // Cache per language: switching the interface language changes the key,
+  // which fires a fresh request whose Accept-Language header (set by the
+  // shared Axios interceptor) selects the matching server-side locale.
+  const langTag = toLanguageTag(i18n.language)
   const { data, isLoading } = useQuery({
-    queryKey: [queryKey],
+    queryKey: [queryKey, langTag],
     queryFn: fetchDocument,
     staleTime: 10 * 60 * 1000,
   })
 
-  const rawContent = data?.data?.trim() ?? ''
+  // Defense in depth: if a stale/misconfigured backend ever returns the raw
+  // localized map, pick the current locale's body instead of rendering JSON.
+  const rawContent = useMemo(
+    () => selectLocalizedContent(data?.data ?? '', langTag),
+    [data, langTag]
+  )
   const hasContent = rawContent.length > 0
   const isUrl = hasContent && isHttpUrl(rawContent)
   const contentIsHtml = hasContent && isLikelyHtml(rawContent)
