@@ -1,9 +1,11 @@
 package ali
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/QuantumNous/new-api/logger"
+	"github.com/QuantumNous/new-api/relay/helper"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/gin-gonic/gin"
@@ -100,61 +102,104 @@ type AliOutput struct {
 	} `json:"choices,omitempty"`
 }
 
-func (o *AliOutput) ChoicesToOpenAIImageDate(c *gin.Context, responseFormat string) []dto.ImageData {
+func (o *AliOutput) ChoicesToOpenAIImageDate(c *gin.Context, responseFormat string) ([]dto.ImageData, error) {
 	var imageData []dto.ImageData
-	if len(o.Choices) > 0 {
-		for _, choice := range o.Choices {
-			var data dto.ImageData
-			for _, content := range choice.Message.Content {
-				if content.Image != "" {
-					if strings.HasPrefix(content.Image, "http") {
-						var b64Json string
-						if responseFormat == "b64_json" {
-							_, b64, err := service.GetImageFromUrl(content.Image)
-							if err != nil {
-								logger.LogError(c, "get_image_data_failed: "+err.Error())
-								continue
-							}
-							b64Json = b64
-						}
-						data.Url = content.Image
-						data.B64Json = b64Json
-					} else {
-						data.B64Json = content.Image
-					}
-				} else if content.Text != "" {
-					data.RevisedPrompt = content.Text
+	for _, choice := range o.Choices {
+		// P13-B R18 per-image all-valid: every choice may carry MULTIPLE
+		// image contents, and each declared (non-empty) image content is
+		// validated immediately in upstream order. Each valid image becomes
+		// its own ImageData - multiple valid images in one choice are ALL
+		// delivered, in order, never collapsed into a single item where
+		// later fields overwrite earlier ones. Any invalid image fails the
+		// WHOLE response before the body is written, the n ratio is
+		// touched, or the relay settles; a valid image can never mask an
+		// invalid one.
+		var choiceText string
+		choiceImages := 0
+		for _, content := range choice.Message.Content {
+			if content.Image == "" {
+				if content.Text != "" {
+					choiceText = content.Text
 				}
-			}
-			imageData = append(imageData, data)
-		}
-	}
-
-	return imageData
-}
-
-func (o *AliOutput) ResultToOpenAIImageDate(c *gin.Context, responseFormat string) []dto.ImageData {
-	var imageData []dto.ImageData
-	for _, data := range o.Results {
-		var b64Json string
-		if responseFormat == "b64_json" {
-			_, b64, err := service.GetImageFromUrl(data.Url)
-			if err != nil {
-				logger.LogError(c, "get_image_data_failed: "+err.Error())
 				continue
 			}
-			b64Json = b64
-		} else {
-			b64Json = data.B64Image
+			imageURL, b64JSON := aliNormalizedImageContent(c, content.Image, responseFormat)
+			if !helper.HasUsableGeneratedImage(imageURL, b64JSON) {
+				return nil, fmt.Errorf("ali choice contains an unusable image (url=%q)", content.Image)
+			}
+			imageData = append(imageData, dto.ImageData{
+				Url:     imageURL,
+				B64Json: b64JSON,
+			})
+			choiceImages++
 		}
+		// A choice without any image content is not a successful image:
+		// text / revised_prompt alone cannot constitute a delivered image.
+		if choiceImages == 0 {
+			return nil, fmt.Errorf("ali choice does not contain a usable image")
+		}
+		// Attach any trailing text (choice commentary delivered after the
+		// images) to the choice's images. For a single-image choice this
+		// preserves the historical RevisedPrompt placement.
+		if choiceText != "" {
+			for idx := len(imageData) - choiceImages; idx < len(imageData); idx++ {
+				imageData[idx].RevisedPrompt = choiceText
+			}
+		}
+	}
+	return imageData, nil
+}
 
+func (o *AliOutput) ResultToOpenAIImageDate(c *gin.Context, responseFormat string) ([]dto.ImageData, error) {
+	var imageData []dto.ImageData
+	for _, data := range o.Results {
+		imageURL, b64JSON := aliNormalizedImageContent(c, data.Url, responseFormat)
+		if b64JSON == "" && isValidRawBase64(data.B64Image) {
+			b64JSON = strings.TrimSpace(data.B64Image)
+		}
+		// P13-B R17 all-valid, fail-closed: every declared result MUST
+		// produce a usable image. Silently skipping invalid results
+		// would let a mixed valid/invalid response succeed with fewer
+		// images than the upstream declared, breaking the
+		// delivery == billing contract.
+		if !helper.HasUsableGeneratedImage(imageURL, b64JSON) {
+			return nil, fmt.Errorf("ali result does not contain a usable image (url=%q)", imageURL)
+		}
 		imageData = append(imageData, dto.ImageData{
-			Url:           data.Url,
-			B64Json:       b64Json,
+			Url:           imageURL,
+			B64Json:       b64JSON,
 			RevisedPrompt: "",
 		})
 	}
-	return imageData
+	return imageData, nil
+}
+
+func aliNormalizedImageContent(c *gin.Context, image, responseFormat string) (string, string) {
+	image = strings.TrimSpace(image)
+	if image == "" {
+		return "", ""
+	}
+	if helper.IsUsableImageHTTPURL(image) {
+		if responseFormat == "b64_json" {
+			_, b64, err := service.GetImageFromUrl(image)
+			if err != nil {
+				logger.LogError(c, "get_image_data_failed: "+err.Error())
+				return "", ""
+			}
+			return image, b64
+		}
+		return image, ""
+	}
+	if isValidRawBase64(image) {
+		return "", image
+	}
+	return "", ""
+}
+
+func isValidRawBase64(raw string) bool {
+	// Same semantics as the OpenAI-compatible path: decodable base64 that
+	// does not start with a real image signature is not a generated image.
+	return helper.IsValidGeneratedImageBase64(strings.TrimSpace(raw))
 }
 
 type AliResponse struct {
@@ -171,17 +216,23 @@ type AliImageRequest struct {
 }
 
 type AliImageParameters struct {
-	Size             string `json:"size,omitempty"`
-	N                int    `json:"n,omitempty"`
-	Steps            string `json:"steps,omitempty"`
-	Scale            string `json:"scale,omitempty"`
-	Watermark        *bool  `json:"watermark,omitempty"`
-	PromptExtend     *bool  `json:"prompt_extend,omitempty"`
-	ThinkingMode     *bool  `json:"thinking_mode,omitempty"`
-	EnableSequential *bool  `json:"enable_sequential,omitempty"`
-	BboxList         any    `json:"bbox_list,omitempty"`
-	ColorPalette     any    `json:"color_palette,omitempty"`
-	Seed             *int   `json:"seed,omitempty"`
+	Size             string  `json:"size,omitempty"`
+	N                int     `json:"n,omitempty"`
+	Steps            string  `json:"steps,omitempty"`
+	Scale            string  `json:"scale,omitempty"`
+	Watermark        *bool   `json:"watermark,omitempty"`
+	PromptExtend     *bool   `json:"prompt_extend,omitempty"`
+	PromptExtendMode *string `json:"prompt_extend_mode,omitempty"`
+	// ThinkingMode is Wan's outbound thinking flag. Qwen Image 3.0/3.0-pro
+	// must serialize enable_thinking instead; never both.
+	ThinkingMode *bool `json:"thinking_mode,omitempty"`
+	// EnableThinking is the Qwen Image 3.0/3.0-pro outbound thinking flag.
+	EnableThinking   *bool   `json:"enable_thinking,omitempty"`
+	NegativePrompt   *string `json:"negative_prompt,omitempty"`
+	EnableSequential *bool   `json:"enable_sequential,omitempty"`
+	BboxList         any     `json:"bbox_list,omitempty"`
+	ColorPalette     any     `json:"color_palette,omitempty"`
+	Seed             *int    `json:"seed,omitempty"`
 }
 
 func (p *AliImageParameters) PromptExtendValue() bool {

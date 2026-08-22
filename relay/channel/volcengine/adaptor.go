@@ -99,6 +99,9 @@ func (a *Adaptor) ConvertAudioRequest(c *gin.Context, info *relaycommon.RelayInf
 func (a *Adaptor) ConvertImageRequest(c *gin.Context, info *relaycommon.RelayInfo, request dto.ImageRequest) (any, error) {
 	switch info.RelayMode {
 	case constant.RelayModeImagesGenerations:
+		if isSeedream5(info.OriginModelName) {
+			return convertSeedream5ImageRequest(request)
+		}
 		if strings.Contains(strings.ToLower(info.OriginModelName), "seedream") && request.Watermark == nil {
 			watermark := false
 			request.Watermark = &watermark

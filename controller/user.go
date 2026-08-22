@@ -22,6 +22,7 @@ import (
 	"github.com/QuantumNous/new-api/service/authz"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
+	"github.com/QuantumNous/new-api/setting/playground"
 	"github.com/QuantumNous/new-api/setting/system_setting"
 
 	"github.com/QuantumNous/new-api/constant"
@@ -671,11 +672,43 @@ func GetUserModels(c *gin.Context) {
 			groupsToQuery = []string{group}
 		}
 	}
+	models := service.GetGroupsEnabledModels(groupsToQuery)
+	if filterByChatEligibility(c.Query("modality")) {
+		models = filterModelsForChatEligibility(models)
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
-		"data":    service.GetGroupsEnabledModels(groupsToQuery),
+		"data":    models,
 	})
+}
+
+// filterByChatEligibility reports whether the caller asked for a chat-only
+// view via the optional `modality` query parameter. Unknown or empty
+// values preserve the original interface behavior so existing callers and
+// tests stay unaffected.
+func filterByChatEligibility(modality string) bool {
+	return strings.EqualFold(strings.TrimSpace(modality), "chat")
+}
+
+// filterModelsForChatEligibility removes models that the Chat playground
+// cannot serve. Server-side source of truth: setting/playground chat
+// eligibility. Fail-compatible: unknown models stay visible.
+func filterModelsForChatEligibility(models []string) []string {
+	if len(models) == 0 {
+		return models
+	}
+	filtered := make([]string, 0, len(models))
+	for _, m := range models {
+		if m == "" {
+			continue
+		}
+		if playground.IsNonChatModel(m) {
+			continue
+		}
+		filtered = append(filtered, m)
+	}
+	return filtered
 }
 
 func UpdateUser(c *gin.Context) {

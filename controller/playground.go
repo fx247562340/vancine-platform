@@ -1,13 +1,20 @@
 package controller
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 
+	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/middleware"
 	"github.com/QuantumNous/new-api/model"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relaykit/types"
+	"github.com/QuantumNous/new-api/setting/playground"
 
 	"github.com/gin-gonic/gin"
 )
@@ -52,11 +59,67 @@ func Playground(c *gin.Context) {
 	}
 	_ = middleware.SetupContextForToken(c, tempToken)
 
+	originalModel := common.GetContextKeyString(c, constant.ContextKeyOriginalModel)
+	if playground.IsChatExcludedModel(originalModel) {
+		newAPIError = types.NewErrorWithStatusCode(errors.New("model is not supported on the chat playground"), types.ErrorCodeInvalidRequest, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
+		return
+	}
+
 	Relay(c, types.RelayFormatOpenAI)
 }
 
 // PlaygroundImage 操练场图片生成入口
 func PlaygroundImage(c *gin.Context) {
+	var newAPIError *types.NewAPIError
+	defer func() {
+		if newAPIError != nil {
+			c.JSON(newAPIError.StatusCode, gin.H{
+				"error": newAPIError.ToOpenAIError(),
+			})
+		}
+	}()
+
+	var raw json.RawMessage
+	if err := common.UnmarshalBodyReusable(c, &raw); err != nil {
+		newAPIError = types.NewErrorWithStatusCode(err, types.ErrorCodeInvalidRequest, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
+		return
+	}
+	imageRequest, err := playground.ParsePlaygroundImageRequest(raw)
+	if err != nil {
+		newAPIError = types.NewErrorWithStatusCode(err, types.ErrorCodeInvalidRequest, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
+		return
+	}
+	profile := playground.ImageProfile(imageRequest.Model)
+	if err := playground.ValidatePlaygroundImageRequest(imageRequest, profile); err != nil {
+		newAPIError = types.NewErrorWithStatusCode(err, types.ErrorCodeInvalidRequest, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
+		return
+	}
+	channelType := common.GetContextKeyInt(c, constant.ContextKeyChannelType)
+	if !playground.ChannelEligibleForRequest(c.Request.URL.Path, channelType, imageRequest.Model) {
+		newAPIError = types.NewErrorWithStatusCode(errors.New("selected channel is not eligible for this image model"), types.ErrorCodeInvalidRequest, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
+		return
+	}
+
+	stripped, err := common.Marshal(imageRequest)
+	if err != nil {
+		newAPIError = types.NewErrorWithStatusCode(err, types.ErrorCodeInvalidRequest, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
+		return
+	}
+	previous, _ := c.Get(common.KeyBodyStorage)
+	storage, err := common.CreateBodyStorage(stripped)
+	if err != nil {
+		newAPIError = types.NewErrorWithStatusCode(err, types.ErrorCodeInvalidRequest, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
+		return
+	}
+	c.Set(common.KeyBodyStorage, storage)
+	c.Request.Body = io.NopCloser(bytes.NewReader(stripped))
+	c.Request.ContentLength = int64(len(stripped))
+	if previous != nil && previous != storage {
+		if old, ok := previous.(common.BodyStorage); ok && old != nil {
+			_ = old.Close()
+		}
+	}
+
 	playgroundRelay(c, types.RelayFormatOpenAIImage)
 }
 

@@ -9,6 +9,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/relaykit/dto"
+	"github.com/QuantumNous/new-api/setting/playground"
 
 	"github.com/samber/lo"
 	"gorm.io/gorm"
@@ -60,29 +61,47 @@ func GetAllEnableAbilities() []Ability {
 	return abilities
 }
 
-func getPriority(group string, model string, retry int) (int, error) {
+func abilityColumnNames() (groupCol, modelCol, enabledCol, priorityCol, weightCol string) {
+	return "abilities." + commonGroupCol, "abilities.model", "abilities.enabled", "abilities.priority", "abilities.weight"
+}
 
+// abilityCandidateQuery is the shared DB candidate scope. Image provider
+// eligibility is only a JOIN/predicate on this scope; max-priority, retry,
+// and weight stay in one query construction.
+func abilityCandidateQuery(requestPath, model string) *gorm.DB {
+	return restrictAbilitiesByImageEligibility(DB.Model(&Ability{}), requestPath, model)
+}
+
+func restrictAbilitiesByImageEligibility(query *gorm.DB, requestPath, model string) *gorm.DB {
+	if !playground.ApplyImageWorkspaceEligibility(requestPath, model) {
+		return query
+	}
+	required, ok := playground.RequiredChannelType(model)
+	if !ok {
+		return query
+	}
+	return query.Joins("JOIN channels ON channels.id = abilities.channel_id").Where("channels.type = ?", required)
+}
+
+func getPriority(group string, model string, retry int, requestPath string) (int, error) {
 	var priorities []int
-	err := DB.Model(&Ability{}).
-		Select("DISTINCT(priority)").
-		Where(commonGroupCol+" = ? and model = ? and enabled = ?", group, model, true).
-		Order("priority DESC").              // 按优先级降序排序
-		Pluck("priority", &priorities).Error // Pluck用于将查询的结果直接扫描到一个切片中
+	groupCol, modelCol, enabledCol, priorityCol, _ := abilityColumnNames()
+	err := abilityCandidateQuery(requestPath, model).
+		Select("DISTINCT("+priorityCol+")").
+		Where(groupCol+" = ? and "+modelCol+" = ? and "+enabledCol+" = ?", group, model, true).
+		Order(priorityCol+" DESC").
+		Pluck(priorityCol, &priorities).Error
 
 	if err != nil {
-		// 处理错误
 		return 0, err
 	}
 
 	if len(priorities) == 0 {
-		// 如果没有查询到优先级，则返回错误
 		return 0, errors.New("数据库一致性被破坏")
 	}
 
-	// 确定要使用的优先级
 	var priorityToUse int
 	if retry >= len(priorities) {
-		// 如果重试次数大于优先级数，则使用最小的优先级
 		priorityToUse = priorities[len(priorities)-1]
 	} else {
 		priorityToUse = priorities[retry]
@@ -90,60 +109,84 @@ func getPriority(group string, model string, retry int) (int, error) {
 	return priorityToUse, nil
 }
 
-func getChannelQuery(group string, model string, retry int) (*gorm.DB, error) {
-	maxPrioritySubQuery := DB.Model(&Ability{}).Select("MAX(priority)").Where(commonGroupCol+" = ? and model = ? and enabled = ?", group, model, true)
-	channelQuery := DB.Where(commonGroupCol+" = ? and model = ? and enabled = ? and priority = (?)", group, model, true, maxPrioritySubQuery)
+func getChannelQuery(group string, model string, retry int, requestPath string) (*gorm.DB, error) {
+	groupCol, modelCol, enabledCol, priorityCol, _ := abilityColumnNames()
+	maxPrioritySubQuery := abilityCandidateQuery(requestPath, model).
+		Select("MAX("+priorityCol+")").
+		Where(groupCol+" = ? and "+modelCol+" = ? and "+enabledCol+" = ?", group, model, true)
+	channelQuery := abilityCandidateQuery(requestPath, model).
+		Select("abilities.*").
+		Where(groupCol+" = ? and "+modelCol+" = ? and "+enabledCol+" = ? and "+priorityCol+" = (?)", group, model, true, maxPrioritySubQuery)
 	if retry != 0 {
-		priority, err := getPriority(group, model, retry)
+		priority, err := getPriority(group, model, retry, requestPath)
 		if err != nil {
 			return nil, err
-		} else {
-			channelQuery = DB.Where(commonGroupCol+" = ? and model = ? and enabled = ? and priority = ?", group, model, true, priority)
 		}
+		channelQuery = abilityCandidateQuery(requestPath, model).
+			Select("abilities.*").
+			Where(groupCol+" = ? and "+modelCol+" = ? and "+enabledCol+" = ? and "+priorityCol+" = ?", group, model, true, priority)
 	}
-
 	return channelQuery, nil
 }
 
 func GetChannel(group string, model string, retry int, requestPath string) (*Channel, error) {
 	var abilities []Ability
 
-	var err error = nil
-	channelQuery, err := getChannelQuery(group, model, retry)
+	channelQuery, err := getChannelQuery(group, model, retry, requestPath)
 	if err != nil {
 		return nil, err
 	}
-	if common.UsingMainDatabase(common.DatabaseTypeSQLite) || common.UsingMainDatabase(common.DatabaseTypePostgreSQL) {
-		err = channelQuery.Order("weight DESC").Find(&abilities).Error
-	} else {
-		err = channelQuery.Order("weight DESC").Find(&abilities).Error
-	}
+	_, _, _, _, weightCol := abilityColumnNames()
+	err = channelQuery.Order(weightCol + " DESC").Find(&abilities).Error
 	if err != nil {
 		return nil, err
 	}
 	abilities = filterAbilitiesByRequestPathAndModel(abilities, requestPath, model)
-	channel := Channel{}
-	if len(abilities) > 0 {
-		// Randomly choose one
-		weightSum := uint(0)
-		for _, ability_ := range abilities {
-			weightSum += ability_.Weight + 10
+	return channelFromAbilities(abilities)
+}
+
+func pickWeightedAbilityChannelID(abilities []Ability) (int, bool) {
+	if len(abilities) == 0 {
+		return 0, false
+	}
+	weightSum := uint(0)
+	for _, ability := range abilities {
+		weightSum += ability.Weight + 10
+	}
+	weight := common.GetRandomInt(int(weightSum))
+	selected := abilities[0].ChannelId
+	for _, ability := range abilities {
+		weight -= int(ability.Weight) + 10
+		if weight <= 0 {
+			return ability.ChannelId, true
 		}
-		// Randomly choose one
-		weight := common.GetRandomInt(int(weightSum))
-		for _, ability_ := range abilities {
-			weight -= int(ability_.Weight) + 10
-			//log.Printf("weight: %d, ability weight: %d", weight, *ability_.Weight)
-			if weight <= 0 {
-				channel.Id = ability_.ChannelId
-				break
-			}
-		}
-	} else {
+	}
+	return selected, true
+}
+
+func channelFromAbilities(abilities []Ability) (*Channel, error) {
+	id, ok := pickWeightedAbilityChannelID(abilities)
+	if !ok {
 		return nil, nil
 	}
-	err = DB.First(&channel, "id = ?", channel.Id).Error
+	var channel Channel
+	err := DB.First(&channel, "id = ?", id).Error
 	return &channel, err
+}
+
+// GetEnabledAbilitiesWithChannelType returns enabled abilities for the given
+// groups joined with channel type. Query errors are returned so callers can fail closed.
+func GetEnabledAbilitiesWithChannelType(groups []string) ([]AbilityWithChannel, error) {
+	if len(groups) == 0 {
+		return []AbilityWithChannel{}, nil
+	}
+	var abilities []AbilityWithChannel
+	err := DB.Table("abilities").
+		Select("abilities.*, channels.type as channel_type").
+		Joins("JOIN channels ON abilities.channel_id = channels.id").
+		Where("abilities.enabled = ? AND abilities."+commonGroupCol+" IN ? AND channels.status = ?", true, groups, common.ChannelStatusEnabled).
+		Scan(&abilities).Error
+	return abilities, err
 }
 
 // filterAbilitiesByRequestPathAndModel restricts candidates by request path and

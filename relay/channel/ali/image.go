@@ -21,30 +21,121 @@ import (
 	"github.com/samber/lo"
 )
 
+func aliImageSize(size string) string {
+	if strings.Contains(size, "x") {
+		return strings.ReplaceAll(size, "x", "*")
+	}
+	return size
+}
+
+// isAliAutoSize reports whether the playground sent the literal "Auto"
+// size. Ali Qwen Image 3.0+ accepts Auto by omitting the size field
+// entirely; the upstream returns its chosen dimensions.
+func isAliAutoSize(size string) bool {
+	return strings.EqualFold(strings.TrimSpace(size), "Auto")
+}
+
+// aliImageOriginModel is the product-contract name. OriginModelName is the
+// verified playground/channel identity; request.Model is only a fallback for
+// tests or callers that have not populated RelayInfo.
+func aliImageOriginModel(info *relaycommon.RelayInfo, request dto.ImageRequest) string {
+	if info != nil {
+		origin := strings.ToLower(strings.TrimSpace(info.OriginModelName))
+		if origin != "" {
+			return origin
+		}
+	}
+	return strings.ToLower(strings.TrimSpace(request.Model))
+}
+
+// isQwenImage30Product is the exact Qwen Image 3.0 / 3.0-pro contract.
+// Do not guess qwen-image-3.1 / 3.2 / 3.3 prefixes — those products are not
+// in the playground registry and must not inherit 3.0 outbound fields.
+func isQwenImage30Product(model string) bool {
+	switch strings.ToLower(strings.TrimSpace(model)) {
+	case "qwen-image-3.0", "qwen-image-3.0-pro":
+		return true
+	default:
+		return false
+	}
+}
+
+func extractAliReferenceImageURLs(request dto.ImageRequest) []string {
+	appendRaw := func(raw []byte, urls []string) []string {
+		if len(raw) == 0 {
+			return urls
+		}
+		var single string
+		if err := common.Unmarshal(raw, &single); err == nil {
+			single = strings.TrimSpace(single)
+			if single != "" {
+				return append(urls, single)
+			}
+			return urls
+		}
+		var many []string
+		if err := common.Unmarshal(raw, &many); err != nil {
+			return urls
+		}
+		for _, item := range many {
+			item = strings.TrimSpace(item)
+			if item != "" {
+				urls = append(urls, item)
+			}
+		}
+		return urls
+	}
+	urls := appendRaw(request.Image, nil)
+	return appendRaw(request.Images, urls)
+}
+
 func oaiImage2AliImageRequest(info *relaycommon.RelayInfo, request dto.ImageRequest, isSync bool) (*AliImageRequest, error) {
 	var imageRequest AliImageRequest
 	imageRequest.Model = request.Model
 	imageRequest.ResponseFormat = request.ResponseFormat
+	origin := aliImageOriginModel(info, request)
+	paramsFromExtra := false
+	inputFromExtra := false
 	if request.Extra != nil {
 		if val, ok := request.Extra["parameters"]; ok {
 			err := common.Unmarshal(val, &imageRequest.Parameters)
 			if err != nil {
 				return nil, fmt.Errorf("invalid parameters field: %w", err)
 			}
-		} else {
-			// 兼容没有parameters字段的情况，从openai标准字段中提取参数
-			imageRequest.Parameters = AliImageParameters{
-				Size:      strings.Replace(request.Size, "x", "*", -1),
-				N:         int(lo.FromPtrOr(request.N, uint(1))),
-				Watermark: request.Watermark,
-			}
+			paramsFromExtra = true
 		}
 		if val, ok := request.Extra["input"]; ok {
 			err := common.Unmarshal(val, &imageRequest.Input)
 			if err != nil {
 				return nil, fmt.Errorf("invalid input field: %w", err)
 			}
+			inputFromExtra = true
 		}
+	}
+	if !paramsFromExtra {
+		imageRequest.Parameters = AliImageParameters{
+			Size:         aliImageSize(request.Size),
+			N:            int(lo.FromPtrOr(request.N, uint(1))),
+			Watermark:    request.Watermark,
+			Seed:         request.Seed,
+			PromptExtend: request.PromptExtend,
+			ThinkingMode: request.ThinkingMode,
+		}
+		// Ali Qwen Image 3.0 / 3.0-pro accept prompt_extend_mode (direct | agent).
+		// Only forward it for those exact products; never invent a value for
+		// Qwen 2 / Wan / Seedream, and never guess qwen-image-3.x prefixes.
+		if request.PromptExtendMode != nil && isQwenImage30Product(origin) {
+			mode := strings.ToLower(strings.TrimSpace(*request.PromptExtendMode))
+			if mode == "direct" || mode == "agent" {
+				imageRequest.Parameters.PromptExtendMode = &mode
+			}
+		}
+	}
+	// "Auto" means the client wants the upstream to pick the size; Ali
+	// Qwen Image 3.0 / 3.0-pro drop the size field entirely in that case.
+	// Apply after Extra unmarshal too so a passthrough cannot leak "Auto".
+	if isAliAutoSize(imageRequest.Parameters.Size) || isAliAutoSize(request.Size) {
+		imageRequest.Parameters.Size = ""
 	}
 
 	if strings.Contains(request.Model, "z-image") {
@@ -65,30 +156,70 @@ func oaiImage2AliImageRequest(info *relaycommon.RelayInfo, request dto.ImageRequ
 	}
 
 	// 同步图片模型和异步图片模型请求格式不一样
-	if isSync {
-		if imageRequest.Input == nil {
+	if !inputFromExtra && imageRequest.Input == nil {
+		negativePrompt := ""
+		if request.NegativePrompt != nil {
+			negativePrompt = *request.NegativePrompt
+		}
+		refImages := extractAliReferenceImageURLs(request)
+		if isSync {
+			content := make([]AliMediaContent, 0, len(refImages)+1)
+			for _, url := range refImages {
+				content = append(content, AliMediaContent{Image: url})
+			}
+			content = append(content, AliMediaContent{Text: request.Prompt})
 			imageRequest.Input = AliImageInput{
+				NegativePrompt: negativePrompt,
 				Messages: []AliMessage{
 					{
-						Role: "user",
-						Content: []AliMediaContent{
-							{
-								Text: request.Prompt,
-							},
-						},
+						Role:    "user",
+						Content: content,
 					},
 				},
 			}
-		}
-	} else {
-		if imageRequest.Input == nil {
+		} else {
 			imageRequest.Input = AliImageInput{
-				Prompt: request.Prompt,
+				Prompt:         request.Prompt,
+				NegativePrompt: negativePrompt,
 			}
 		}
 	}
 
+	applyAliImageProductContract(origin, request, &imageRequest)
 	return &imageRequest, nil
+}
+
+// applyAliImageProductContract is the last outbound gate: Qwen Image 3.0 /
+// 3.0-pro serialize enable_thinking + parameters.negative_prompt, never emit
+// thinking_mode, and never emit response_format (the verified upstream
+// contract has no such field; the gateway's internal response_format:"url"
+// must not leak). Wan keeps thinking_mode. Qwen 2 / Wan / Seedream
+// must not receive Qwen 3-only fields.
+func applyAliImageProductContract(origin string, request dto.ImageRequest, imageRequest *AliImageRequest) {
+	if imageRequest == nil {
+		return
+	}
+	if isQwenImage30Product(origin) {
+		imageRequest.ResponseFormat = ""
+		if imageRequest.Parameters.EnableThinking == nil {
+			imageRequest.Parameters.EnableThinking = imageRequest.Parameters.ThinkingMode
+		}
+		imageRequest.Parameters.ThinkingMode = nil
+		if request.NegativePrompt != nil {
+			imageRequest.Parameters.NegativePrompt = request.NegativePrompt
+		}
+		if input, ok := imageRequest.Input.(AliImageInput); ok {
+			if input.NegativePrompt != "" && imageRequest.Parameters.NegativePrompt == nil {
+				negative := input.NegativePrompt
+				imageRequest.Parameters.NegativePrompt = &negative
+			}
+			input.NegativePrompt = ""
+			imageRequest.Input = input
+		}
+		return
+	}
+	imageRequest.Parameters.EnableThinking = nil
+	imageRequest.Parameters.PromptExtendMode = nil
 }
 func getImageBase64sFromForm(c *gin.Context, fieldName string) ([]string, error) {
 	mf := c.Request.MultipartForm
@@ -268,19 +399,27 @@ func asyncTaskWait(c *gin.Context, info *relaycommon.RelayInfo, taskID string) (
 	return nil, nil, fmt.Errorf("aliAsyncTaskWait timeout")
 }
 
-func responseAli2OpenAIImage(c *gin.Context, response *AliResponse, originBody []byte, info *relaycommon.RelayInfo, responseFormat string) *dto.ImageResponse {
+func responseAli2OpenAIImage(c *gin.Context, response *AliResponse, originBody []byte, info *relaycommon.RelayInfo, responseFormat string) (*dto.ImageResponse, error) {
 	imageResponse := dto.ImageResponse{
 		Created: info.StartTime.Unix(),
 	}
 
 	if len(response.Output.Results) > 0 {
-		imageResponse.Data = response.Output.ResultToOpenAIImageDate(c, responseFormat)
+		data, err := response.Output.ResultToOpenAIImageDate(c, responseFormat)
+		if err != nil {
+			return nil, err
+		}
+		imageResponse.Data = data
 	} else if len(response.Output.Choices) > 0 {
-		imageResponse.Data = response.Output.ChoicesToOpenAIImageDate(c, responseFormat)
+		data, err := response.Output.ChoicesToOpenAIImageDate(c, responseFormat)
+		if err != nil {
+			return nil, err
+		}
+		imageResponse.Data = data
 	}
 
 	imageResponse.Metadata = originBody
-	return &imageResponse
+	return &imageResponse, nil
 }
 
 func aliImageHandler(a *Adaptor, c *gin.Context, resp *http.Response, info *relaycommon.RelayInfo) (*types.NewAPIError, *dto.Usage) {
@@ -332,12 +471,34 @@ func aliImageHandler(a *Adaptor, c *gin.Context, resp *http.Response, info *rela
 		logger.LogDebug(c, "ali_async_image_result: %s", originRespBody)
 	}
 
-	imageResponses := responseAli2OpenAIImage(c, aliResponse, originRespBody, info, responseFormat)
-	if aliResponse.Usage.ImageCount != 0 {
-		info.PriceData.AddOtherRatio("n", float64(aliResponse.Usage.ImageCount))
-	} else if len(imageResponses.Data) != 0 {
-		info.PriceData.AddOtherRatio("n", float64(len(imageResponses.Data)))
+	imageResponses, err := responseAli2OpenAIImage(c, aliResponse, originRespBody, info, responseFormat)
+	if err != nil {
+		// P13-B R17 all-valid, fail-closed: the Ali converter returns an
+		// error when any declared result/choice lacks a usable image. The
+		// whole response must be rejected BEFORE writing the body, BEFORE
+		// modifying the n ratio, and BEFORE settling as success. The
+		// pre-set n ratio stays untouched so the relay's error path
+		// refunds the pre-consumed quota.
+		return types.NewError(err, types.ErrorCodeBadResponse), nil
 	}
+	// P13-B R17 count contract: the converter now guarantees every item
+	// is usable, but we still enforce the 1..dto.MaxImageN bound the
+	// same way the OpenAI image handler does. Zero items means the
+	// upstream declared no images at all (empty results/choices);
+	// over MaxImageN means a buggy upstream that loops the array.
+	usableCount := len(imageResponses.Data)
+	if usableCount == 0 {
+		return types.NewError(fmt.Errorf("upstream returned no images"), types.ErrorCodeBadResponse), nil
+	}
+	if usableCount > dto.MaxImageN {
+		return types.NewError(fmt.Errorf("upstream returned more than %d images", dto.MaxImageN), types.ErrorCodeBadResponse), nil
+	}
+	// Bill exactly the number of items the client will receive. The Ali
+	// upstream may report an image_count that exceeds the items we
+	// actually surfaced, or it may omit the count entirely. Trust the
+	// rendered body, not the upstream usage, so the client-received
+	// count, the PriceData ratio, and the final settlement count agree.
+	info.PriceData.AddOtherRatio("n", float64(usableCount))
 	jsonResponse, err := common.Marshal(imageResponses)
 	if err != nil {
 		return types.NewError(err, types.ErrorCodeBadResponseBody), nil

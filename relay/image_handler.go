@@ -16,9 +16,17 @@ import (
 	"github.com/QuantumNous/new-api/relaykit/types"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/model_setting"
+	"github.com/QuantumNous/new-api/setting/playground"
 
 	"github.com/gin-gonic/gin"
 )
+
+func useImagePassThrough(c *gin.Context, info *relaycommon.RelayInfo) bool {
+	if c != nil && c.Request != nil && playground.IsImageWorkspacePath(c.Request.URL.Path) {
+		return false
+	}
+	return model_setting.GetGlobalSettings().PassThroughRequestEnabled || info.ChannelSetting.PassThroughBodyEnabled
+}
 
 func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *types.NewAPIError) {
 	info.InitChannelMeta(c)
@@ -46,7 +54,7 @@ func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *type
 
 	var requestBody io.Reader
 
-	if model_setting.GetGlobalSettings().PassThroughRequestEnabled || info.ChannelSetting.PassThroughBodyEnabled {
+	if useImagePassThrough(c, info) {
 		storage, err := common.GetBodyStorage(c)
 		if err != nil {
 			return types.NewErrorWithStatusCode(err, types.ErrorCodeReadRequestBodyFailed, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
@@ -109,6 +117,27 @@ func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *type
 				return newAPIError
 			}
 		}
+	}
+
+	// P13-B R18: the Image Workspace (/pg/images/generations) is a
+	// synchronous JSON interface - the playground client never requests
+	// SSE and the request contract rejects stream=true before billing.
+	// If the upstream nevertheless answers with text/event-stream, the
+	// response is a protocol violation: reject it BEFORE adaptor.DoResponse
+	// runs, so no SSE byte, image, partial event or [DONE] ever reaches the
+	// client and the shared image stream handler is never invoked. The
+	// returned error takes the normal BillingSession error path, which
+	// refunds the whole pre-consumed quota; SkipRetry keeps the gateway
+	// from re-issuing the call.
+	if httpResp != nil && c != nil && c.Request != nil &&
+		playground.IsImageWorkspacePath(c.Request.URL.Path) &&
+		strings.Contains(strings.ToLower(httpResp.Header.Get("Content-Type")), "text/event-stream") {
+		service.CloseResponseBodyGracefully(httpResp)
+		return types.NewError(
+			fmt.Errorf("image workspace upstream returned an unsupported event-stream response"),
+			types.ErrorCodeBadResponse,
+			types.ErrOptionWithSkipRetry(),
+		)
 	}
 
 	usage, newAPIError := adaptor.DoResponse(c, httpResp, info)

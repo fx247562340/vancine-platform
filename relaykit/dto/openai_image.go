@@ -34,6 +34,11 @@ type ImageRequest struct {
 	Mask              json.RawMessage `json:"mask,omitempty"`
 	InputFidelity     json.RawMessage `json:"input_fidelity,omitempty"`
 	Watermark         *bool           `json:"watermark,omitempty"`
+	NegativePrompt    *string         `json:"negative_prompt,omitempty"`
+	Seed              *int            `json:"seed,omitempty"`
+	PromptExtend      *bool           `json:"prompt_extend,omitempty"`
+	PromptExtendMode  *string         `json:"prompt_extend_mode,omitempty"`
+	ThinkingMode      *bool           `json:"thinking_mode,omitempty"`
 	// zhipu 4v
 	WatermarkEnabled json.RawMessage `json:"watermark_enabled,omitempty"`
 	UserId           json.RawMessage `json:"user_id,omitempty"`

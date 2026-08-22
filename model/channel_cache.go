@@ -13,6 +13,7 @@ import (
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/relaykit/dto"
+	"github.com/QuantumNous/new-api/setting/playground"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 )
 
@@ -121,12 +122,15 @@ func GetRandomSatisfiedChannel(group string, model string, retry int, requestPat
 	defer channelSyncLock.RUnlock()
 
 	// First, try to find channels with the exact model name.
+	// Image eligibility is a candidate filter applied before priority/weight.
 	channels := filterChannelsByRequestPathAndModel(group2model2channels[group][model], requestPath, model)
+	channels = filterChannelsByImageEligibility(channels, requestPath, model)
 
 	// If no channels found, try to find channels with the normalized model name.
 	if len(channels) == 0 {
 		normalizedModel := ratio_setting.FormatMatchingModelName(model)
 		channels = filterChannelsByRequestPathAndModel(group2model2channels[group][normalizedModel], requestPath, model)
+		channels = filterChannelsByImageEligibility(channels, requestPath, model)
 	}
 
 	if len(channels) == 0 {
@@ -213,6 +217,31 @@ func GetRandomSatisfiedChannel(group string, model string, retry int, requestPat
 // only when one of their configured routes matches requestPath and model. All
 // other channel types always pass. When requestPath is empty, filtering is skipped.
 // Caller must hold channelSyncLock (read lock). The cached slice is never mutated.
+func filterChannelsByImageEligibility(channels []int, requestPath, modelName string) []int {
+	if !playground.ApplyImageWorkspaceEligibility(requestPath, modelName) {
+		return channels
+	}
+	return filterChannelsByImageProvider(channels, modelName)
+}
+
+func filterChannelsByImageProvider(channels []int, modelName string) []int {
+	_, requireProvider := playground.RequiredChannelType(modelName)
+	if !requireProvider || len(channels) == 0 {
+		return channels
+	}
+	filtered := make([]int, 0, len(channels))
+	for _, channelId := range channels {
+		channel, ok := channelsIDM[channelId]
+		if !ok {
+			continue
+		}
+		if playground.ChannelTypeEligibleForModel(channel.Type, modelName) {
+			filtered = append(filtered, channelId)
+		}
+	}
+	return filtered
+}
+
 func filterChannelsByRequestPathAndModel(channels []int, requestPath string, model string) []int {
 	if requestPath == "" || len(channels) == 0 {
 		return channels

@@ -20,6 +20,7 @@ var (
 		"wan2.7",
 		"qwen-image",
 		"z-image",
+		"seedream",
 		"cogview-3",
 		"cogview-3-plus",
 		"cogview-4",

@@ -19,6 +19,7 @@ import (
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/relaykit/types"
 	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/setting/playground"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 
 	"github.com/gin-gonic/gin"
@@ -52,6 +53,10 @@ func Distribute() func(c *gin.Context) {
 			}
 			if channel.Status != common.ChannelStatusEnabled {
 				abortWithOpenAiMessage(c, http.StatusForbidden, i18n.T(c, i18n.MsgDistributorChannelDisabled))
+				return
+			}
+			if !playground.ChannelEligibleForRequest(c.Request.URL.Path, channel.Type, modelRequest.Model) {
+				abortWithOpenAiMessage(c, http.StatusBadRequest, i18n.T(c, i18n.MsgDistributorNoAvailableChannel, map[string]any{"Group": common.GetContextKeyString(c, constant.ContextKeyUsingGroup), "Model": modelRequest.Model}), types.ErrorCodeModelNotFound)
 				return
 			}
 		} else {
@@ -109,7 +114,8 @@ func Distribute() func(c *gin.Context) {
 					affinityUsable := false
 					preferred, err := model.CacheGetChannel(preferredChannelID)
 					if err == nil && preferred != nil && preferred.Status == common.ChannelStatusEnabled &&
-						channelSupportsRequestPath(preferred, c.Request.URL.Path, modelRequest.Model) {
+						channelSupportsRequestPath(preferred, c.Request.URL.Path, modelRequest.Model) &&
+						playground.ChannelEligibleForRequest(c.Request.URL.Path, preferred.Type, modelRequest.Model) {
 						if usingGroup == "auto" {
 							userGroup := common.GetContextKeyString(c, constant.ContextKeyUserGroup)
 							autoGroups := service.GetRequestAutoGroups(c, userGroup)
@@ -163,6 +169,10 @@ func Distribute() func(c *gin.Context) {
 					}
 				}
 			}
+		}
+		if channel != nil && !playground.ChannelEligibleForRequest(c.Request.URL.Path, channel.Type, modelRequest.Model) {
+			abortWithOpenAiMessage(c, http.StatusBadRequest, i18n.T(c, i18n.MsgDistributorNoAvailableChannel, map[string]any{"Group": common.GetContextKeyString(c, constant.ContextKeyUsingGroup), "Model": modelRequest.Model}), types.ErrorCodeModelNotFound)
+			return
 		}
 		common.SetContextKey(c, constant.ContextKeyRequestStartTime, time.Now())
 		SetupContextForSelectedChannel(c, channel, modelRequest.Model)

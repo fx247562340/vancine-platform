@@ -12,9 +12,18 @@ import (
 	"github.com/QuantumNous/new-api/constant"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	relayconstant "github.com/QuantumNous/new-api/relay/constant"
+	"github.com/QuantumNous/new-api/relaykit/types"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
+
+// P13-B R18 note on this file: the SSE tests below pin the PUBLIC /v1/images
+// streaming surface to its upstream (main) behavior, now that the Image
+// Workspace (/pg/images/generations) rejects an event-stream upstream
+// response in relay.ImageHelper BEFORE any handler runs. The R16/R17
+// partial-delivery settlement tests were removed together with the
+// settlement code; the non-streaming R16 fail-closed contract (kept for the
+// synchronous JSON handler) is covered by the OpenaiImageHandler* tests.
 
 func newImageTestContext(t *testing.T, body, contentType string, isStream bool) (*gin.Context, *httptest.ResponseRecorder, *http.Response, *relaycommon.RelayInfo) {
 	t.Helper()
@@ -40,7 +49,9 @@ func TestOpenaiImageDoResponseUsesInfoIsStream(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	t.Cleanup(func() { gin.SetMode(oldMode) })
 
-	body := `{"created":1710000000,"data":[{"b64_json":"image"}]}`
+	// A valid usable image item: the synchronous JSON handler keeps the
+	// R16 fail-closed contract, so the body must carry a real image.
+	body := `{"created":1710000000,"data":[{"url":"https://example.invalid/a.png"}]}`
 
 	t.Run("non-stream response stays JSON", func(t *testing.T) {
 		c, recorder, resp, info := newImageTestContext(t, body, "application/json", false)
@@ -69,7 +80,8 @@ func TestOpenaiImageDoResponseUsesInfoIsStream(t *testing.T) {
 // TestOpenaiImageStreamHandlerForwardsSSEAndUsage covers the core SSE path:
 // chunks are forwarded with rebuilt event lines, usage is extracted and
 // normalized (input_tokens -> prompt_tokens with details), and [DONE] is
-// re-emitted to the client.
+// re-emitted to the client. Main behavior: a stream without completed events
+// keeps the requested n.
 func TestOpenaiImageStreamHandlerForwardsSSEAndUsage(t *testing.T) {
 	oldMode := gin.Mode()
 	gin.SetMode(gin.TestMode)
@@ -283,7 +295,9 @@ func TestOpenaiImageStreamHandlerClientDisconnectRaisesCount(t *testing.T) {
 }
 
 // TestOpenaiImageStreamHandlerWrapsJSONResponse covers the non-SSE fallback:
-// a JSON upstream response is wrapped into pseudo-SSE completed events.
+// a JSON upstream response is wrapped into pseudo-SSE completed events with
+// the same forwarding semantics as main (every data[] item forwarded, billed
+// by the data array length).
 func TestOpenaiImageStreamHandlerWrapsJSONResponse(t *testing.T) {
 	oldMode := gin.Mode()
 	gin.SetMode(gin.TestMode)
@@ -318,8 +332,10 @@ func TestOpenaiImageHandlerUsesPositiveActualCountForFixedPrice(t *testing.T) {
 	oldMode := gin.Mode()
 	gin.SetMode(gin.TestMode)
 	t.Cleanup(func() { gin.SetMode(oldMode) })
-	longImage := strings.Repeat("a", 4096)
+	// Long but still structurally valid base64 with a PNG header.
+	longImage := strings.Repeat("iVBORw0KGgoAAAANSUhEUg", 200)
 
+	pngB64 := "iVBORw0KGgoAAAANSUhEUg"
 	tests := []struct {
 		name      string
 		body      string
@@ -328,19 +344,19 @@ func TestOpenaiImageHandlerUsesPositiveActualCountForFixedPrice(t *testing.T) {
 	}{
 		{
 			name:      "fixed price uses data length",
-			body:      `{"data":[{"b64_json":"` + longImage + `"},{"b64_json":"second"}]}`,
+			body:      `{"data":[{"b64_json":"` + longImage + `"},{"b64_json":"` + pngB64 + `"}]}`,
 			usePrice:  true,
 			wantCount: 2,
 		},
 		{
-			name:      "empty data keeps requested count",
-			body:      `{"data":[]}`,
+			name:      "two usable images",
+			body:      `{"data":[{"url":"https://example.invalid/a.png"},{"b64_json":"` + pngB64 + `"}]}`,
 			usePrice:  true,
-			wantCount: 3,
+			wantCount: 2,
 		},
 		{
 			name:      "ratio billing ignores data length",
-			body:      `{"data":[{"b64_json":"first"},{"b64_json":"second"}]}`,
+			body:      `{"data":[{"b64_json":"` + pngB64 + `"},{"b64_json":"` + pngB64 + `"}]}`,
 			usePrice:  false,
 			wantCount: 3,
 		},
@@ -359,6 +375,110 @@ func TestOpenaiImageHandlerUsesPositiveActualCountForFixedPrice(t *testing.T) {
 			require.Equal(t, tt.body, recorder.Body.String())
 		})
 	}
+}
+
+func TestOpenaiImageHandlerRejectsEmptyOrUnusableResults(t *testing.T) {
+	oldMode := gin.Mode()
+	gin.SetMode(gin.TestMode)
+	t.Cleanup(func() { gin.SetMode(oldMode) })
+
+	for _, body := range []string{
+		`{"data":[]}`,
+		`{"data":[{}]}`,
+		`{"data":[{"revised_prompt":"only text"}]}`,
+		`{"data":[{"url":123}]}`,
+		`{"data":[{"url":true}]}`,
+		`{"data":[{"url":{}}]}`,
+		`{"data":[{"url":"javascript:alert(1)"}]}`,
+		`{"data":[{"url":"file:///tmp/a.png"}]}`,
+		`{"data":[{"b64_json":123}]}`,
+	} {
+		c, recorder, resp, info := newImageTestContext(t, body, "application/json", false)
+		info.PriceData.UsePrice = true
+		info.PriceData.AddOtherRatio("n", 3)
+
+		usage, err := OpenaiImageHandler(c, info, resp)
+		require.Nil(t, usage, body)
+		require.NotNil(t, err, body)
+		require.Equal(t, types.ErrorCodeBadResponse, err.GetErrorCode(), body)
+		require.Empty(t, recorder.Body.String(), body)
+		require.Equal(t, 3.0, info.PriceData.OtherRatios()["n"], body)
+	}
+}
+
+func TestOpenaiImageHandlerAcceptsHTTPURLAndB64String(t *testing.T) {
+	oldMode := gin.Mode()
+	gin.SetMode(gin.TestMode)
+	t.Cleanup(func() { gin.SetMode(oldMode) })
+
+	for _, body := range []string{
+		`{"created":1,"data":[{"url":"https://example.invalid/a.png"}]}`,
+		`{"created":1,"data":[{"b64_json":"iVBORw0KGgoAAAANSUhEUg"}]}`,
+	} {
+		c, recorder, resp, info := newImageTestContext(t, body, "application/json", false)
+		info.PriceData.UsePrice = true
+		info.PriceData.AddOtherRatio("n", 3)
+
+		usage, err := OpenaiImageHandler(c, info, resp)
+		require.Nil(t, err, body)
+		require.NotNil(t, usage, body)
+		require.Equal(t, body, recorder.Body.String(), body)
+		require.Equal(t, 1.0, info.PriceData.OtherRatios()["n"], body)
+	}
+}
+
+// TestOpenaiImageHandlerBillsByUsableCount covers the production regression:
+// when every data[] item is valid the relay must bill exactly the data array
+// length and write the original body verbatim.
+func TestOpenaiImageHandlerBillsByUsableCount(t *testing.T) {
+	oldMode := gin.Mode()
+	gin.SetMode(gin.TestMode)
+	t.Cleanup(func() { gin.SetMode(oldMode) })
+
+	pngB64 := "iVBORw0KGgoAAAANSUhEUg"
+	allValid := `{"created":1,"data":[
+		{"url":"https://example.invalid/a.png"},
+		{"b64_json":"` + pngB64 + `"}
+	]}`
+	c, recorder, resp, info := newImageTestContext(t, allValid, "application/json", false)
+	info.PriceData.UsePrice = true
+	info.PriceData.AddOtherRatio("n", 5)
+
+	usage, err := OpenaiImageHandler(c, info, resp)
+	require.Nil(t, err)
+	require.NotNil(t, usage)
+	// 1 valid URL + 1 valid PNG = 2 billable items, equal to the data
+	// array length.
+	require.Equal(t, 2.0, info.PriceData.OtherRatios()["n"])
+	// The original body is written verbatim.
+	require.Equal(t, allValid, recorder.Body.String())
+}
+
+// TestOpenaiImageHandlerRejectsAnyInvalidItemAsBadResponse covers the R16
+// fail-closed contract kept on the synchronous JSON handler: even a single
+// invalid item in data[] must reject the whole response as bad_response,
+// leave the pre-set n ratio untouched, and write nothing to the client.
+func TestOpenaiImageHandlerRejectsAnyInvalidItemAsBadResponse(t *testing.T) {
+	oldMode := gin.Mode()
+	gin.SetMode(gin.TestMode)
+	t.Cleanup(func() { gin.SetMode(oldMode) })
+
+	pngB64 := "iVBORw0KGgoAAAANSUhEUg"
+	mixed := `{"created":1,"data":[
+		{"url":"https://example.invalid/a.png"},
+		{"url":"javascript:alert(1)"},
+		{"b64_json":"` + pngB64 + `"}
+	]}`
+	c, recorder, resp, info := newImageTestContext(t, mixed, "application/json", false)
+	info.PriceData.UsePrice = true
+	info.PriceData.AddOtherRatio("n", 3)
+
+	usage, err := OpenaiImageHandler(c, info, resp)
+	require.Nil(t, usage)
+	require.NotNil(t, err)
+	require.Equal(t, types.ErrorCodeBadResponse, err.GetErrorCode())
+	require.Empty(t, recorder.Body.String(), "no body must reach the client when any item is invalid")
+	require.Equal(t, 3.0, info.PriceData.OtherRatios()["n"], "rejected body must not lower the pre-set n ratio")
 }
 
 // TestOpenaiImageHandlersReturnJSONError covers JSON error responses for both
@@ -412,7 +532,7 @@ func TestOpenaiImageHandlersReturnJSONError(t *testing.T) {
 
 // TestOpenaiImageStreamHandlerRecordsUpstreamErrorEvent verifies that an error
 // event inside the SSE stream is recorded as a soft error while the payload is
-// still forwarded to the client.
+// still forwarded to the client (main behavior).
 func TestOpenaiImageStreamHandlerRecordsUpstreamErrorEvent(t *testing.T) {
 	oldMode := gin.Mode()
 	gin.SetMode(gin.TestMode)

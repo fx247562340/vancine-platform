@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -31,6 +30,16 @@ func updateOpenAIImageCount(info *relaycommon.RelayInfo, count int64) {
 
 // OpenaiImageHandler handles non-streaming OpenAI image responses
 // (generations/edits), returning the parsed usage for billing.
+//
+// P13-B R16 contract: the body is validated in a single linear scan via
+// helper.OpenAIImageBodyValidateUsable. The function fails closed when
+//   - data is not an array, or is empty;
+//   - the array contains more than dto.MaxImageN items;
+//   - any item is missing a usable http(s) url or a base64 image payload.
+// In every fail-closed case the response body is NOT written to the client,
+// the previously-recorded n ratio is NOT lowered, and the gateway returns
+// bad_response. On success the original body is written verbatim and the
+// billed count is exactly the validated data array length.
 func OpenaiImageHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http.Response) (*dto.Usage, *types.NewAPIError) {
 	defer service.CloseResponseBodyGracefully(resp)
 
@@ -49,9 +58,19 @@ func OpenaiImageHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http.
 		return nil, types.WithOpenAIError(*oaiError, resp.StatusCode)
 	}
 
-	updateOpenAIImageCount(info, gjson.GetBytes(responseBody, "data.#").Int())
+	usableCount, ok := helper.OpenAIImageBodyValidateUsable(responseBody)
+	if !ok {
+		// Fail closed: any invalid item, empty array, or over-limit array
+		// must NOT be billed as success and must NOT be written to the
+		// client. Returning bad_response here keeps the pre-set n ratio
+		// untouched (the caller did AddOtherRatio("n", ...) before this
+		// handler ran).
+		return nil, types.NewError(fmt.Errorf("upstream returned no usable images"), types.ErrorCodeBadResponse)
+	}
 
-	// 写入新的 response body
+	updateOpenAIImageCount(info, int64(usableCount))
+
+	// 写入原始 response body：所有 item 都已验证为合法，无需二次拷贝或重建。
 	service.IOCopyBytesGracefully(c, resp, responseBody)
 
 	normalizeOpenAIUsage(&usageResp.Usage)
@@ -103,6 +122,14 @@ func OpenaiImageStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, resp 
 	if !strings.Contains(contentType, "text/event-stream") {
 		return openaiImageJSONAsStreamHandler(c, info, resp)
 	}
+	// P13-B R18: this shared handler serves ONLY the public /v1/images SSE
+	// surface and keeps the upstream (main) behavior verbatim. The Image
+	// Workspace (/pg/images/generations) never reaches it: ImageHelper
+	// rejects an event-stream upstream response before DoResponse runs, and
+	// the playground request contract rejects stream=true before billing.
+	// There is therefore no partial-delivery settlement here - a stream
+	// either completes normally or the relay error path refunds the whole
+	// request.
 	// Reuse the shared streaming engine (helper.StreamScannerHandler) so the
 	// image streaming path gets the same ping keepalive, streaming-timeout
 	// watchdog, client-disconnect detection, panic recovery and goroutine
@@ -252,6 +279,12 @@ func openaiImageJSONAsStreamHandler(c *gin.Context, info *relaycommon.RelayInfo,
 	normalizeOpenAIUsage(&usageResp.Usage)
 	applyUsagePostProcessing(info, &usageResp.Usage, responseBody)
 
+	// P13-B R18: the JSON->SSE wrapper keeps the upstream (main)
+	// forwarding semantics for the public /v1/images SSE surface: every
+	// data[] item is forwarded and the billed count is the data array
+	// length. The Image Workspace never reaches this wrapper (its upstream
+	// must answer JSON; an event-stream response is rejected in
+	// relay.ImageHelper before any handler runs).
 	imageCount := gjson.GetBytes(responseBody, "data.#").Int()
 	updateOpenAIImageCount(info, imageCount)
 
@@ -275,8 +308,10 @@ func openaiImageJSONAsStreamHandler(c *gin.Context, info *relaycommon.RelayInfo,
 		}
 	}
 
-	for i := int64(0); i < imageCount; i++ {
-		image := gjson.GetBytes(responseBody, "data."+strconv.FormatInt(i, 10))
+	// Re-iterate the data array to emit one SSE event per item, in the
+	// original order and count - the same forwarding semantics as main.
+	dataItems := gjson.GetBytes(responseBody, "data").Array()
+	for _, image := range dataItems {
 		payload := []byte(`{"type":"image_generation.completed"}`)
 		payload, err = sjson.SetBytes(payload, "created_at", created)
 		if err != nil {
