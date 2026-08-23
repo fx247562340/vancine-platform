@@ -269,7 +269,7 @@ describe('Evidence section', () => {
     })
   })
 
-  it('renders all 8 frozen facts with exact values', async () => {
+  it('renders all 4 frozen facts with exact values', async () => {
     getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
     renderHome()
     await waitFor(() => {
@@ -290,41 +290,58 @@ describe('Evidence section', () => {
     expect(section).not.toBeNull()
     const sectionEl = section as HTMLElement
 
-    // Client: OpenCode v1.18.3 (combined text)
-    expect(within(sectionEl).getByText('OpenCode v1.18.3')).toBeInTheDocument()
-    expect(within(sectionEl).getByText('OpenCode version')).toBeInTheDocument()
+    // v1.2.0 Evidence: four primary metrics (Test model, Tool calls
+    // completed, Test result, Vancine measured usage). The OpenCode
+    // version, Duration, and Agent telemetry tokens collapse into a
+    // single secondary "Run details" line interpolated from the same
+    // source data; primary-metric assertions are below, secondary-line
+    // assertions follow in the dedicated "Run details" test below.
 
-    // Model under test: kimi-k3
+    // Test model: kimi-k3
     expect(within(sectionEl).getByText('kimi-k3')).toBeInTheDocument()
-    expect(within(sectionEl).getByText('Model under test')).toBeInTheDocument()
+    expect(within(sectionEl).getByText('Test model')).toBeInTheDocument()
 
-    // Model steps: 6
-    expect(within(sectionEl).getByText('6')).toBeInTheDocument()
-    expect(within(sectionEl).getByText('Model steps')).toBeInTheDocument()
-
-    // Tool calls: 7
+    // Tool calls completed: 7
     expect(within(sectionEl).getByText('7')).toBeInTheDocument()
-    expect(within(sectionEl).getByText('Tool calls')).toBeInTheDocument()
-
-    // Tests: Passed
-    expect(within(sectionEl).getByText('Passed')).toBeInTheDocument()
-    expect(within(sectionEl).getByText('Tests')).toBeInTheDocument()
-
-    // Duration: 84.3s
-    expect(within(sectionEl).getByText('84.3s')).toBeInTheDocument()
-    expect(within(sectionEl).getByText('Duration')).toBeInTheDocument()
-
-    // Agent telemetry tokens: 28,707
-    expect(within(sectionEl).getByText('28,707')).toBeInTheDocument()
     expect(
-      within(sectionEl).getByText('Agent telemetry tokens')
+      within(sectionEl).getByText('Tool calls completed')
     ).toBeInTheDocument()
+
+    // Test result: Passed
+    expect(within(sectionEl).getByText('Passed')).toBeInTheDocument()
+    expect(within(sectionEl).getByText('Test result')).toBeInTheDocument()
 
     // Vancine measured usage: $0.19 USD (canonical form with currency)
     expect(within(sectionEl).getByText('$0.19 USD')).toBeInTheDocument()
     expect(
       within(sectionEl).getByText('Vancine measured usage')
     ).toBeInTheDocument()
+  })
+
+  it('renders the secondary Run details line with all three source fields', async () => {
+    getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
+    renderHome()
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', {
+          level: 2,
+          name: 'Verified in real agent workflows',
+        })
+      ).toBeInTheDocument()
+    })
+    const heading = screen.getByRole('heading', {
+      level: 2,
+      name: 'Verified in real agent workflows',
+    })
+    const sectionEl = heading.closest('section') as HTMLElement
+    // The line keeps the canonical strings from the previous 8-metric
+    // design: OpenCode v1.18.3, 84.3s, 28,707 telemetry tokens. They are
+    // interpolated by the i18n key "Run details" and must all appear in
+    // the same paragraph.
+    const runDetailsP = within(sectionEl).getByText(/OpenCode v1\.18\.3/)
+    const runText = runDetailsP.textContent ?? ''
+    expect(runText).toContain('84.3s')
+    expect(runText).toContain('28,707')
   })
 
   it('renders the mandatory disclaimer', async () => {

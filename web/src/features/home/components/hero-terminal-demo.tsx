@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useState, useEffect, useRef, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { cn } from '@/lib/utils'
 
@@ -169,10 +170,12 @@ interface HeroTerminalDemoProps {
 }
 
 export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
+  const { t } = useTranslation()
   const [activeIndex, setActiveIndex] = useState(0)
   const [transitioning, setTransitioning] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval>>(undefined)
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([])
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -192,7 +195,7 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
     }
   }, [])
 
-  const handleSelect = (index: number) => {
+  const selectTab = (index: number) => {
     if (index === activeIndex) return
     if (intervalRef.current) clearInterval(intervalRef.current)
     if (timeoutRef.current) clearTimeout(timeoutRef.current)
@@ -202,6 +205,39 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
       setTransitioning(false)
     }, TRANSITION_MS)
   }
+
+  const handleSelect = (index: number) => () => selectTab(index)
+
+  // WAI-ARIA tablist keyboard model: ArrowLeft / ArrowRight move between
+  // tabs with wrap-around, Home / End jump to first / last. Only the
+  // active tab is in the tab order; arrow keys rotate focus through the
+  // strip. The shared tabpanel id 'hero-api-panel' keeps a single
+  // aria-controls target across all four tabs — the panel itself is
+  // re-labelled per active tab via aria-labelledby.
+  const handleTabKeyDown =
+    (index: number) => (event: React.KeyboardEvent<HTMLButtonElement>) => {
+      const last = API_DEMOS.length - 1
+      let next: number | null = null
+      switch (event.key) {
+        case 'ArrowRight':
+          next = index === last ? 0 : index + 1
+          break
+        case 'ArrowLeft':
+          next = index === 0 ? last : index - 1
+          break
+        case 'Home':
+          next = 0
+          break
+        case 'End':
+          next = last
+          break
+        default:
+          return
+      }
+      event.preventDefault()
+      selectTab(next)
+      tabRefs.current[next]?.focus()
+    }
 
   const demo = API_DEMOS[activeIndex]
   const accent = ACCENT_CLASSES[demo.accent]
@@ -215,8 +251,17 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
           'dark:border-white/[0.06] dark:bg-[#0b0f17]/95 dark:shadow-[0_20px_60px_-25px_rgba(0,0,0,0.7)]'
         )}
       >
-        {/* Tab strip */}
+        {/* Tab strip — WAI-ARIA tablist: each tab uses button semantics
+            with role=tab, aria-selected reflects state, and arrow / Home /
+            End keys move focus through the strip. The strip itself carries
+            role=tablist + aria-label; only the active tab is tabbable
+            (tabIndex=0), the others use tabIndex=-1 so the focus order
+            stays clean when the user tabs in. All tabs share a stable
+            aria-controls target ('hero-api-panel'); the panel re-labels
+            itself per active tab via aria-labelledby. */}
         <div
+          role='tablist'
+          aria-label={t('API demo endpoints')}
           className={cn(
             'flex items-center gap-1 border-b px-2 sm:gap-1.5 sm:px-3',
             'border-border/50 dark:border-white/[0.05]'
@@ -228,8 +273,17 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
             return (
               <button
                 key={item.id}
+                ref={(el) => {
+                  tabRefs.current[index] = el
+                }}
                 type='button'
-                onClick={() => handleSelect(index)}
+                role='tab'
+                id={`hero-api-tab-${item.id}`}
+                aria-selected={isActive}
+                aria-controls='hero-api-panel'
+                tabIndex={isActive ? 0 : -1}
+                onClick={handleSelect(index)}
+                onKeyDown={handleTabKeyDown(index)}
                 className={cn(
                   'relative -mb-px flex items-center gap-1.5 border-b-2 px-2.5 py-2.5 text-[11px] font-medium tracking-wide transition-colors sm:px-3 sm:text-xs',
                   isActive
@@ -249,68 +303,79 @@ export function HeroTerminalDemo(props: HeroTerminalDemoProps) {
           </div>
         </div>
 
-        {/* Endpoint row */}
+        {/* Endpoint + body group is the tabpanel for the active tab. All
+            four tabs share a single, stable aria-controls target so
+            assistive technology can always anchor the active tab to the
+            same panel; the panel itself re-labels itself to the active
+            tab via aria-labelledby. */}
         <div
-          className={cn(
-            'flex items-center gap-2.5 border-b px-5 py-3',
-            'border-border/40 dark:border-white/[0.04]'
-          )}
+          role='tabpanel'
+          id='hero-api-panel'
+          aria-labelledby={`hero-api-tab-${demo.id}`}
         >
-          <span
+          {/* Endpoint row */}
+          <div
             className={cn(
-              'rounded-md px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-wider',
-              accent.badge
+              'flex items-center gap-2.5 border-b px-5 py-3',
+              'border-border/40 dark:border-white/[0.04]'
             )}
           >
-            {demo.method}
-          </span>
-          <code
+            <span
+              className={cn(
+                'rounded-md px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-wider',
+                accent.badge
+              )}
+            >
+              {demo.method}
+            </span>
+            <code
+              className={cn(
+                'text-foreground/75 truncate font-mono text-[12.5px] transition-opacity duration-200',
+                transitioning ? 'opacity-0' : 'opacity-100'
+              )}
+            >
+              {demo.endpoint}
+            </code>
+          </div>
+
+          {/* Body — fixed rows so neither block shifts when switching demos */}
+          <div className='grid h-[400px] grid-rows-[235px_minmax(0,1fr)] font-mono text-[12.5px] leading-[1.55]'>
+            {/* Request */}
+            <RequestBlock demo={demo} transitioning={transitioning} />
+
+            {/* Response */}
+            <ResponseBlock demo={demo} transitioning={transitioning} />
+          </div>
+
+          {/* Footer metrics */}
+          <div
             className={cn(
-              'text-foreground/75 truncate font-mono text-[12.5px] transition-opacity duration-200',
-              transitioning ? 'opacity-0' : 'opacity-100'
+              'flex items-center justify-between border-t px-5 py-2.5',
+              'border-border/40 bg-muted/30 dark:border-white/[0.05] dark:bg-white/[0.02]'
             )}
           >
-            {demo.endpoint}
-          </code>
-        </div>
-
-        {/* Body — fixed rows so neither block shifts when switching demos */}
-        <div className='grid h-[400px] grid-rows-[235px_minmax(0,1fr)] font-mono text-[12.5px] leading-[1.55]'>
-          {/* Request */}
-          <RequestBlock demo={demo} transitioning={transitioning} />
-
-          {/* Response */}
-          <ResponseBlock demo={demo} transitioning={transitioning} />
-        </div>
-
-        {/* Footer metrics */}
-        <div
-          className={cn(
-            'flex items-center justify-between border-t px-5 py-2.5',
-            'border-border/40 bg-muted/30 dark:border-white/[0.05] dark:bg-white/[0.02]'
-          )}
-        >
-          <div className='text-foreground/40 flex items-center gap-3 text-[10px] tabular-nums'>
-            <span className='flex items-center gap-1'>
-              <span className='font-mono'>{demo.latency}</span>
-              <span className='tracking-wider uppercase'>ms</span>
-            </span>
-            <span className='bg-foreground/15 size-1 rounded-full' />
-            <span className='flex items-center gap-1'>
-              <span className='font-mono'>{demo.tokens}</span>
-              <span className='tracking-wider uppercase'>tokens</span>
-            </span>
-            <span className='bg-foreground/15 size-1 rounded-full' />
-            <span className='flex items-center gap-1'>
-              <span className='tracking-wider uppercase'>cost</span>
-              <span className='font-mono'>
-                ${(demo.tokens * 0.00003).toFixed(5)}
+            <div className='text-foreground/40 flex items-center gap-3 text-[10px] tabular-nums'>
+              <span className='flex items-center gap-1'>
+                <span className='font-mono'>{demo.latency}</span>
+                <span className='tracking-wider uppercase'>ms</span>
               </span>
+              <span className='bg-foreground/15 size-1 rounded-full' />
+              <span className='flex items-center gap-1'>
+                <span className='font-mono'>{demo.tokens}</span>
+                <span className='tracking-wider uppercase'>tokens</span>
+              </span>
+              <span className='bg-foreground/15 size-1 rounded-full' />
+              <span className='flex items-center gap-1'>
+                <span className='tracking-wider uppercase'>cost</span>
+                <span className='font-mono'>
+                  ${(demo.tokens * 0.00003).toFixed(5)}
+                </span>
+              </span>
+            </div>
+            <span className='text-foreground/30 font-mono text-[10px] tracking-wider uppercase'>
+              stream · sse
             </span>
           </div>
-          <span className='text-foreground/30 font-mono text-[10px] tracking-wider uppercase'>
-            stream · sse
-          </span>
         </div>
       </div>
     </div>

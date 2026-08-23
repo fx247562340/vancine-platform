@@ -25,12 +25,7 @@ import {
   RouterProvider,
   type AnyRoute,
 } from '@tanstack/react-router'
-import {
-  render,
-  screen,
-  waitFor,
-  type RenderResult,
-} from '@testing-library/react'
+import { render, screen, type RenderResult } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import i18n from 'i18next'
 import type { ReactNode } from 'react'
@@ -40,10 +35,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import enLocale from '@/i18n/locales/en.json'
 import { trackEvent } from '@/lib/analytics'
 
-import { Home } from '../../index'
+import { DeveloperSolutions } from '../sections/developer-solutions'
 
-// The section under test is the built-in homepage only; isolate the shared
-// header so no backend-driven nav config is needed.
+// The DeveloperSolutions component is no longer mounted on the default
+// built-in homepage (v1.2.0 collapse), but the component itself is still
+// shipped: the public header's "API Solutions" menu and the docs sidebar
+// consume the same registry. These tests pin the contract the component
+// itself honours, independent of where it is mounted.
+
 vi.mock('@/components/layout', async (importActual) => {
   const actual = await importActual<typeof import('@/components/layout')>()
   return {
@@ -72,38 +71,12 @@ vi.mock('@/hooks/use-system-config', () => ({
   }),
 }))
 
-// Controlled home page content source (the module under test stays the Home
-// component; only the network boundary is mocked).
-const getHomePageContentMock = vi.fn()
-vi.mock('@/features/home/api', () => ({
-  getHomePageContent: (...args: unknown[]) => getHomePageContentMock(...args),
-}))
-
-// The real @lobehub/icons entry pulls @lobehub/ui -> @emoji-mart JSON, which
-// vitest cannot load; the icon itself is irrelevant to this suite.
-vi.mock('@lobehub/icons', () => ({
-  CherryStudio: Object.assign(() => null, { Color: () => null }),
-}))
-
-// Capture analytics emissions (collaborator, covered by its own suite).
 vi.mock('@/lib/analytics', () => ({
   trackEvent: vi.fn(),
 }))
 
-// Isolate the built-in homepage from the real pricing API network boundary.
-// The Home component calls getPricing() on mount; in jsdom the request fails and
-// emits an AggregateError on stderr. A minimal fixture keeps the network
-// boundary explicit and the test focused on the Developer solutions section.
-const getPricingMock = vi.fn()
-vi.mock('@/features/pricing/api', () => ({
-  getPricing: (...args: unknown[]) => getPricingMock(...args),
-}))
-
 const trackEventMock = trackEvent as ReturnType<typeof vi.fn>
 
-// jsdom lacks IntersectionObserver; the built-in home sections (Stats,
-// AnimateInView) need it. Every case installs a fresh stub and the
-// afterEach hook restores the original global — even when an assertion throws.
 class IntersectionObserverStub {
   root = null
   rootMargin = ''
@@ -131,23 +104,9 @@ beforeEach(async () => {
   await initTestI18n()
   localStorage.clear()
   trackEventMock.mockClear()
-  getHomePageContentMock.mockReset()
-  getPricingMock.mockReset()
-  // Default: pricing API returns empty success so tests don't hang.
-  getPricingMock.mockResolvedValue({
-    success: true,
-    data: [],
-    vendors: [],
-    group_ratio: {},
-    usable_group: {},
-    supported_endpoint: {},
-    auto_groups: [],
-  })
 })
 
 afterEach(() => {
-  // Unconditional cleanup: the global stub, storage, and mocks never leak
-  // into the next case, regardless of pass or fail.
   if (originalIntersectionObserverDescriptor === undefined) {
     delete (globalThis as Record<string, unknown>).IntersectionObserver
   } else {
@@ -178,30 +137,27 @@ async function initTestI18n(): Promise<void> {
   await i18n.changeLanguage('en')
 }
 
-const testRootRoute = createRootRoute()
-
-function stubRoute(path: string, testId: string): AnyRoute {
+function stubRoute(root: AnyRoute, path: string, testId: string): AnyRoute {
   return createRoute({
-    getParentRoute: () => testRootRoute,
+    getParentRoute: () => root,
     path,
     component: () => <div data-testid={testId} />,
   })
 }
 
-const testRouteTree = testRootRoute.addChildren([
-  createRoute({
-    getParentRoute: () => testRootRoute,
-    path: '/',
-    component: () => <Home />,
-  }),
-  stubRoute('/kimi-k3-api', 'kimi-page'),
-  stubRoute('/seedance-api', 'seedance-page'),
-  stubRoute('/ai-media-api', 'ai-media-page'),
-])
-
-function renderHome(): RenderResult {
+function renderDeveloperSolutions(): RenderResult {
+  const devRoot = createRootRoute()
   const router = createRouter({
-    routeTree: testRouteTree,
+    routeTree: devRoot.addChildren([
+      createRoute({
+        getParentRoute: () => devRoot,
+        path: '/',
+        component: () => <DeveloperSolutions />,
+      }),
+      stubRoute(devRoot, '/kimi-k3-api', 'kimi-page'),
+      stubRoute(devRoot, '/seedance-api', 'seedance-page'),
+      stubRoute(devRoot, '/ai-media-api', 'ai-media-page'),
+    ]),
     history: createMemoryHistory({ initialEntries: ['/'] }),
   })
   const queryClient = new QueryClient({
@@ -214,16 +170,15 @@ function renderHome(): RenderResult {
   )
 }
 
-describe('built-in homepage Developer solutions section', () => {
-  it('shows all three registry entries between Stack and Evidence', async () => {
-    getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
-    renderHome()
-
-    const devSolutionsHeading = await screen.findByRole('heading', {
-      level: 2,
-      name: 'Landing pages for coding agents and AI media workflows.',
-    })
-
+describe('DeveloperSolutions component contract', () => {
+  it('renders all three registry entries with their target routes', async () => {
+    renderDeveloperSolutions()
+    expect(
+      await screen.findByRole('heading', {
+        level: 2,
+        name: 'Landing pages for coding agents and AI media workflows.',
+      })
+    ).toBeInTheDocument()
     expect(screen.getByText('Kimi K3 API')).toBeInTheDocument()
     expect(screen.getByText('Seedance 2.5 API')).toBeInTheDocument()
     expect(screen.getByText('AI Media API')).toBeInTheDocument()
@@ -233,35 +188,15 @@ describe('built-in homepage Developer solutions section', () => {
     expect(hrefs).toContain('/kimi-k3-api')
     expect(hrefs).toContain('/seedance-api')
     expect(hrefs).toContain('/ai-media-api')
+    // All routes are same-origin, so no target=_blank.
     for (const link of learnMoreLinks) {
       expect(link).not.toHaveAttribute('target')
     }
-
-    // Real DOM order contract: Stack -> Developer solutions -> Evidence
-    // -> Why -> CTA, asserted through the semantic section headings.
-    const stackHeading = screen.getByRole('heading', {
-      level: 2,
-      name: 'Works with your stack',
-    })
-    const evidenceHeading = screen.getByRole('heading', {
-      level: 2,
-      name: 'Verified in real agent workflows',
-    })
-    expect(
-      stackHeading.compareDocumentPosition(devSolutionsHeading) &
-        Node.DOCUMENT_POSITION_FOLLOWING
-    ).not.toBe(0)
-    expect(
-      devSolutionsHeading.compareDocumentPosition(evidenceHeading) &
-        Node.DOCUMENT_POSITION_FOLLOWING
-    ).not.toBe(0)
   })
 
-  it('records developer_resource_clicked with location homepage and fixed resources', async () => {
+  it('records developer_resource_clicked with the clicked resource and homepage location', async () => {
     const user = userEvent.setup()
-    getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
-    renderHome()
-
+    renderDeveloperSolutions()
     await screen.findByRole('heading', {
       level: 2,
       name: 'Landing pages for coding agents and AI media workflows.',
@@ -274,59 +209,5 @@ describe('built-in homepage Developer solutions section', () => {
       resource: 'kimi_k3_api',
       location: 'homepage',
     })
-  })
-})
-
-describe('custom homepage branches stay untouched', () => {
-  it('does not inject the section into the admin-configured URL iframe home', async () => {
-    getHomePageContentMock.mockResolvedValue({
-      success: true,
-      data: 'https://custom.example.com/home',
-    })
-    renderHome()
-
-    await screen.findByTitle('Custom Home Page')
-    expect(
-      screen.queryByRole('heading', {
-        level: 2,
-        name: 'Landing pages for coding agents and AI media workflows.',
-      })
-    ).not.toBeInTheDocument()
-  })
-
-  it('does not inject the section into the admin-configured HTML home', async () => {
-    getHomePageContentMock.mockResolvedValue({
-      success: true,
-      data: '<h2>Custom HTML home</h2>',
-    })
-    renderHome()
-
-    // Isolated HTML renders inside a sanitized sandbox; wait for its
-    // container instead of querying sandboxed content.
-    await waitFor(() => {
-      expect(document.querySelector('.custom-home-content')).not.toBeNull()
-    })
-    expect(
-      screen.queryByRole('heading', {
-        level: 2,
-        name: 'Landing pages for coding agents and AI media workflows.',
-      })
-    ).not.toBeInTheDocument()
-  })
-
-  it('does not inject the section into the admin-configured Markdown home', async () => {
-    getHomePageContentMock.mockResolvedValue({
-      success: true,
-      data: '## Custom Markdown home',
-    })
-    renderHome()
-
-    await screen.findByText('Custom Markdown home')
-    expect(
-      screen.queryByRole('heading', {
-        level: 2,
-        name: 'Landing pages for coding agents and AI media workflows.',
-      })
-    ).not.toBeInTheDocument()
   })
 })

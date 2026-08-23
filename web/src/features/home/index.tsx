@@ -26,18 +26,21 @@ import { useTheme } from '@/context/theme-provider'
 import { isLikelyHtml } from '@/lib/content-format'
 import { useAuthStore } from '@/stores/auth-store'
 
-import {
-  AvailableNow,
-  CTA,
-  DeveloperSolutions,
-  Evidence,
-  Hero,
-  Marketplace,
-  Stack,
-  Why,
-} from './components'
+import { AvailableNow, CTA, Evidence, Hero, Why } from './components'
 import { useHomePageContent, useHomepagePricing } from './hooks'
 
+// v1.2.0 default built-in homepage section order (frozen).
+//   1. Hero
+//   2. Available now (also the live-model marketplace surface)
+//   3. Why Vancine
+//   4. Verified evidence
+//   5. Final CTA
+//   6. Footer
+// The Stack / DeveloperSolutions / Marketplace sections are kept in the
+// codebase for the docs sidebar and shared registry consumers, but the
+// built-in homepage no longer renders them as standalone blocks. When an
+// admin configures a custom URL / HTML / Markdown homepage, none of these
+// sections are mounted — the override replaces the entire built-in shell.
 export function Home() {
   const { i18n, t } = useTranslation()
   const iframeRef = useRef<HTMLIFrameElement>(null)
@@ -127,11 +130,8 @@ export function Home() {
     <PublicLayout showMainContainer={false}>
       <Hero isAuthenticated={isAuthenticated} pricing={pricing} />
       <AvailableNow pricing={pricing} />
-      <Stack />
-      <DeveloperSolutions />
-      <Evidence />
       <Why />
-      <Marketplace pricing={pricing} />
+      <Evidence />
       <CTA isAuthenticated={isAuthenticated} />
       <Footer />
     </PublicLayout>

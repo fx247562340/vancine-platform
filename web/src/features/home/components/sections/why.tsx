@@ -20,22 +20,22 @@ import { useTranslation } from 'react-i18next'
 
 import { AnimateInView } from '@/components/animate-in-view'
 
+// Three items, in fixed order. Frozen: production copy. The grid below
+// uses lg:grid-cols-3 (one row on desktop) — adding a fourth item would
+// visibly break that layout. New items go through this registry, not by
+// appending here.
 const WHY_ITEMS = [
   {
-    title: 'Fast access to new Chinese models',
-    body: 'New Chinese model releases can be added to one endpoint instead of a new vendor integration each time.',
+    title: 'Faster access to new Chinese models',
+    body: 'New model releases can reach the unified endpoint without a fresh vendor integration each time.',
   },
   {
-    title: 'One compatible API',
-    body: 'OpenAI-compatible requests, streaming, and tooling patterns you already use.',
+    title: 'One API, one bill',
+    body: 'Compatible with the calling conventions you already use, with one balance, billing, and usage log.',
   },
   {
-    title: 'Unified balance and billing',
-    body: 'One account, one balance, and one usage log across supported models.',
-  },
-  {
-    title: 'Tested integration examples',
-    body: 'Public starters and measured agent evidence for supported workflows.',
+    title: 'Evidence-backed developer experience',
+    body: 'Real call examples, inspectable agent run evidence, and developer documentation.',
   },
 ] as const
 
@@ -51,7 +51,7 @@ export function Why() {
           </h2>
         </AnimateInView>
 
-        <div className='grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4'>
+        <div className='grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3'>
           {WHY_ITEMS.map((item, i) => (
             <AnimateInView key={item.title} delay={i * 80} animation='scale-in'>
               <article className='border-border/40 bg-muted/10 h-full rounded-xl border p-6'>

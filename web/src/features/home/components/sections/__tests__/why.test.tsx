@@ -244,7 +244,7 @@ describe('Why section', () => {
     })
   })
 
-  it('renders exactly four article cards in fixed order', async () => {
+  it('renders exactly three article cards in fixed order', async () => {
     getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
     renderHome()
     await waitFor(() => {
@@ -265,13 +265,12 @@ describe('Why section', () => {
     const sectionEl = section as HTMLElement
 
     const articles = sectionEl.querySelectorAll('article')
-    expect(articles.length).toBe(4)
+    expect(articles.length).toBe(3)
 
     const expectedTitles = [
-      'Fast access to new Chinese models',
-      'One compatible API',
-      'Unified balance and billing',
-      'Tested integration examples',
+      'Faster access to new Chinese models',
+      'One API, one bill',
+      'Evidence-backed developer experience',
     ]
 
     for (let i = 0; i < expectedTitles.length; i++) {
@@ -280,7 +279,7 @@ describe('Why section', () => {
     }
   })
 
-  it('renders all four card bodies', async () => {
+  it('renders all three card bodies', async () => {
     getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
     renderHome()
     await waitFor(() => {
@@ -294,22 +293,17 @@ describe('Why section', () => {
 
     expect(
       screen.getByText(
-        'New Chinese model releases can be added to one endpoint instead of a new vendor integration each time.'
+        'New model releases can reach the unified endpoint without a fresh vendor integration each time.'
       )
     ).toBeInTheDocument()
     expect(
       screen.getByText(
-        'OpenAI-compatible requests, streaming, and tooling patterns you already use.'
+        'Compatible with the calling conventions you already use, with one balance, billing, and usage log.'
       )
     ).toBeInTheDocument()
     expect(
       screen.getByText(
-        'One account, one balance, and one usage log across supported models.'
-      )
-    ).toBeInTheDocument()
-    expect(
-      screen.getByText(
-        'Public starters and measured agent evidence for supported workflows.'
+        'Real call examples, inspectable agent run evidence, and developer documentation.'
       )
     ).toBeInTheDocument()
   })
@@ -367,7 +361,7 @@ describe('Why section', () => {
     }
   })
 
-  it('cards grid uses mobile 1-col, sm 2-col, lg 4-col responsive classes', async () => {
+  it('cards grid uses mobile 1-col, sm 2-col, lg 3-col responsive classes', async () => {
     getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
     renderHome()
     await waitFor(() => {
@@ -389,16 +383,16 @@ describe('Why section', () => {
     // AnimateInView). Find the grid by looking for an element that has
     // the grid-cols-1 token.
     const articles = section.querySelectorAll('article')
-    expect(articles.length).toBe(4)
+    expect(articles.length).toBe(3)
     const grid = section.querySelector(
-      '.grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4'
+      '.grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-3'
     ) as HTMLElement
     expect(grid).not.toBeNull()
     const gridClass = grid.className
     expect(gridClass).toContain('grid')
     expect(gridClass).toContain('grid-cols-1')
     expect(gridClass).toContain('sm:grid-cols-2')
-    expect(gridClass).toContain('lg:grid-cols-4')
+    expect(gridClass).toContain('lg:grid-cols-3')
   })
 
   // Override-branch coverage for Why lives in

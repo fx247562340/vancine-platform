@@ -520,7 +520,7 @@ describe('R7+R8: Hero CTA destinations and analytics', () => {
     })
     const hero = getHeroSection()
     const btn = within(hero).getByRole('button', {
-      name: /Explore live models/i,
+      name: /View available models/i,
     })
     expect(btn).toHaveAttribute('href', '/pricing')
     await user.click(btn)
@@ -547,7 +547,7 @@ describe('R7+R8: Hero CTA destinations and analytics', () => {
     })
     const hero = getHeroSection()
     const btn = within(hero).getByRole('button', {
-      name: /Explore live models/i,
+      name: /View available models/i,
     })
     expect(btn).toHaveAttribute('href', '/pricing')
     await user.click(btn)
@@ -714,10 +714,15 @@ describe('Hero copy', () => {
       level: 1,
       name: "China's frontier AI models. One API.",
     })
+    // The hero text must not leak the upstream product name.
     const hero = getHeroSection()
-    const text = hero.textContent ?? ''
-    expect(text).not.toContain('NewAPI')
-    expect(text).toContain('Vancine')
+    const heroText = hero.textContent ?? ''
+    expect(heroText).not.toContain('NewAPI')
+    expect(heroText).not.toMatch(/\bNew\s*API\b/)
+    // Vancine identity is still carried by the page chrome (header + footer)
+    // and by the body content (section headings, CTAs).
+    const page = document.body.textContent ?? ''
+    expect(page).toContain('Vancine')
   })
 })
 
@@ -786,15 +791,25 @@ describe('Custom homepage branches', () => {
 })
 
 describe('P6-C discovery routes', () => {
-  it('renders /kimi-k3-api, /seedance-api, and /ai-media-api links', async () => {
+  it('no longer renders /kimi-k3-api, /seedance-api, /ai-media-api links on the default home', async () => {
+    // v1.2.0 collapses the DeveloperSolutions section out of the default
+    // built-in homepage. The pages themselves remain routable (covered by
+    // the standalone /kimi-k3-api, /seedance-api, /ai-media-api route
+    // tests); the public header's API Solutions menu still lists them
+    // (covered by developer-solutions-nav.test.tsx). The test here is the
+    // negative contract: the default home body must not surface those
+    // links anymore, so the homepage is no longer a discovery surface for
+    // every section page.
     getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
     renderHome()
-    await screen.findByText('Kimi K3 API')
-    const links = screen.getAllByRole('link', { name: /Learn more/ })
-    const hrefs = links.map((l) => l.getAttribute('href'))
-    expect(hrefs).toContain('/kimi-k3-api')
-    expect(hrefs).toContain('/seedance-api')
-    expect(hrefs).toContain('/ai-media-api')
+    await screen.findByRole('heading', {
+      level: 1,
+      name: "China's frontier AI models. One API.",
+    })
+    const body = document.body.textContent ?? ''
+    expect(body).not.toContain('Kimi K3 API')
+    expect(body).not.toContain('Seedance 2.5 API')
+    expect(body).not.toContain('AI Media API')
   })
 })
 
@@ -862,18 +877,16 @@ describe('P11-B: homepage pricing wiring', () => {
     })
     renderHome()
 
-    // Hero should show the real model count and AI Models label
-    await screen.findByText('AI Models')
-    // A featured model renders in both Available now and the Live model
-    // marketplace, so assert presence via getAllByText.
-    expect(screen.getAllByText('TestModel').length).toBeGreaterThanOrEqual(1)
-    // TestVendor appears in the Available now card and the Connected
-    // providers row, so assert presence rather than uniqueness.
-    expect(screen.getAllByText('TestVendor').length).toBeGreaterThanOrEqual(1)
+    // Hero should show the live model count and the new "Available models"
+    // label. The label is rendered inline with the count inside the same
+    // <dt>, so a single text match is the right granularity.
+    await screen.findByText('TestModel')
+    expect(screen.getByText('Available models')).toBeInTheDocument()
+    // After the v1.2.0 collapse the marketplace is gone, so the featured
+    // model renders only in AvailableNow — assert a single occurrence.
+    expect(screen.getByText('TestModel')).toBeInTheDocument()
+    expect(screen.getByText('TestVendor')).toBeInTheDocument()
     expect(screen.getByText('Available now')).toBeInTheDocument()
-    expect(
-      screen.getAllByText('Live model marketplace').length
-    ).toBeGreaterThanOrEqual(1)
   })
 
   it('shows no fake model count when pricing is loading', async () => {
@@ -885,8 +898,9 @@ describe('P11-B: homepage pricing wiring', () => {
       level: 1,
       name: "China's frontier AI models. One API.",
     })
-    // "AI Models" label should not appear while loading
-    expect(screen.queryByText('AI Models')).not.toBeInTheDocument()
+    // "Available models" label (the live count column) must not appear while
+    // pricing is still loading.
+    expect(screen.queryByText('Available models')).not.toBeInTheDocument()
   })
 
   it('shows no fake model count when pricing errors', async () => {
@@ -897,7 +911,7 @@ describe('P11-B: homepage pricing wiring', () => {
       level: 1,
       name: "China's frontier AI models. One API.",
     })
-    expect(screen.queryByText('AI Models')).not.toBeInTheDocument()
+    expect(screen.queryByText('Available models')).not.toBeInTheDocument()
   })
 
   it('shows no fake model count when pricing returns empty', async () => {
@@ -916,7 +930,7 @@ describe('P11-B: homepage pricing wiring', () => {
       level: 1,
       name: "China's frontier AI models. One API.",
     })
-    expect(screen.queryByText('AI Models')).not.toBeInTheDocument()
+    expect(screen.queryByText('Available models')).not.toBeInTheDocument()
   })
 
   it('custom URL override skips built-in homepage', async () => {
@@ -1151,80 +1165,62 @@ describe('P11-B: homepage pricing wiring', () => {
     expect(getPricingMock).toHaveBeenCalledTimes(2)
   })
 
-  it('P11-C: built-in homepage shows Stack section instead of Features', async () => {
+  it('P11-C: built-in homepage does not render Stack, DeveloperSolutions, or Marketplace as standalone blocks', async () => {
     getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
     renderHome()
-    // Stack section title must appear
     await waitFor(() => {
       expect(
         screen.getByRole('heading', {
-          level: 2,
-          name: 'Works with your stack',
+          level: 1,
+          name: "China's frontier AI models. One API.",
         })
       ).toBeInTheDocument()
     })
-    // Old Features section title must NOT appear
+    // v1.2.0 collapses these three sections out of the default homepage —
+    // AvailableNow absorbs the marketplace surface; the registry and docs
+    // sidebar still consume the removed components, but they no longer mount
+    // here.
+    expect(
+      screen.queryByRole('heading', {
+        level: 2,
+        name: 'Works with your stack',
+      })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByText(
+        'Landing pages for coding agents and AI media workflows.'
+      )
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('heading', {
+        level: 2,
+        name: 'Live model marketplace',
+      })
+    ).not.toBeInTheDocument()
+    // Old retired sections also stay absent.
     expect(screen.queryByText('Core Features')).not.toBeInTheDocument()
   })
 
-  it('P11-C: Stack renders exactly six cards in correct order', async () => {
+  it('P11-D: Evidence and Why are visible; DeveloperSolutions and HowItWorks are not', async () => {
     getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
     renderHome()
-    await waitFor(() => {
-      expect(
-        screen.getByRole('heading', {
-          level: 2,
-          name: 'Works with your stack',
-        })
-      ).toBeInTheDocument()
-    })
-    // Scope to the Stack section specifically
-    const stackHeading = screen.getByRole('heading', {
-      level: 2,
-      name: 'Works with your stack',
-    })
-    const stackSection = stackHeading.closest('section')
-    expect(stackSection).not.toBeNull()
-    const section = stackSection as HTMLElement
-    const articles = section.querySelectorAll('article')
-    expect(articles.length).toBe(6)
-    // Verify order by checking h3 titles within the Stack section
-    const h3s = section.querySelectorAll('h3')
-    const expected = [
-      'OpenCode',
-      'Cline',
-      'Roo Code',
-      'Claude Code',
-      'OpenAI SDK',
-      'Pi Coding Agent',
-    ]
-    expect(h3s.length).toBe(6)
-    for (let i = 0; i < expected.length; i++) {
-      expect(h3s[i].textContent).toBe(expected[i])
-    }
-  })
-
-  it('P11-D: DeveloperSolutions, Evidence, and Why are visible; HowItWorks is not', async () => {
-    getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
-    renderHome()
-    // DeveloperSolutions section label must remain
-    await waitFor(() => {
-      expect(screen.getByText('Developer solutions')).toBeInTheDocument()
-    })
-    // Evidence heading must appear
+    // Evidence heading must appear (AnimateInView defers first paint
+    // until intersection observer fires, so use findBy to wait).
     expect(
-      screen.getByRole('heading', {
+      await screen.findByRole('heading', {
         level: 2,
         name: 'Verified in real agent workflows',
       })
     ).toBeInTheDocument()
     // Why heading must appear
     expect(
-      screen.getByRole('heading', {
+      await screen.findByRole('heading', {
         level: 2,
         name: 'Why developers use Vancine',
       })
     ).toBeInTheDocument()
+    // DeveloperSolutions section label must NOT appear on the default home
+    expect(screen.queryByText('Developer solutions')).not.toBeInTheDocument()
     // HowItWorks heading must NOT appear
     expect(
       screen.queryByRole('heading', {
@@ -1234,7 +1230,7 @@ describe('P11-B: homepage pricing wiring', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('P11-D: built-in homepage section order is Hero → AvailableNow → Stack → DeveloperSolutions → Evidence → Why → Marketplace → CTA → Footer', async () => {
+  it('v1.2.0: built-in homepage section order is Hero → AvailableNow → Why → Evidence → CTA → Footer', async () => {
     getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
     renderHome()
     await waitFor(() => {
@@ -1262,25 +1258,13 @@ describe('P11-B: homepage pricing wiring', () => {
       level: 2,
       name: 'Available now',
     })
-    const stack = screen.getByRole('heading', {
-      level: 2,
-      name: 'Works with your stack',
-    })
-    const devSolutions = screen.getByRole('heading', {
-      level: 2,
-      name: 'Landing pages for coding agents and AI media workflows.',
-    })
-    const evidence = screen.getByRole('heading', {
-      level: 2,
-      name: 'Verified in real agent workflows',
-    })
     const why = screen.getByRole('heading', {
       level: 2,
       name: 'Why developers use Vancine',
     })
-    const marketplace = screen.getByRole('heading', {
+    const evidence = screen.getByRole('heading', {
       level: 2,
-      name: 'Live model marketplace',
+      name: 'Verified in real agent workflows',
     })
     const cta = screen.getByRole('heading', {
       level: 2,
@@ -1293,12 +1277,9 @@ describe('P11-B: homepage pricing wiring', () => {
       (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0
 
     expect(following(hero, availableNow)).toBe(true)
-    expect(following(availableNow, stack)).toBe(true)
-    expect(following(stack, devSolutions)).toBe(true)
-    expect(following(devSolutions, evidence)).toBe(true)
-    expect(following(evidence, why)).toBe(true)
-    expect(following(why, marketplace)).toBe(true)
-    expect(following(marketplace, cta)).toBe(true)
+    expect(following(availableNow, why)).toBe(true)
+    expect(following(why, evidence)).toBe(true)
+    expect(following(evidence, cta)).toBe(true)
     expect(following(cta, footer)).toBe(true)
   })
 
@@ -1329,6 +1310,148 @@ describe('P11-B: homepage pricing wiring', () => {
     expect(screen.queryByText('model billing support')).not.toBeInTheDocument()
     expect(screen.queryByText('compatible API routes')).not.toBeInTheDocument()
     expect(screen.queryByText('scheduling controls')).not.toBeInTheDocument()
+  })
+
+  it('v1.2.0 hero stats: the dynamic count, "OpenAI-compatible", and "Unified API and billing" render as three peer <li> facts', async () => {
+    getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
+    getPricingMock.mockResolvedValue({
+      success: true,
+      data: [
+        {
+          id: 1,
+          model_name: 'TestModel',
+          description: 'A test model',
+          tags: 'featured',
+          vendor_id: 1,
+          quota_type: 0,
+          model_ratio: 1,
+          completion_ratio: 1,
+          enable_groups: ['default'],
+          supported_endpoint_types: ['chat'],
+        },
+      ],
+      vendors: [{ id: 1, name: 'TestVendor' }],
+      group_ratio: {},
+      usable_group: {},
+      supported_endpoint: {},
+      auto_groups: [],
+    })
+    renderHome()
+    await screen.findByRole('heading', {
+      level: 1,
+      name: "China's frontier AI models. One API.",
+    })
+    await screen.findByText('TestModel')
+
+    const hero = getHeroSection()
+    // Assert the structural list: exactly three <li> facts in the
+    // hero stats strip when pricing is ready with at least one model.
+    const available = within(hero).getByTestId('hero-stat-available-models')
+    expect(available).toBeInTheDocument()
+    expect(available.querySelector('span')?.textContent).toBe('1')
+    expect(within(available).getByText('Available models')).toBeInTheDocument()
+
+    const openai = within(hero).getByTestId('hero-stat-openai-compatible')
+    expect(openai).toBeInTheDocument()
+    expect(within(openai).getByText('OpenAI-compatible')).toBeInTheDocument()
+
+    const billing = within(hero).getByTestId(
+      'hero-stat-unified-api-and-billing'
+    )
+    expect(billing).toBeInTheDocument()
+    expect(
+      within(billing).getByText('Unified API and billing')
+    ).toBeInTheDocument()
+
+    // The strip <ul> contains exactly these three <li> children.
+    const statItems = [...within(hero).getAllByRole('listitem')].filter((el) =>
+      [
+        'hero-stat-available-models',
+        'hero-stat-openai-compatible',
+        'hero-stat-unified-api-and-billing',
+      ].some(
+        (id) =>
+          el.querySelector(`[data-testid="${id}"]`) ||
+          el.getAttribute('data-testid') === id
+      )
+    )
+    expect(statItems).toHaveLength(3)
+
+    // "OpenAI-compatible" and "Unified API and billing" are peer facts
+    // in their own <li>; neither is a sub-label of the other.
+    expect(
+      within(openai).queryByText('Unified API and billing')
+    ).not.toBeInTheDocument()
+    expect(
+      within(billing).queryByText('OpenAI-compatible')
+    ).not.toBeInTheDocument()
+
+    // The duplicate v1.2.0 fact pair must not render anywhere on the
+    // hero. The i18n keys are still in the locale files because they
+    // are referenced from elsewhere (admin / future) — only the hero
+    // stats list stops using them.
+    expect(within(hero).queryByText('One bill')).not.toBeInTheDocument()
+    expect(within(hero).queryByText('One API')).not.toBeInTheDocument()
+  })
+
+  it('v1.2.0 hero stats: the dynamic count <li> is omitted while pricing is loading; the two static peer <li> still render', async () => {
+    getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
+    // Never resolve pricing → loading state persists
+    getPricingMock.mockReturnValue(new Promise(() => {}))
+    renderHome()
+    await screen.findByRole('heading', {
+      level: 1,
+      name: "China's frontier AI models. One API.",
+    })
+
+    const hero = getHeroSection()
+    // The live-count <li> must be hidden while pricing is loading.
+    expect(
+      within(hero).queryByTestId('hero-stat-available-models')
+    ).not.toBeInTheDocument()
+    // The two static facts remain in their own <li>.
+    const openai = within(hero).getByTestId('hero-stat-openai-compatible')
+    const billing = within(hero).getByTestId(
+      'hero-stat-unified-api-and-billing'
+    )
+    expect(within(openai).getByText('OpenAI-compatible')).toBeInTheDocument()
+    expect(
+      within(billing).getByText('Unified API and billing')
+    ).toBeInTheDocument()
+    // And the duplicate fact pair is still absent.
+    expect(within(hero).queryByText('One bill')).not.toBeInTheDocument()
+  })
+
+  it('v1.2.0 hero stats: pricing is empty → count <li> omitted, two static peer <li> still render', async () => {
+    getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
+    getPricingMock.mockResolvedValue({
+      success: true,
+      data: [],
+      vendors: [],
+      group_ratio: {},
+      usable_group: {},
+      supported_endpoint: {},
+      auto_groups: [],
+    })
+    renderHome()
+    await screen.findByRole('heading', {
+      level: 1,
+      name: "China's frontier AI models. One API.",
+    })
+
+    const hero = getHeroSection()
+    // Empty array is not "ready with count >= 1" — the live-count <li>
+    // stays hidden. Empty and loading states are intentionally
+    // indistinguishable from the user's point of view.
+    expect(
+      within(hero).queryByTestId('hero-stat-available-models')
+    ).not.toBeInTheDocument()
+    expect(
+      within(hero).getByTestId('hero-stat-openai-compatible')
+    ).toBeInTheDocument()
+    expect(
+      within(hero).getByTestId('hero-stat-unified-api-and-billing')
+    ).toBeInTheDocument()
   })
 
   it('StrictMode: single Home instance renders correctly and pricing query deduplicates', async () => {
@@ -1413,20 +1536,24 @@ describe('P11-B: homepage pricing wiring', () => {
       releasePricing(strictData)
     })
     // The component should render correctly with pricing data.
-    // StrictModel is featured, so it renders in both Available now and the
-    // Live model marketplace - assert presence, not uniqueness.
+    // StrictModel is featured, so it renders in Available now; the
+    // marketplace section is no longer mounted in v1.2.0 so the model
+    // appears exactly once.
     await waitFor(() =>
-      expect(screen.getAllByText('StrictModel').length).toBeGreaterThanOrEqual(
-        1
-      )
+      expect(screen.getByText('StrictModel')).toBeInTheDocument()
     )
-    // StrictVendor appears in the Available now card and Connected providers.
-    expect(screen.getAllByText('StrictVendor').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getByText('AI Models')).toBeInTheDocument()
+    // StrictVendor appears in the Available now card.
+    expect(screen.getByText('StrictVendor')).toBeInTheDocument()
+    // "Available models" is rendered once in the Hero (inline with the
+    // dynamic count) — assert a single, exact occurrence.
+    expect(screen.getByText('Available models')).toBeInTheDocument()
     expect(screen.getByText('Available now')).toBeInTheDocument()
     expect(
-      screen.getAllByText('Live model marketplace').length
-    ).toBeGreaterThanOrEqual(1)
+      screen.queryByRole('heading', {
+        level: 2,
+        name: 'Live model marketplace',
+      })
+    ).not.toBeInTheDocument()
 
     // The pricing hook coalesces in-flight requests per instance, so even
     // React StrictMode's synchronous double-invoke fires exactly one network

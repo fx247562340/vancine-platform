@@ -128,7 +128,7 @@ export function Hero(props: HeroProps) {
             style={{ animationDelay: '120ms' }}
           >
             {t(
-              'Build with leading Chinese models through one OpenAI-compatible endpoint. Use the SDKs and agent tools you already know.'
+              'Access leading Chinese text and multimodal models through one unified API. Keep the SDKs, agent tools, and workflows you already use.'
             )}
           </p>
 
@@ -156,7 +156,7 @@ export function Hero(props: HeroProps) {
                     trackEvent('explore_models_clicked', { location: 'hero' })
                   }
                 >
-                  {t('Explore live models')}
+                  {t('View available models')}
                 </Button>
                 {renderDocsButton()}
               </>
@@ -180,7 +180,7 @@ export function Hero(props: HeroProps) {
                     trackEvent('explore_models_clicked', { location: 'hero' })
                   }
                 >
-                  {t('Explore live models')}
+                  {t('View available models')}
                 </Button>
                 {renderDocsButton()}
               </>
@@ -198,7 +198,7 @@ export function Hero(props: HeroProps) {
               </span>
               <p className='text-muted-foreground/60 text-xs leading-relaxed'>
                 {t(
-                  'Supports one-click configuration and works with Vancine multi-protocol routing.'
+                  'Connect existing clients without changing the way you already work.'
                 )}
               </p>
             </div>
@@ -248,36 +248,52 @@ export function Hero(props: HeroProps) {
             </div>
           </div>
 
-          {/* Hero stats: real model count + constants */}
-          <div
-            className='landing-animate-fade-up mt-8 flex flex-wrap items-center gap-6 opacity-0'
+          {/* Hero stats: three peer <li> facts. The first carries a live
+              model count paired with a "Available models" label (the
+              number is meaningless on its own). The second and third are
+              standalone phrases — "OpenAI-compatible" and "Unified API
+              and billing" — each a single fact in its own <li>. The
+              first <li> is only rendered when pricing is ready and has
+              at least one model, so the strip never shows a lone glyph,
+              a stale number, or a "0" when the data is unknown. When
+              pricing is loading or empty the strip collapses to exactly
+              the two static facts, never a stranded <ul>. */}
+          <ul
+            className='landing-animate-fade-up mt-8 flex flex-wrap items-start gap-x-6 gap-y-4 opacity-0 sm:flex-nowrap'
             style={{ animationDelay: '300ms' }}
           >
             {props.pricing?.status === 'ready' &&
             typeof props.pricing.count === 'number' &&
             props.pricing.count >= 1 ? (
-              <div className='flex flex-col'>
+              <li
+                className='flex min-w-0 flex-col'
+                data-testid='hero-stat-available-models'
+              >
                 <span className='text-2xl font-bold tracking-tight'>
                   {props.pricing.count}
                 </span>
                 <span className='text-muted-foreground text-xs'>
-                  {t('AI Models')}
+                  {t('Available models')}
                 </span>
-              </div>
+              </li>
             ) : null}
-            <div className='flex flex-col'>
-              <span className='text-2xl font-bold tracking-tight'>✓</span>
-              <span className='text-muted-foreground text-xs'>
+            <li
+              className='flex min-w-0 flex-col'
+              data-testid='hero-stat-openai-compatible'
+            >
+              <span className='text-base font-bold tracking-tight'>
                 {t('OpenAI-compatible')}
               </span>
-            </div>
-            <div className='flex flex-col'>
-              <span className='text-2xl font-bold tracking-tight'>1</span>
-              <span className='text-muted-foreground text-xs'>
-                {t('One API')}
+            </li>
+            <li
+              className='flex min-w-0 flex-col'
+              data-testid='hero-stat-unified-api-and-billing'
+            >
+              <span className='text-base font-bold tracking-tight'>
+                {t('Unified API and billing')}
               </span>
-            </div>
-          </div>
+            </li>
+          </ul>
         </div>
 
         {/* Right Column: Hero Terminal API Demo */}

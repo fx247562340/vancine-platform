@@ -45,34 +45,38 @@ export function Evidence() {
 
   const durationSeconds = (evidence.durationMs / 1000).toFixed(1)
 
-  const metrics = [
+  // Four primary metrics that answer the four questions a buyer asks of any
+  // "live-verified" claim: what was tested, how much work it did, did the
+  // test pass, and what did it cost. The OpenCode version / duration / agent
+  // telemetry tokens are intentionally demoted to a single secondary line so
+  // the four headline numbers always fit a 2-col grid on a 390px viewport.
+  const metrics: ReadonlyArray<{ value: string; labelKey: string }> = [
     {
-      value: `${evidence.client} ${evidence.clientVersion}`,
-      label: t('OpenCode version'),
+      value: evidence.model,
+      labelKey: 'Test model',
     },
-    { value: evidence.model, label: t('Model under test') },
-    { value: evidence.modelStepsCompleted, label: t('Model steps') },
     {
-      value:
+      value: String(
         evidence.toolCalls.read.completed +
-        evidence.toolCalls.edit.completed +
-        evidence.toolCalls.bash.completed,
-      label: t('Tool calls'),
+          evidence.toolCalls.edit.completed +
+          evidence.toolCalls.bash.completed
+      ),
+      labelKey: 'Tool calls completed',
     },
     {
       value: t('Passed'),
-      label: t('Tests'),
-    },
-    { value: `${durationSeconds}s`, label: t('Duration') },
-    {
-      value: evidence.telemetryTokens.total.toLocaleString('en-US'),
-      label: t('Agent telemetry tokens'),
+      labelKey: 'Test result',
     },
     {
       value: `$${usage.amount.toFixed(2)} ${usage.currency}`,
-      label: t('Vancine measured usage'),
+      labelKey: 'Vancine measured usage',
     },
   ]
+
+  // The {{client}} slot absorbs the full "OpenCode v1.18.3" string so the
+  // i18n template stays a single token — locale files do not have to know
+  // about the upstream client's English vs. local rendering.
+  const runClient = `${evidence.client} ${evidence.clientVersion}`
 
   return (
     <section className='border-border/40 bg-muted/5 relative z-10 border-y px-6 py-20 md:py-24'>
@@ -92,16 +96,27 @@ export function Evidence() {
           animation='scale-in'
           className='border-border/40 bg-background rounded-2xl border p-6 md:p-10'
         >
-          <dl className='mb-8 grid grid-cols-2 gap-6 md:grid-cols-4'>
+          <dl className='mb-4 grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-4'>
             {metrics.map((m) => (
-              <div key={m.label} className='text-center'>
-                <dt className='text-2xl font-bold'>{m.value}</dt>
-                <dd className='text-muted-foreground mt-1 text-xs'>
-                  {m.label}
-                </dd>
+              <div
+                key={m.labelKey}
+                className='flex flex-col-reverse text-center'
+              >
+                <dt className='text-muted-foreground text-xs'>
+                  {t(m.labelKey)}
+                </dt>
+                <dd className='text-2xl font-bold break-all'>{m.value}</dd>
               </div>
             ))}
           </dl>
+
+          <p className='text-muted-foreground/70 mb-6 text-center text-sm leading-relaxed'>
+            {t('Run details', {
+              client: runClient,
+              duration: `${durationSeconds}s`,
+              tokens: evidence.telemetryTokens.total.toLocaleString('en-US'),
+            })}
+          </p>
 
           <p className='text-muted-foreground/70 mb-6 text-center text-sm leading-relaxed'>
             {t(
