@@ -5358,6 +5358,8 @@
     "Video generation": "影片生成",
     "Video generation uses an async task workflow: submit a generation request, receive a task ID, then poll the task status and retrieve the result.": "影片生成採用異步任務流程：提交生成請求、取得任務 ID，然後輪詢任務狀態並取得結果。",
     "Video length in seconds": "影片時長（秒）",
+    "Video playback failed": "影片播放失敗",
+    "Video Preview": "影片預覽",
     "Video Remix": "影片 Remix",
     "Vidu": "Vidu",
     "View": "查看",

@@ -5358,6 +5358,8 @@
     "Video generation": "Video generation",
     "Video generation uses an async task workflow: submit a generation request, receive a task ID, then poll the task status and retrieve the result.": "Video generation uses an async task workflow: submit a generation request, receive a task ID, then poll the task status and retrieve the result.",
     "Video length in seconds": "Video length in seconds",
+    "Video playback failed": "Video playback failed",
+    "Video Preview": "Video Preview",
     "Video Remix": "Video Remix",
     "Vidu": "Vidu",
     "View": "View",

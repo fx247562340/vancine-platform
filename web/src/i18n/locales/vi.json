@@ -5358,6 +5358,8 @@
     "Video generation": "Tạo video",
     "Video generation uses an async task workflow: submit a generation request, receive a task ID, then poll the task status and retrieve the result.": "Tạo video dùng quy trình tác vụ bất đồng bộ: gửi yêu cầu tạo, nhận ID tác vụ, sau đó thăm dò trạng thái và lấy kết quả.",
     "Video length in seconds": "Độ dài video (giây)",
+    "Video playback failed": "Phát video không thành công",
+    "Video Preview": "Xem trước video",
     "Video Remix": "Remix video",
     "Vidu": "Vidu",
     "View": "Xem",

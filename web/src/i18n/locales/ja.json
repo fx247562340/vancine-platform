@@ -5358,6 +5358,8 @@
     "Video generation": "動画生成",
     "Video generation uses an async task workflow: submit a generation request, receive a task ID, then poll the task status and retrieve the result.": "動画生成は非同期タスクワークフローを使用します。生成リクエストを送信してタスク ID を受け取り、タスクステータスをポーリングして結果を取得します。",
     "Video length in seconds": "動画の長さ（秒）",
+    "Video playback failed": "動画の再生に失敗しました",
+    "Video Preview": "動画プレビュー",
     "Video Remix": "動画 Remix",
     "Vidu": "Vidu",
     "View": "表示",
