@@ -104,7 +104,7 @@ describe('VideoPlayground user flow', () => {
     vi.mocked(getVideoTask).mockReset()
   })
 
-  it('defaults to the earliest key and submits only model and prompt', async () => {
+  it('defaults to the earliest key and submits the full model-driven body', async () => {
     vi.mocked(submitVideoGenerationWithApiKey).mockResolvedValue({
       task_id: 'task-123',
     })
@@ -113,15 +113,6 @@ describe('VideoPlayground user flow', () => {
       status: 'IN_PROGRESS',
     })
     renderVideoPlayground(i18n)
-
-    expect(
-      await screen.findAllByText((_, node) =>
-        Boolean(
-          node?.textContent?.includes('older') &&
-          node.textContent.includes('sk-***1111')
-        )
-      )
-    ).not.toHaveLength(0)
     await fillAndSubmitPrompt()
 
     await waitFor(() => {
@@ -135,6 +126,15 @@ describe('VideoPlayground user flow', () => {
     expect(payload).toEqual({
       model: 'Doubao-Seedance-2.5',
       prompt: 'a cat walks on the moon',
+      duration: 5,
+      metadata: {
+        duration: 5,
+        ratio: '16:9',
+        resolution: '720p',
+        generate_audio: true,
+        watermark: false,
+        return_last_frame: false,
+      },
     })
     expect(document.body.textContent).not.toContain(FAKE_SECRET)
     expect(document.body.textContent).not.toContain(`sk-${FAKE_SECRET}`)
@@ -153,7 +153,8 @@ describe('VideoPlayground user flow', () => {
     const user = userEvent.setup({ pointerEventsCheck: 0 })
     renderVideoPlayground(i18n)
     await readyGenerateButton()
-    await user.click(screen.getByLabelText('API Key'))
+    await user.click(screen.getByLabelText('Connection settings'))
+    await user.click(await screen.findByLabelText('API Key'))
     const newer = await screen.findByRole('option', { name: /newer/ })
     await user.click(newer)
     await waitFor(() => {
@@ -224,10 +225,7 @@ describe('VideoPlayground user flow', () => {
     })
     const { client } = renderVideoPlayground(i18n)
     await readyGenerateButton()
-    expect(loadVideoApiSecret).toHaveBeenCalledWith(
-        2,
-        expect.any(AbortSignal)
-      )
+    expect(loadVideoApiSecret).toHaveBeenCalledWith(2, expect.any(AbortSignal))
 
     vi.mocked(listUsableVideoApiKeys).mockResolvedValue([
       {

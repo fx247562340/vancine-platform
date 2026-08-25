@@ -101,7 +101,7 @@ describe('VideoPlayground keyboard, focus, mobile, and submit lock', () => {
     renderVideoPlayground(i18n)
     const prompt = await screen.findByLabelText('Prompt')
     await readyGenerateButton()
-    expect(screen.getByLabelText('API Key')).toBeTruthy()
+    expect(screen.getByLabelText('Connection settings')).toBeTruthy()
     expect(screen.getByLabelText('Video model')).toBeTruthy()
 
     await user.type(prompt, 'a cat walks on the moon')
@@ -157,7 +157,7 @@ describe('VideoPlayground keyboard, focus, mobile, and submit lock', () => {
     renderVideoPlayground(i18n, undefined, { innerWidth: 375 })
     await readyGenerateButton()
     const page = screen.getByTestId('video-playground-page')
-    expect(screen.getByLabelText('API Key')).toBeTruthy()
+    expect(screen.getByLabelText('Connection settings')).toBeTruthy()
     expect(screen.getByLabelText('Video model')).toBeTruthy()
     expect(screen.getByLabelText('Prompt')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Generate' })).toBeTruthy()

@@ -14,15 +14,14 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-For commercial licensing, please contact support@quantumnous.com
+For commercial licensing, please contact support@quantumnous.com.
 */
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Video01Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { useMutation } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useEffect, useMemo, useState } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -36,70 +35,58 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 
-import { defaultVideoApiKey, submitVideoGenerationWithApiKey } from './api'
-import { ApiKeySelector } from './components/api-key-selector'
+import { ComposerForm } from './components/composer-form'
+import { ConnectionSettings } from './components/connection-settings'
 import { VideoModelSelector } from './components/model-selector'
-import { VideoSubmitCard } from './components/submit-card'
-import { VideoTaskStatus } from './components/task-status'
-import { VideoResult } from './components/video-result'
-import { VIDEO_TASK_FAILURE, VIDEO_TASK_SUCCESS } from './constants'
-import { useVideoKeys } from './hooks/use-video-keys'
+import { useVideoConnection } from './hooks/use-video-connection'
 import { useVideoModels } from './hooks/use-video-models'
 import { useVideoApiSecret } from './hooks/use-video-secret'
-import { useVideoTask, videoTaskQueryError } from './hooks/use-video-task'
-import { videoPlaygroundErrorText, VideoPlaygroundError } from './lib/errors'
-import { videoFormSchema, type VideoFormValues } from './lib/form-schema'
 import {
-  isTerminalVideoTaskStatus,
-  resolvePlaygroundVideoUrl,
-} from './lib/task'
+  getVideoModelCapability,
+  type VideoCapability,
+} from './lib/capabilities'
+import { videoPlaygroundErrorText } from './lib/errors'
+import { videoFormSchema, type VideoFormValues } from './lib/form-schema'
+import { useResourceStore } from './lib/use-resource-store'
 
 export function VideoPlayground() {
   const { t, i18n } = useTranslation()
-  const [keyId, setKeyId] = useState<number | null>(null)
   const [model, setModel] = useState('')
-  const [taskId, setTaskId] = useState<string | null>(null)
-  const [submitError, setSubmitError] = useState<VideoPlaygroundError | null>(
-    null
-  )
+  const [preflightError, setPreflightError] = useState<string | null>(null)
 
-  const keysQuery = useVideoKeys()
+  const connection = useVideoConnection()
+  const {
+    selectedId: keyId,
+    setSelectedId: setKeyId,
+    keys,
+    loadError: keysLoadError,
+    isLoading: keysIsLoading,
+    isFetched: keysIsFetched,
+    isError: keysIsError,
+  } = connection
   const secret = useVideoApiSecret()
   const { load: loadSecret, clear: clearSecret } = secret
   const modelsQuery = useVideoModels(keyId, loadSecret)
-  const taskQuery = useVideoTask(taskId)
-  const generation = useMutation({
-    mutationFn: async (values: VideoFormValues) => {
-      if (keyId == null) {
-        throw new VideoPlaygroundError({
-          kind: 'system',
-          errorKey: 'Failed to load API key',
-        })
-      }
-      const apiKey = await loadSecret(keyId)
-      return submitVideoGenerationWithApiKey(
-        apiKey,
-        { model, prompt: values.prompt.trim() },
-        i18n.language
-      )
-    },
-    onError: () => {},
-  })
+  const resourceStore = useResourceStore()
 
   const form = useForm<VideoFormValues>({
     resolver: zodResolver(videoFormSchema),
-    defaultValues: { prompt: '' },
+    defaultValues: {
+      prompt: '',
+      mode: 'textToVideo',
+      durationMode: 'fixed',
+      durationSeconds: 5,
+      ratio: '16:9',
+      resolution: '720p',
+      generateAudio: true,
+      watermark: false,
+      returnLastFrame: false,
+      seed: '',
+      batchCount: 1,
+    },
   })
 
-  useEffect(() => {
-    if (!keysQuery.isFetched) return
-    const exists =
-      keyId != null && keysQuery.keys.some((item) => item.id === keyId)
-    if (exists) return
-    clearSecret()
-    setKeyId(defaultVideoApiKey(keysQuery.keys)?.id ?? null)
-  }, [keysQuery.isFetched, keysQuery.keys, keyId, clearSecret])
-
+  // Auto-select the first model when models load.
   useEffect(() => {
     if (!modelsQuery.isFetched) return
     const exists = modelsQuery.models.some((item) => item.value === model)
@@ -107,67 +94,111 @@ export function VideoPlayground() {
     setModel(modelsQuery.models[0]?.value ?? '')
   }, [modelsQuery.isFetched, modelsQuery.models, model])
 
-  const task = taskQuery.data
-  const queryError = taskQuery.isError
-    ? videoTaskQueryError(taskQuery.error)
-    : null
-  const isTaskPending = Boolean(
-    taskId && !queryError && (!task || !isTerminalVideoTaskStatus(task.status))
+  const capability = useMemo(
+    () => (model ? getVideoModelCapability(model) : undefined),
+    [model]
+  ) as VideoCapability | undefined
+
+  // Clear stale preflight errors when the user edits the form so
+  // the alert is not sticky. We subscribe once and let the
+  // subscription run for the lifetime of the page.
+  useEffect(() => {
+    const subscription = form.watch(() => {
+      if (preflightError) setPreflightError(null)
+    })
+    return () => subscription.unsubscribe()
+  }, [form, preflightError])
+
+  useEffect(() => {
+    setPreflightError(null)
+  }, [
+    resourceStore.images.length,
+    resourceStore.videos.length,
+    resourceStore.audios.length,
+  ])
+
+  const currentMode = useWatch({ control: form.control, name: 'mode' })
+  const batchCount = useWatch({ control: form.control, name: 'batchCount' })
+  const durationSeconds = useWatch({
+    control: form.control,
+    name: 'durationSeconds',
+  })
+  const resolution = useWatch({ control: form.control, name: 'resolution' })
+
+  const composition = useMemo(
+    () => ({
+      images: resourceStore.images.length,
+      videos: resourceStore.videos.length,
+      audios: resourceStore.audios.length,
+      durationSeconds,
+      resolution,
+    }),
+    [
+      durationSeconds,
+      resolution,
+      resourceStore.audios.length,
+      resourceStore.images.length,
+      resourceStore.videos.length,
+    ]
   )
-  const isBusy = generation.isPending || isTaskPending
+
+  const handlePreflightError = (reasonKey: string) => {
+    setPreflightError(reasonKey)
+  }
+
   const canSubmit =
-    keysQuery.isFetched &&
-    !keysQuery.isError &&
+    keysIsFetched &&
+    !keysIsError &&
     keyId != null &&
     modelsQuery.isFetched &&
     !modelsQuery.isError &&
     Boolean(model) &&
-    modelsQuery.models.length > 0 &&
-    !isBusy
-
-  const videoUrl = task ? resolvePlaygroundVideoUrl(task) : null
-  const failureMessage =
-    task?.status === VIDEO_TASK_FAILURE
-      ? task.fail_reason?.trim() || t('Task failed')
-      : null
+    Boolean(capability) &&
+    modelsQuery.models.length > 0
 
   return (
     <div
       data-testid='video-playground-page'
       className='flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto'
     >
-      <div className='mx-auto flex w-full max-w-5xl flex-col gap-6 p-4 md:p-6'>
+      <div className='mx-auto flex w-full max-w-6xl flex-col gap-6 p-4 md:p-6'>
         <header className='flex flex-col gap-4'>
-          <div className='flex flex-col gap-1'>
-            <h1 className='text-2xl font-semibold'>{t('Video generation')}</h1>
-            <p className='text-muted-foreground text-sm'>
-              {t('Select a video model to start generating.')}
-            </p>
-          </div>
-          <div className='grid gap-4 md:grid-cols-2'>
-            <ApiKeySelector
-              keys={keysQuery.keys}
+          <div className='flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between'>
+            <div>
+              <h1 className='text-2xl font-semibold'>
+                {t('Video generation')}
+              </h1>
+              <p className='text-muted-foreground text-sm'>
+                {t(
+                  'Generate videos with Seedance 2.0 / 2.5 and reference assets.'
+                )}
+              </p>
+            </div>
+            <ConnectionSettings
+              keys={keys}
               selectedId={keyId}
-              disabled={isBusy || keysQuery.isLoading}
               onChange={(id) => {
                 clearSecret()
                 setModel('')
                 setKeyId(id)
+                setPreflightError(null)
               }}
-            />
-            <VideoModelSelector
-              models={modelsQuery.models}
-              selectedModel={model}
-              onChange={setModel}
-              disabled={isBusy || modelsQuery.isLoading || keyId == null}
+              isLoading={keysIsLoading}
+              disabled={false}
             />
           </div>
+          <VideoModelSelector
+            models={modelsQuery.models}
+            selectedModel={model}
+            onChange={setModel}
+            disabled={modelsQuery.isLoading || keyId == null}
+          />
         </header>
 
-        {keysQuery.loadError ? (
+        {keysLoadError ? (
           <Alert variant='destructive'>
             <AlertDescription>
-              {videoPlaygroundErrorText(keysQuery.loadError, t)}
+              {videoPlaygroundErrorText(keysLoadError, t)}
             </AlertDescription>
           </Alert>
         ) : null}
@@ -179,11 +210,16 @@ export function VideoPlayground() {
           </Alert>
         ) : null}
 
-        {keysQuery.isFetched && keysQuery.keys.length === 0 ? (
+        {keysIsFetched && keys.length === 0 ? (
           <Empty>
             <EmptyHeader>
               <EmptyMedia variant='icon'>
-                <HugeiconsIcon icon={Video01Icon} strokeWidth={2} aria-hidden />
+                <HugeiconsIcon
+                  icon={Video01Icon}
+                  strokeWidth={2}
+                  aria-hidden
+                  data-icon='empty'
+                />
               </EmptyMedia>
               <EmptyTitle>{t('No API keys available')}</EmptyTitle>
               <EmptyDescription>
@@ -204,7 +240,12 @@ export function VideoPlayground() {
           <Empty>
             <EmptyHeader>
               <EmptyMedia variant='icon'>
-                <HugeiconsIcon icon={Video01Icon} strokeWidth={2} aria-hidden />
+                <HugeiconsIcon
+                  icon={Video01Icon}
+                  strokeWidth={2}
+                  aria-hidden
+                  data-icon='empty'
+                />
               </EmptyMedia>
               <EmptyTitle>{t('No video models available')}</EmptyTitle>
               <EmptyDescription>
@@ -214,51 +255,23 @@ export function VideoPlayground() {
           </Empty>
         ) : null}
 
-        <VideoSubmitCard
-          form={form}
-          disabled={isBusy}
-          canSubmit={canSubmit}
-          onSubmit={async (values) => {
-            setSubmitError(null)
-            setTaskId(null)
-            try {
-              const result = await generation.mutateAsync(values)
-              setTaskId(result.task_id ?? result.id ?? null)
-            } catch (error) {
-              if (error instanceof VideoPlaygroundError) {
-                setSubmitError(error)
-                return
-              }
-              setSubmitError(
-                new VideoPlaygroundError({
-                  kind: 'system',
-                  errorKey: 'Video generation failed',
-                })
-              )
-            }
-          }}
-        />
-
-        {submitError ? (
-          <Alert variant='destructive'>
-            <AlertDescription>
-              {videoPlaygroundErrorText(submitError, t)}
-            </AlertDescription>
-          </Alert>
-        ) : null}
-
-        <VideoTaskStatus
-          taskId={taskId}
-          isPending={isTaskPending}
-          queryError={queryError}
-          onRetry={() => {
-            void taskQuery.refetch()
-          }}
-          failureMessage={failureMessage}
-        />
-
-        {task?.status === VIDEO_TASK_SUCCESS ? (
-          <VideoResult taskId={task.task_id} videoUrl={videoUrl} />
+        {capability ? (
+          <ComposerForm
+            form={form}
+            capability={capability}
+            mode={currentMode}
+            composition={composition}
+            resourceStore={resourceStore}
+            onPreflightError={handlePreflightError}
+            canSubmit={canSubmit}
+            keyId={keyId}
+            modelId={model}
+            language={i18n.language}
+            batchCount={batchCount}
+            preflightError={preflightError}
+            loadSecret={loadSecret}
+            clearSecret={clearSecret}
+          />
         ) : null}
       </div>
     </div>

@@ -1,4 +1,8 @@
 {
+  "@Audio{{n}}": "@Audio{{n}}",
+  "@Image{{n}}": "@Image{{n}}",
+  "@Video{{n}}": "@Video{{n}}",
+  "asset://<id>": "asset://<id>",
   "Claude Code": "Claude Code",
   "Google": "Google",
   "Kimi K3 API": "Kimi K3 API",

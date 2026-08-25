@@ -14,33 +14,19 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-For commercial licensing, please contact support@quantumnous.com
+For commercial licensing, please contact support@quantumnous.com.
 */
 import { describe, expect, it } from 'vitest'
 
-import { videoFormSchema } from '../form-schema'
+import { readMediaDuration } from '../media-duration'
 
-const valid = {
-  prompt: 'a cat',
-  mode: 'textToVideo' as const,
-  durationMode: 'fixed' as const,
-  durationSeconds: 5,
-  ratio: '16:9' as const,
-  resolution: '720p' as const,
-  generateAudio: true,
-  watermark: false,
-  returnLastFrame: false,
-  seed: '',
-  batchCount: 1,
-}
-
-describe('videoFormSchema', () => {
-  it('requires a non-empty prompt', () => {
-    expect(videoFormSchema.safeParse({ ...valid, prompt: '   ' }).success).toBe(
-      false
+describe('readMediaDuration', () => {
+  it('returns undefined (never 0) when the media element cannot load', async () => {
+    const result = await readMediaDuration(
+      'data:audio/wav;base64,AAAA',
+      'audio/wav'
     )
-    expect(
-      videoFormSchema.safeParse({ ...valid, prompt: 'a cat' }).success
-    ).toBe(true)
+    expect(result).toBeUndefined()
+    expect(result).not.toBe(0)
   })
 })

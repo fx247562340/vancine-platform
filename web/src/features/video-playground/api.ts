@@ -168,9 +168,15 @@ export async function submitVideoGenerationWithApiKey(
   language?: string,
   signal?: AbortSignal
 ): Promise<{ id?: string; task_id?: string }> {
-  const body = {
+  const body: Record<string, unknown> = {
     model: payload.model,
     prompt: payload.prompt,
+  }
+  if (payload.duration !== undefined) {
+    body.duration = payload.duration
+  }
+  if (payload.metadata) {
+    body.metadata = payload.metadata
   }
   const response = await requestWithApiKey({
     path: VIDEO_PLAYGROUND_ENDPOINTS.V1_GENERATIONS,

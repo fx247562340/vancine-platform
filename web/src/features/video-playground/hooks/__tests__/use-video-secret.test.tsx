@@ -137,4 +137,79 @@ describe('useVideoApiSecret', () => {
       expect.any(AbortSignal)
     )
   })
+
+  it('aborts an in-flight load when the submission signal aborts', async () => {
+    vi.mocked(loadVideoApiSecret).mockImplementation(
+      (_id: number, signal?: AbortSignal) =>
+        new Promise((_resolve, reject) => {
+          signal?.addEventListener('abort', () => {
+            reject(
+              Object.assign(new Error('video-api-secret-cancelled'), {
+                name: 'AbortError',
+              })
+            )
+          })
+        })
+    )
+    const { result } = renderHook(() => useVideoApiSecret())
+    const controller = new AbortController()
+    let outcome: unknown
+    act(() => {
+      result.current.load(4, controller.signal).catch((error: unknown) => {
+        outcome = error
+      })
+    })
+    await act(async () => {
+      controller.abort()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(isVideoApiSecretCancelled(outcome)).toBe(true)
+  })
+
+  it('lets a later subscriber abort without cancelling the shared in-flight load', async () => {
+    const pending = deferred<string>()
+    vi.mocked(loadVideoApiSecret).mockReturnValue(pending.promise)
+    const { result } = renderHook(() => useVideoApiSecret())
+
+    let firstValue = ''
+    let firstError: unknown
+    act(() => {
+      result.current
+        .load(9)
+        .then((value) => {
+          firstValue = value
+        })
+        .catch((error: unknown) => {
+          firstError = error
+        })
+    })
+
+    const secondController = new AbortController()
+    let secondError: unknown
+    act(() => {
+      result.current
+        .load(9, secondController.signal)
+        .catch((error: unknown) => {
+          secondError = error
+        })
+    })
+    expect(loadVideoApiSecret).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      secondController.abort()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(isVideoApiSecretCancelled(secondError)).toBe(true)
+
+    await act(async () => {
+      pending.resolve('shared-secret')
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(firstError).toBeUndefined()
+    expect(firstValue).toBe('sk-shared-secret')
+    expect(loadVideoApiSecret).toHaveBeenCalledTimes(1)
+  })
 })

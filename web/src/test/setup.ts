@@ -70,3 +70,29 @@ if (typeof window !== 'undefined' && typeof window.matchMedia !== 'function') {
     return mql
   }) as typeof window.matchMedia
 }
+
+// jsdom does not implement PointerEvent; Base UI's Switch / Select
+// open via the pressable trigger which dispatches pointer events.
+// Provide a minimal constructor that mirrors MouseEvent so userEvent
+// clicks land cleanly without throwing "PointerEvent is not a
+// constructor".
+if (
+  typeof window !== 'undefined' &&
+  typeof (window as { PointerEvent?: unknown }).PointerEvent === 'undefined'
+) {
+  class PointerEventPolyfill extends MouseEvent {
+    readonly pointerId: number
+    readonly pointerType: string
+    readonly isPrimary: boolean
+    constructor(type: string, init: PointerEventInit & EventInit = {}) {
+      super(type, init)
+      this.pointerId = init.pointerId ?? 0
+      this.pointerType = init.pointerType ?? 'mouse'
+      this.isPrimary = init.isPrimary ?? true
+    }
+  }
+  ;(window as { PointerEvent: typeof PointerEventPolyfill }).PointerEvent =
+    PointerEventPolyfill
+  ;(globalThis as { PointerEvent: typeof PointerEventPolyfill }).PointerEvent =
+    PointerEventPolyfill
+}

@@ -24,7 +24,7 @@ import { VideoPlaygroundError } from '../lib/errors'
 
 export function useVideoModels(
   keyId: number | null,
-  loadSecret: (id: number) => Promise<string>
+  loadSecret: (id: number, signal?: AbortSignal) => Promise<string>
 ) {
   const { i18n } = useTranslation()
 
@@ -32,7 +32,7 @@ export function useVideoModels(
     queryKey: ['video-playground-models', keyId, i18n.language],
     enabled: keyId != null,
     queryFn: async ({ signal }) => {
-      const apiKey = await loadSecret(keyId as number)
+      const apiKey = await loadSecret(keyId as number, signal)
       return getVideoModelsWithApiKey(apiKey, i18n.language, signal)
     },
   })

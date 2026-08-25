@@ -25,6 +25,32 @@ export function isVideoApiSecretCancelled(error: unknown): boolean {
   return error instanceof Error && error.name === 'AbortError'
 }
 
+function abortError(): Error {
+  return Object.assign(new Error('video-api-secret-cancelled'), {
+    name: 'AbortError',
+  })
+}
+
+async function waitWithSignal(
+  promise: Promise<string>,
+  signal?: AbortSignal
+): Promise<string> {
+  if (!signal) return promise
+  if (signal.aborted) throw abortError()
+  let onAbort: (() => void) | undefined
+  const aborted = new Promise<string>((_resolve, reject) => {
+    onAbort = () => reject(abortError())
+    signal.addEventListener('abort', onAbort)
+  })
+  try {
+    const value = await Promise.race([promise, aborted])
+    if (signal.aborted) throw abortError()
+    return value
+  } finally {
+    if (onAbort) signal.removeEventListener('abort', onAbort)
+  }
+}
+
 export function useVideoApiSecret() {
   const secretRef = useRef<string | null>(null)
   const loadedIdRef = useRef<number | null>(null)
@@ -45,12 +71,16 @@ export function useVideoApiSecret() {
 
   useEffect(() => clear, [clear])
 
-  const load = useCallback(async (id: number) => {
+  const load = useCallback(async (id: number, signal?: AbortSignal) => {
+    if (signal?.aborted) {
+      throw abortError()
+    }
     if (loadedIdRef.current === id && secretRef.current) {
       return secretRef.current
     }
+
     if (inflightRef.current?.id === id) {
-      return inflightRef.current.promise
+      return waitWithSignal(inflightRef.current.promise, signal)
     }
 
     abortRef.current?.abort()
@@ -65,10 +95,8 @@ export function useVideoApiSecret() {
     const promise = (async () => {
       try {
         const raw = await loadVideoApiSecret(id, controller.signal)
-        if (generation !== generationRef.current) {
-          throw Object.assign(new Error('video-api-secret-cancelled'), {
-            name: 'AbortError',
-          })
+        if (generation !== generationRef.current || controller.signal.aborted) {
+          throw abortError()
         }
         const normalized = bearerApiKey(raw)
         secretRef.current = normalized
@@ -85,7 +113,7 @@ export function useVideoApiSecret() {
     })()
 
     inflightRef.current = { id, promise }
-    return promise
+    return waitWithSignal(promise, signal)
   }, [])
 
   return useMemo(() => ({ load, clear }), [load, clear])

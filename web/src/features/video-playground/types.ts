@@ -21,9 +21,38 @@ export type VideoModelOption = {
   value: string
 }
 
+export type VideoSubmitMetadata = {
+  content?: ReadonlyArray<{
+    type: 'text' | 'image_url' | 'video_url' | 'audio_url'
+    text?: string
+    image_url?: { url: string }
+    video_url?: { url: string }
+    audio_url?: { url: string }
+    role?:
+      | 'first_frame'
+      | 'last_frame'
+      | 'reference_image'
+      | 'reference_video'
+      | 'reference_audio'
+  }>
+  ratio?: '16:9' | '4:3' | '1:1' | '3:4' | '9:16' | '21:9' | 'adaptive'
+  resolution?: '480p' | '720p' | '1080p' | '4k'
+  generate_audio?: boolean
+  seed?: number
+  watermark?: boolean
+  return_last_frame?: boolean
+  /**
+   * Mirrored to the top-level `duration`. The doubao adaptor and
+   * any future standard-schema adaptor read it from either place.
+   */
+  duration?: number
+}
+
 export type VideoSubmitPayload = {
   model: string
   prompt: string
+  duration?: number
+  metadata?: VideoSubmitMetadata
 }
 
 export type VideoTask = {

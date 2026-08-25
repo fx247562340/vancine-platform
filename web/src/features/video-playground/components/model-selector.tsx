@@ -37,13 +37,15 @@ type VideoModelSelectorProps = {
   disabled?: boolean
 }
 
-export function VideoModelSelector({
-  models,
-  selectedModel,
-  onChange,
-  disabled,
-}: VideoModelSelectorProps) {
+export function VideoModelSelector(props: VideoModelSelectorProps) {
   const { t } = useTranslation()
+  const items = [
+    { value: null, label: t('Select a video model') },
+    ...props.models.map((model) => ({
+      value: model.value,
+      label: model.label,
+    })),
+  ]
 
   return (
     <FieldGroup>
@@ -52,22 +54,23 @@ export function VideoModelSelector({
           {t('Video model')}
         </FieldLabel>
         <Select
-          value={selectedModel}
+          items={items}
+          value={props.selectedModel === '' ? null : props.selectedModel}
           onValueChange={(value) => {
-            if (value) onChange(value)
+            if (value) props.onChange(value)
           }}
-          disabled={disabled || models.length === 0}
+          disabled={props.disabled || props.models.length === 0}
         >
           <SelectTrigger
             id='video-playground-model'
             aria-label={t('Video model')}
             className='max-w-full min-w-0'
           >
-            <SelectValue placeholder={t('Select a video model')} />
+            <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
-              {models.map((model) => (
+              {props.models.map((model) => (
                 <SelectItem key={model.value} value={model.value}>
                   {model.label}
                 </SelectItem>
