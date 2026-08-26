@@ -130,7 +130,7 @@ export function TaskQueueItem({
         ) : null}
         {submitStatus === 'failed' && submitError ? (
           <Alert variant='destructive'>
-            <AlertTitle>{t('Submission failed')}</AlertTitle>
+            <AlertTitle>{t('Failed')}</AlertTitle>
             <AlertDescription>
               {videoPlaygroundErrorText(submitError, t)}
             </AlertDescription>
@@ -227,6 +227,20 @@ type StatusBadgeProps = {
   isPending: boolean
 }
 
+/**
+ * Six canonical labels — no seventh "Pending" fallback. Mapping:
+ *   submitting          → Submitting
+ *   pending             → Queued
+ *   cancelled           → Cancelled
+ *   failed (submit)     → Failed
+ *   queryStatus SUCCESS → Completed
+ *   queryStatus FAILURE → Failed
+ *   submitStatus polling + !terminal → Running
+ * The polling branch wins even on a query error: a transient 503 must
+ * not surface as Failed, and a still-fetching first call must not
+ * hide Running. The dedicated error Alert in TaskQueueItem carries
+ * the query error; the badge keeps the polling semantic.
+ */
 function StatusBadge({ status, queryStatus, isPending }: StatusBadgeProps) {
   const { t } = useTranslation()
   if (status === 'submitting') {
@@ -262,20 +276,14 @@ function StatusBadge({ status, queryStatus, isPending }: StatusBadgeProps) {
           aria-hidden
           data-icon='inline-start'
         />
-        {t('Submission failed')}
+        {t('Failed')}
       </Badge>
     )
   }
-  if (isPending) {
+  if (status === 'pending') {
     return (
-      <Badge variant='secondary' className='gap-1'>
-        <HugeiconsIcon
-          icon={Loading03Icon}
-          aria-hidden
-          data-icon='inline-start'
-          className='animate-spin'
-        />
-        {t('Generating')}
+      <Badge variant='outline' className='gap-1'>
+        {t('Queued')}
       </Badge>
     )
   }
@@ -287,7 +295,7 @@ function StatusBadge({ status, queryStatus, isPending }: StatusBadgeProps) {
           aria-hidden
           data-icon='inline-start'
         />
-        {t('Success')}
+        {t('Completed')}
       </Badge>
     )
   }
@@ -303,5 +311,24 @@ function StatusBadge({ status, queryStatus, isPending }: StatusBadgeProps) {
       </Badge>
     )
   }
-  return <Badge variant='outline'>{t('Pending')}</Badge>
+  // submitStatus is 'polling' (or any other unhandled case where the
+  // task is neither terminal nor locally failed/cancelled/submitting).
+  // The polling label stays on the badge even when the upstream
+  // query has errored — a transient retry failure is not a final
+  // outcome and the dedicated Alert below surfaces the error with a
+  // Retry status button.
+  if (isPending || status === 'polling') {
+    return (
+      <Badge variant='secondary' className='gap-1'>
+        <HugeiconsIcon
+          icon={Loading03Icon}
+          aria-hidden
+          data-icon='inline-start'
+          className='animate-spin'
+        />
+        {t('Running')}
+      </Badge>
+    )
+  }
+  return null
 }

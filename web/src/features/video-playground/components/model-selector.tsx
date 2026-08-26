@@ -35,6 +35,8 @@ type VideoModelSelectorProps = {
   selectedModel: string
   onChange: (model: string) => void
   disabled?: boolean
+  /** Toolbar-sized variant: no stacked field label. */
+  compact?: boolean
 }
 
 export function VideoModelSelector(props: VideoModelSelectorProps) {
@@ -47,37 +49,56 @@ export function VideoModelSelector(props: VideoModelSelectorProps) {
     })),
   ]
 
+  const select = (
+    <Select
+      items={items}
+      value={props.selectedModel === '' ? null : props.selectedModel}
+      onValueChange={(value) => {
+        if (value) props.onChange(value)
+      }}
+      disabled={props.disabled || props.models.length === 0}
+    >
+      <SelectTrigger
+        id='video-playground-model'
+        aria-label={t('Video model')}
+        className={
+          props.compact
+            ? 'h-8 w-auto max-w-56 min-w-0 rounded-lg'
+            : 'max-w-full min-w-0'
+        }
+      >
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectGroup>
+          {props.models.map((model) => (
+            <SelectItem key={model.value} value={model.value}>
+              {model.label}
+            </SelectItem>
+          ))}
+        </SelectGroup>
+      </SelectContent>
+    </Select>
+  )
+
+  if (props.compact) {
+    return (
+      <div className='flex min-w-0 items-center'>
+        <label htmlFor='video-playground-model' className='sr-only'>
+          {t('Video model')}
+        </label>
+        {select}
+      </div>
+    )
+  }
+
   return (
     <FieldGroup>
       <Field>
         <FieldLabel htmlFor='video-playground-model'>
           {t('Video model')}
         </FieldLabel>
-        <Select
-          items={items}
-          value={props.selectedModel === '' ? null : props.selectedModel}
-          onValueChange={(value) => {
-            if (value) props.onChange(value)
-          }}
-          disabled={props.disabled || props.models.length === 0}
-        >
-          <SelectTrigger
-            id='video-playground-model'
-            aria-label={t('Video model')}
-            className='max-w-full min-w-0'
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {props.models.map((model) => (
-                <SelectItem key={model.value} value={model.value}>
-                  {model.label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
+        {select}
       </Field>
     </FieldGroup>
   )

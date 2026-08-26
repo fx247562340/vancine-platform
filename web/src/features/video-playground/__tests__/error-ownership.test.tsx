@@ -20,6 +20,8 @@ import { QueryClient } from '@tanstack/react-query'
 import { screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { routerLinkMock } from '@/test/router-link-mock'
+
 import {
   createVideoPlaygroundI18n,
   fillAndSubmitPrompt,
@@ -45,29 +47,7 @@ vi.mock('@/lib/api', () => ({
   },
 }))
 
-vi.mock('@tanstack/react-router', () => ({
-  Link: ({
-    to,
-    params,
-    children,
-    className,
-  }: {
-    to: string
-    params?: Record<string, string>
-    children: React.ReactNode
-    className?: string
-  }) => {
-    let href = to
-    for (const [key, value] of Object.entries(params ?? {})) {
-      href = href.replace(`$${key}`, value)
-    }
-    return (
-      <a href={href} className={className}>
-        {children}
-      </a>
-    )
-  },
-}))
+vi.mock('@tanstack/react-router', () => routerLinkMock)
 
 function productionLikeClient() {
   return new QueryClient({

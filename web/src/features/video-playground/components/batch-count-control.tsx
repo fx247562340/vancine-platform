@@ -36,15 +36,18 @@ type BatchCountControlProps = {
 export function BatchCountControl(props: BatchCountControlProps) {
   const { t } = useTranslation()
   return (
-    <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
-      <div>
-        <p className='text-sm leading-5 font-medium'>{t('Number of tasks')}</p>
-        <p className='text-muted-foreground text-xs leading-4'>
-          {t(
-            'Each task is billed independently. Use small numbers when iterating.'
-          )}
-        </p>
-      </div>
+    <div className='flex items-center gap-2'>
+      <p className='sr-only'>
+        {t(
+          'Each task is billed independently. Use small numbers when iterating.'
+        )}
+      </p>
+      <span
+        aria-hidden
+        className='text-muted-foreground hidden text-xs lg:inline'
+      >
+        {t('Number of tasks')}
+      </span>
       <ToggleGroup
         value={[String(props.value)]}
         onValueChange={(next) => {
@@ -52,7 +55,8 @@ export function BatchCountControl(props: BatchCountControlProps) {
           if (selected) props.onChange(Number(selected))
         }}
         aria-label={t('Number of tasks')}
-        spacing={2}
+        size='sm'
+        spacing={1}
       >
         {BATCH_OPTIONS.map((option) => (
           <ToggleGroupItem key={option} value={String(option)}>

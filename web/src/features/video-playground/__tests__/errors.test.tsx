@@ -20,6 +20,8 @@ import { act, screen } from '@testing-library/react'
 import type { i18n as I18n } from 'i18next'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { routerLinkMock } from '@/test/router-link-mock'
+
 import {
   getVideoModelsWithApiKey,
   getVideoTask,
@@ -36,29 +38,7 @@ import {
   stubAuthUser,
 } from './test-utils'
 
-vi.mock('@tanstack/react-router', () => ({
-  Link: ({
-    to,
-    params,
-    children,
-    className,
-  }: {
-    to: string
-    params?: Record<string, string>
-    children: React.ReactNode
-    className?: string
-  }) => {
-    let href = to
-    for (const [key, value] of Object.entries(params ?? {})) {
-      href = href.replace(`$${key}`, value)
-    }
-    return (
-      <a href={href} className={className}>
-        {children}
-      </a>
-    )
-  },
-}))
+vi.mock('@tanstack/react-router', () => routerLinkMock)
 
 vi.mock('../api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api')>()

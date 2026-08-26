@@ -16,7 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { ImagePlus, X } from 'lucide-react'
+import { Add01Icon, Cancel01Icon } from '@hugeicons/core-free-icons'
+import { HugeiconsIcon } from '@hugeicons/react'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -38,6 +39,13 @@ type ReferenceImageUploadProps = {
   images: ReferenceImage[]
   disabled?: boolean
   onChange: (images: ReferenceImage[]) => void
+  /**
+   * Hide the inline thumbnail strip. The Canvas Composer Reference
+   * Tray renders the strip itself; the popover body only needs the
+   * add affordance. Validation, count limits, and the file input
+   * lifecycle stay unchanged.
+   */
+  hideThumbnails?: boolean
 }
 
 export function ReferenceImageUpload(props: ReferenceImageUploadProps) {
@@ -93,7 +101,7 @@ export function ReferenceImageUpload(props: ReferenceImageUploadProps) {
       </Label>
       <div
         className={cn(
-          'border-input flex min-h-28 flex-col items-center justify-center rounded-lg border border-dashed px-3 py-4 text-center transition-colors',
+          'border-input bg-muted/20 flex min-h-28 flex-col items-center justify-center rounded-xl border border-dashed px-3 py-4 text-center transition-colors',
           isDragging && 'border-primary bg-muted/40',
           props.disabled && 'opacity-50'
         )}
@@ -125,7 +133,11 @@ export function ReferenceImageUpload(props: ReferenceImageUploadProps) {
             }
           }}
         />
-        <ImagePlus className='text-muted-foreground mb-2 size-5' aria-hidden />
+        <HugeiconsIcon
+          icon={Add01Icon}
+          aria-hidden
+          className='text-muted-foreground mb-2'
+        />
         <p className='text-muted-foreground text-sm'>
           {t('Drop images here or choose files')}
         </p>
@@ -140,7 +152,7 @@ export function ReferenceImageUpload(props: ReferenceImageUploadProps) {
           {t('Choose files')}
         </Button>
       </div>
-      {props.images.length > 0 ? (
+      {props.images.length > 0 && !props.hideThumbnails ? (
         <ul className='flex flex-wrap gap-2'>
           {props.images.map((image) => (
             <li key={image.id} className='relative size-20'>
@@ -171,7 +183,11 @@ export function ReferenceImageUpload(props: ReferenceImageUploadProps) {
                   )
                 }
               >
-                <X className='size-3' aria-hidden />
+                <HugeiconsIcon
+                  icon={Cancel01Icon}
+                  aria-hidden
+                  data-icon='inline-start'
+                />
               </Button>
             </li>
           ))}

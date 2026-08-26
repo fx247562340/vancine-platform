@@ -28,6 +28,7 @@ import { I18nextProvider, initReactI18next } from 'react-i18next'
 import { afterEach, expect } from 'vitest'
 
 import { useAuthStore } from '@/stores/auth-store'
+import { routerLinkMock } from '@/test/router-link-mock'
 
 import { VideoPlayground } from '../index'
 
@@ -209,7 +210,10 @@ afterEach(() => {
 
 export function installMatchMediaMock(innerWidth: number) {
   const originalMatchMedia = window.matchMedia
-  const originalInnerWidth = window.innerWidth
+  const originalInnerWidthDescriptor = Object.getOwnPropertyDescriptor(
+    window,
+    'innerWidth'
+  )
   Object.defineProperty(window, 'innerWidth', {
     configurable: true,
     writable: true,
@@ -234,12 +238,14 @@ export function installMatchMediaMock(innerWidth: number) {
     }
   }) as typeof window.matchMedia
   return () => {
+    // Restore the original property descriptor, not just the value, so
+    // the next test sees the pristine window.innerWidth definition.
     window.matchMedia = originalMatchMedia
-    Object.defineProperty(window, 'innerWidth', {
-      configurable: true,
-      writable: true,
-      value: originalInnerWidth,
-    })
+    if (originalInnerWidthDescriptor) {
+      Object.defineProperty(window, 'innerWidth', originalInnerWidthDescriptor)
+    } else {
+      delete (window as unknown as { innerWidth?: number }).innerWidth
+    }
   }
 }
 
@@ -287,26 +293,4 @@ export async function fillAndSubmitPrompt(prompt = 'a cat walks on the moon') {
   return user
 }
 
-export const routerLinkMock = {
-  Link: ({
-    to,
-    params,
-    children,
-    className,
-  }: {
-    to: string
-    params?: Record<string, string>
-    children: React.ReactNode
-    className?: string
-  }) => {
-    let href = to
-    for (const [key, value] of Object.entries(params ?? {})) {
-      href = href.replace(`$${key}`, value)
-    }
-    return (
-      <a href={href} className={className}>
-        {children}
-      </a>
-    )
-  },
-}
+export { routerLinkMock }

@@ -30,9 +30,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useAuthStore } from '@/stores/auth-store'
 import { useImagePlaygroundStore } from '@/stores/image-playground-store'
+import { routerLinkMock } from '@/test/router-link-mock'
 
 const apiPostMock = vi.hoisted(() => vi.fn())
 const apiGetMock = vi.hoisted(() => vi.fn())
+
+vi.mock('@tanstack/react-router', () => routerLinkMock)
 
 vi.mock('@/lib/api', () => ({
   api: { post: apiPostMock, get: apiGetMock },

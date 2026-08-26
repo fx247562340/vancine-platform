@@ -14,16 +14,15 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-For commercial licensing, please contact support@quantumnous.com
+For commercial licensing, please contact support@quantumnous.com.
 */
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useMemo, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
 import { ModelGroupSelector } from '@/components/model-group-selector'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import {
   Form,
   FormControl,
@@ -33,11 +32,14 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Textarea } from '@/components/ui/textarea'
+import { CanvasComposerShell } from '@/features/media-playground/components/canvas-composer-shell'
+import { MediaPlaygroundHeader } from '@/features/media-playground/components/media-playground-header'
 
-import { AdvancedSettings } from './components/advanced-settings'
+import { ImageAdvancedPopover } from './components/image-advanced-popover'
+import { ImageReferenceTray } from './components/image-reference-tray'
 import { ImageResults } from './components/image-results'
-import { ReferenceImageUpload } from './components/reference-image-upload'
 import { useImageCapabilities } from './hooks/use-image-capabilities'
 import { useImageGenerate } from './hooks/use-image-generate'
 import {
@@ -159,31 +161,69 @@ export function ImagePlayground() {
     return presetValue
   }
 
+  const supportsTray = Boolean(profile && profile.maxReferenceImages > 0)
+  const hasAdvanced = Boolean(
+    profile &&
+    (profile.supportsNegativePrompt ||
+      profile.supportsSeed ||
+      profile.supportsWatermark ||
+      profile.supportsPromptExtend ||
+      profile.supportsPromptExtendMode ||
+      profile.supportsThinkingMode)
+  )
+
+  // Always-mounted business invariants. The Advanced popover/sheet
+  // content unmounts when closed, so invariant effects that must
+  // stay in force even while the panel is hidden live here on the
+  // page rather than inside the panel component. This prevents stale
+  // form values from leaking into the next submit after the user
+  // closes the panel, edits reference images, or flips prompt_extend.
+  //
+  // Both effects use useWatch for the value they read, so the
+  // subscription is explicit and the deps array captures it
+  // precisely. Calling form.watch() inside the effect body would
+  // NOT subscribe the effect to that field's changes.
+  const promptExtendMode = useWatch({
+    control: form.control,
+    name: 'promptExtendMode',
+  })
+  const referencesLength = references.length
+  useEffect(() => {
+    if (!profile?.supportsPromptExtendMode) return
+    if (profile.agentRequiresNoRefs && referencesLength > 0) {
+      if (promptExtendMode === 'agent') {
+        form.setValue('promptExtendMode', 'direct', { shouldDirty: true })
+      }
+    }
+  }, [profile, referencesLength, promptExtendMode, form])
+
+  const promptExtend = useWatch({
+    control: form.control,
+    name: 'promptExtend',
+  })
+  useEffect(() => {
+    if (!profile?.thinkingRequiresExtend) return
+    if (promptExtend) return
+    if (form.getValues('thinkingMode')) {
+      form.setValue('thinkingMode', false, { shouldDirty: true })
+    }
+  }, [profile, promptExtend, form])
+
   return (
     <div
       data-testid='image-playground-scroll'
       className='flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto'
     >
       <div className='mx-auto flex w-full max-w-5xl flex-col gap-6 p-4 md:p-6'>
-        <header className='flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between'>
-          <div className='space-y-1'>
-            <h1 className='text-2xl font-semibold'>{t('Image generation')}</h1>
-            <p className='text-muted-foreground text-sm'>
-              {selected?.provider
-                ? t('Provider: {{name}}', { name: selected.provider })
-                : t('Select an image model to start generating.')}
-            </p>
-          </div>
-          <ModelGroupSelector
-            selectedModel={model}
-            models={modelOptions}
-            onModelChange={handleModelChange}
-            selectedGroup={group}
-            groups={capabilities.groups}
-            onGroupChange={setGroup}
-            disabled={generation.isGenerating || capabilities.isLoading}
-          />
-        </header>
+        <MediaPlaygroundHeader
+          title={t('Image generation')}
+          subtitle={
+            selected?.provider
+              ? t('Provider: {{name}}', { name: selected.provider })
+              : t('Select an image model to start generating.')
+          }
+          active='image'
+        />
 
         {capabilities.isError ? (
           <p className='text-destructive text-sm' role='alert'>
@@ -234,46 +274,29 @@ export function ImagePlayground() {
               }
             })}
           >
-            <Card>
-              <CardContent className='space-y-4'>
-                {profile && profile.maxReferenceImages > 0 ? (
-                  <ReferenceImageUpload
-                    profile={profile}
-                    images={references}
-                    disabled={generation.isGenerating}
-                    onChange={setReferences}
-                  />
-                ) : null}
-                <FormField
-                  control={form.control}
-                  name='prompt'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('Prompt')}</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          disabled={generation.isGenerating}
-                          className='min-h-32'
-                          placeholder={t(
-                            'Describe the image you want to generate'
-                          )}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+            <CanvasComposerShell
+              toolbar={
+                <ModelGroupSelector
+                  selectedModel={model}
+                  models={modelOptions}
+                  onModelChange={handleModelChange}
+                  selectedGroup={group}
+                  groups={capabilities.groups}
+                  onGroupChange={setGroup}
+                  disabled={generation.isGenerating || capabilities.isLoading}
                 />
-                <div className='grid grid-cols-1 gap-4 sm:grid-cols-3'>
+              }
+              footer={
+                <>
                   <FormField
                     control={form.control}
                     name='size'
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('Size')}</FormLabel>
+                        <FormLabel className='sr-only'>{t('Size')}</FormLabel>
                         <FormControl>
-                          <select
-                            className='border-input bg-background h-9 w-full rounded-lg border px-2.5 text-sm'
+                          <NativeSelect
+                            size='sm'
                             disabled={!profile || generation.isGenerating}
                             value={resolveSizeSelectValue(field.value)}
                             onChange={(event) => {
@@ -292,9 +315,9 @@ export function ImagePlayground() {
                             }}
                           >
                             {profile?.supportsAutoSize ? (
-                              <option value={AUTO_SIZE_VALUE}>
+                              <NativeSelectOption value={AUTO_SIZE_VALUE}>
                                 {t('Auto')}
-                              </option>
+                              </NativeSelectOption>
                             ) : null}
                             {(profile?.sizes ?? []).map((size) => {
                               if (
@@ -304,17 +327,17 @@ export function ImagePlayground() {
                                 return null
                               }
                               return (
-                                <option key={size} value={size}>
+                                <NativeSelectOption key={size} value={size}>
                                   {size}
-                                </option>
+                                </NativeSelectOption>
                               )
                             })}
                             {profile?.supportsCustomSize ? (
-                              <option value={CUSTOM_SIZE_VALUE}>
+                              <NativeSelectOption value={CUSTOM_SIZE_VALUE}>
                                 {t('Custom size')}
-                              </option>
+                              </NativeSelectOption>
                             ) : null}
-                          </select>
+                          </NativeSelect>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -325,12 +348,14 @@ export function ImagePlayground() {
                     name='n'
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('Number of images')}</FormLabel>
+                        <FormLabel className='text-muted-foreground hidden text-xs lg:inline'>
+                          {t('Number of images')}
+                        </FormLabel>
                         <FormControl>
-                          <select
-                            className='border-input bg-background h-9 w-full rounded-lg border px-2.5 text-sm'
+                          <NativeSelect
+                            size='sm'
                             disabled={!profile || generation.isGenerating}
-                            value={field.value}
+                            value={String(field.value)}
                             onChange={(event) =>
                               field.onChange(Number(event.target.value))
                             }
@@ -345,106 +370,156 @@ export function ImagePlayground() {
                                   },
                                   (_, index) => profile.nRange.min + index
                                 ).map((value) => (
-                                  <option key={value} value={value}>
+                                  <NativeSelectOption
+                                    key={value}
+                                    value={String(value)}
+                                  >
                                     {value}
-                                  </option>
+                                  </NativeSelectOption>
                                 ))
                               : null}
-                          </select>
+                          </NativeSelect>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  <div className='flex items-end'>
+                  {profile && hasAdvanced ? (
+                    <ImageAdvancedPopover
+                      profile={profile}
+                      references={references}
+                      disabled={generation.isGenerating}
+                      open={advancedOpen}
+                      onOpenChange={setAdvancedOpen}
+                    />
+                  ) : null}
+                  <div className='ms-auto flex items-center gap-2'>
                     <Button
                       type='submit'
-                      className='w-full'
+                      className='h-9 rounded-xl px-5'
                       disabled={!canSubmit}
                     >
                       {t('Generate')}
                     </Button>
                   </div>
-                </div>
-                {profile?.supportsCustomSize && sizeMode === 'custom' ? (
-                  <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
-                    <FormField
-                      control={form.control}
-                      name='customWidth'
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t('Width')}</FormLabel>
-                          <FormControl>
-                            <Input
-                              type='number'
-                              min={1}
-                              disabled={generation.isGenerating}
-                              value={field.value ?? ''}
-                              onBlur={field.onBlur}
-                              name={field.name}
-                              ref={field.ref}
-                              onChange={(event) => {
-                                const value = event.target.value
-                                if (value === '') {
-                                  field.onChange(null)
-                                  return
-                                }
-                                const parsed = Number(value)
-                                field.onChange(
-                                  Number.isFinite(parsed) ? parsed : null
-                                )
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name='customHeight'
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t('Height')}</FormLabel>
-                          <FormControl>
-                            <Input
-                              type='number'
-                              min={1}
-                              disabled={generation.isGenerating}
-                              value={field.value ?? ''}
-                              onBlur={field.onBlur}
-                              name={field.name}
-                              ref={field.ref}
-                              onChange={(event) => {
-                                const value = event.target.value
-                                if (value === '') {
-                                  field.onChange(null)
-                                  return
-                                }
-                                const parsed = Number(value)
-                                field.onChange(
-                                  Number.isFinite(parsed) ? parsed : null
-                                )
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                </>
+              }
+            >
+              <div
+                className={
+                  supportsTray
+                    ? 'grid grid-cols-1 gap-4 md:grid-cols-[120px_minmax(0,1fr)]'
+                    : 'flex flex-col gap-3'
+                }
+              >
+                {supportsTray && profile ? (
+                  <div className='order-2 md:order-1'>
+                    <ImageReferenceTray
+                      profile={profile}
+                      images={references}
+                      disabled={generation.isGenerating}
+                      onChange={setReferences}
                     />
                   </div>
                 ) : null}
-                {profile ? (
-                  <AdvancedSettings
-                    profile={profile}
-                    references={references}
-                    disabled={generation.isGenerating}
-                    open={advancedOpen}
-                    onOpenChange={setAdvancedOpen}
+                <div
+                  className={
+                    supportsTray
+                      ? 'order-1 flex min-w-0 flex-col gap-3 md:order-2'
+                      : 'flex flex-col gap-3'
+                  }
+                >
+                  <FormField
+                    control={form.control}
+                    name='prompt'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className='sr-only'>{t('Prompt')}</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            disabled={generation.isGenerating}
+                            className='min-h-28 resize-y border-0 bg-transparent p-0 text-[15px] leading-relaxed shadow-none focus-visible:ring-0 md:text-[15px]'
+                            placeholder={t(
+                              'Describe the image you want to generate'
+                            )}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                ) : null}
-              </CardContent>
-            </Card>
+                  {profile?.supportsCustomSize && sizeMode === 'custom' ? (
+                    <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+                      <FormField
+                        control={form.control}
+                        name='customWidth'
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t('Width')}</FormLabel>
+                            <FormControl>
+                              <Input
+                                type='number'
+                                min={1}
+                                disabled={generation.isGenerating}
+                                value={field.value ?? ''}
+                                onBlur={field.onBlur}
+                                name={field.name}
+                                ref={field.ref}
+                                onChange={(event) => {
+                                  const value = event.target.value
+                                  if (value === '') {
+                                    field.onChange(null)
+                                    return
+                                  }
+                                  const parsed = Number(value)
+                                  field.onChange(
+                                    Number.isFinite(parsed) ? parsed : null
+                                  )
+                                }}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name='customHeight'
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t('Height')}</FormLabel>
+                            <FormControl>
+                              <Input
+                                type='number'
+                                min={1}
+                                disabled={generation.isGenerating}
+                                value={field.value ?? ''}
+                                onBlur={field.onBlur}
+                                name={field.name}
+                                ref={field.ref}
+                                onChange={(event) => {
+                                  const value = event.target.value
+                                  if (value === '') {
+                                    field.onChange(null)
+                                    return
+                                  }
+                                  const parsed = Number(value)
+                                  field.onChange(
+                                    Number.isFinite(parsed) ? parsed : null
+                                  )
+                                }}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </CanvasComposerShell>
           </form>
         </Form>
 

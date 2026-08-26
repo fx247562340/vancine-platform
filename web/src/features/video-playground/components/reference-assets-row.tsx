@@ -39,8 +39,12 @@ export function ReferenceAssetsRow(props: ReferenceAssetsRowProps) {
   const { t } = useTranslation()
   const { capability, resourceStore, form } = props
   return (
-    <div className='mt-3 flex flex-col gap-3 border-t pt-3'>
-      <div className='flex flex-wrap items-center gap-2'>
+    <div
+      role='group'
+      aria-label={t('Reference assets')}
+      className='border-border/60 bg-muted/20 flex flex-col gap-2.5 rounded-xl border border-dashed p-3'
+    >
+      <div className='flex flex-col gap-1.5'>
         <ResourceAdder
           capability={capability}
           kind='image'
@@ -75,6 +79,7 @@ export function ReferenceAssetsRow(props: ReferenceAssetsRowProps) {
           buttonLabelKey='Add image'
           buttonAriaLabelKey='Add reference image'
           urlPlaceholderKey='https://cdn.example.com/reference.png'
+          triggerClassName='w-full justify-start'
         />
         <ResourceAdder
           capability={capability}
@@ -88,6 +93,7 @@ export function ReferenceAssetsRow(props: ReferenceAssetsRowProps) {
           buttonLabelKey='Add video'
           buttonAriaLabelKey='Add reference video'
           urlPlaceholderKey='https://cdn.example.com/reference.mp4'
+          triggerClassName='w-full justify-start'
         />
         <ResourceAdder
           capability={capability}
@@ -123,6 +129,7 @@ export function ReferenceAssetsRow(props: ReferenceAssetsRowProps) {
           buttonLabelKey='Add audio'
           buttonAriaLabelKey='Add reference audio'
           urlPlaceholderKey='https://cdn.example.com/reference.wav'
+          triggerClassName='w-full justify-start'
         />
         {resourceStore.images.length > 0 ||
         resourceStore.videos.length > 0 ||
@@ -131,6 +138,7 @@ export function ReferenceAssetsRow(props: ReferenceAssetsRowProps) {
             type='button'
             size='sm'
             variant='ghost'
+            className='w-full justify-start'
             onClick={() => resourceStore.reset()}
             aria-label={t('Clear all references')}
           >

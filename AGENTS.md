@@ -45,7 +45,8 @@ web/           — Frontend (React 19, Rsbuild, Base UI, Tailwind)
 - Library: `nicksnyder/go-i18n/v2`
 - Languages: en, zh
 
-### Frontend (`web/default/src/i18n/`)
+### Frontend (`web/src/i18n/`)
+- The current runtime ships a single frontend: the Default frontend in `web/src` (React 19, Rsbuild, Base UI, Tailwind). There is no selectable Classic theme in the current runtime; Classic survives only as historical code and historical-documentation context. Default light and Default dark are the two appearances of this same Default frontend (theme tokens + `.dark` class), not separate frontends.
 - Library: `i18next` + `react-i18next` + `i18next-browser-languagedetector`
 - Languages: en (base), zh (fallback), zh-TW, fr, ru, ja, vi
 - Translation files: `web/src/i18n/locales/{lang}.json` — flat JSON, keys are English source strings

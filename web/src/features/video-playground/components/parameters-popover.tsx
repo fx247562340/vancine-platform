@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com.
 */
 import { SlidersHorizontalIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
+import type { ReactElement } from 'react'
 import type { UseFormReturn } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
@@ -55,13 +56,18 @@ type VideoParametersPopoverProps = {
   disabled?: boolean
   /** Number of enabled parameters — used as the badge on the trigger. */
   activeCount: number
+  /**
+   * Optional custom trigger element (e.g. a quick parameter pill).
+   * When omitted, the default sliders icon button is used.
+   */
+  trigger?: ReactElement
 }
 
 export function VideoParametersPopover(props: VideoParametersPopoverProps) {
   const { t } = useTranslation()
   const isMobile = useIsMobile()
 
-  const trigger = (
+  const defaultTrigger = (
     <Button
       type='button'
       variant='ghost'
@@ -90,6 +96,8 @@ export function VideoParametersPopover(props: VideoParametersPopoverProps) {
       ) : null}
     </Button>
   )
+
+  const trigger = props.trigger ?? defaultTrigger
 
   if (isMobile) {
     return (

@@ -24,6 +24,7 @@ import { I18nextProvider, initReactI18next } from 'react-i18next'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useAuthStore } from '@/stores/auth-store'
+import { routerLinkMock } from '@/test/router-link-mock'
 
 import {
   generateImages,
@@ -32,6 +33,8 @@ import {
 } from '../api'
 import { ImagePlayground } from '../index'
 import type { ImageModelProfile } from '../types'
+
+vi.mock('@tanstack/react-router', () => routerLinkMock)
 
 vi.mock('../api', () => ({
   getImageCapabilities: vi.fn(),
@@ -226,6 +229,7 @@ describe('ImagePlayground Qwen Image 3.0 form', () => {
     // A profile where prompt extend defaults OFF exercises the same
     // thinkingRequiresExtend dependency without needing to click the Base
     // UI switch (which requires PointerEvent, unavailable in jsdom).
+    const user = userEvent.setup()
     const extendOffProfile: ImageModelProfile = {
       ...qwen30Profile,
       defaultPromptExtend: false,
@@ -249,7 +253,12 @@ describe('ImagePlayground Qwen Image 3.0 form', () => {
     // Prompt extend is off, so the thinking switch must be disabled even
     // though its default is true. Base UI switches expose the disabled
     // state via aria-disabled rather than the native disabled attribute.
-    await screen.findByText('Advanced settings')
+    // The advanced fields live inside a Popover/Sheet, so the user has
+    // to open the Advanced settings trigger before the switch mounts.
+    const advanced = await screen.findByRole('button', {
+      name: 'Advanced settings',
+    })
+    await user.click(advanced)
     await waitFor(() => {
       expect(
         screen.getByRole('switch', { name: 'Enable thinking' })

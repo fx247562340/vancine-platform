@@ -18,6 +18,8 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useTranslation } from 'react-i18next'
 
+import { GenerationGalleryShell } from '@/features/media-playground/components/generation-gallery-shell'
+
 import type { QueuedSubmission } from '../hooks/use-submission'
 import { TaskQueueItem } from './task-queue-item'
 
@@ -31,9 +33,16 @@ export function TaskGallery(props: TaskGalleryProps) {
     return null
   }
   return (
-    <section className='flex flex-col gap-3' aria-label={t('Task queue')}>
-      <h2 className='text-sm font-medium'>{t('Task queue')}</h2>
-      <div className='grid gap-3 md:grid-cols-2'>
+    <GenerationGalleryShell
+      title={t('Task queue')}
+      ariaLabel={t('Task queue')}
+      meta={
+        <span className='text-muted-foreground text-xs'>
+          {t('{{count}} task', { count: props.tasks.length })}
+        </span>
+      }
+    >
+      <div className='grid gap-3 sm:grid-cols-2 xl:grid-cols-3'>
         {props.tasks.map((task) => (
           <TaskQueueItem
             key={task.id}
@@ -45,6 +54,6 @@ export function TaskGallery(props: TaskGalleryProps) {
           />
         ))}
       </div>
-    </section>
+    </GenerationGalleryShell>
   )
 }

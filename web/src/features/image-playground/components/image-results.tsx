@@ -16,13 +16,19 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Download, ImageOff, Loader2, RefreshCcw, Trash2 } from 'lucide-react'
+import {
+  Delete01Icon,
+  Download01Icon,
+  Image01Icon,
+  Loading03Icon,
+  Refresh01Icon,
+} from '@hugeicons/core-free-icons'
+import { HugeiconsIcon } from '@hugeicons/react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { CopyButton } from '@/components/copy-button'
-import { EmptyState } from '@/components/empty-state'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +42,14 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty'
+import { GenerationGalleryShell } from '@/features/media-playground/components/generation-gallery-shell'
 
 import type { ImagePageError, ImageRun } from '../hooks/use-image-generate'
 import { downloadGeneratedImage } from '../lib/download'
@@ -69,7 +83,7 @@ function RunImages(props: { run: ImageRun }) {
 
   return (
     <div className='space-y-2'>
-      <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+      <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3'>
         {visibleImages.map((image, index) => {
           const src = parsedImageSrc(image)
           return (
@@ -122,7 +136,11 @@ function RunImages(props: { run: ImageRun }) {
                       })
                   }}
                 >
-                  <Download className='size-4' aria-hidden />
+                  <HugeiconsIcon
+                    icon={Download01Icon}
+                    aria-hidden
+                    data-icon='inline-start'
+                  />
                 </Button>
               </figcaption>
             </figure>
@@ -189,7 +207,7 @@ function RunCard(props: {
   return (
     <section
       aria-label={t('Generation record')}
-      className='space-y-3 rounded-xl border p-4'
+      className='bg-card space-y-3 rounded-2xl border p-4 shadow-sm'
     >
       <div className='flex flex-wrap items-center gap-x-3 gap-y-1'>
         <span className='text-sm font-medium'>{run.model}</span>
@@ -197,7 +215,12 @@ function RunCard(props: {
         <time className='text-muted-foreground text-sm'>{createdLabel}</time>
         {run.status === 'running' ? (
           <span className='text-muted-foreground inline-flex items-center gap-1 text-xs'>
-            <Loader2 className='size-3 animate-spin' aria-hidden />
+            <HugeiconsIcon
+              icon={Loading03Icon}
+              aria-hidden
+              data-icon='inline-start'
+              className='size-3 animate-spin'
+            />
             {t('Running')}
           </span>
         ) : null}
@@ -260,9 +283,18 @@ function RunCard(props: {
             aria-label={t('Retry')}
           >
             {props.isRetrying ? (
-              <Loader2 className='size-4 animate-spin' aria-hidden />
+              <HugeiconsIcon
+                icon={Loading03Icon}
+                aria-hidden
+                data-icon='inline-start'
+                className='animate-spin'
+              />
             ) : (
-              <RefreshCcw className='size-4' aria-hidden />
+              <HugeiconsIcon
+                icon={Refresh01Icon}
+                aria-hidden
+                data-icon='inline-start'
+              />
             )}
             {t('Retry')}
           </Button>
@@ -293,18 +325,22 @@ export function ImageResults(props: ImageResultsProps) {
       {props.isGenerating &&
       !props.runs.some((run) => run.status === 'running') ? (
         <div
-          className='flex min-h-24 flex-col items-center justify-center gap-2 rounded-xl border'
+          className='flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl border'
           role='status'
           aria-live='polite'
         >
-          <Loader2 className='size-6 animate-spin' aria-hidden />
+          <HugeiconsIcon
+            icon={Loading03Icon}
+            aria-hidden
+            className='size-6 animate-spin'
+          />
           <p>{t('Generating images...')}</p>
         </div>
       ) : null}
 
       {props.pageError.errorKey !== undefined ||
       props.pageError.rawUpstreamMessage !== undefined ? (
-        <div className='space-y-3 rounded-xl border p-6' role='alert'>
+        <div className='space-y-3 rounded-2xl border p-6' role='alert'>
           {props.pageError.errorKey !== undefined ? (
             <p className='text-destructive'>{t(props.pageError.errorKey)}</p>
           ) : null}
@@ -317,63 +353,82 @@ export function ImageResults(props: ImageResultsProps) {
       ) : null}
 
       {visibleRuns.length === 0 && !props.isGenerating ? (
-        <EmptyState
-          icon={ImageOff}
-          title={t('No images yet')}
-          description={t('Generated images will appear here.')}
-        />
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant='icon'>
+              <HugeiconsIcon
+                icon={Image01Icon}
+                strokeWidth={2}
+                aria-hidden
+                data-icon='empty'
+              />
+            </EmptyMedia>
+            <EmptyTitle>{t('No images yet')}</EmptyTitle>
+            <EmptyDescription>
+              {t('Generated images will appear here.')}
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : null}
 
       {visibleRuns.length > 0 ? (
-        <div className='flex items-center justify-between gap-4'>
-          <h2 className='text-lg font-semibold'>{t('Generation history')}</h2>
-          <AlertDialog>
-            <AlertDialogTrigger
-              render={
-                <Button
-                  type='button'
-                  variant='outline'
-                  size='sm'
-                  // Clearing while a generation is in flight would drop the
-                  // record the paid result lands in; block it at the UI too.
-                  disabled={props.isGenerating}
+        <GenerationGalleryShell
+          title={t('Generation history')}
+          meta={
+            <AlertDialog>
+              <AlertDialogTrigger
+                render={
+                  <Button
+                    type='button'
+                    variant='outline'
+                    size='sm'
+                    // Clearing while a generation is in flight would drop the
+                    // record the paid result lands in; block it at the UI too.
+                    disabled={props.isGenerating}
+                  />
+                }
+              >
+                <HugeiconsIcon
+                  icon={Delete01Icon}
+                  aria-hidden
+                  data-icon='inline-start'
                 />
-              }
-            >
-              <Trash2 className='size-4' aria-hidden />
-              {t('Clear generation history')}
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>
-                  {t('Clear generation history?')}
-                </AlertDialogTitle>
-                <AlertDialogDescription>
-                  {t(
-                    'This only clears the image history saved in this browser for the current account.'
-                  )}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{t('Cancel')}</AlertDialogCancel>
-                <AlertDialogAction onClick={props.onClearHistory}>
-                  {t('Clear')}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
+                {t('Clear generation history')}
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    {t('Clear generation history?')}
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {t(
+                      'This only clears the image history saved in this browser for the current account.'
+                    )}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t('Cancel')}</AlertDialogCancel>
+                  <AlertDialogAction onClick={props.onClearHistory}>
+                    {t('Clear')}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          }
+        >
+          <div className='flex flex-col gap-4'>
+            {visibleRuns.map((run) => (
+              <RunCard
+                key={run.id}
+                run={run}
+                isRetrying={props.isRetrying(run.id)}
+                isGenerating={props.isGenerating}
+                onRetry={() => props.onRetry(run.id)}
+              />
+            ))}
+          </div>
+        </GenerationGalleryShell>
       ) : null}
-
-      {visibleRuns.map((run) => (
-        <RunCard
-          key={run.id}
-          run={run}
-          isRetrying={props.isRetrying(run.id)}
-          isGenerating={props.isGenerating}
-          onRetry={() => props.onRetry(run.id)}
-        />
-      ))}
     </div>
   )
 }

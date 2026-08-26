@@ -34,6 +34,8 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty'
+import { MediaPlaygroundHeader } from '@/features/media-playground/components/media-playground-header'
+import { cn } from '@/lib/utils'
 
 import { ComposerForm } from './components/composer-form'
 import { ConnectionSettings } from './components/connection-settings'
@@ -156,44 +158,39 @@ export function VideoPlayground() {
     Boolean(capability) &&
     modelsQuery.models.length > 0
 
+  const selectedKey = keys.find((key) => key.id === keyId)
+  let keyStatusLabel = t('Select an API key')
+  if (selectedKey) {
+    keyStatusLabel = `${selectedKey.name} · ${selectedKey.maskedKey}`
+  } else if (keysIsLoading) {
+    keyStatusLabel = t('Loading...')
+  }
+
   return (
     <div
       data-testid='video-playground-page'
       className='flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto'
     >
       <div className='mx-auto flex w-full max-w-6xl flex-col gap-6 p-4 md:p-6'>
-        <header className='flex flex-col gap-4'>
-          <div className='flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between'>
-            <div>
-              <h1 className='text-2xl font-semibold'>
-                {t('Video generation')}
-              </h1>
-              <p className='text-muted-foreground text-sm'>
-                {t(
-                  'Generate videos with Seedance 2.0 / 2.5 and reference assets.'
+        <MediaPlaygroundHeader
+          title={t('Video generation')}
+          subtitle={t(
+            'Generate videos with Seedance 2.0 / 2.5 and reference assets.'
+          )}
+          active='video'
+          status={
+            <span className='border-border/60 bg-card text-muted-foreground inline-flex h-8 max-w-full items-center gap-2 rounded-lg border px-2.5 text-xs'>
+              <span
+                aria-hidden
+                className={cn(
+                  'size-1.5 shrink-0 rounded-full',
+                  selectedKey ? 'bg-success' : 'bg-neutral'
                 )}
-              </p>
-            </div>
-            <ConnectionSettings
-              keys={keys}
-              selectedId={keyId}
-              onChange={(id) => {
-                clearSecret()
-                setModel('')
-                setKeyId(id)
-                setPreflightError(null)
-              }}
-              isLoading={keysIsLoading}
-              disabled={false}
-            />
-          </div>
-          <VideoModelSelector
-            models={modelsQuery.models}
-            selectedModel={model}
-            onChange={setModel}
-            disabled={modelsQuery.isLoading || keyId == null}
-          />
-        </header>
+              />
+              <span className='truncate'>{keyStatusLabel}</span>
+            </span>
+          }
+        />
 
         {keysLoadError ? (
           <Alert variant='destructive'>
@@ -271,6 +268,29 @@ export function VideoPlayground() {
             preflightError={preflightError}
             loadSecret={loadSecret}
             clearSecret={clearSecret}
+            modelSelector={
+              <VideoModelSelector
+                compact
+                models={modelsQuery.models}
+                selectedModel={model}
+                onChange={setModel}
+                disabled={modelsQuery.isLoading || keyId == null}
+              />
+            }
+            connection={
+              <ConnectionSettings
+                keys={keys}
+                selectedId={keyId}
+                onChange={(id) => {
+                  clearSecret()
+                  setModel('')
+                  setKeyId(id)
+                  setPreflightError(null)
+                }}
+                isLoading={keysIsLoading}
+                disabled={false}
+              />
+            }
           />
         ) : null}
       </div>

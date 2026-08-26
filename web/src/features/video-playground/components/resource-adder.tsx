@@ -68,6 +68,8 @@ type ResourceAdderProps = {
   acceptsAssetId: boolean
   /** Hint text for the URL placeholder. */
   urlPlaceholderKey: string
+  /** Optional className for the trigger button (e.g. layout sizing). */
+  triggerClassName?: string
 }
 
 const ACCEPTED_IMAGE_TYPES = [
@@ -188,6 +190,7 @@ export function ResourceAdder(props: ResourceAdderProps) {
             size='sm'
             disabled={disabled || isFull}
             aria-label={t(buttonAriaLabelKey)}
+            className={props.triggerClassName}
           >
             <HugeiconsIcon icon={Icon} aria-hidden data-icon='inline-start' />
             <span className='hidden sm:inline'>{t(buttonLabelKey)}</span>

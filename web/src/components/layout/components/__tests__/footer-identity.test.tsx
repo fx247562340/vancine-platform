@@ -16,9 +16,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { routerLinkMock } from '@/test/router-link-mock'
+
 import { render, screen, within } from '@testing-library/react'
 import i18next from 'i18next'
-import type { ReactNode } from 'react'
 import { I18nextProvider, initReactI18next } from 'react-i18next'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -39,6 +40,12 @@ const systemConfigFixture = {
   logoLoaded: true,
 }
 
+// The footer only uses Link for the brand row (to='/'). Mock the boundary as
+// a plain anchor so the real Footer renders without the router's async mount
+// lifecycle; children/to/className are preserved and the anchor is
+// user-queryable.
+vi.mock('@tanstack/react-router', () => routerLinkMock)
+
 // Footer collaborators that would otherwise hit the network: controlled
 // boundary mocks; the footer itself (module under test) stays real.
 vi.mock('@/hooks/use-status', () => ({
@@ -56,27 +63,6 @@ vi.mock('@/hooks/use-system-config', () => ({
   useSystemConfig: () => systemConfigFixture,
 }))
 
-// The footer only uses Link for the brand row (to='/'). Mock the boundary as
-// a plain anchor so the real Footer renders without the router's async mount
-// lifecycle; children/to/className are preserved and the anchor is
-// user-queryable.
-vi.mock('@tanstack/react-router', () => ({
-  Link: ({
-    to,
-    className,
-    children,
-  }: {
-    to: string
-    className?: string
-    children?: ReactNode
-  }) => (
-    <a href={to} className={className}>
-      {children}
-    </a>
-  ),
-}))
-
-// Isolated fixture instance — never touches the shared i18next singleton.
 const i18n = i18next.createInstance()
 
 beforeAll(async () => {

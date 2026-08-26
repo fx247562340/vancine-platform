@@ -24,6 +24,7 @@ import { I18nextProvider, initReactI18next } from 'react-i18next'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useAuthStore } from '@/stores/auth-store'
+import { routerLinkMock } from '@/test/router-link-mock'
 
 import {
   generateImages,
@@ -34,6 +35,8 @@ import { ImagePlayground } from '../index'
 import { ImagePlaygroundError } from '../lib/errors'
 import { imageHistoryStorageKey } from '../lib/history'
 import type { ImageModelProfile } from '../types'
+
+vi.mock('@tanstack/react-router', () => routerLinkMock)
 
 vi.mock('../api', () => ({
   getImageCapabilities: vi.fn(),

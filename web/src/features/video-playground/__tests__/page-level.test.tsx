@@ -29,6 +29,8 @@ import userEvent, { type UserEvent } from '@testing-library/user-event'
 import type { i18n as I18n } from 'i18next'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { routerLinkMock } from '@/test/router-link-mock'
+
 import {
   getVideoModelsWithApiKey,
   getVideoTask,
@@ -44,29 +46,7 @@ import {
   stubAuthUser,
 } from './test-utils'
 
-vi.mock('@tanstack/react-router', () => ({
-  Link: ({
-    to,
-    params,
-    children,
-    className,
-  }: {
-    to: string
-    params?: Record<string, string>
-    children: React.ReactNode
-    className?: string
-  }) => {
-    let href = to
-    for (const [key, value] of Object.entries(params ?? {})) {
-      href = href.replace(`$${key}`, value)
-    }
-    return (
-      <a href={href} className={className}>
-        {children}
-      </a>
-    )
-  },
-}))
+vi.mock('@tanstack/react-router', () => routerLinkMock)
 
 // jsdom never fires media-element events, so the duration probe would
 // hang. The probe is a browser-API boundary — stub it to report an
