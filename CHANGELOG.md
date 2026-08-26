@@ -1,3 +1,12 @@
+## 1.6.0 - 2026-08-27
+
+### SEO 与页面元数据
+
+- 首页、定价页、Kimi K3、Seedance 2.5 与 AI Media 页面现在由客户端路由持续维护各自的 title、description、canonical、Open Graph 和 Twitter metadata。
+- 防止异步加载的系统名称覆盖公开营销页面标题；离开营销页面后自动恢复后台配置的系统名称。
+- 页面切换、并发挂载、语言更新和普通状态刷新不会串用或残留上一页面的 metadata。
+- Kimi K3、Seedance 2.5 与 AI Media 的 Twitter metadata 已覆盖全部七种界面语言，英文内容与服务端预渲染保持一致。
+
 ## 1.5.0 - 2026-08-26
 
 ### SEO 与获客
