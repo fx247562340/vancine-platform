@@ -105,7 +105,28 @@ describe('page metadata', () => {
       assert.ok(metadata.description.length > 0)
       assert.ok(metadata.ogTitle.length > 0)
       assert.ok(metadata.ogDescription.length > 0)
+      assert.ok(
+        metadata.twitterTitle !== undefined && metadata.twitterTitle.length > 0,
+        `${language} must publish a Twitter title`
+      )
+      assert.ok(
+        metadata.twitterDescription !== undefined &&
+          metadata.twitterDescription.length > 0,
+        `${language} must publish a Twitter description`
+      )
     }
+  })
+
+  test('English Twitter pair is byte-identical to router/web_metadata.go', () => {
+    const metadata = getAiMediaPageMetadata('en')
+    assert.equal(
+      metadata.twitterTitle,
+      'AI Media API: Image, Video, Speech & 3D'
+    )
+    assert.equal(
+      metadata.twitterDescription,
+      'Access Chinese AI media models through one API. Image, video, speech, and 3D generation with one API key and unified billing.'
+    )
   })
 
   test('covers all seven supported languages distinctly', () => {

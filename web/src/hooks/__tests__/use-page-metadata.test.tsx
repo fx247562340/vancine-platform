@@ -17,9 +17,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { renderHook } from '@testing-library/react'
+import { act } from 'react'
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { usePageMetadata, type PageMetadata } from '@/hooks/use-page-metadata'
+import {
+  isPublicMarketingMetadataActive,
+  resetMetadataRegistry,
+  safeApplySystemName,
+  usePageMetadata,
+  type PageMetadata,
+} from '@/hooks/use-page-metadata'
 
 const BASE_METADATA: PageMetadata = {
   title: 'Kimi K3 API for Coding Agents | Vancine',
@@ -54,6 +61,11 @@ beforeEach(() => {
     document.head.firstElementChild.remove()
   }
   document.title = 'Baseline Title'
+  // Clear the module-level lock between cases so one test cannot leak
+  // its public-marketing lock into the next case.
+  act(() => {
+    resetMetadataRegistry()
+  })
 })
 
 describe('usePageMetadata', () => {
@@ -61,6 +73,9 @@ describe('usePageMetadata', () => {
     renderHook(() => usePageMetadata(BASE_METADATA))
 
     expect(document.title).toBe(BASE_METADATA.title)
+    expect(
+      document.head.querySelector('meta[name="title"]')?.getAttribute('content')
+    ).toBe(BASE_METADATA.title)
     expect(
       document.head
         .querySelector('meta[name="description"]')
@@ -134,6 +149,7 @@ describe('usePageMetadata', () => {
 
     unmount()
     expect(document.title).toBe('Baseline Title')
+    expect(document.head.querySelector('meta[name="title"]')).toBeNull()
     expect(document.head.querySelector('meta[name="description"]')).toBeNull()
     expect(document.head.querySelector('meta[property="og:title"]')).toBeNull()
     expect(
@@ -215,5 +231,49 @@ describe('usePageMetadata', () => {
     unmount()
     expect(document.title).toBe('Baseline Title')
     expect(headSnapshot()).toEqual(before)
+  })
+})
+
+// Lock-concurrency and deferred-system-name contracts live in
+// owner-lifecycle.test.tsx ("deferred system name on final unlock");
+// this block keeps only the single-owner lock basics and the
+// safeApplySystemName refusal contract the branding IIFE depends on.
+describe('usePageMetadata — public marketing lock', () => {
+  it('does not activate the public marketing lock by default', () => {
+    const { unmount } = renderHook(() => usePageMetadata(BASE_METADATA))
+    expect(isPublicMarketingMetadataActive()).toBe(false)
+    unmount()
+    expect(isPublicMarketingMetadataActive()).toBe(false)
+  })
+
+  it('activates the lock while a public marketing page is mounted and releases on unmount', () => {
+    const { unmount } = renderHook(() =>
+      usePageMetadata(BASE_METADATA, { publicMarketingPage: true })
+    )
+    expect(isPublicMarketingMetadataActive()).toBe(true)
+
+    unmount()
+    expect(isPublicMarketingMetadataActive()).toBe(false)
+  })
+
+  it('does not overwrite title or meta[name="title"] while the lock is held', () => {
+    const { unmount: unmountHook } = renderHook(() =>
+      usePageMetadata(BASE_METADATA, { publicMarketingPage: true })
+    )
+    safeApplySystemName('Acme Cloud')
+    expect(document.title).toBe(BASE_METADATA.title)
+    expect(
+      document.head.querySelector('meta[name="title"]')?.getAttribute('content')
+    ).toBe(BASE_METADATA.title)
+
+    unmountHook()
+    // After the route unmounts (e.g. user navigates to /dashboard), the
+    // branding IIFE may legitimately overwrite the title with the system
+    // name.
+    safeApplySystemName('Acme Cloud')
+    expect(document.title).toBe('Acme Cloud')
+    expect(
+      document.head.querySelector('meta[name="title"]')?.getAttribute('content')
+    ).toBe('Acme Cloud')
   })
 })

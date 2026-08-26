@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next'
 
 import { PublicLayout } from '@/components/layout'
 import { PageTransition } from '@/components/page-transition'
+import { usePageMetadata } from '@/hooks/use-page-metadata'
 
 import {
   LoadingSkeleton,
@@ -35,12 +36,26 @@ import {
 import { EXCLUDED_GROUPS, VIEW_MODES } from './constants'
 import { useFilters } from './hooks/use-filters'
 import { usePricingData } from './hooks/use-pricing-data'
+import { getPricingPageMetadata } from './lib/seo'
 
 export function Pricing() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [selectedModelName, setSelectedModelName] = useState<string | null>(
     null
   )
+
+  // Public marketing route: the metadata is owned by this page. The
+  // `publicMarketingPage: true` flag prevents the system branding
+  // bootstrap in main.tsx from overwriting the route-level title. The
+  // useMemo keeps the metadata reference stable across unrelated
+  // re-renders (search, sort, filter, group changes, pricing data
+  // refresh, auth state change) so the head is not re-applied on
+  // every render.
+  const pricingMetadata = useMemo(
+    () => getPricingPageMetadata(i18n.language),
+    [i18n.language]
+  )
+  usePageMetadata(pricingMetadata, { publicMarketingPage: true })
 
   const {
     models,

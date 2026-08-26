@@ -140,12 +140,16 @@ interface SeedanceLanguageMetadata {
   description: string
   ogTitle: string
   ogDescription: string
+  twitterTitle: string
+  twitterDescription: string
 }
 
 const SEEDANCE_METADATA: Record<
   InterfaceLanguageCode,
   SeedanceLanguageMetadata
 > = {
+  // The English twitter pair is pinned byte-for-byte against
+  // router/web_metadata.go's /seedance-api entry.
   en: {
     title: 'Seedance 2.5 API for Async Video Generation | Vancine',
     description:
@@ -153,6 +157,9 @@ const SEEDANCE_METADATA: Record<
     ogTitle: 'Seedance 2.5 for Async Video Generation',
     ogDescription:
       'Submit, poll, and retrieve Doubao-Seedance-2.5 video tasks through one API key and documented endpoints.',
+    twitterTitle: 'Seedance 2.5 API for Async Video Generation',
+    twitterDescription:
+      'Submit Doubao-Seedance-2.5 video tasks through Vancine and retrieve the result with one API key. Submit, poll, and retrieve through a documented async workflow.',
   },
   zhCN: {
     title: 'Seedance 2.5 异步视频生成 API | Vancine',
@@ -161,6 +168,9 @@ const SEEDANCE_METADATA: Record<
     ogTitle: 'Seedance 2.5 异步视频生成',
     ogDescription:
       '通过一个 API 密钥和标准化接口，提交、轮询并获取 Doubao-Seedance-2.5 视频任务。',
+    twitterTitle: 'Seedance 2.5 异步视频生成 API',
+    twitterDescription:
+      '通过 Vancine 提交 Doubao-Seedance-2.5 视频任务并使用一个 API 密钥获取结果。提交、轮询、获取，遵循标准化的异步工作流。',
   },
   zhTW: {
     title: 'Seedance 2.5 非同步影片產生 API | Vancine',
@@ -169,6 +179,9 @@ const SEEDANCE_METADATA: Record<
     ogTitle: 'Seedance 2.5 非同步影片產生',
     ogDescription:
       '透過一個 API 金鑰與標準化端點，提交、輪詢並取得 Doubao-Seedance-2.5 影片工作。',
+    twitterTitle: 'Seedance 2.5 非同步影片產生 API',
+    twitterDescription:
+      '透過 Vancine 提交 Doubao-Seedance-2.5 影片工作並使用一個 API 金鑰取得結果。提交、輪詢、取得，遵循標準化的非同步工作流程。',
   },
   fr: {
     title: 'API Seedance 2.5 pour la génération vidéo asynchrone | Vancine',
@@ -177,6 +190,9 @@ const SEEDANCE_METADATA: Record<
     ogTitle: 'Seedance 2.5 pour la vidéo asynchrone',
     ogDescription:
       'Soumettez, interrogez et récupérez des tâches vidéo Doubao-Seedance-2.5 avec une seule clé API et des endpoints documentés.',
+    twitterTitle: 'API Seedance 2.5 pour la génération vidéo asynchrone',
+    twitterDescription:
+      'Soumettez des tâches vidéo Doubao-Seedance-2.5 via Vancine et récupérez le résultat avec une seule clé API. Soumettez, interrogez et récupérez via un flux de travail asynchrone documenté.',
   },
   ru: {
     title: 'Seedance 2.5 API для асинхронной генерации видео | Vancine',
@@ -185,6 +201,9 @@ const SEEDANCE_METADATA: Record<
     ogTitle: 'Seedance 2.5 для асинхронной генерации видео',
     ogDescription:
       'Отправляйте, опрашивайте и получайте задачи Doubao-Seedance-2.5 с одним API-ключом и документированными эндпоинтами.',
+    twitterTitle: 'Seedance 2.5 API для асинхронной генерации видео',
+    twitterDescription:
+      'Отправляйте задачи Doubao-Seedance-2.5 через Vancine и получайте результат с одним API-ключом. Отправляйте, опрашивайте и получайте через документированный асинхронный рабочий процесс.',
   },
   ja: {
     title: 'Seedance 2.5 非同期動画生成 API | Vancine',
@@ -193,6 +212,9 @@ const SEEDANCE_METADATA: Record<
     ogTitle: 'Seedance 2.5 非同期動画生成',
     ogDescription:
       '1 つの API キーとドキュメント化されたエンドポイントで、Doubao-Seedance-2.5 動画タスクを送信、ポーリング、取得できます。',
+    twitterTitle: 'Seedance 2.5 非同期動画生成 API',
+    twitterDescription:
+      'Vancine で Doubao-Seedance-2.5 動画タスクを送信し、1 つの API キーで結果を取得できます。ドキュメント化された非同期ワークフローで、送信、ポーリング、取得を行います。',
   },
   vi: {
     title: 'API Seedance 2.5 cho tạo video không đồng bộ | Vancine',
@@ -201,6 +223,9 @@ const SEEDANCE_METADATA: Record<
     ogTitle: 'Seedance 2.5 cho tạo video không đồng bộ',
     ogDescription:
       'Gửi, thăm dò và lấy tác vụ video Doubao-Seedance-2.5 bằng một khóa API và các endpoint được tài liệu hóa.',
+    twitterTitle: 'API Seedance 2.5 cho tạo video không đồng bộ',
+    twitterDescription:
+      'Gửi tác vụ video Doubao-Seedance-2.5 qua Vancine và lấy kết quả bằng một khóa API. Gửi, thăm dò và lấy qua quy trình làm việc không đồng bộ được tài liệu hóa.',
   },
 }
 
@@ -218,6 +243,8 @@ export function getSeedancePageMetadata(language: string): PageMetadata {
     description: meta.description,
     ogTitle: meta.ogTitle,
     ogDescription: meta.ogDescription,
+    twitterTitle: meta.twitterTitle,
+    twitterDescription: meta.twitterDescription,
     ogUrl: SEEDANCE_CANONICAL,
     canonical: SEEDANCE_CANONICAL,
   }

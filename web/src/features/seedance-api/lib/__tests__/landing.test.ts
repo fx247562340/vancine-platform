@@ -106,7 +106,28 @@ describe('page metadata', () => {
       assert.ok(metadata.description.length > 0)
       assert.ok(metadata.ogTitle.length > 0)
       assert.ok(metadata.ogDescription.length > 0)
+      assert.ok(
+        metadata.twitterTitle !== undefined && metadata.twitterTitle.length > 0,
+        `${language} must publish a Twitter title`
+      )
+      assert.ok(
+        metadata.twitterDescription !== undefined &&
+          metadata.twitterDescription.length > 0,
+        `${language} must publish a Twitter description`
+      )
     }
+  })
+
+  test('English Twitter pair is byte-identical to router/web_metadata.go', () => {
+    const metadata = getSeedancePageMetadata('en')
+    assert.equal(
+      metadata.twitterTitle,
+      'Seedance 2.5 API for Async Video Generation'
+    )
+    assert.equal(
+      metadata.twitterDescription,
+      'Submit Doubao-Seedance-2.5 video tasks through Vancine and retrieve the result with one API key. Submit, poll, and retrieve through a documented async workflow.'
+    )
   })
 
   test('covers all seven supported languages distinctly', () => {

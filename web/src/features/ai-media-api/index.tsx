@@ -52,7 +52,10 @@ export function AiMediaApiPage(): ReactElement {
     () => getAiMediaPageMetadata(i18n.language),
     [i18n.language]
   )
-  usePageMetadata(metadata)
+  // Public marketing route: the metadata is owned by this page. The
+  // `publicMarketingPage: true` flag prevents the system branding
+  // bootstrap in main.tsx from overwriting the route-level title.
+  usePageMetadata(metadata, { publicMarketingPage: true })
 
   return (
     <PublicLayout showMainContainer={false}>

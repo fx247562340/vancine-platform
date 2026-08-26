@@ -125,12 +125,16 @@ interface AiMediaLanguageMetadata {
   description: string
   ogTitle: string
   ogDescription: string
+  twitterTitle: string
+  twitterDescription: string
 }
 
 const AI_MEDIA_METADATA: Record<
   InterfaceLanguageCode,
   AiMediaLanguageMetadata
 > = {
+  // The English twitter pair is pinned byte-for-byte against
+  // router/web_metadata.go's /ai-media-api entry.
   en: {
     title: 'AI Media API: Image, Video, Speech & 3D | Vancine',
     description:
@@ -138,6 +142,9 @@ const AI_MEDIA_METADATA: Record<
     ogTitle: 'Chinese AI Media Models Through One API',
     ogDescription:
       'Generate images, videos, speech, and 3D assets with one API key and documented endpoints.',
+    twitterTitle: 'AI Media API: Image, Video, Speech & 3D',
+    twitterDescription:
+      'Access Chinese AI media models through one API. Image, video, speech, and 3D generation with one API key and unified billing.',
   },
   zhCN: {
     title: 'AI 多媒体 API：图片、视频、语音与 3D | Vancine',
@@ -146,6 +153,9 @@ const AI_MEDIA_METADATA: Record<
     ogTitle: '一个 API 接入中国 AI 多媒体模型',
     ogDescription:
       '一个 API 密钥，使用文档化的接口生成图片、视频、语音和 3D 资产。',
+    twitterTitle: 'AI 多媒体 API：图片、视频、语音与 3D',
+    twitterDescription:
+      '通过一个 API 接入中国 AI 多媒体模型。一个 API 密钥、统一计费，即可使用图片、视频、语音和 3D 生成能力。',
   },
   zhTW: {
     title: 'AI 多媒體 API：圖片、影片、語音與 3D | Vancine',
@@ -154,6 +164,9 @@ const AI_MEDIA_METADATA: Record<
     ogTitle: '一個 API 接入中國 AI 多媒體模型',
     ogDescription:
       '一個 API 金鑰，使用文件化的介面生成圖片、影片、語音和 3D 資產。',
+    twitterTitle: 'AI 多媒體 API：圖片、影片、語音與 3D',
+    twitterDescription:
+      '透過一個 API 接入中國 AI 多媒體模型。一個 API 金鑰、統一計費，即可使用圖片、影片、語音和 3D 生成能力。',
   },
   fr: {
     title: 'API IA médias : image, vidéo, voix et 3D | Vancine',
@@ -162,6 +175,9 @@ const AI_MEDIA_METADATA: Record<
     ogTitle: "Les modèles multimédias d'IA chinoise via une seule API",
     ogDescription:
       'Générez images, vidéos, voix et assets 3D avec une seule clé API et des endpoints documentés.',
+    twitterTitle: 'API IA médias : image, vidéo, voix et 3D',
+    twitterDescription:
+      "Accédez aux modèles multimédias d'IA chinoise via une seule API. Génération d'images, de vidéos, de voix et de 3D avec une clé API et une facturation unifiée.",
   },
   ru: {
     title: 'AI Media API: изображения, видео, речь и 3D | Vancine',
@@ -170,6 +186,9 @@ const AI_MEDIA_METADATA: Record<
     ogTitle: 'Китайские мультимедийные ИИ-модели через один API',
     ogDescription:
       'Создавайте изображения, видео, речь и 3D-ассеты с одним API-ключом и документированными эндпоинтами.',
+    twitterTitle: 'AI Media API: изображения, видео, речь и 3D',
+    twitterDescription:
+      'Доступ к китайским мультимедийным ИИ-моделям через один API. Генерация изображений, видео, речи и 3D с одним API-ключом и единым биллингом.',
   },
   ja: {
     title: 'AI メディア API：画像・動画・音声・3D | Vancine',
@@ -178,6 +197,9 @@ const AI_MEDIA_METADATA: Record<
     ogTitle: '中国の AI メディアモデルを単一の API で',
     ogDescription:
       '1 つの API キーとドキュメント化されたエンドポイントで、画像・動画・音声・3D アセットを生成できます。',
+    twitterTitle: 'AI メディア API：画像・動画・音声・3D',
+    twitterDescription:
+      '中国の AI メディアモデルに単一の API でアクセス。1 つの API キーと統一課金で、画像・動画・音声・3D 生成を利用できます。',
   },
   vi: {
     title: 'API AI Media: Ảnh, Video, Giọng nói & 3D | Vancine',
@@ -186,6 +208,9 @@ const AI_MEDIA_METADATA: Record<
     ogTitle: 'Mô hình AI truyền thông Trung Quốc qua một API',
     ogDescription:
       'Tạo ảnh, video, giọng nói và tài nguyên 3D với một khóa API và các điểm cuối có tài liệu.',
+    twitterTitle: 'API AI Media: Ảnh, Video, Giọng nói & 3D',
+    twitterDescription:
+      'Truy cập các mô hình AI truyền thông Trung Quốc qua một API. Tạo ảnh, video, giọng nói và 3D với một khóa API và thanh toán thống nhất.',
   },
 }
 
@@ -203,6 +228,8 @@ export function getAiMediaPageMetadata(language: string): PageMetadata {
     description: meta.description,
     ogTitle: meta.ogTitle,
     ogDescription: meta.ogDescription,
+    twitterTitle: meta.twitterTitle,
+    twitterDescription: meta.twitterDescription,
     ogUrl: AI_MEDIA_CANONICAL,
     canonical: AI_MEDIA_CANONICAL,
   }

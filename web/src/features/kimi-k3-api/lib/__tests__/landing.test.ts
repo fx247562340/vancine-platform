@@ -110,7 +110,25 @@ describe('page metadata', () => {
       assert.ok(metadata.description.length > 0)
       assert.ok(metadata.ogTitle.length > 0)
       assert.ok(metadata.ogDescription.length > 0)
+      assert.ok(
+        metadata.twitterTitle !== undefined && metadata.twitterTitle.length > 0,
+        `${language} must publish a Twitter title`
+      )
+      assert.ok(
+        metadata.twitterDescription !== undefined &&
+          metadata.twitterDescription.length > 0,
+        `${language} must publish a Twitter description`
+      )
     }
+  })
+
+  test('English Twitter pair is byte-identical to router/web_metadata.go', () => {
+    const metadata = getKimiK3PageMetadata('en')
+    assert.equal(metadata.twitterTitle, 'Kimi K3 API for Coding Agents')
+    assert.equal(
+      metadata.twitterDescription,
+      'Connect OpenCode, Cline, Roo Code, and OpenAI-compatible tools to Kimi K3 with one API key through Vancine.'
+    )
   })
 
   test('covers all seven supported languages distinctly', () => {

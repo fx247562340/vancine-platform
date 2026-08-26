@@ -16,18 +16,20 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { PublicLayout } from '@/components/layout'
 import { Footer } from '@/components/layout/components/footer'
 import { RichContent } from '@/components/rich-content'
 import { useTheme } from '@/context/theme-provider'
+import { usePageMetadata } from '@/hooks/use-page-metadata'
 import { isLikelyHtml } from '@/lib/content-format'
 import { useAuthStore } from '@/stores/auth-store'
 
 import { AvailableNow, CTA, Evidence, Hero, Why } from './components'
 import { useHomePageContent, useHomepagePricing } from './hooks'
+import { getHomePageMetadata } from './lib/seo'
 
 // v1.2.0 default built-in homepage section order (frozen).
 //   1. Hero
@@ -49,6 +51,19 @@ export function Home() {
   const isAuthenticated = !!auth.user
   const { content, isUrl } = useHomePageContent()
   const pricing = useHomepagePricing(!content)
+
+  // Public marketing route: the metadata is owned by this page even when
+  // an admin-configured custom home content (URL / HTML / Markdown) replaces
+  // the built-in shell. The `publicMarketingPage: true` flag prevents the
+  // system branding bootstrap in main.tsx from overwriting the route-level
+  // title. The useMemo keeps the metadata reference stable across
+  // unrelated re-renders (theme toggle, pricing data refresh, auth state
+  // change) so the head is not re-applied on every render.
+  const homeMetadata = useMemo(
+    () => getHomePageMetadata(i18n.language),
+    [i18n.language]
+  )
+  usePageMetadata(homeMetadata, { publicMarketingPage: true })
 
   const syncIframePreferences = useCallback(() => {
     try {

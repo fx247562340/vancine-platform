@@ -38,6 +38,7 @@ import { handleServerError } from '@/lib/handle-server-error'
 import { DirectionProvider } from './context/direction-provider'
 import { FontProvider } from './context/font-provider'
 import { ThemeProvider } from './context/theme-provider'
+import { safeApplySystemName } from './hooks/use-page-metadata'
 import './i18n/config'
 // Generated Routes
 import { routeTree } from './routeTree.gen'
@@ -114,22 +115,25 @@ if (!rootElement) {
   throw new Error('Root element not found')
 }
 // Set document.title and favicon from cached status, then refresh from network
+//
+// Branding-write contract: this IIFE must only touch `document.title`
+// and `meta[name="title"]` when no public marketing page is mounted.
+// Every public marketing route (Home, Pricing, /seedance-api,
+// /kimi-k3-api, /ai-media-api) calls `usePageMetadata(..., {
+// publicMarketingPage: true })` which acquires a module-level lock the
+// `safeApplySystemName` helper consults before writing. Login pages,
+// dashboard pages, and any other authenticated surface that does not
+// set the flag keep the system name as their title — that is the
+// intentional behaviour the admin configured and must be preserved.
 ;(function initSystemBranding() {
   try {
     if (typeof window === 'undefined' || typeof document === 'undefined') return
-    const apply = (name: string) => {
-      document.title = name
-      const metaTitle = document.querySelector(
-        'meta[name="title"]'
-      ) as HTMLMetaElement | null
-      if (metaTitle) metaTitle.setAttribute('content', name)
-    }
     // Cache-first
     try {
       const saved = localStorage.getItem('status')
       if (saved) {
         const s = JSON.parse(saved)
-        if (s?.system_name) apply(s.system_name)
+        if (s?.system_name) safeApplySystemName(s.system_name)
         if (s?.logo) applyFaviconToDom(s.logo)
       }
     } catch {
@@ -139,7 +143,7 @@ if (!rootElement) {
     getStatus()
       .then((s) => {
         if (s?.system_name) {
-          apply(s.system_name as string)
+          safeApplySystemName(s.system_name)
           try {
             localStorage.setItem('status', JSON.stringify(s))
           } catch {

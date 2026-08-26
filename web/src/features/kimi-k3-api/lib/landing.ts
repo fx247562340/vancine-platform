@@ -143,10 +143,14 @@ interface KimiK3LanguageMetadata {
   description: string
   ogTitle: string
   ogDescription: string
+  twitterTitle: string
+  twitterDescription: string
 }
 
 const KIMI_K3_METADATA: Record<InterfaceLanguageCode, KimiK3LanguageMetadata> =
   {
+    // The English twitter pair is pinned byte-for-byte against
+    // router/web_metadata.go's /kimi-k3-api entry.
     en: {
       title: 'Kimi K3 API for Coding Agents | Vancine',
       description:
@@ -154,6 +158,9 @@ const KIMI_K3_METADATA: Record<InterfaceLanguageCode, KimiK3LanguageMetadata> =
       ogTitle: 'Kimi K3 for Coding Agents',
       ogDescription:
         'Use one OpenAI-compatible API key to connect coding agents to Kimi K3 and other frontier models.',
+      twitterTitle: 'Kimi K3 API for Coding Agents',
+      twitterDescription:
+        'Connect OpenCode, Cline, Roo Code, and OpenAI-compatible tools to Kimi K3 with one API key through Vancine.',
     },
     zhCN: {
       title: 'Kimi K3 编程智能体 API | Vancine',
@@ -162,6 +169,9 @@ const KIMI_K3_METADATA: Record<InterfaceLanguageCode, KimiK3LanguageMetadata> =
       ogTitle: '面向编程智能体的 Kimi K3',
       ogDescription:
         '使用一个兼容 OpenAI 的 API 密钥，将编程智能体接入 Kimi K3 和其他前沿模型。',
+      twitterTitle: 'Kimi K3 编程智能体 API',
+      twitterDescription:
+        '通过 Vancine 的一个 API 密钥，将 OpenCode、Cline、Roo Code 和兼容 OpenAI 的工具连接至 Kimi K3。',
     },
     zhTW: {
       title: 'Kimi K3 程式設計智能體 API | Vancine',
@@ -170,6 +180,9 @@ const KIMI_K3_METADATA: Record<InterfaceLanguageCode, KimiK3LanguageMetadata> =
       ogTitle: '面向程式設計智能體的 Kimi K3',
       ogDescription:
         '使用一個相容 OpenAI 的 API 金鑰，將程式設計智能體接入 Kimi K3 和其他前沿模型。',
+      twitterTitle: 'Kimi K3 程式設計智能體 API',
+      twitterDescription:
+        '透過 Vancine 的一個 API 金鑰，將 OpenCode、Cline、Roo Code 和相容 OpenAI 的工具連接至 Kimi K3。',
     },
     fr: {
       title: 'API Kimi K3 pour agents de code | Vancine',
@@ -178,6 +191,9 @@ const KIMI_K3_METADATA: Record<InterfaceLanguageCode, KimiK3LanguageMetadata> =
       ogTitle: 'Kimi K3 pour les agents de code',
       ogDescription:
         "Utilisez une seule clé API compatible OpenAI pour connecter vos agents de code à Kimi K3 et à d'autres modèles de pointe.",
+      twitterTitle: 'API Kimi K3 pour agents de code',
+      twitterDescription:
+        'Connectez OpenCode, Cline, Roo Code et les outils compatibles OpenAI à Kimi K3 avec une seule clé API via Vancine.',
     },
     ru: {
       title: 'Kimi K3 API для агентов-программистов | Vancine',
@@ -186,6 +202,9 @@ const KIMI_K3_METADATA: Record<InterfaceLanguageCode, KimiK3LanguageMetadata> =
       ogTitle: 'Kimi K3 для агентов-программистов',
       ogDescription:
         'Используйте один OpenAI-совместимый API-ключ, чтобы подключить агентов-программистов к Kimi K3 и другим передовым моделям.',
+      twitterTitle: 'Kimi K3 API для агентов-программистов',
+      twitterDescription:
+        'Подключите OpenCode, Cline, Roo Code и инструменты с поддержкой OpenAI к Kimi K3 с одним API-ключом через Vancine.',
     },
     ja: {
       title: 'コーディングエージェント向け Kimi K3 API | Vancine',
@@ -194,6 +213,9 @@ const KIMI_K3_METADATA: Record<InterfaceLanguageCode, KimiK3LanguageMetadata> =
       ogTitle: 'コーディングエージェントのための Kimi K3',
       ogDescription:
         'OpenAI 互換の単一 API キーで、コーディングエージェントを Kimi K3 やその他の最先端モデルに接続できます。',
+      twitterTitle: 'コーディングエージェント向け Kimi K3 API',
+      twitterDescription:
+        'Vancine の単一の API キーで、OpenCode、Cline、Roo Code、OpenAI 互換ツールを Kimi K3 に接続できます。',
     },
     vi: {
       title: 'API Kimi K3 cho tác tử lập trình | Vancine',
@@ -202,6 +224,9 @@ const KIMI_K3_METADATA: Record<InterfaceLanguageCode, KimiK3LanguageMetadata> =
       ogTitle: 'Kimi K3 cho tác tử lập trình',
       ogDescription:
         'Dùng một khóa API tương thích OpenAI để kết nối tác tử lập trình với Kimi K3 và các mô hình tiên tiến khác.',
+      twitterTitle: 'API Kimi K3 cho tác tử lập trình',
+      twitterDescription:
+        'Kết nối OpenCode, Cline, Roo Code và các công cụ tương thích OpenAI với Kimi K3 bằng một khóa API duy nhất qua Vancine.',
     },
   }
 
@@ -219,6 +244,8 @@ export function getKimiK3PageMetadata(language: string): PageMetadata {
     description: meta.description,
     ogTitle: meta.ogTitle,
     ogDescription: meta.ogDescription,
+    twitterTitle: meta.twitterTitle,
+    twitterDescription: meta.twitterDescription,
     ogUrl: KIMI_K3_CANONICAL,
     canonical: KIMI_K3_CANONICAL,
   }
