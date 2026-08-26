@@ -1,3 +1,12 @@
+## 1.5.0 - 2026-08-26
+
+### SEO 与获客
+
+- 新增固定的 robots.txt，并完善 sitemap.xml 的 GET/HEAD 响应、缓存策略和公开页面目录。
+- 首页、定价、文档、Kimi K3、Seedance 2.5 与 AI Media 营销页现在直接返回服务端可见的 title、description、canonical、Open Graph 和 Twitter metadata。
+- canonical 始终固定到 https://vancine.com，不受 Host、Forwarded、Origin、UTM 或其他查询参数影响。
+- 保持未知 SPA 路由兼容，并确保 /api、/v1 与 /assets 路径不会错误返回营销页面。
+
 ## 1.3.0 - 2026-08-24
 
 ### 新功能

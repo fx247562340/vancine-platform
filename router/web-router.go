@@ -4,7 +4,6 @@ import (
 	"embed"
 	"encoding/xml"
 	"net/http"
-	"strings"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/controller"
@@ -20,10 +19,20 @@ type WebAssets struct {
 	IndexPage []byte
 }
 
-// canonicalSiteOrigin is the fixed public origin used in every sitemap URL.
-// It is hard-coded on purpose: deriving it from the request Host,
-// X-Forwarded-Host, or Origin headers would enable Host header injection.
-const canonicalSiteOrigin = "https://vancine.com"
+// sitemapURL is one <url> entry of the sitemap document. lastmod is
+// intentionally omitted because there is no real, stable per-page
+// modification time available.
+type sitemapURL struct {
+	XMLName xml.Name `xml:"url"`
+	Loc     string   `xml:"loc"`
+}
+
+// sitemapURLSet is the <urlset> root of the sitemap document.
+type sitemapURLSet struct {
+	XMLName xml.Name     `xml:"urlset"`
+	Xmlns   string       `xml:"xmlns,attr"`
+	URLs    []sitemapURL `xml:"url"`
+}
 
 // sitemapNamespace is the standard XML Sitemap namespace.
 const sitemapNamespace = "http://www.sitemaps.org/schemas/sitemap/0.9"
@@ -46,25 +55,11 @@ var publicSitemapPaths = []string{
 	"/ai-media-api",
 }
 
-// sitemapURL is one <url> entry of the sitemap document. lastmod is
-// intentionally omitted because there is no real, stable per-page
-// modification time available.
-type sitemapURL struct {
-	XMLName xml.Name `xml:"url"`
-	Loc     string   `xml:"loc"`
-}
-
-// sitemapURLSet is the <urlset> root of the sitemap document.
-type sitemapURLSet struct {
-	XMLName xml.Name     `xml:"urlset"`
-	Xmlns   string       `xml:"xmlns,attr"`
-	URLs    []sitemapURL `xml:"url"`
-}
-
 // sitemapHandler serves the XML sitemap for the fixed public page set. The
 // document is built solely from the hard-coded canonical origin and the fixed
 // page list, so the response never depends on request parameters, headers,
-// or user input.
+// or user input. Both GET and HEAD hit the same handler; gin/Go's net/http
+// suppresses the response body for HEAD automatically.
 func sitemapHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		urlSet := sitemapURLSet{
@@ -80,25 +75,84 @@ func sitemapHandler() gin.HandlerFunc {
 			c.Status(http.StatusInternalServerError)
 			return
 		}
-		c.Data(http.StatusOK, "application/xml; charset=utf-8", append([]byte(xml.Header+"\n"), body...))
+		c.Header("Cache-Control", crawlerDocumentCacheControl)
+		c.Data(http.StatusOK, sitemapContentType, append([]byte(xml.Header+"\n"), body...))
 	}
 }
 
+// robotsHandler serves the static robots.txt document. The body and all
+// directives are package-level constants — they never reflect the request
+// Host, X-Forwarded-Host, Origin, or query parameters. Both GET and HEAD
+// hit the same handler; gin/Go's net/http will suppress the response body
+// for HEAD automatically.
+func robotsHandler() gin.HandlerFunc {
+	body := []byte(robotsTxtBody)
+	return func(c *gin.Context) {
+		c.Header("Cache-Control", crawlerDocumentCacheControl)
+		c.Data(http.StatusOK, robotsContentType, body)
+	}
+}
+
+// SetWebRouter wires the public web router: gzip, the global web rate
+// limit, the static asset middleware, the explicit robots.txt and
+// sitemap.xml routes, and finally the SPA NoRoute fallback that injects
+// per-route SEO metadata for known marketing paths.
 func SetWebRouter(router *gin.Engine, assets WebAssets) {
+	// Programmer-error guard. A bad entry in publicMarketingPages must fail
+	// at startup, not at request time.
+	assertPublicMetadataInvariant()
+
 	frontendFS := common.EmbedFolder(assets.BuildFS, "web/dist")
+
+	// Pre-render one HTML variant per public marketing route. The map is
+	// built once at startup so NoRoute is an O(1) lookup + bytes write.
+	publicVariants, originalIndexPage := buildPublicPageVariants(assets.IndexPage)
 
 	router.Use(gzip.Gzip(gzip.DefaultCompression))
 	router.Use(middleware.GlobalWebRateLimit())
 	router.Use(middleware.Cache())
 	router.Use(static.Serve("/", frontendFS))
+
+	// robots.txt: GET and HEAD must both be served with the canonical body
+	// and a one-hour public cache. No content negotiation, no SPA fallback.
+	router.GET("/robots.txt", robotsHandler())
+	router.HEAD("/robots.txt", robotsHandler())
+
+	// sitemap.xml: GET and HEAD must both be served with the same XML body
+	// (Gin/net/http will suppress the body for HEAD automatically). The GET
+	// response carries the one-hour public cache directive.
 	router.GET("/sitemap.xml", sitemapHandler())
+	router.HEAD("/sitemap.xml", sitemapHandler())
+
 	router.NoRoute(func(c *gin.Context) {
 		c.Set(middleware.RouteTagKey, "web")
-		if strings.HasPrefix(c.Request.RequestURI, "/v1") || strings.HasPrefix(c.Request.RequestURI, "/api") || strings.HasPrefix(c.Request.RequestURI, "/assets") {
+		// URL.Path is already percent-decoded and query-stripped by
+		// net/http, so it is the only correct source of "what page did
+		// the client ask for" — reading the raw RequestURI would let
+		// percent-encoded prefixes ("/%61pi/...") or proxy absolute-form
+		// request lines slip past the relay-isolation check.
+		path := c.Request.URL.Path
+
+		// /api/*, /v1/*, and /assets/* must reach the relay NotFound
+		// handler. They are relay/static surfaces, not marketing routes,
+		// and must never be served the marketing HTML.
+		if routeIsRelayPrefix(path) {
 			controller.RelayNotFound(c)
 			return
 		}
+
+		// Known public marketing route? Serve the pre-rendered variant
+		// (O(1) map lookup; the bytes were built at startup).
+		if body, ok := publicVariants[path]; ok {
+			c.Header("Cache-Control", "no-cache")
+			c.Data(http.StatusOK, "text/html; charset=utf-8", body)
+			return
+		}
+
+		// Unknown SPA path: serve the original IndexPage with its default
+		// meta. Client-side routing can recover from a missing SPA route
+		// by reading the shell and rendering the 404 view.
 		c.Header("Cache-Control", "no-cache")
-		c.Data(http.StatusOK, "text/html; charset=utf-8", assets.IndexPage)
+		c.Data(http.StatusOK, "text/html; charset=utf-8", originalIndexPage)
 	})
 }

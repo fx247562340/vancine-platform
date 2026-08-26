@@ -33,9 +33,31 @@ var expectedSitemapLocs = []string{
 	"https://vancine.com/ai-media-api",
 }
 
-// testSPAIndexPage carries recognisable SPA markers so any fall-through into
-// the NoRoute SPA fallback is detectable in sitemap responses.
-const testSPAIndexPage = `<!doctype html><html><head><title>spa</title></head><body>spa fallback</body></html>`
+// testSPAIndexPage is the fixture used by pre-existing sitemap tests.
+// It mirrors the production dist/index.html primary-meta block verbatim
+// so that buildPublicPageVariants' panic-on-missing-anchor guard does
+// not fire during a SetWebRouter call that is otherwise only testing
+// sitemap behaviour. The pre-existing assertions only inspect the
+// sitemap *response* (e.g. assert it does not contain "<!doctype html"
+// or "<html>"), so the fixture's exact bytes do not affect what those
+// tests check; they exist to make SetWebRouter buildable.
+const testSPAIndexPage = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Primary Meta Tags -->
+    <title>Vancine</title>
+    <meta name="title" content="Vancine" />
+    <meta
+      name="description"
+      content="Unified AI API gateway and admin dashboard."
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
+`
 
 // sitemapTestURL mirrors one <url> element of the sitemap document.
 type sitemapTestURL struct {
