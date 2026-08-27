@@ -1,3 +1,12 @@
+## 1.8.0 - 2026-08-28
+
+### SEO 与获客
+
+- 新增 `/glm-5-3-api` 获客页面，在一个固定 canonical 页面中同时介绍 GLM-5.3 与 GLM-5.3-Flash，不增加重复的 Flash 独立路由。
+- 展示两个模型输入、输出和缓存输入价格与 OpenRouter 公开列价的对比；页面六项 Vancine 价格均为对应 OpenRouter 列价的 80%，并保留价格来源与口径说明。
+- 提供 OpenAI-compatible 快速调用示例、模型选择建议以及根据登录状态变化的注册或 Playground 入口。
+- 新页面已加入 sitemap 和 OpenRouter Alternative 内部入口，提供服务端 SEO metadata、七种界面语言和移动端可访问布局。
+
 ## 1.7.0 - 2026-08-27
 
 ### SEO 与获客
