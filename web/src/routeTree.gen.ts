@@ -32,6 +32,7 @@ import { Route as AboutIndexRouteImport } from './routes/about/index'
 import { Route as AiMediaApiIndexRouteImport } from './routes/ai-media-api/index'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as DocsSlugRouteImport } from './routes/docs/$slug'
+import { Route as Glm53ApiIndexRouteImport } from './routes/glm-5-3-api/index'
 import { Route as KimiK3ApiIndexRouteImport } from './routes/kimi-k3-api/index'
 import { Route as OauthProviderRouteImport } from './routes/oauth/$provider'
 import { Route as OpenrouterAlternativeIndexRouteImport } from './routes/openrouter-alternative/index'
@@ -188,6 +189,11 @@ const DocsIndexRoute = DocsIndexRouteImport.update({
 const DocsSlugRoute = DocsSlugRouteImport.update({
   id: '/docs/$slug',
   path: '/docs/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Glm53ApiIndexRoute = Glm53ApiIndexRouteImport.update({
+  id: '/glm-5-3-api/',
+  path: '/glm-5-3-api/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const KimiK3ApiIndexRoute = KimiK3ApiIndexRouteImport.update({
@@ -461,6 +467,7 @@ export interface FileRoutesByFullPath {
   '/about/': typeof AboutIndexRoute
   '/ai-media-api/': typeof AiMediaApiIndexRoute
   '/docs/': typeof DocsIndexRoute
+  '/glm-5-3-api/': typeof Glm53ApiIndexRoute
   '/kimi-k3-api/': typeof KimiK3ApiIndexRoute
   '/openrouter-alternative/': typeof OpenrouterAlternativeIndexRoute
   '/pricing/': typeof PricingIndexRoute
@@ -526,6 +533,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutIndexRoute
   '/ai-media-api': typeof AiMediaApiIndexRoute
   '/docs': typeof DocsIndexRoute
+  '/glm-5-3-api': typeof Glm53ApiIndexRoute
   '/kimi-k3-api': typeof KimiK3ApiIndexRoute
   '/openrouter-alternative': typeof OpenrouterAlternativeIndexRoute
   '/pricing': typeof PricingIndexRoute
@@ -595,6 +603,7 @@ export interface FileRoutesById {
   '/about/': typeof AboutIndexRoute
   '/ai-media-api/': typeof AiMediaApiIndexRoute
   '/docs/': typeof DocsIndexRoute
+  '/glm-5-3-api/': typeof Glm53ApiIndexRoute
   '/kimi-k3-api/': typeof KimiK3ApiIndexRoute
   '/openrouter-alternative/': typeof OpenrouterAlternativeIndexRoute
   '/pricing/': typeof PricingIndexRoute
@@ -663,6 +672,7 @@ export interface FileRouteTypes {
     | '/about/'
     | '/ai-media-api/'
     | '/docs/'
+    | '/glm-5-3-api/'
     | '/kimi-k3-api/'
     | '/openrouter-alternative/'
     | '/pricing/'
@@ -728,6 +738,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/ai-media-api'
     | '/docs'
+    | '/glm-5-3-api'
     | '/kimi-k3-api'
     | '/openrouter-alternative'
     | '/pricing'
@@ -796,6 +807,7 @@ export interface FileRouteTypes {
     | '/about/'
     | '/ai-media-api/'
     | '/docs/'
+    | '/glm-5-3-api/'
     | '/kimi-k3-api/'
     | '/openrouter-alternative/'
     | '/pricing/'
@@ -856,6 +868,7 @@ export interface RootRouteChildren {
   AboutIndexRoute: typeof AboutIndexRoute
   AiMediaApiIndexRoute: typeof AiMediaApiIndexRoute
   DocsIndexRoute: typeof DocsIndexRoute
+  Glm53ApiIndexRoute: typeof Glm53ApiIndexRoute
   KimiK3ApiIndexRoute: typeof KimiK3ApiIndexRoute
   OpenrouterAlternativeIndexRoute: typeof OpenrouterAlternativeIndexRoute
   PricingIndexRoute: typeof PricingIndexRoute
@@ -1026,6 +1039,13 @@ declare module '@tanstack/react-router' {
       path: '/docs/$slug'
       fullPath: '/docs/$slug'
       preLoaderRoute: typeof DocsSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/glm-5-3-api/': {
+      id: '/glm-5-3-api/'
+      path: '/glm-5-3-api'
+      fullPath: '/glm-5-3-api/'
+      preLoaderRoute: typeof Glm53ApiIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/kimi-k3-api/': {
@@ -1484,6 +1504,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutIndexRoute: AboutIndexRoute,
   AiMediaApiIndexRoute: AiMediaApiIndexRoute,
   DocsIndexRoute: DocsIndexRoute,
+  Glm53ApiIndexRoute: Glm53ApiIndexRoute,
   KimiK3ApiIndexRoute: KimiK3ApiIndexRoute,
   OpenrouterAlternativeIndexRoute: OpenrouterAlternativeIndexRoute,
   PricingIndexRoute: PricingIndexRoute,

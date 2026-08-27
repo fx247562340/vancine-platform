@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com.
 */
+import { Link } from '@tanstack/react-router'
 import type { ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -75,6 +76,15 @@ export function Coverage(): ReactElement {
             </dd>
           </div>
         </dl>
+        <p className='text-muted-foreground mt-6 text-sm md:text-base'>
+          {t('GLM spotlight')}{' '}
+          <Link
+            to='/glm-5-3-api'
+            className='text-primary underline underline-offset-2'
+          >
+            {t('GLM-5.3 and GLM-5.3 Flash pricing')}
+          </Link>
+        </p>
       </div>
     </section>
   )

@@ -540,6 +540,8 @@ export const OPENROUTER_ALTERNATIVE_EVIDENCE_KEYS = [
   'OpenRouter optimizes for catalog breadth. Vancine focuses on a curated set of the latest flagship Chinese models and retires superseded versions as new releases arrive.',
   'Current flagship coverage',
   'Image, Video, Audio, 3D',
+  'GLM spotlight',
+  'GLM-5.3 and GLM-5.3 Flash pricing',
   'Vancine exposes the latest flagship text models from Qwen, Kimi, GLM, MiniMax, and DeepSeek through one OpenAI-compatible API. The same key and balance also reach Chinese providers for Image, Video, Audio, and 3D generation, so a single integration covers your text and media workloads.',
   'Migrate from OpenRouter today',
   'Migrate from OpenRouter today body',

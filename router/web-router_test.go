@@ -32,6 +32,10 @@ var expectedSitemapLocs = []string{
 	"https://vancine.com/seedance-api",
 	"https://vancine.com/ai-media-api",
 	"https://vancine.com/openrouter-alternative",
+	// SEO-4 Phase 1: the single GLM-5.3 acquisition page. There is
+	// intentionally no /glm-5-3-flash-api entry — one canonical page
+	// covers both model ids.
+	"https://vancine.com/glm-5-3-api",
 }
 
 // testSPAIndexPage is the fixture used by pre-existing sitemap tests.
@@ -127,6 +131,21 @@ func TestSitemapListsExactlyTheApprovedPublicPages(t *testing.T) {
 	}
 	assert.Equal(t, expectedSitemapLocs, locs,
 		"sitemap locs must equal the approved canonical set in the approved order, with no missing, extra, or duplicate entries")
+
+	// SEO-4 Phase 1: exactly 13 entries; /glm-5-3-api appears exactly
+	// once and no sibling /glm-5-3-flash-api page may be indexed.
+	assert.Len(t, locs, 13,
+		"sitemap must contain exactly 13 URLs after adding /glm-5-3-api")
+	glmCount := 0
+	for _, loc := range locs {
+		if strings.HasSuffix(loc, "/glm-5-3-api") {
+			glmCount++
+		}
+		assert.NotContains(t, loc, "glm-5-3-flash",
+			"no /glm-5-3-flash-api sibling page may be indexed")
+	}
+	assert.Equal(t, 1, glmCount,
+		"/glm-5-3-api must appear exactly once in the sitemap")
 
 	for _, excluded := range []string{
 		"https://vancine.com/waitlist",

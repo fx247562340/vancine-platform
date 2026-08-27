@@ -2,6 +2,7 @@ package router
 
 import (
 	"embed"
+	"fmt"
 	"html"
 	"net/http"
 	"net/http/httptest"
@@ -335,6 +336,87 @@ func TestPublicPagesMetadataIgnoresUTMAndQueryString(t *testing.T) {
 				"path %q: UTM and other query params must not change the served HTML", c.path)
 			assert.NotContains(t, recUTM.Body.String(), "utm_source",
 				"path %q: UTM params must not appear anywhere in the served HTML", c.path)
+		})
+	}
+}
+
+// seoGlm53RouteCase is the SEO-4 Phase 1 route case for /glm-5-3-api,
+// kept separate from seoPublicRouteCases so the pre-existing table
+// stays untouched.
+var seoGlm53RouteCase = seoPublicRouteCase{
+	path:                 "/glm-5-3-api",
+	wantTitle:            "GLM-5.3 & GLM-5.3 Flash API Pricing | Vancine",
+	wantDescription:      "Access GLM-5.3 and GLM-5.3 Flash through one OpenAI-compatible API. Compare Vancine and OpenRouter pricing: 20% lower on these two standard paid listings.",
+	wantCanonical:        "https://vancine.com/glm-5-3-api",
+	wantOGTitle:          "GLM-5.3 & GLM-5.3 Flash API Pricing",
+	wantOGDescription:    "Access GLM-5.3 and GLM-5.3 Flash through one OpenAI-compatible API. Compare Vancine and OpenRouter pricing: 20% lower on these two standard paid listings.",
+	wantOGURL:            "https://vancine.com/glm-5-3-api",
+	wantTwitterTitle:     "GLM-5.3 & GLM-5.3 Flash API Pricing",
+	wantTwitterDesc:      "Access GLM-5.3 and GLM-5.3 Flash through one OpenAI-compatible API. Compare Vancine and OpenRouter pricing: 20% lower on these two standard paid listings.",
+	wantTwitterCardValue: "summary",
+}
+
+// TestGlm53ApiPageServesExactApprovedMetadata pins the SEO-4 Phase 1
+// public contract for /glm-5-3-api: GET and HEAD both serve the route
+// variant, and the metadata block carries the exact approved copy with
+// a properly escaped ampersand.
+func TestGlm53ApiPageServesExactApprovedMetadata(t *testing.T) {
+	engine := newWebRouterSEOFixture(t)
+
+	t.Run("GET serves the approved metadata block", func(t *testing.T) {
+		rec := serveSEO(engine, httptest.NewRequest(http.MethodGet, "/glm-5-3-api", nil))
+		require.Equal(t, http.StatusOK, rec.Code)
+		assertSEOContract(t, html.UnescapeString(rec.Body.String()), "/glm-5-3-api", seoGlm53RouteCase)
+
+		// The escaped form must be what actually reaches the wire for
+		// the title and the og/twitter titles that carry "&".
+		assert.Contains(t, rec.Body.String(), "GLM-5.3 &amp; GLM-5.3 Flash API Pricing",
+			"the served ampersand must be HTML-escaped")
+	})
+
+	t.Run("HEAD serves the same status and content type", func(t *testing.T) {
+		rec := serveSEO(engine, httptest.NewRequest(http.MethodHead, "/glm-5-3-api", nil))
+		require.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, "text/html; charset=utf-8", rec.Header().Get("Content-Type"))
+	})
+}
+
+// TestGlm53ApiCanonicalIsPollutionProof locks the no-pollution rule
+// for the new page: Host / X-Forwarded-Host / Origin / Referer headers
+// and any query or UTM parameters must never reach the canonical or
+// og:url values, and the trailing-slash form serves the same canonical.
+func TestGlm53ApiCanonicalIsPollutionProof(t *testing.T) {
+	engine := newWebRouterSEOFixture(t)
+	const wantCanonical = `link rel="canonical" href="https://vancine.com/glm-5-3-api"`
+	const wantOGURL = `meta property="og:url" content="https://vancine.com/glm-5-3-api"`
+
+	utmQuery := "?utm_source=ads&utm_medium=cpc&utm_campaign=glm&utm_content=b1&utm_term=llm&email=a@b.com&token=t&redirect=https://evil.example.com"
+
+	requests := []*http.Request{
+		httptest.NewRequest(http.MethodGet, "/glm-5-3-api"+utmQuery, nil),
+	}
+	for _, rawPath := range []string{"/glm-5-3-api?x=1", "/glm-5-3-api/"} {
+		req := httptest.NewRequest(http.MethodGet, rawPath, nil)
+		req.Host = "evil.example.com"
+		req.Header.Set("X-Forwarded-Host", "evil.example.com")
+		req.Header.Set("X-Forwarded-Proto", "http")
+		req.Header.Set("Origin", "http://evil.example.com")
+		req.Header.Set("Referer", "https://evil.example.com/glm")
+		requests = append(requests, req)
+	}
+
+	for i, req := range requests {
+		req := req
+		t.Run(fmt.Sprintf("request-%d-%s", i, req.URL.RequestURI()), func(t *testing.T) {
+			rec := serveSEO(engine, req)
+			require.Equal(t, http.StatusOK, rec.Code)
+			body := rec.Body.String()
+			assert.NotContains(t, body, "evil.example.com")
+			assert.NotContains(t, body, "utm_")
+			assert.NotContains(t, body, "a@b.com")
+			decoded := html.UnescapeString(body)
+			assert.Contains(t, decoded, wantCanonical)
+			assert.Contains(t, decoded, wantOGURL)
 		})
 	}
 }

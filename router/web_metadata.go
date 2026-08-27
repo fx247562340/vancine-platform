@@ -143,6 +143,21 @@ var publicMarketingPages = []publicPageMeta{
 		twitterDesc:      "Use one OpenAI-compatible API for the latest flagship Chinese AI models. Compare Vancine with OpenRouter and save 20% on selected paid model listings.",
 		twitterCardValue: "summary",
 	},
+	{
+		// SEO-4 Phase 1: /glm-5-3-api. The English values here are
+		// mirrored from the SPA's getGlm53ApiPageMetadata('en') and
+		// must stay byte-identical to them.
+		path:  "/glm-5-3-api",
+		title: "GLM-5.3 & GLM-5.3 Flash API Pricing | Vancine",
+		description: "Access GLM-5.3 and GLM-5.3 Flash through one " +
+			"OpenAI-compatible API. Compare Vancine and OpenRouter pricing: " +
+			"20% lower on these two standard paid listings.",
+		ogTitle:          "GLM-5.3 & GLM-5.3 Flash API Pricing",
+		ogDescription:    "Access GLM-5.3 and GLM-5.3 Flash through one OpenAI-compatible API. Compare Vancine and OpenRouter pricing: 20% lower on these two standard paid listings.",
+		twitterTitle:     "GLM-5.3 & GLM-5.3 Flash API Pricing",
+		twitterDesc:      "Access GLM-5.3 and GLM-5.3 Flash through one OpenAI-compatible API. Compare Vancine and OpenRouter pricing: 20% lower on these two standard paid listings.",
+		twitterCardValue: "summary",
+	},
 }
 
 // robotsTxtBody is the exact fixed document served at /robots.txt. The

@@ -474,6 +474,16 @@ describe('internal links', () => {
       expect(href).not.toContain('utm_source')
     }
   })
+
+  it('links the glm-5.3 model name to the /glm-5-3-api page', async () => {
+    await renderPage()
+    await screen.findByRole('heading', { level: 1 })
+
+    const glmLink = screen.getByRole('link', {
+      name: 'GLM-5.3 and GLM-5.3 Flash pricing',
+    })
+    expect(glmLink.getAttribute('href')).toBe('/glm-5-3-api')
+  })
 })
 
 describe('metadata owner', () => {

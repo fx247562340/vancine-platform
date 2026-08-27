@@ -54,6 +54,10 @@ var publicSitemapPaths = []string{
 	"/seedance-api",
 	"/ai-media-api",
 	"/openrouter-alternative",
+	// SEO-4 Phase 1: the single canonical GLM-5.3 acquisition page.
+	// It covers both glm-5.3 and glm-5.3-flash; there is deliberately
+	// no /glm-5-3-flash-api sibling route.
+	"/glm-5-3-api",
 }
 
 // sitemapHandler serves the XML sitemap for the fixed public page set. The
