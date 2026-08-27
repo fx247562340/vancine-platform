@@ -1,3 +1,12 @@
+## 1.7.0 - 2026-08-27
+
+### SEO 与获客
+
+- 新增 `/openrouter-alternative` 高意向获客页面，集中展示 Vancine 精选国内旗舰模型与 OpenRouter 对应公开价格的对比。
+- qwen3.8-max、kimi-k3、glm-5.3 与 MiniMax-M3 的页面价格对比采用可核查来源和明确口径，展示 Vancine 当前价格为对应 OpenRouter 列价的 80%，不作“全部模型都更便宜”的泛化承诺。
+- 提供 OpenAI-compatible SDK、curl 迁移示例和经过核实的模型 ID 映射说明，并根据登录状态引导用户注册或打开 Playground。
+- 新页面已加入 sitemap、服务端 SEO metadata 和首页内部入口，支持七种界面语言，并保留外部获客活动的白名单 UTM 归因参数。
+
 ## 1.6.0 - 2026-08-27
 
 ### SEO 与页面元数据
