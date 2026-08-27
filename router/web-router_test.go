@@ -31,6 +31,7 @@ var expectedSitemapLocs = []string{
 	"https://vancine.com/kimi-k3-api",
 	"https://vancine.com/seedance-api",
 	"https://vancine.com/ai-media-api",
+	"https://vancine.com/openrouter-alternative",
 }
 
 // testSPAIndexPage is the fixture used by pre-existing sitemap tests.

@@ -53,6 +53,7 @@ var publicSitemapPaths = []string{
 	"/kimi-k3-api",
 	"/seedance-api",
 	"/ai-media-api",
+	"/openrouter-alternative",
 }
 
 // sitemapHandler serves the XML sitemap for the fixed public page set. The

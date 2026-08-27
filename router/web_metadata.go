@@ -127,6 +127,22 @@ var publicMarketingPages = []publicPageMeta{
 		twitterDesc:      "Access Chinese AI media models through one API. Image, video, speech, and 3D generation with one API key and unified billing.",
 		twitterCardValue: "summary",
 	},
+	{
+		// SEO-3 Phase 1: /openrouter-alternative. The English values
+		// here are mirrored from the SPA's
+		// getOpenRouterAlternativePageMetadata('en') and must stay
+		// byte-identical to them.
+		path:  "/openrouter-alternative",
+		title: "OpenRouter Alternative for Chinese AI Models | Vancine",
+		description: "Use one OpenAI-compatible API for the latest flagship " +
+			"Chinese AI models. Compare Vancine with OpenRouter and save " +
+			"20% on selected paid model listings.",
+		ogTitle:          "OpenRouter Alternative for Chinese AI Models",
+		ogDescription:    "Use one OpenAI-compatible API for the latest flagship Chinese AI models. Compare Vancine with OpenRouter and save 20% on selected paid model listings.",
+		twitterTitle:     "OpenRouter Alternative for Chinese AI Models",
+		twitterDesc:      "Use one OpenAI-compatible API for the latest flagship Chinese AI models. Compare Vancine with OpenRouter and save 20% on selected paid model listings.",
+		twitterCardValue: "summary",
+	},
 }
 
 // robotsTxtBody is the exact fixed document served at /robots.txt. The

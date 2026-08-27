@@ -34,6 +34,7 @@ import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as DocsSlugRouteImport } from './routes/docs/$slug'
 import { Route as KimiK3ApiIndexRouteImport } from './routes/kimi-k3-api/index'
 import { Route as OauthProviderRouteImport } from './routes/oauth/$provider'
+import { Route as OpenrouterAlternativeIndexRouteImport } from './routes/openrouter-alternative/index'
 import { Route as PricingIndexRouteImport } from './routes/pricing/index'
 import { Route as RankingsIndexRouteImport } from './routes/rankings/index'
 import { Route as SeedanceApiIndexRouteImport } from './routes/seedance-api/index'
@@ -199,6 +200,12 @@ const OauthProviderRoute = OauthProviderRouteImport.update({
   path: '/oauth/$provider',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OpenrouterAlternativeIndexRoute =
+  OpenrouterAlternativeIndexRouteImport.update({
+    id: '/openrouter-alternative/',
+    path: '/openrouter-alternative/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const PricingIndexRoute = PricingIndexRouteImport.update({
   id: '/pricing/',
   path: '/pricing/',
@@ -455,6 +462,7 @@ export interface FileRoutesByFullPath {
   '/ai-media-api/': typeof AiMediaApiIndexRoute
   '/docs/': typeof DocsIndexRoute
   '/kimi-k3-api/': typeof KimiK3ApiIndexRoute
+  '/openrouter-alternative/': typeof OpenrouterAlternativeIndexRoute
   '/pricing/': typeof PricingIndexRoute
   '/rankings/': typeof RankingsIndexRoute
   '/seedance-api/': typeof SeedanceApiIndexRoute
@@ -519,6 +527,7 @@ export interface FileRoutesByTo {
   '/ai-media-api': typeof AiMediaApiIndexRoute
   '/docs': typeof DocsIndexRoute
   '/kimi-k3-api': typeof KimiK3ApiIndexRoute
+  '/openrouter-alternative': typeof OpenrouterAlternativeIndexRoute
   '/pricing': typeof PricingIndexRoute
   '/rankings': typeof RankingsIndexRoute
   '/seedance-api': typeof SeedanceApiIndexRoute
@@ -587,6 +596,7 @@ export interface FileRoutesById {
   '/ai-media-api/': typeof AiMediaApiIndexRoute
   '/docs/': typeof DocsIndexRoute
   '/kimi-k3-api/': typeof KimiK3ApiIndexRoute
+  '/openrouter-alternative/': typeof OpenrouterAlternativeIndexRoute
   '/pricing/': typeof PricingIndexRoute
   '/rankings/': typeof RankingsIndexRoute
   '/seedance-api/': typeof SeedanceApiIndexRoute
@@ -654,6 +664,7 @@ export interface FileRouteTypes {
     | '/ai-media-api/'
     | '/docs/'
     | '/kimi-k3-api/'
+    | '/openrouter-alternative/'
     | '/pricing/'
     | '/rankings/'
     | '/seedance-api/'
@@ -718,6 +729,7 @@ export interface FileRouteTypes {
     | '/ai-media-api'
     | '/docs'
     | '/kimi-k3-api'
+    | '/openrouter-alternative'
     | '/pricing'
     | '/rankings'
     | '/seedance-api'
@@ -785,6 +797,7 @@ export interface FileRouteTypes {
     | '/ai-media-api/'
     | '/docs/'
     | '/kimi-k3-api/'
+    | '/openrouter-alternative/'
     | '/pricing/'
     | '/rankings/'
     | '/seedance-api/'
@@ -844,6 +857,7 @@ export interface RootRouteChildren {
   AiMediaApiIndexRoute: typeof AiMediaApiIndexRoute
   DocsIndexRoute: typeof DocsIndexRoute
   KimiK3ApiIndexRoute: typeof KimiK3ApiIndexRoute
+  OpenrouterAlternativeIndexRoute: typeof OpenrouterAlternativeIndexRoute
   PricingIndexRoute: typeof PricingIndexRoute
   RankingsIndexRoute: typeof RankingsIndexRoute
   SeedanceApiIndexRoute: typeof SeedanceApiIndexRoute
@@ -1026,6 +1040,13 @@ declare module '@tanstack/react-router' {
       path: '/oauth/$provider'
       fullPath: '/oauth/$provider'
       preLoaderRoute: typeof OauthProviderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/openrouter-alternative/': {
+      id: '/openrouter-alternative/'
+      path: '/openrouter-alternative'
+      fullPath: '/openrouter-alternative/'
+      preLoaderRoute: typeof OpenrouterAlternativeIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pricing/': {
@@ -1464,6 +1485,7 @@ const rootRouteChildren: RootRouteChildren = {
   AiMediaApiIndexRoute: AiMediaApiIndexRoute,
   DocsIndexRoute: DocsIndexRoute,
   KimiK3ApiIndexRoute: KimiK3ApiIndexRoute,
+  OpenrouterAlternativeIndexRoute: OpenrouterAlternativeIndexRoute,
   PricingIndexRoute: PricingIndexRoute,
   RankingsIndexRoute: RankingsIndexRoute,
   SeedanceApiIndexRoute: SeedanceApiIndexRoute,

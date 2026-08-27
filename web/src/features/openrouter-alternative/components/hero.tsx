@@ -1,0 +1,121 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com.
+*/
+import { ArrowRight01Icon, BookOpen01Icon } from '@hugeicons/core-free-icons'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { Link } from '@tanstack/react-router'
+import type { ReactElement } from 'react'
+import { useTranslation } from 'react-i18next'
+
+import { Button } from '@/components/ui/button'
+import { trackEvent } from '@/lib/analytics'
+
+import {
+  getOpenRouterAlternativeCtaLabelKey,
+  getOpenRouterAlternativeCtaTarget,
+  OPENROUTER_ALTERNATIVE_CTA_EVENT,
+  OPENROUTER_ALTERNATIVE_RESOURCE_EVENT,
+} from '../lib/landing'
+
+export interface HeroProps {
+  isAuthenticated: boolean
+  /** The raw query string of the landing page URL. */
+  search: string
+}
+
+/**
+ * Above-the-fold introduction: what the /openrouter-alternative page is
+ * for, plus the auth-aware primary CTA (Create an API key) and the
+ * secondary CTA (View live pricing).
+ */
+export function Hero(props: HeroProps): ReactElement {
+  const { t } = useTranslation()
+  const ctaTarget = getOpenRouterAlternativeCtaTarget(
+    props.isAuthenticated,
+    props.search
+  )
+  const ctaLabelKey = getOpenRouterAlternativeCtaLabelKey(props.isAuthenticated)
+
+  return (
+    <section
+      aria-labelledby='openrouter-alternative-hero-title'
+      className='relative overflow-hidden px-4 pt-24 pb-16 text-center md:px-6 md:pt-32 md:pb-24'
+    >
+      <div
+        aria-hidden='true'
+        className='from-primary/20 via-background pointer-events-none absolute -top-24 left-1/2 h-96 w-[42rem] -translate-x-1/2 rounded-full bg-gradient-to-r to-transparent blur-3xl'
+      />
+      <div className='relative mx-auto flex max-w-3xl flex-col items-center gap-6'>
+        <p className='text-primary text-sm font-semibold tracking-wide uppercase'>
+          {t(
+            'A curated OpenRouter alternative for the latest flagship Chinese AI models'
+          )}
+        </p>
+        <h1
+          id='openrouter-alternative-hero-title'
+          className='text-4xl font-bold tracking-tight md:text-5xl'
+        >
+          {t('OpenRouter Alternative for Chinese AI Models')}
+        </h1>
+        <p className='text-muted-foreground max-w-2xl text-base md:text-lg'>
+          {t(
+            'One OpenAI-compatible API, one API key, one balance. No top-up platform fee.'
+          )}
+        </p>
+        <div className='flex flex-wrap items-center justify-center gap-3'>
+          <Button
+            size='lg'
+            className='h-11 px-6'
+            render={<Link to={ctaTarget.to} search={ctaTarget.search} />}
+            onClick={() =>
+              trackEvent(OPENROUTER_ALTERNATIVE_CTA_EVENT, {
+                location: 'openrouter_alt_hero',
+              })
+            }
+          >
+            {t(ctaLabelKey)}
+            <HugeiconsIcon
+              icon={ArrowRight01Icon}
+              data-icon='inline-end'
+              aria-hidden='true'
+            />
+          </Button>
+          <Button
+            variant='outline'
+            size='lg'
+            className='h-11 px-6'
+            render={<Link to='/pricing' />}
+            onClick={() =>
+              trackEvent(OPENROUTER_ALTERNATIVE_RESOURCE_EVENT, {
+                resource: 'pricing',
+                location: 'hero',
+              })
+            }
+          >
+            {t('View live pricing')}
+            <HugeiconsIcon
+              icon={BookOpen01Icon}
+              data-icon='inline-start'
+              aria-hidden='true'
+            />
+          </Button>
+        </div>
+      </div>
+    </section>
+  )
+}

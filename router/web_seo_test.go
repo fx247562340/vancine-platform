@@ -225,6 +225,22 @@ var seoPublicRouteCases = []seoPublicRouteCase{
 		wantTwitterDesc:      "Access Chinese AI media models through one API. Image, video, speech, and 3D generation with one API key and unified billing.",
 		wantTwitterCardValue: "summary",
 	},
+	{
+		// SEO-3 Phase 1: /openrouter-alternative. The English metadata
+		// here is the canonical server-rendered block; the SPA's
+		// getOpenRouterAlternativePageMetadata('en') must stay
+		// byte-identical to it.
+		path:                 "/openrouter-alternative",
+		wantTitle:            "OpenRouter Alternative for Chinese AI Models | Vancine",
+		wantDescription:      "Use one OpenAI-compatible API for the latest flagship Chinese AI models. Compare Vancine with OpenRouter and save 20% on selected paid model listings.",
+		wantCanonical:        "https://vancine.com/openrouter-alternative",
+		wantOGTitle:          "OpenRouter Alternative for Chinese AI Models",
+		wantOGDescription:    "Use one OpenAI-compatible API for the latest flagship Chinese AI models. Compare Vancine with OpenRouter and save 20% on selected paid model listings.",
+		wantOGURL:            "https://vancine.com/openrouter-alternative",
+		wantTwitterTitle:     "OpenRouter Alternative for Chinese AI Models",
+		wantTwitterDesc:      "Use one OpenAI-compatible API for the latest flagship Chinese AI models. Compare Vancine with OpenRouter and save 20% on selected paid model listings.",
+		wantTwitterCardValue: "summary",
+	},
 }
 
 var metaTagOnlyOnce = map[string]*regexp.Regexp{

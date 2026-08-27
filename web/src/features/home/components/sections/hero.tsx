@@ -187,6 +187,23 @@ export function Hero(props: HeroProps) {
             )}
           </div>
 
+          {/* SEO-3 Phase 1: a natural, visible internal link to the new
+              /openrouter-alternative high-intent acquisition page. The
+              copy is restrained, the destination is a same-origin
+              TanStack route, and the link carries no UTM so internal
+              attribution stays clean. */}
+          <div
+            className='landing-animate-fade-up mt-4 opacity-0'
+            style={{ animationDelay: '210ms' }}
+          >
+            <Link
+              to='/openrouter-alternative'
+              className='text-muted-foreground hover:text-foreground text-sm font-medium underline underline-offset-4'
+            >
+              {t('Compare Vancine with OpenRouter')}
+            </Link>
+          </div>
+
           {/* Supported Apps */}
           <div
             className='landing-animate-fade-up mt-10 w-full max-w-xl opacity-0'
