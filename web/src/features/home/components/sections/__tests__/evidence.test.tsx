@@ -220,6 +220,7 @@ function makeRouteTree() {
     stubRoute('/dashboard', 'dashboard-page'),
     stubRoute('/pricing', 'pricing-page'),
     stubRoute('/kimi-k3-api', 'kimi-page'),
+    stubRoute('/coding-agent-benchmark', 'benchmark-page'),
     stubRoute('/ai-media-api', 'ai-media-page'),
   ])
 }
@@ -354,6 +355,25 @@ describe('Evidence section', () => {
         )
       ).toBeInTheDocument()
     })
+  })
+
+  it('View the 8-model Pi coding-agent run is a same-origin TanStack Link to /coding-agent-benchmark', async () => {
+    getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
+    renderHome()
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', {
+          level: 2,
+          name: 'Verified in real agent workflows',
+        })
+      ).toBeInTheDocument()
+    })
+
+    const benchmarkLink = screen.getByRole('link', {
+      name: 'View the 8-model Pi coding-agent run',
+    })
+    expect(benchmarkLink).toHaveAttribute('href', '/coding-agent-benchmark')
+    expect(benchmarkLink).not.toHaveAttribute('target', '_blank')
   })
 
   it('View Kimi K3 page is a same-origin TanStack Link to /kimi-k3-api', async () => {

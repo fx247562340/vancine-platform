@@ -338,6 +338,7 @@ function makeRouteTree() {
     stubRoute('/dashboard', 'dashboard-page'),
     stubRoute('/pricing', 'pricing-page'),
     stubRoute('/kimi-k3-api', 'kimi-page'),
+    stubRoute('/coding-agent-benchmark', 'benchmark-page'),
     stubRoute('/seedance-api', 'seedance-page'),
     stubRoute('/ai-media-api', 'ai-media-page'),
   ])

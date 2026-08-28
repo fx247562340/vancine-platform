@@ -1,0 +1,109 @@
+{
+  "benchmark_date": "2026-08-28",
+  "pi_version": "0.84.3",
+  "task": {
+    "description": "Fix a JavaScript leap-year check so three existing tests all pass.",
+    "constraints": [
+      "same prompt",
+      "same isolated fixture",
+      "test/ directory must not be modified",
+      "no task workspace network-tool attempts",
+      "one run per model",
+      "no retry on failure"
+    ]
+  },
+  "methodology": {
+    "same_prompt": true,
+    "same_isolated_fixture": true,
+    "tests_directory_immutable": true,
+    "no_task_workspace_network_tool_attempts": true,
+    "one_run_per_model": true,
+    "no_retry_on_failure": true,
+    "no_unexpected_files_after_each_model": true,
+    "task_pass": "8/8",
+    "timeouts": 0,
+    "http_429": 0,
+    "http_5xx": 0,
+    "provider_errors": 0
+  },
+  "results": [
+    {
+      "model": "glm-5.3",
+      "result": "Pass",
+      "agent_run_time_ms": 37868,
+      "model_requests": 6,
+      "tokens": 10721,
+      "production_billed_usd": 0.005178
+    },
+    {
+      "model": "glm-5.3-flash",
+      "result": "Pass",
+      "agent_run_time_ms": 28164,
+      "model_requests": 5,
+      "tokens": 9189,
+      "production_billed_usd": 0.000276
+    },
+    {
+      "model": "kimi-k3",
+      "result": "Pass",
+      "agent_run_time_ms": 48950,
+      "model_requests": 6,
+      "tokens": 11856,
+      "production_billed_usd": 0.01474
+    },
+    {
+      "model": "qwen3.8-max",
+      "result": "Pass",
+      "agent_run_time_ms": 19802,
+      "model_requests": 5,
+      "tokens": 10878,
+      "production_billed_usd": 0.01052
+    },
+    {
+      "model": "qwen3.8-flash",
+      "result": "Pass",
+      "agent_run_time_ms": 45012,
+      "model_requests": 6,
+      "tokens": 13106,
+      "production_billed_usd": 0.000848
+    },
+    {
+      "model": "deepseek-v4-flash",
+      "result": "Pass",
+      "agent_run_time_ms": 9808,
+      "model_requests": 5,
+      "tokens": 11570,
+      "production_billed_usd": 0.000994
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "result": "Pass",
+      "agent_run_time_ms": 14693,
+      "model_requests": 6,
+      "tokens": 13101,
+      "production_billed_usd": 0.002848
+    },
+    {
+      "model": "MiniMax-M3",
+      "result": "Pass",
+      "agent_run_time_ms": 14851,
+      "model_requests": 6,
+      "tokens": 14081,
+      "production_billed_usd": 0.002214
+    }
+  ],
+  "totals": {
+    "models": 8,
+    "passed": 8,
+    "model_requests": 45,
+    "tokens": 94502,
+    "production_billed_usd": 0.037618
+  },
+  "limitations": [
+    "This is a single run of one task in one environment, not an overall capability ranking or a long-term performance conclusion.",
+    "Agent run time is the wall-clock duration of the whole Pi task, not pure model API latency.",
+    "Model requests are the model rounds Pi produced inside one agent task, not repeated benchmarks.",
+    "Production billed amounts come from a read-only check of Vancine production usage logs.",
+    "qwen3.8-flash had missing local Pi price metadata; the production charge was verified as $0.000848."
+  ]
+}

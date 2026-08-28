@@ -28,7 +28,11 @@ import {
 } from '@/features/kimi-k3-api/lib/landing'
 import { trackEvent } from '@/lib/analytics'
 
-type EvidenceLinkResource = 'kimi_k3_page' | 'starter_repo' | 'verified_json'
+type EvidenceLinkResource =
+  | 'kimi_k3_page'
+  | 'starter_repo'
+  | 'verified_json'
+  | 'coding_agent_benchmark'
 
 function handleEvidenceLinkClick(resource: EvidenceLinkResource) {
   trackEvent('evidence_link_clicked', {
@@ -131,6 +135,13 @@ export function Evidence() {
               onClick={() => handleEvidenceLinkClick('kimi_k3_page')}
             >
               {t('View Kimi K3 page')}
+            </Link>
+            <Link
+              to='/coding-agent-benchmark'
+              className='text-sm font-medium underline underline-offset-4'
+              onClick={() => handleEvidenceLinkClick('coding_agent_benchmark')}
+            >
+              {t('View the 8-model Pi coding-agent run')}
             </Link>
             <a
               href={KIMI_K3_EVIDENCE_STARTER_REPO}

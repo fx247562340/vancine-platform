@@ -30,6 +30,7 @@ import { Route as AuthenticatedChat2linkRouteImport } from './routes/_authentica
 import { Route as AuthenticatedSystemSettingsRouteRouteImport } from './routes/_authenticated/system-settings/route'
 import { Route as AboutIndexRouteImport } from './routes/about/index'
 import { Route as AiMediaApiIndexRouteImport } from './routes/ai-media-api/index'
+import { Route as CodingAgentBenchmarkIndexRouteImport } from './routes/coding-agent-benchmark/index'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as DocsSlugRouteImport } from './routes/docs/$slug'
 import { Route as GlmApiIndexRouteImport } from './routes/glm-api/index'
@@ -181,6 +182,12 @@ const AiMediaApiIndexRoute = AiMediaApiIndexRouteImport.update({
   path: '/ai-media-api/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CodingAgentBenchmarkIndexRoute =
+  CodingAgentBenchmarkIndexRouteImport.update({
+    id: '/coding-agent-benchmark/',
+    path: '/coding-agent-benchmark/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const DocsIndexRoute = DocsIndexRouteImport.update({
   id: '/docs/',
   path: '/docs/',
@@ -466,6 +473,7 @@ export interface FileRoutesByFullPath {
   '/oauth/$provider': typeof OauthProviderRoute
   '/about/': typeof AboutIndexRoute
   '/ai-media-api/': typeof AiMediaApiIndexRoute
+  '/coding-agent-benchmark/': typeof CodingAgentBenchmarkIndexRoute
   '/docs/': typeof DocsIndexRoute
   '/glm-api/': typeof GlmApiIndexRoute
   '/kimi-k3-api/': typeof KimiK3ApiIndexRoute
@@ -532,6 +540,7 @@ export interface FileRoutesByTo {
   '/oauth/$provider': typeof OauthProviderRoute
   '/about': typeof AboutIndexRoute
   '/ai-media-api': typeof AiMediaApiIndexRoute
+  '/coding-agent-benchmark': typeof CodingAgentBenchmarkIndexRoute
   '/docs': typeof DocsIndexRoute
   '/glm-api': typeof GlmApiIndexRoute
   '/kimi-k3-api': typeof KimiK3ApiIndexRoute
@@ -602,6 +611,7 @@ export interface FileRoutesById {
   '/oauth/$provider': typeof OauthProviderRoute
   '/about/': typeof AboutIndexRoute
   '/ai-media-api/': typeof AiMediaApiIndexRoute
+  '/coding-agent-benchmark/': typeof CodingAgentBenchmarkIndexRoute
   '/docs/': typeof DocsIndexRoute
   '/glm-api/': typeof GlmApiIndexRoute
   '/kimi-k3-api/': typeof KimiK3ApiIndexRoute
@@ -671,6 +681,7 @@ export interface FileRouteTypes {
     | '/oauth/$provider'
     | '/about/'
     | '/ai-media-api/'
+    | '/coding-agent-benchmark/'
     | '/docs/'
     | '/glm-api/'
     | '/kimi-k3-api/'
@@ -737,6 +748,7 @@ export interface FileRouteTypes {
     | '/oauth/$provider'
     | '/about'
     | '/ai-media-api'
+    | '/coding-agent-benchmark'
     | '/docs'
     | '/glm-api'
     | '/kimi-k3-api'
@@ -806,6 +818,7 @@ export interface FileRouteTypes {
     | '/oauth/$provider'
     | '/about/'
     | '/ai-media-api/'
+    | '/coding-agent-benchmark/'
     | '/docs/'
     | '/glm-api/'
     | '/kimi-k3-api/'
@@ -867,6 +880,7 @@ export interface RootRouteChildren {
   OauthProviderRoute: typeof OauthProviderRoute
   AboutIndexRoute: typeof AboutIndexRoute
   AiMediaApiIndexRoute: typeof AiMediaApiIndexRoute
+  CodingAgentBenchmarkIndexRoute: typeof CodingAgentBenchmarkIndexRoute
   DocsIndexRoute: typeof DocsIndexRoute
   GlmApiIndexRoute: typeof GlmApiIndexRoute
   KimiK3ApiIndexRoute: typeof KimiK3ApiIndexRoute
@@ -1025,6 +1039,13 @@ declare module '@tanstack/react-router' {
       path: '/ai-media-api'
       fullPath: '/ai-media-api/'
       preLoaderRoute: typeof AiMediaApiIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/coding-agent-benchmark/': {
+      id: '/coding-agent-benchmark/'
+      path: '/coding-agent-benchmark'
+      fullPath: '/coding-agent-benchmark/'
+      preLoaderRoute: typeof CodingAgentBenchmarkIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/docs/': {
@@ -1503,6 +1524,7 @@ const rootRouteChildren: RootRouteChildren = {
   OauthProviderRoute: OauthProviderRoute,
   AboutIndexRoute: AboutIndexRoute,
   AiMediaApiIndexRoute: AiMediaApiIndexRoute,
+  CodingAgentBenchmarkIndexRoute: CodingAgentBenchmarkIndexRoute,
   DocsIndexRoute: DocsIndexRoute,
   GlmApiIndexRoute: GlmApiIndexRoute,
   KimiK3ApiIndexRoute: KimiK3ApiIndexRoute,

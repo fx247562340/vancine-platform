@@ -113,4 +113,13 @@ describe('developer solutions registry', () => {
     assert.equal(DEVELOPER_SOLUTIONS_MENU_LABEL_KEY, 'API Solutions')
     assert.equal(DEVELOPER_SOLUTIONS_SECTION_LABEL_KEY, 'Developer solutions')
   })
+
+  test('coding-agent-benchmark is not an API solution', () => {
+    const routes = DEVELOPER_SOLUTIONS.map(
+      (solution) => solution.route as string
+    )
+    const ids = DEVELOPER_SOLUTIONS.map((solution) => solution.id as string)
+    assert.equal(routes.includes('/coding-agent-benchmark'), false)
+    assert.equal(ids.includes('coding-agent-benchmark'), false)
+  })
 })

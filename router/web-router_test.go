@@ -38,6 +38,9 @@ var expectedSitemapLocs = []string{
 	// sitemap; the retired paths are served only by the unknown-SPA
 	// fallback with no marketing metadata.
 	"https://vancine.com/glm-api",
+	// SEO-5 evergreen canonical: the Pi 8-model coding-agent benchmark
+	// page. There is deliberately no model-version alias route.
+	"https://vancine.com/coding-agent-benchmark",
 }
 
 // testSPAIndexPage is the fixture used by pre-existing sitemap tests.
@@ -134,15 +137,20 @@ func TestSitemapListsExactlyTheApprovedPublicPages(t *testing.T) {
 	assert.Equal(t, expectedSitemapLocs, locs,
 		"sitemap locs must equal the approved canonical set in the approved order, with no missing, extra, or duplicate entries")
 
-	// SEO-4 evergreen canonical: exactly 13 entries; /glm-api appears
-	// exactly once, and both retired version-specific paths appear zero
-	// times.
-	assert.Len(t, locs, 13,
-		"sitemap must contain exactly 13 URLs with the evergreen GLM page")
+	// SEO-4 evergreen canonical: /glm-api appears exactly once, and
+	// both retired version-specific paths appear zero times.
+	// SEO-5: sitemap grows 13 → 14 with /coding-agent-benchmark
+	// appearing exactly once and no model-version alias routes.
+	assert.Len(t, locs, 14,
+		"sitemap must contain exactly 14 URLs with the coding-agent benchmark page")
 	glmEvergreenCount := 0
+	benchmarkCount := 0
 	for _, loc := range locs {
 		if strings.HasSuffix(loc, "/glm-api") {
 			glmEvergreenCount++
+		}
+		if strings.HasSuffix(loc, "/coding-agent-benchmark") {
+			benchmarkCount++
 		}
 		assert.NotContains(t, loc, "glm-5-3-api",
 			"the retired /glm-5-3-api must not appear in the sitemap")
@@ -150,9 +158,13 @@ func TestSitemapListsExactlyTheApprovedPublicPages(t *testing.T) {
 			"the retired /glm-5.3-api must not appear in the sitemap")
 		assert.NotContains(t, loc, "glm-5.3-flash",
 			"no GLM-5.3-Flash sibling page may be indexed")
+		assert.NotContains(t, loc, "coding-agent-benchmark-",
+			"no coding-agent-benchmark version-alias path may be indexed")
 	}
 	assert.Equal(t, 1, glmEvergreenCount,
 		"/glm-api must appear exactly once in the sitemap")
+	assert.Equal(t, 1, benchmarkCount,
+		"/coding-agent-benchmark must appear exactly once in the sitemap")
 
 	for _, excluded := range []string{
 		"https://vancine.com/waitlist",

@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { Link } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { BundledLanguage } from 'shiki/bundle/web'
@@ -143,6 +144,14 @@ export default function Agents(props: { baseUrl: string }) {
     <div>
       <DocsH2 id='agents-title'>{t('agents.title')}</DocsH2>
       <DocsP>{t('agents.desc')}</DocsP>
+      <DocsP>
+        <Link
+          to='/coding-agent-benchmark'
+          className='text-primary font-medium underline underline-offset-4'
+        >
+          {t('agents.benchmarkLink')}
+        </Link>
+      </DocsP>
 
       <DocsCallout type='tip'>
         {t('agents.universalTip', { baseUrl })}

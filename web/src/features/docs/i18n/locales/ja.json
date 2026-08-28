@@ -274,6 +274,7 @@
   "agents": {
     "title": "エージェント統合",
     "desc": "エージェントツールを接続する前に、Chat CompletionsかResponsesかを確認してください。ほとんどのOpenAI Compatibleツールは/v1/chat/completionsを使用します。Codex CLI公式設定は現在/v1/responsesを使用しています。",
+    "benchmarkLink": "Pi コーディングエージェント 8 モデル検証を見る",
     "universalTip": "共通設定：Base URL = {{baseUrl}}、API Key = sk-your-api-key、Model = glm-5.1 または deepseek-v4-flash。",
     "configExample": "設定例",
     "guiTitle": "GUIツール",

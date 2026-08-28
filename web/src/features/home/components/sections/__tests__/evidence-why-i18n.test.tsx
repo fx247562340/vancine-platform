@@ -51,7 +51,7 @@ import vi from '@/i18n/locales/vi.json'
 import zhTW from '@/i18n/locales/zh-TW.json'
 import zh from '@/i18n/locales/zh.json'
 
-// 13 Evidence keys: 4 metric labels + Run details + 4 section labels +
+// 14 Evidence keys: 4 metric labels + Run details + 4 section labels +
 // 3 evidence links. The single "Run details" key absorbs OpenCode version,
 // Duration, and Agent telemetry tokens into one interpolated line.
 const EVIDENCE_KEYS: ReadonlyArray<string> = [
@@ -64,6 +64,7 @@ const EVIDENCE_KEYS: ReadonlyArray<string> = [
   'Run details',
   'Single controlled OpenCode run. Latency, tokens, and Vancine usage vary by task. This is historical evidence, not a guarantee for future calls.',
   'View Kimi K3 page',
+  'View the 8-model Pi coding-agent run',
   'View starter & verified evidence',
   'Verified evidence JSON',
   'Passed',
@@ -110,15 +111,15 @@ function getTranslation(locale: (typeof LOCALES)[number]): TranslationRecord {
   return locale.data.translation
 }
 
-describe('Evidence + Why i18n (20 keys × 7 locales, aggregated)', () => {
+describe('Evidence + Why i18n (21 keys × 7 locales, aggregated)', () => {
   describe('key registry', () => {
-    it('has exactly 20 distinct keys', () => {
+    it('has exactly 21 distinct keys', () => {
       const unique = new Set(ALL_KEYS)
-      expect(unique.size).toBe(20)
+      expect(unique.size).toBe(21)
     })
 
-    it('has exactly 13 Evidence keys', () => {
-      expect(EVIDENCE_KEYS.length).toBe(13)
+    it('has exactly 14 Evidence keys', () => {
+      expect(EVIDENCE_KEYS.length).toBe(14)
     })
 
     it('has exactly 7 Why keys', () => {
@@ -128,13 +129,13 @@ describe('Evidence + Why i18n (20 keys × 7 locales, aggregated)', () => {
 
   for (const locale of LOCALES) {
     describe(`${locale.name}: presence`, () => {
-      it('all 20 keys are present', () => {
+      it('all 21 keys are present', () => {
         const translation = getTranslation(locale)
         const missing = ALL_KEYS.filter((k) => !(k in translation))
         expect(missing).toEqual([])
       })
 
-      it('all 20 values are non-blank after trim', () => {
+      it('all 21 values are non-blank after trim', () => {
         const translation = getTranslation(locale)
         const blank: string[] = []
         for (const key of ALL_KEYS) {

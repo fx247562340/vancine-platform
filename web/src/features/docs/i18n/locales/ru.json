@@ -274,6 +274,7 @@
   "agents": {
     "title": "Интеграция агентов",
     "desc": "Перед подключением инструмента агента проверьте, использует ли он Chat Completions или Responses. Большинство OpenAI Compatible инструментов используют /v1/chat/completions; официальная конфигурация Codex CLI использует /v1/responses.",
+    "benchmarkLink": "Смотреть бенчмарк Pi coding agent на 8 моделях",
     "universalTip": "Универсальные настройки: Base URL = {{baseUrl}}, API Key = sk-your-api-key, Model = glm-5.1 или deepseek-v4-flash.",
     "configExample": "Пример конфигурации",
     "guiTitle": "GUI-инструменты",

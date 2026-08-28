@@ -274,6 +274,7 @@
   "agents": {
     "title": "Tích hợp Agent",
     "desc": "Trước khi kết nối công cụ agent, hãy kiểm tra nó dùng Chat Completions hay Responses. Hầu hết công cụ OpenAI Compatible dùng /v1/chat/completions; cấu hình chính thức Codex CLI hiện dùng /v1/responses.",
+    "benchmarkLink": "Xem benchmark Pi coding agent với 8 mô hình",
     "universalTip": "Cài đặt chung: Base URL = {{baseUrl}}, API Key = sk-your-api-key, Model = glm-5.1 hoặc deepseek-v4-flash.",
     "configExample": "Ví dụ cấu hình",
     "guiTitle": "Công cụ GUI",

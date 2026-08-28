@@ -749,3 +749,104 @@ func TestSetWebRouterPanicsWhenIndexPageAlreadyHasConflictingMetaTags(t *testing
 		})
 	}
 }
+
+// seoCodingAgentBenchmarkRouteCase is the SEO-5 route case for the
+// evergreen canonical page /coding-agent-benchmark, kept separate from
+// seoPublicRouteCases so the pre-existing table stays untouched.
+var seoCodingAgentBenchmarkRouteCase = seoPublicRouteCase{
+	path:                 "/coding-agent-benchmark",
+	wantTitle:            "8 Chinese AI Models Tested in Pi Coding Agent | Vancine",
+	wantDescription:      "Eight Chinese AI models completed the same isolated Pi coding-agent task through Vancine. See the method, runtime, token use, and production-audited cost.",
+	wantCanonical:        "https://vancine.com/coding-agent-benchmark",
+	wantOGTitle:          "8 Chinese AI Models Tested in Pi Coding Agent",
+	wantOGDescription:    "Eight Chinese AI models completed the same isolated Pi coding-agent task through Vancine. See the method, runtime, token use, and production-audited cost.",
+	wantOGURL:            "https://vancine.com/coding-agent-benchmark",
+	wantTwitterTitle:     "8 Chinese AI Models Tested in Pi Coding Agent",
+	wantTwitterDesc:      "Eight Chinese AI models completed the same isolated Pi coding-agent task through Vancine. See the method, runtime, token use, and production-audited cost.",
+	wantTwitterCardValue: "summary",
+}
+
+// TestCodingAgentBenchmarkPageServesExactApprovedMetadata pins the
+// SEO-5 public contract for /coding-agent-benchmark: GET and HEAD both
+// serve the route variant, and the metadata block carries the exact
+// approved English copy.
+func TestCodingAgentBenchmarkPageServesExactApprovedMetadata(t *testing.T) {
+	engine := newWebRouterSEOFixture(t)
+
+	t.Run("GET serves the approved metadata block", func(t *testing.T) {
+		rec := serveSEO(engine, httptest.NewRequest(http.MethodGet, "/coding-agent-benchmark", nil))
+		require.Equal(t, http.StatusOK, rec.Code)
+		assertSEOContract(t, html.UnescapeString(rec.Body.String()), "/coding-agent-benchmark", seoCodingAgentBenchmarkRouteCase)
+	})
+
+	t.Run("HEAD serves the same status and content type", func(t *testing.T) {
+		rec := serveSEO(engine, httptest.NewRequest(http.MethodHead, "/coding-agent-benchmark", nil))
+		require.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, "text/html; charset=utf-8", rec.Header().Get("Content-Type"))
+	})
+}
+
+// TestCodingAgentBenchmarkCanonicalIsPollutionProof locks the
+// no-pollution rule: Host / X-Forwarded-Host / Origin / Referer headers
+// and any query or UTM parameters must never reach the canonical or
+// og:url values, and the trailing-slash form serves the same canonical.
+func TestCodingAgentBenchmarkCanonicalIsPollutionProof(t *testing.T) {
+	engine := newWebRouterSEOFixture(t)
+	const wantCanonical = `link rel="canonical" href="https://vancine.com/coding-agent-benchmark"`
+	const wantOGURL = `meta property="og:url" content="https://vancine.com/coding-agent-benchmark"`
+
+	utmQuery := "?utm_source=ads&utm_medium=cpc&utm_campaign=pi&utm_content=b1&utm_term=llm&email=a@b.com&token=t&redirect=https://evil.example.com"
+
+	requests := []*http.Request{
+		httptest.NewRequest(http.MethodGet, "/coding-agent-benchmark"+utmQuery, nil),
+	}
+	for _, rawPath := range []string{"/coding-agent-benchmark?x=1", "/coding-agent-benchmark/"} {
+		req := httptest.NewRequest(http.MethodGet, rawPath, nil)
+		req.Host = "evil.example.com"
+		req.Header.Set("X-Forwarded-Host", "evil.example.com")
+		req.Header.Set("X-Forwarded-Proto", "http")
+		req.Header.Set("Origin", "http://evil.example.com")
+		req.Header.Set("Referer", "https://evil.example.com/benchmark")
+		requests = append(requests, req)
+	}
+
+	for i, req := range requests {
+		req := req
+		t.Run(fmt.Sprintf("request-%d-%s", i, req.URL.RequestURI()), func(t *testing.T) {
+			rec := serveSEO(engine, req)
+			require.Equal(t, http.StatusOK, rec.Code)
+			body := rec.Body.String()
+			assert.NotContains(t, body, "evil.example.com")
+			assert.NotContains(t, body, "utm_")
+			assert.NotContains(t, body, "a@b.com")
+			decoded := html.UnescapeString(body)
+			assert.Contains(t, decoded, wantCanonical)
+			assert.Contains(t, decoded, wantOGURL)
+		})
+	}
+}
+
+// TestCodingAgentBenchmarkHasNoVersionAliasRoutes pins that no model-
+// version alias of the benchmark page is created. Those paths fall
+// through to the existing unknown-SPA-fallback contract and must not
+// carry the benchmark canonical or metadata.
+func TestCodingAgentBenchmarkHasNoVersionAliasRoutes(t *testing.T) {
+	engine := newWebRouterSEOFixture(t)
+	for _, p := range []string{
+		"/coding-agent-benchmark-v1",
+		"/coding-agent-benchmark/glm-5.3",
+		"/pi-coding-agent-benchmark",
+	} {
+		p := p
+		t.Run("GET "+p, func(t *testing.T) {
+			rec := serveSEO(engine, httptest.NewRequest(http.MethodGet, p, nil))
+			require.Equal(t, http.StatusOK, rec.Code,
+				"alias paths must keep the existing unknown-SPA-fallback contract")
+			body := rec.Body.String()
+			assert.NotContains(t, body, "8 Chinese AI Models Tested in Pi Coding Agent",
+				"alias path must not serve benchmark page metadata")
+			assert.NotContains(t, body, `href="https://vancine.com/coding-agent-benchmark"`,
+				"alias path must not carry the /coding-agent-benchmark canonical")
+		})
+	}
+}

@@ -1,8 +1,8 @@
 package router
 
 import (
-	"embed"
 	"encoding/xml"
+	"io/fs"
 	"net/http"
 
 	"github.com/QuantumNous/new-api/common"
@@ -15,7 +15,7 @@ import (
 
 // WebAssets holds the embedded dashboard frontend assets.
 type WebAssets struct {
-	BuildFS   embed.FS
+	BuildFS   fs.FS
 	IndexPage []byte
 }
 
@@ -61,6 +61,9 @@ var publicSitemapPaths = []string{
 	// the sitemap entirely — they fall through to the existing
 	// unknown-SPA-fallback contract with no redirect branch.
 	"/glm-api",
+	// SEO-5 evergreen canonical: the Pi 8-model coding-agent benchmark.
+	// There is deliberately no model-version alias route.
+	"/coding-agent-benchmark",
 }
 
 // sitemapHandler serves the XML sitemap for the fixed public page set. The
@@ -119,6 +122,12 @@ func SetWebRouter(router *gin.Engine, assets WebAssets) {
 	router.Use(gzip.Gzip(gzip.DefaultCompression))
 	router.Use(middleware.GlobalWebRateLimit())
 	router.Use(middleware.Cache())
+
+	// Register the public benchmark JSON before static.Serve so a same-path
+	// file in web/dist cannot shadow the explicit, pollution-proof handler.
+	router.GET(codingAgentBenchmarkJSONPath, codingAgentBenchmarkJSONHandler())
+	router.HEAD(codingAgentBenchmarkJSONPath, codingAgentBenchmarkJSONHandler())
+
 	router.Use(static.Serve("/", frontendFS))
 
 	// robots.txt: GET and HEAD must both be served with the canonical body

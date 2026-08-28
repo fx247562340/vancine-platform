@@ -274,6 +274,7 @@
   "agents": {
     "title": "Agent 接入指南",
     "desc": "Agent 工具接入時先確認它使用的是 Chat Completions 還是 Responses。多數 OpenAI Compatible 工具使用 /v1/chat/completions；Codex CLI 官方設定目前使用 /v1/responses。",
+    "benchmarkLink": "查看 Pi 程式設計智能體 8 模型實測",
     "universalTip": "通用三件套：Base URL = {{baseUrl}}，API Key = sk-your-api-key，Model = glm-5.1 或 deepseek-v4-flash。",
     "configExample": "設定範例",
     "guiTitle": "圖形化工具",
