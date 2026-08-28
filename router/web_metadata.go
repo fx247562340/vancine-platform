@@ -144,10 +144,10 @@ var publicMarketingPages = []publicPageMeta{
 		twitterCardValue: "summary",
 	},
 	{
-		// SEO-4 Phase 1: /glm-5-3-api. The English values here are
-		// mirrored from the SPA's getGlm53ApiPageMetadata('en') and
-		// must stay byte-identical to them.
-		path:  "/glm-5-3-api",
+		// SEO-4 evergreen canonical: /glm-api. The English values here are
+		// mirrored from the SPA's getGlm53ApiPageMetadata('en') and must
+		// stay byte-identical to them.
+		path:  "/glm-api",
 		title: "GLM-5.3 & GLM-5.3 Flash API Pricing | Vancine",
 		description: "Access GLM-5.3 and GLM-5.3 Flash through one " +
 			"OpenAI-compatible API. Compare Vancine and OpenRouter pricing: " +

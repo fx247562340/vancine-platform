@@ -79,7 +79,7 @@ export function Coverage(): ReactElement {
         <p className='text-muted-foreground mt-6 text-sm md:text-base'>
           {t('GLM spotlight')}{' '}
           <Link
-            to='/glm-5-3-api'
+            to='/glm-api'
             className='text-primary underline underline-offset-2'
           >
             {t('GLM-5.3 and GLM-5.3 Flash pricing')}

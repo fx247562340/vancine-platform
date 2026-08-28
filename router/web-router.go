@@ -54,10 +54,13 @@ var publicSitemapPaths = []string{
 	"/seedance-api",
 	"/ai-media-api",
 	"/openrouter-alternative",
-	// SEO-4 Phase 1: the single canonical GLM-5.3 acquisition page.
-	// It covers both glm-5.3 and glm-5.3-flash; there is deliberately
-	// no /glm-5-3-flash-api sibling route.
-	"/glm-5-3-api",
+	// SEO-4 evergreen canonical: the single GLM-5.3 acquisition page
+	// lives at /glm-api. It covers both glm-5.3 and glm-5.3-flash;
+	// there is deliberately no Flash sibling route, and the two retired
+	// version-specific paths (/glm-5-3-api, /glm-5.3-api) stay out of
+	// the sitemap entirely — they fall through to the existing
+	// unknown-SPA-fallback contract with no redirect branch.
+	"/glm-api",
 }
 
 // sitemapHandler serves the XML sitemap for the fixed public page set. The

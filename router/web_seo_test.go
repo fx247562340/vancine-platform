@@ -340,33 +340,33 @@ func TestPublicPagesMetadataIgnoresUTMAndQueryString(t *testing.T) {
 	}
 }
 
-// seoGlm53RouteCase is the SEO-4 Phase 1 route case for /glm-5-3-api,
-// kept separate from seoPublicRouteCases so the pre-existing table
-// stays untouched.
+// seoGlm53RouteCase is the SEO-4 route case for the evergreen canonical
+// GLM page /glm-api, kept separate from seoPublicRouteCases so the
+// pre-existing table stays untouched.
 var seoGlm53RouteCase = seoPublicRouteCase{
-	path:                 "/glm-5-3-api",
+	path:                 "/glm-api",
 	wantTitle:            "GLM-5.3 & GLM-5.3 Flash API Pricing | Vancine",
 	wantDescription:      "Access GLM-5.3 and GLM-5.3 Flash through one OpenAI-compatible API. Compare Vancine and OpenRouter pricing: 20% lower on these two standard paid listings.",
-	wantCanonical:        "https://vancine.com/glm-5-3-api",
+	wantCanonical:        "https://vancine.com/glm-api",
 	wantOGTitle:          "GLM-5.3 & GLM-5.3 Flash API Pricing",
 	wantOGDescription:    "Access GLM-5.3 and GLM-5.3 Flash through one OpenAI-compatible API. Compare Vancine and OpenRouter pricing: 20% lower on these two standard paid listings.",
-	wantOGURL:            "https://vancine.com/glm-5-3-api",
+	wantOGURL:            "https://vancine.com/glm-api",
 	wantTwitterTitle:     "GLM-5.3 & GLM-5.3 Flash API Pricing",
 	wantTwitterDesc:      "Access GLM-5.3 and GLM-5.3 Flash through one OpenAI-compatible API. Compare Vancine and OpenRouter pricing: 20% lower on these two standard paid listings.",
 	wantTwitterCardValue: "summary",
 }
 
-// TestGlm53ApiPageServesExactApprovedMetadata pins the SEO-4 Phase 1
-// public contract for /glm-5-3-api: GET and HEAD both serve the route
-// variant, and the metadata block carries the exact approved copy with
-// a properly escaped ampersand.
+// TestGlm53ApiPageServesExactApprovedMetadata pins the SEO-4
+// public contract for the evergreen canonical page /glm-api: GET and
+// HEAD both serve the route variant, and the metadata block carries
+// the exact approved copy with a properly escaped ampersand.
 func TestGlm53ApiPageServesExactApprovedMetadata(t *testing.T) {
 	engine := newWebRouterSEOFixture(t)
 
 	t.Run("GET serves the approved metadata block", func(t *testing.T) {
-		rec := serveSEO(engine, httptest.NewRequest(http.MethodGet, "/glm-5-3-api", nil))
+		rec := serveSEO(engine, httptest.NewRequest(http.MethodGet, "/glm-api", nil))
 		require.Equal(t, http.StatusOK, rec.Code)
-		assertSEOContract(t, html.UnescapeString(rec.Body.String()), "/glm-5-3-api", seoGlm53RouteCase)
+		assertSEOContract(t, html.UnescapeString(rec.Body.String()), "/glm-api", seoGlm53RouteCase)
 
 		// The escaped form must be what actually reaches the wire for
 		// the title and the og/twitter titles that carry "&".
@@ -375,27 +375,28 @@ func TestGlm53ApiPageServesExactApprovedMetadata(t *testing.T) {
 	})
 
 	t.Run("HEAD serves the same status and content type", func(t *testing.T) {
-		rec := serveSEO(engine, httptest.NewRequest(http.MethodHead, "/glm-5-3-api", nil))
+		rec := serveSEO(engine, httptest.NewRequest(http.MethodHead, "/glm-api", nil))
 		require.Equal(t, http.StatusOK, rec.Code)
 		assert.Equal(t, "text/html; charset=utf-8", rec.Header().Get("Content-Type"))
 	})
 }
 
 // TestGlm53ApiCanonicalIsPollutionProof locks the no-pollution rule
-// for the new page: Host / X-Forwarded-Host / Origin / Referer headers
-// and any query or UTM parameters must never reach the canonical or
-// og:url values, and the trailing-slash form serves the same canonical.
+// for the evergreen page: Host / X-Forwarded-Host / Origin / Referer
+// headers and any query or UTM parameters must never reach the
+// canonical or og:url values, and the trailing-slash form serves the
+// same canonical.
 func TestGlm53ApiCanonicalIsPollutionProof(t *testing.T) {
 	engine := newWebRouterSEOFixture(t)
-	const wantCanonical = `link rel="canonical" href="https://vancine.com/glm-5-3-api"`
-	const wantOGURL = `meta property="og:url" content="https://vancine.com/glm-5-3-api"`
+	const wantCanonical = `link rel="canonical" href="https://vancine.com/glm-api"`
+	const wantOGURL = `meta property="og:url" content="https://vancine.com/glm-api"`
 
 	utmQuery := "?utm_source=ads&utm_medium=cpc&utm_campaign=glm&utm_content=b1&utm_term=llm&email=a@b.com&token=t&redirect=https://evil.example.com"
 
 	requests := []*http.Request{
-		httptest.NewRequest(http.MethodGet, "/glm-5-3-api"+utmQuery, nil),
+		httptest.NewRequest(http.MethodGet, "/glm-api"+utmQuery, nil),
 	}
-	for _, rawPath := range []string{"/glm-5-3-api?x=1", "/glm-5-3-api/"} {
+	for _, rawPath := range []string{"/glm-api?x=1", "/glm-api/"} {
 		req := httptest.NewRequest(http.MethodGet, rawPath, nil)
 		req.Host = "evil.example.com"
 		req.Header.Set("X-Forwarded-Host", "evil.example.com")
@@ -417,6 +418,41 @@ func TestGlm53ApiCanonicalIsPollutionProof(t *testing.T) {
 			decoded := html.UnescapeString(body)
 			assert.Contains(t, decoded, wantCanonical)
 			assert.Contains(t, decoded, wantOGURL)
+		})
+	}
+}
+
+// TestRetiredGlmPathsServeNoMarketingMetadata pins that the two retired
+// GLM paths (/glm-5-3-api and /glm-5.3-api) are gone: without any redirect
+// handler they fall through to the existing unknown-SPA-fallback contract,
+// which serves the default shell — never the GLM page metadata, never a
+// /glm-api canonical, and never a sitemap entry. No new 404/301 branch is
+// introduced for them.
+func TestRetiredGlmPathsServeNoMarketingMetadata(t *testing.T) {
+	engine := newWebRouterSEOFixture(t)
+	for _, p := range []string{"/glm-5-3-api", "/glm-5-3-api/", "/glm-5.3-api", "/glm-5.3-api/"} {
+		p := p
+		t.Run("GET "+p, func(t *testing.T) {
+			rec := serveSEO(engine, httptest.NewRequest(http.MethodGet, p+"?utm_source=x&email=a@b.com", nil))
+			require.Equal(t, http.StatusOK, rec.Code,
+				"retired paths must keep the existing unknown-SPA-fallback contract")
+			body := rec.Body.String()
+			assert.NotContains(t, body, "GLM-5.3",
+				"retired path must not serve GLM page metadata")
+			assert.NotContains(t, body, `href="https://vancine.com/glm-api"`,
+				"retired path must not carry the /glm-api canonical")
+			assert.NotContains(t, body, "vancine.com/glm-5-3-api")
+			assert.NotContains(t, body, "vancine.com/glm-5.3-api")
+		})
+		t.Run("HEAD "+p, func(t *testing.T) {
+			rec := serveSEO(engine, httptest.NewRequest(http.MethodHead, p, nil))
+			// The retired path must keep the existing unknown-SPA-fallback
+			// contract exactly: no redirect, no new 404 branch — the same
+			// HTML shell contract any unknown SPA path gets.
+			require.Equal(t, http.StatusOK, rec.Code)
+			assert.Empty(t, rec.Header().Get("Location"),
+				"retired paths must not redirect")
+			assert.Equal(t, "text/html; charset=utf-8", rec.Header().Get("Content-Type"))
 		})
 	}
 }

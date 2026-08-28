@@ -34,7 +34,7 @@ import { Quickstart } from './components/quickstart'
 import { getGlm53ApiPageMetadata } from './lib/glm-5-3-api'
 
 /**
- * SEO-4 Phase 1 acquisition page for /glm-5-3-api. ONE canonical page
+ * SEO-4 acquisition page for /glm-api. ONE canonical page
  * covers BOTH glm-5.3 and glm-5.3-flash; there is deliberately no
  * /glm-5-3-flash-api sibling route.
  *

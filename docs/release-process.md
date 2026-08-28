@@ -38,11 +38,44 @@ Production deploys are gated by local Docker verification and user approval:
 
 1. Make the code change locally.
 2. Build and run the full app locally with Docker.
-3. Ask the user to verify `http://127.0.0.1:3000`.
-4. Only after the user confirms, commit and push.
+3. Complete Layer 3 exactly ONE of these ways (per the Layered
+   verification contract below): the minimal automated browser smoke,
+   OR a manual page acceptance by the project owner. Do not run both
+   by default.
+4. Only after the chosen Layer 3 pass, commit and push.
 5. Deploy on the production server by pulling from GitHub and building there.
 
 Do not deploy directly from an unverified local edit.
+
+## Layered verification contract (request budget)
+
+Release verification is layered. Each layer owns its assertions; by
+default a later layer does NOT repeat the same assertion an earlier
+layer already proved. Widen the matrix only when shared surfaces
+(auth, router, metadata, acquisition, rate limiting) actually changed.
+Temporary acceptance scripts and evidence under `outputs/` stay
+untracked. These rules reduce duplicate requests — they never skip the
+local Docker gate.
+
+- **Layer 1 — code gates (no HTTP):** unit, component, router/Go
+  tests, typecheck, build. Assert pure logic, contracts, and route
+  wiring here; a browser must never re-prove what these prove.
+- **Layer 2 — local Docker health + one bounded HTTP SEO pass:**
+  container healthy with `RestartCount=0`, `/api/status` version and
+  brand, startup-log error scan, then ONE bounded curl/Python script
+  asserting canonical/sitemap/pollution-proof behavior. Health
+  polling is capped at 120 seconds total with an interval of at least
+  2 seconds.
+- **Layer 3 — minimal UI smoke (pick exactly one by default):** the
+  minimal automated browser smoke governed by the Automated browser
+  release acceptance request budget in `AGENTS.md` (at most one full
+  load per target page, mobile via same-page resize, at most two
+  screenshots), OR a manual page acceptance by the project owner.
+  Do not run both unless the owner explicitly asks. Either way, do not
+  re-run the full local UI matrix again.
+- **Layer 4 — production public smoke:** production version string,
+  canonical, sitemap membership, and a core smoke of the new page
+  only. Do not replay the local UI matrix against production.
 
 ## Pre-release checklist
 
@@ -60,7 +93,7 @@ Before deploying:
    cat VERSION
    ```
 
-3. Build and run the full app locally with Docker for user verification.
+3. Build and run the full app locally with Docker for verification.
 
    ```bash
    cat > docker-compose.override.yml <<'YML'
@@ -75,7 +108,12 @@ Before deploying:
    curl -s http://127.0.0.1:3000/api/status
    ```
 
-   Ask the user to verify the local app at `http://127.0.0.1:3000`. If the user finds an issue, fix it and repeat this step before continuing.
+   Complete Layer 3 as ONE of: the minimal automated browser smoke
+   (per the Automated browser release acceptance request budget in
+   `AGENTS.md`), or a manual page acceptance by the project owner —
+   not both by default. Either way, the code gates and the local
+   Docker gate are still mandatory. If an issue is found, fix it and
+   repeat this step before continuing.
 
 4. Run targeted checks for the changed area. For frontend-only changes, the Docker build above already runs both production frontend builds. For backend changes, also run:
 

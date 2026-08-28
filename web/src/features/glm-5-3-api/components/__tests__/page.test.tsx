@@ -51,7 +51,7 @@ import {
 } from '@/hooks/use-page-metadata'
 import enLocale from '@/i18n/locales/en.json'
 import { trackEvent } from '@/lib/analytics'
-import { Route as Glm53ApiRouteImport } from '@/routes/glm-5-3-api/index'
+import { Route as Glm53ApiRouteImport } from '@/routes/glm-api/index'
 import { useAuthStore } from '@/stores/auth-store'
 
 type AuthStoreAuth = ReturnType<typeof useAuthStore.getState>['auth']
@@ -116,13 +116,16 @@ vi.mock('@/lib/analytics', () => ({
 
 const trackEventMock = trackEvent as ReturnType<typeof vi.fn>
 
-// Build a real router around the ACTUAL glm-5-3-api route module so the
+// Build a real router around the ACTUAL glm-api route module so the
 // page renders exactly as wired in routeTree.gen.ts, plus the real
 // /openrouter-alternative page for the internal-link contract.
-const testRootRoute = createRootRoute({ component: () => <Outlet /> })
+const testRootRoute = createRootRoute({
+  component: () => <Outlet />,
+  notFoundComponent: () => <div data-testid='root-route-fallback' />,
+})
 const TestGlm53ApiRoute = Glm53ApiRouteImport.update({
-  id: '/glm-5-3-api/',
-  path: '/glm-5-3-api/',
+  id: '/glm-api/',
+  path: '/glm-api/',
   getParentRoute: () => testRootRoute,
 } as never)
 
@@ -143,7 +146,7 @@ const testRouteTree = testRootRoute.addChildren([
   stubRoute('/openrouter-alternative', 'openrouter-alternative-page'),
 ])
 
-function renderPage(initialPath = '/glm-5-3-api/'): RenderResult {
+function renderPage(initialPath = '/glm-api/'): RenderResult {
   const router = createRouter({
     routeTree: testRouteTree,
     history: createMemoryHistory({ initialEntries: [initialPath] }),
@@ -193,9 +196,9 @@ afterEach(() => {
   actResetMetadata()
 })
 
-describe('glm-5-3-api page structure', () => {
+describe('glm-api page structure', () => {
   it('renders the route with exactly one h1 naming both models', async () => {
-    renderPage('/glm-5-3-api/')
+    renderPage('/glm-api/')
 
     const headings = await screen.findAllByRole('heading', { level: 1 })
     expect(headings).toHaveLength(1)
@@ -440,7 +443,7 @@ describe('quickstart', () => {
 describe('CTA destinations and UTM safety', () => {
   it('points guest CTAs at /sign-up keeping only allowlisted UTM parameters', async () => {
     renderPage(
-      '/glm-5-3-api/?utm_source=launch&utm_campaign=glm&email=a@b.com&api_key=sk-secret&redirect=%2Fevil'
+      '/glm-api/?utm_source=launch&utm_campaign=glm&email=a@b.com&api_key=sk-secret&redirect=%2Fevil'
     )
 
     const guestCtas = await screen.findAllByRole('button', {
@@ -461,7 +464,7 @@ describe('CTA destinations and UTM safety', () => {
 
   it('points authenticated CTAs at /playground with the matching label', async () => {
     setAuthenticated(true)
-    renderPage('/glm-5-3-api/?utm_source=launch&token=abc')
+    renderPage('/glm-api/?utm_source=launch&token=abc')
 
     const openPlaygroundButtons = await screen.findAllByRole('button', {
       name: /Open Playground/,
@@ -477,7 +480,7 @@ describe('CTA destinations and UTM safety', () => {
     // Regression guard for the field-level auth selector: the page
     // subscribes to state.auth.user only, so flipping the user while
     // mounted must still switch the CTA label and destination.
-    renderPage('/glm-5-3-api/')
+    renderPage('/glm-api/')
 
     const guestCta = (
       await screen.findAllByRole('button', { name: /Create an API key/ })
@@ -563,12 +566,12 @@ describe('metadata owner', () => {
     expect(document.title).toBe(expected.title)
     expect(
       document.head.querySelector('link[rel="canonical"]')?.getAttribute('href')
-    ).toBe('https://vancine.com/glm-5-3-api')
+    ).toBe('https://vancine.com/glm-api')
     expect(
       document.head
         .querySelector('meta[property="og:url"]')
         ?.getAttribute('content')
-    ).toBe('https://vancine.com/glm-5-3-api')
+    ).toBe('https://vancine.com/glm-api')
     expect(
       document.head
         .querySelector('meta[name="description"]')
@@ -590,4 +593,32 @@ describe('metadata owner', () => {
     safeApplySystemName('Acme Cloud')
     expect(document.title).toBe('Acme Cloud')
   })
+})
+
+describe('retired GLM public paths', () => {
+  it.each([['/glm-5-3-api'], ['/glm-5.3-api']])(
+    'renders no GLM page for %s (retired from the route tree)',
+    async (retiredPath) => {
+      // Each case gets a fresh router that boots directly on the retired
+      // URL — the user-observable seam of typing an old version-specific
+      // address. With both retired route files deleted, the router must
+      // land on its not-found fallback and never mount the GLM page.
+      const router = createRouter({
+        routeTree: testRouteTree,
+        history: createMemoryHistory({ initialEntries: [retiredPath] }),
+      })
+      render(
+        <I18nextProvider i18n={testI18n}>
+          <RouterProvider router={router} />
+        </I18nextProvider>
+      )
+
+      await screen.findByTestId('root-route-fallback')
+
+      expect(router.state.location.pathname).toBe(retiredPath)
+      expect(screen.queryByRole('heading', { level: 1 })).toBeNull()
+      expect(screen.queryByTestId('glm53-comparison-table')).toBeNull()
+      expect(screen.queryByTestId('glm53-comparison-card')).toBeNull()
+    }
+  )
 })

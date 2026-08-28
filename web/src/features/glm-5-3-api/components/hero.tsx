@@ -39,7 +39,7 @@ export interface HeroProps {
 }
 
 /**
- * Above-the-fold introduction for the /glm-5-3-api page: one H1 naming
+ * Above-the-fold introduction for the /glm-api page: one H1 naming
  * both models, the shared-endpoint message, the explicit scope of the
  * 20% comparison, and the auth-aware primary CTA plus a secondary
  * pricing link.

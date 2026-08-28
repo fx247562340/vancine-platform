@@ -475,14 +475,14 @@ describe('internal links', () => {
     }
   })
 
-  it('links the glm-5.3 model name to the /glm-5-3-api page', async () => {
+  it('links the glm-5.3 model name to the /glm-api page', async () => {
     await renderPage()
     await screen.findByRole('heading', { level: 1 })
 
     const glmLink = screen.getByRole('link', {
       name: 'GLM-5.3 and GLM-5.3 Flash pricing',
     })
-    expect(glmLink.getAttribute('href')).toBe('/glm-5-3-api')
+    expect(glmLink.getAttribute('href')).toBe('/glm-api')
   })
 })
 

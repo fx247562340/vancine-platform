@@ -139,6 +139,66 @@ Do NOT directly import or call `encoding/json` in business code. `json.RawMessag
 - In React components, use `useTranslation()` and call `t('English key')` for user-facing text.
 - Follow `web/AGENTS.md` for detailed frontend conventions, including TypeScript, component structure, styling, accessibility, testing, and build checks.
 
+### Automated browser release acceptance request budget
+
+Mandatory budget for any AUTOMATED browser-based release acceptance
+(local or production). Browser requests are the scarcest resource in
+the verification pipeline; every one of these rules is binding, and a
+violation must be justified in the acceptance report.
+
+Layer 3 of the release contract (docs/release-process.md) defaults to
+exactly ONE of: this minimal automated browser smoke, or a manual page
+acceptance performed personally by the project owner. Do not run both
+by default unless the owner explicitly asks. A manual acceptance does
+not count against automated browser/context/page tallies and may
+substitute for the Layer 3 automated smoke, but never for Layer 1,
+Layer 2, or the local Docker gate; it must still not require the owner
+to refresh pages repeatedly or issue meaningless duplicate requests.
+Production automated smokes follow this same automated budget.
+
+1. **Default UI smoke shape.** A public marketing page UI smoke uses
+   one browser, one context, one page; each target page is fully
+   loaded AT MOST ONCE; mobile viewports are verified by resizing the
+   same page (no reload); at most two screenshots total.
+2. **No browser re-proof of settled contracts.** The browser must not
+   re-prove the Go router/HTTP contract, pure logic already covered
+   by unit/component tests, or the complete sitemap set; those belong
+   to the owning tests or one bounded HTTP script (Layer 1/2 in
+   `docs/release-process.md`).
+3. **Deterministic isolation of unrelated endpoints.** When auth and
+   acquisition are OUT of scope of the change under test, a UI-only
+   local smoke MAY intercept, browser-side, exactly these two
+   endpoints with fixed anonymous-consistent responses:
+   - `POST /api/user/auth/refresh`
+   - `POST /api/acquisition/touch`
+   The report MUST state that the intercepted calls are "not product
+   pass evidence". No other endpoint may be intercepted.
+4. **No isolation when in scope.** If the change touches auth,
+   session, acquisition, or rate limiting, isolating those endpoints
+   is forbidden; run a dedicated, bounded integration acceptance with
+   the minimum number of requests each scenario needs.
+5. **On any 429:** stop browser retries immediately. Do not flush
+   Redis, do not change rate-limit config, and do not repeat the full
+   acceptance matrix. Save the evidence, classify the failure as
+   product failure vs. environment pollution vs. harness failure, and
+   re-run ONLY the unfinished minimal gate after the environment
+   recovers.
+6. **Forbidden harness behavior:** watch/dev servers, fixed long
+   sleeps, unbounded polling, multi-round snapshot/eval/click/reload
+   loops, repeated requests to prove the same contract, and
+   re-launching a long command just because it is temporarily quiet.
+7. **Health polling:** hard cap 120 seconds total, polling interval
+   at least 2 seconds (no more frequently than once every 2 seconds);
+   on timeout, stop and report.
+8. **Failure attribution:** product failures and acceptance-tooling
+   failures MUST be reported separately; a script bug must never be
+   recorded as a product failure (and vice versa).
+
+Do not add Playwright, Puppeteer, or other browser dependencies to the
+repository, and do not create permanent agent-browser scripts in the
+repo for one-off acceptance; temporary acceptance scripts and evidence
+live under `outputs/` and stay untracked.
+
 ### Project Governance — Brand and Open-Source Attribution
 
 This project is Vancine, a modified version of the upstream AGPL-3.0 project new-api (https://github.com/QuantumNous/new-api), itself based on one-api (https://github.com/songquanpeng/one-api, MIT). Every occurrence of an upstream identifier belongs to exactly one of the four layers below, and the rules differ per layer. This section replaces the former absolute-protection clause, by explicit project-owner approval (2026-08-08).

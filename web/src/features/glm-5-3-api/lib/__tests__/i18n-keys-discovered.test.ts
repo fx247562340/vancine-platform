@@ -32,7 +32,7 @@ import zh from '@/i18n/locales/zh.json'
 import { GLM53_API_EVIDENCE_KEYS } from '../glm-5-3-api'
 
 /**
- * Source-driven i18n completeness contract for the /glm-5-3-api page.
+ * Source-driven i18n completeness contract for the /glm-api page.
  *
  * The page MUST register every string literal it passes to t(...) in
  * GLM53_API_EVIDENCE_KEYS, and the array MUST be a complete translation

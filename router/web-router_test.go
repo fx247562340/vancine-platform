@@ -32,10 +32,12 @@ var expectedSitemapLocs = []string{
 	"https://vancine.com/seedance-api",
 	"https://vancine.com/ai-media-api",
 	"https://vancine.com/openrouter-alternative",
-	// SEO-4 Phase 1: the single GLM-5.3 acquisition page. There is
-	// intentionally no /glm-5-3-flash-api entry — one canonical page
-	// covers both model ids.
-	"https://vancine.com/glm-5-3-api",
+	// SEO-4 evergreen canonical: the single GLM-5.3 acquisition page
+	// moved to /glm-api. Both retired version-specific paths
+	// (/glm-5-3-api, /glm-5.3-api) must NOT appear anywhere in the
+	// sitemap; the retired paths are served only by the unknown-SPA
+	// fallback with no marketing metadata.
+	"https://vancine.com/glm-api",
 }
 
 // testSPAIndexPage is the fixture used by pre-existing sitemap tests.
@@ -132,20 +134,25 @@ func TestSitemapListsExactlyTheApprovedPublicPages(t *testing.T) {
 	assert.Equal(t, expectedSitemapLocs, locs,
 		"sitemap locs must equal the approved canonical set in the approved order, with no missing, extra, or duplicate entries")
 
-	// SEO-4 Phase 1: exactly 13 entries; /glm-5-3-api appears exactly
-	// once and no sibling /glm-5-3-flash-api page may be indexed.
+	// SEO-4 evergreen canonical: exactly 13 entries; /glm-api appears
+	// exactly once, and both retired version-specific paths appear zero
+	// times.
 	assert.Len(t, locs, 13,
-		"sitemap must contain exactly 13 URLs after adding /glm-5-3-api")
-	glmCount := 0
+		"sitemap must contain exactly 13 URLs with the evergreen GLM page")
+	glmEvergreenCount := 0
 	for _, loc := range locs {
-		if strings.HasSuffix(loc, "/glm-5-3-api") {
-			glmCount++
+		if strings.HasSuffix(loc, "/glm-api") {
+			glmEvergreenCount++
 		}
-		assert.NotContains(t, loc, "glm-5-3-flash",
-			"no /glm-5-3-flash-api sibling page may be indexed")
+		assert.NotContains(t, loc, "glm-5-3-api",
+			"the retired /glm-5-3-api must not appear in the sitemap")
+		assert.NotContains(t, loc, "glm-5.3-api",
+			"the retired /glm-5.3-api must not appear in the sitemap")
+		assert.NotContains(t, loc, "glm-5.3-flash",
+			"no GLM-5.3-Flash sibling page may be indexed")
 	}
-	assert.Equal(t, 1, glmCount,
-		"/glm-5-3-api must appear exactly once in the sitemap")
+	assert.Equal(t, 1, glmEvergreenCount,
+		"/glm-api must appear exactly once in the sitemap")
 
 	for _, excluded := range []string{
 		"https://vancine.com/waitlist",

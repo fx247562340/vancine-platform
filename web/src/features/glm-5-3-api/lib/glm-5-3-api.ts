@@ -23,7 +23,7 @@ import {
 } from '@/i18n/languages'
 
 /**
- * Pure business logic for the /glm-5-3-api acquisition page.
+ * Pure business logic for the /glm-api acquisition page.
  *
  * ONE canonical page covers BOTH model ids (glm-5.3 and glm-5.3-flash);
  * there is deliberately no /glm-5-3-flash-api sibling route. Claims stay
@@ -54,7 +54,7 @@ export const GLM53_API_RESOURCE_EVENT = 'developer_resource_clicked'
 // ---------------------------------------------------------------------------
 
 /** The fixed canonical origin for every public link on this page. */
-export const GLM53_API_CANONICAL = 'https://vancine.com/glm-5-3-api'
+export const GLM53_API_CANONICAL = 'https://vancine.com/glm-api'
 
 /** The fixed API base URL referenced in every quickstart example. */
 export const GLM53_API_API_BASE_URL = 'https://vancine.com/v1'
@@ -164,7 +164,7 @@ const GLM53_API_METADATA: Record<
   Glm53ApiLanguageMetadata
 > = {
   // The English block is pinned byte-for-byte against
-  // router/web_metadata.go's /glm-5-3-api entry.
+  // router/web_metadata.go's /glm-api entry.
   en: {
     title: 'GLM-5.3 & GLM-5.3 Flash API Pricing | Vancine',
     description:
@@ -491,7 +491,7 @@ export const GLM53_API_MODEL_CARDS: readonly Glm53ApiModelCard[] = [
 // ---------------------------------------------------------------------------
 
 /**
- * Every translation key the /glm-5-3-api page passes to t(). Locale
+ * Every translation key the /glm-api page passes to t(). Locale
  * completeness tests iterate this list. Product-name literals that are
  * intentionally not localized (model ids, prices, code) are excluded.
  */

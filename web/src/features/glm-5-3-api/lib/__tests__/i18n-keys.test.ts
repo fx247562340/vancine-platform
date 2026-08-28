@@ -35,7 +35,7 @@ import {
 } from '../glm-5-3-api'
 
 /**
- * Registry completeness check for the /glm-5-3-api page.
+ * Registry completeness check for the /glm-api page.
  *
  * The feature uses the "the English source string IS the i18n key"
  * pattern: every label, body sentence, FAQ entry, and model-card key

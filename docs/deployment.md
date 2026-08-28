@@ -57,7 +57,7 @@ local code change
   ↓
 local Docker build and local app startup
   ↓
-user verifies the local app
+selected Layer 3 acceptance passes (A automated smoke or B owner manual — see "Local Docker verification" below)
   ↓
 commit + push to GitHub
   ↓
@@ -68,7 +68,7 @@ production server builds Docker image
 production deploy + health checks
 ```
 
-Do not skip the local Docker verification gate for user-visible changes. The production server should only pull and build after the user confirms the locally running app is correct.
+Do not skip the local Docker verification gate for user-visible changes. The production server should only pull and build after the selected Layer 3 acceptance (A automated smoke or B owner manual) passes.
 
 ### Local Docker verification
 
@@ -95,13 +95,24 @@ Open the local app at:
 http://127.0.0.1:3000
 ```
 
-The user verifies behavior against this local Docker instance. If changes are needed, repeat local build/start and verification before committing.
+The local app is verified at Layer 3 by exactly ONE of:
+
+- **A. Minimal automated browser smoke** — one browser, one context,
+  one page, one full load per target page, per the Automated browser
+  release acceptance request budget in `AGENTS.md`; or
+- **B. Manual acceptance by the project owner** — the owner inspects
+  the running local app personally.
+
+By default do not run both. Neither option replaces the code gates
+(tests, typecheck, build) or the local Docker gate above; both only
+apply AFTER the app is healthy on `127.0.0.1:3000`. If changes are
+needed, repeat local build/start and verification before committing.
 
 ⚠️ **Stopping or removing local services, containers, networks, volumes, or
 images must receive explicit approval before execution.** Do not run
 `docker compose down`, `docker compose down -v`, `docker volume rm`,
 `docker system prune`, or similar destructive commands without prior sign-off.
-Leave the local stack running until the user confirms verification is complete.
+Leave the local stack running until the selected Layer 3 acceptance is complete.
 
 ## Production deployment (exact-SHA, application-only)
 

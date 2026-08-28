@@ -14,12 +14,17 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-For commercial licensing, please contact support@quantumnous.com.
+For commercial licensing, please contact support@quantumnous.com
 */
 import { createFileRoute } from '@tanstack/react-router'
 
 import { Glm53ApiPage } from '@/features/glm-5-3-api'
 
-export const Route = createFileRoute('/glm-5-3-api/')({
+// SEO-4 evergreen canonical: the single GLM acquisition page. The path
+// carries no version number so future GLM generations (5.4, 5.5, ...)
+// update this same page in place. It renders the current GLM-5.3 /
+// GLM-5.3 Flash content; the module name features/glm-5-3-api is
+// internal code, not a public URL.
+export const Route = createFileRoute('/glm-api/')({
   component: Glm53ApiPage,
 })

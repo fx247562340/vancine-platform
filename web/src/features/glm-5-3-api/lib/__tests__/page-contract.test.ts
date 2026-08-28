@@ -14,14 +14,14 @@ import {
 } from '../glm-5-3-api'
 
 /**
- * Pure business contract tests for the /glm-5-3-api acquisition page.
+ * Pure business contract tests for the /glm-api acquisition page.
  * Locked values:
  *   - the two model ids (glm-5.3, glm-5.3-flash) and six prices;
  *   - the exact 0.8 Vancine/OpenRouter ratio on all six figures with
  *     three-decimal display accuracy ($0.012 / $0.015 / $0.075);
  *   - source URLs, verification date, and the mandatory disclaimer;
  *   - seven-language metadata with byte-identical English vs. Go server
- *     metadata (router/web_metadata.go /glm-5-3-api entry);
+ *     metadata (router/web_metadata.go /glm-api entry);
  *   - restrained claims (no "all models cheaper", no absolutes);
  *   - CTA auth parity, UTM allowlist, sensitive-parameter scrubbing,
  *     and no open redirect.
@@ -101,7 +101,7 @@ describe('CTA label / destination parity', () => {
 
 describe('canonical and metadata', () => {
   test('canonical URL is the fixed public origin without query or UTM', () => {
-    assert.equal(GLM53_API_CANONICAL, 'https://vancine.com/glm-5-3-api')
+    assert.equal(GLM53_API_CANONICAL, 'https://vancine.com/glm-api')
     assert.ok(!GLM53_API_CANONICAL.includes('?'))
   })
 
@@ -113,8 +113,8 @@ describe('canonical and metadata', () => {
     assert.equal(enMeta.ogDescription, GO_EN_METADATA.ogDescription)
     assert.equal(enMeta.twitterTitle, GO_EN_METADATA.twitterTitle)
     assert.equal(enMeta.twitterDescription, GO_EN_METADATA.twitterDescription)
-    assert.equal(enMeta.canonical, 'https://vancine.com/glm-5-3-api')
-    assert.equal(enMeta.ogUrl, 'https://vancine.com/glm-5-3-api')
+    assert.equal(enMeta.canonical, 'https://vancine.com/glm-api')
+    assert.equal(enMeta.ogUrl, 'https://vancine.com/glm-api')
   })
 
   test('metadata falls back to English for unknown language', () => {
@@ -125,8 +125,8 @@ describe('canonical and metadata', () => {
   test('all seven supported languages return the fixed canonical', () => {
     for (const lang of ['en', 'zhCN', 'zhTW', 'fr', 'ru', 'ja', 'vi']) {
       const meta = getGlm53ApiPageMetadata(lang)
-      assert.equal(meta.canonical, 'https://vancine.com/glm-5-3-api', lang)
-      assert.equal(meta.ogUrl, 'https://vancine.com/glm-5-3-api', lang)
+      assert.equal(meta.canonical, 'https://vancine.com/glm-api', lang)
+      assert.equal(meta.ogUrl, 'https://vancine.com/glm-api', lang)
       assert.ok(!meta.canonical.includes('?'))
       assert.ok(!meta.ogUrl.includes('?'))
     }
