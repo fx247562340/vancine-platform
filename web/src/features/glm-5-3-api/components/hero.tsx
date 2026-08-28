@@ -72,7 +72,7 @@ export function Hero(props: HeroProps): ReactElement {
         </p>
         <p className='text-foreground/80 max-w-2xl text-sm font-medium md:text-base'>
           {t(
-            'Vancine is 20% lower than OpenRouter on these two standard paid model listings.'
+            'Vancine is 20% lower than the linked OpenRouter prices currently displayed for these two models.'
           )}
         </p>
         <div className='flex flex-wrap items-center justify-center gap-3'>

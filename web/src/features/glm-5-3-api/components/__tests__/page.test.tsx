@@ -344,12 +344,17 @@ describe('price comparison table and mobile cards', () => {
     await screen.findByRole('heading', { level: 1 })
 
     const text = document.body.textContent ?? ''
-    expect(text).toContain('Last verified: August 27, 2026.')
+    expect(text).not.toContain('Last verified: August 27, 2026.')
+    expect(text).not.toContain('standard paid model listings')
+    expect(text).not.toContain(
+      'promotions, and temporary provider discounts are excluded'
+    )
+    expect(text).toContain('Last verified: August 28, 2026.')
     expect(text).toContain(
-      'The OpenRouter comparison uses the linked standard paid listings; free variants, promotions, and temporary provider discounts are excluded.'
+      'The OpenRouter comparison reflects the linked public prices displayed on August 28, 2026, including active provider promotions.'
     )
     expect(text).toContain(
-      'Vancine is 20% lower than OpenRouter on these two standard paid model listings.'
+      'Vancine is 20% lower than the linked OpenRouter prices currently displayed for these two models.'
     )
 
     // Live pricing link points at the internal /pricing route.

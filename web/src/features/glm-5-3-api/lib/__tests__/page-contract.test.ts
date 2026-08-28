@@ -232,30 +232,104 @@ describe('scope, disclaimers, and restrained claims', () => {
     const joined = GLM53_API_EVIDENCE_KEYS.join(' | ')
     assert.ok(
       joined.includes(
-        'Prices may change. Vancine live pricing is authoritative.'
+        'Prices and promotions may change. Vancine live pricing is authoritative.'
       ),
-      'must carry the mandatory "Prices may change" sentence'
+      'must carry the mandatory "Prices and promotions may change" sentence'
     )
     assert.ok(
       joined.includes(
-        'The OpenRouter comparison uses the linked standard paid listings; free variants, promotions, and temporary provider discounts are excluded.'
+        'The OpenRouter comparison reflects the linked public prices displayed on August 28, 2026, including active provider promotions.'
       ),
-      'must carry the mandatory scope exclusion sentence'
+      'must carry the mandatory displayed-public-prices sentence'
+    )
+    assert.ok(
+      joined.includes('No claim is made about other models.'),
+      'must keep the other-models disclaimer'
     )
   })
 
-  test('the saving claim names exactly these two standard paid listings', () => {
+  test('the saving claim anchors to the linked OpenRouter prices currently displayed', () => {
     const joined = GLM53_API_EVIDENCE_KEYS.join(' | ')
     assert.ok(
-      /Vancine is 20% lower than OpenRouter on these two standard paid model listings\./.test(
-        joined
+      joined.includes(
+        'Vancine is 20% lower than the linked OpenRouter prices currently displayed for these two models.'
       ),
       'must use the approved saving formulation'
     )
-    assert.ok(/August 27, 2026/.test(joined), 'must name the verified date')
+    assert.ok(
+      !joined.includes('standard paid model listings'),
+      'the excluded-promotions formulation must be gone'
+    )
+    assert.ok(
+      joined.includes('Last verified: August 28, 2026.'),
+      'must carry the new verified date'
+    )
+    assert.ok(
+      !joined.includes('August 27, 2026'),
+      'the stale August 27 date must be gone'
+    )
     assert.ok(
       /\/pricing/.test(joined) || /live pricing/i.test(joined),
       'must link to Vancine live pricing'
+    )
+  })
+
+  test('the pricing note anchors verification to the displayed linked prices', () => {
+    const joined = GLM53_API_EVIDENCE_KEYS.join(' | ')
+    assert.ok(
+      joined.includes(
+        'USD per 1M tokens, verified against the linked OpenRouter prices displayed on August 28, 2026. Vancine live pricing is authoritative.'
+      ),
+      'the pricing note must cite the displayed linked OpenRouter prices'
+    )
+    assert.ok(
+      !joined.includes(
+        'verified against the linked OpenRouter standard paid listings'
+      ),
+      'the standard-paid-listings note must be gone'
+    )
+  })
+
+  test('the 20% FAQ answer discloses the displayed public prices including promotions', () => {
+    const answer = GLM53_API_FAQ.find(
+      (entry) =>
+        entry.questionKey === 'What exactly does the 20% comparison cover?'
+    )?.answerKey
+    assert.ok(answer, 'the 20% FAQ entry must exist')
+    assert.ok(
+      answer?.includes(
+        'linked OpenRouter public prices displayed for glm-5.3 and glm-5.3-flash on August 28, 2026'
+      ),
+      'must anchor the comparison to the displayed linked public prices'
+    )
+    assert.ok(
+      answer?.includes('It includes active provider promotions'),
+      'must disclose that promotions are included'
+    )
+    assert.ok(
+      answer?.includes('makes no claim about other models'),
+      'must keep the other-models disclaimer'
+    )
+  })
+
+  test('the price-change FAQ answer points at the linked OpenRouter pages', () => {
+    const answer = GLM53_API_FAQ.find(
+      (entry) => entry.questionKey === 'Can the prices change?'
+    )?.answerKey
+    assert.ok(answer, 'the price-change FAQ entry must exist')
+    assert.ok(
+      answer?.startsWith('Yes. Prices and promotions may change.'),
+      'must open with the approved sentences'
+    )
+    assert.ok(
+      answer?.includes(
+        'Verify the linked OpenRouter pages for their current prices before purchasing.'
+      ),
+      'must direct readers to the linked OpenRouter pages'
+    )
+    assert.ok(
+      !answer?.includes('excluded'),
+      'the excluded-promotions wording must be gone'
     )
   })
 

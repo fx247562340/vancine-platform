@@ -92,7 +92,7 @@ export function Comparison(): ReactElement {
         </h2>
         <p className='text-muted-foreground mx-auto mb-8 max-w-2xl text-center text-sm md:text-base'>
           {t(
-            'USD per 1M tokens, verified against the linked OpenRouter standard paid listings. Vancine live pricing is authoritative.'
+            'USD per 1M tokens, verified against the linked OpenRouter prices displayed on August 28, 2026. Vancine live pricing is authoritative.'
           )}
         </p>
 
@@ -214,7 +214,7 @@ export function Comparison(): ReactElement {
           <div>
             <dd>
               {t(
-                'Vancine is 20% lower than OpenRouter on these two standard paid model listings.'
+                'Vancine is 20% lower than the linked OpenRouter prices currently displayed for these two models.'
               )}
             </dd>
           </div>

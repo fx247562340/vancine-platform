@@ -28,8 +28,9 @@ import {
  * ONE canonical page covers BOTH model ids (glm-5.3 and glm-5.3-flash);
  * there is deliberately no /glm-5-3-flash-api sibling route. Claims stay
  * restrained and verifiable:
- *   - the comparison covers exactly the two standard paid listings
- *     verified on August 27, 2026, never "all models";
+ *   - the comparison covers exactly the two linked OpenRouter public
+ *     prices displayed on August 28, 2026 (including the provider
+ *     promotion active at that time), never "all models";
  *   - every displayed figure satisfies Vancine/OpenRouter = 0.8 with
  *     three-decimal display accuracy ($0.012 / $0.015 / $0.075);
  *   - compatibility promises are limited to the OpenAI-compatible chat
@@ -291,8 +292,9 @@ export interface Glm53ApiComparisonRow {
 }
 
 /**
- * Approved comparison rows — exactly the two standard paid listings
- * verified on August 27, 2026. Every Vancine figure is exactly 0.8×
+ * Approved comparison rows — exactly the two linked OpenRouter public
+ * prices displayed on August 28, 2026 (flash figures are the provider
+ * promotion prices shown that day). Every Vancine figure is exactly 0.8×
  * the OpenRouter figure on all three dimensions. The set is closed:
  * adding rows requires re-running the verification. These values are
  * display-only and are NOT wired to ModelRatio / CompletionRatio or
@@ -340,7 +342,7 @@ export function formatGlm53Usd(value: number): string {
 // ---------------------------------------------------------------------------
 
 /** The date both listings were last verified, in the en-US long form. */
-export const GLM53_API_VERIFIED_DATE_KEY = 'Last verified: August 27, 2026.'
+export const GLM53_API_VERIFIED_DATE_KEY = 'Last verified: August 28, 2026.'
 
 /**
  * Mandatory disclaimers rendered next to the comparison table. The two
@@ -349,7 +351,7 @@ export const GLM53_API_VERIFIED_DATE_KEY = 'Last verified: August 27, 2026.'
  */
 export const GLM53_API_PRICING_DISCLAIMER_KEYS = [
   GLM53_API_VERIFIED_DATE_KEY,
-  'Prices may change. Vancine live pricing is authoritative. The OpenRouter comparison uses the linked standard paid listings; free variants, promotions, and temporary provider discounts are excluded.',
+  'Prices and promotions may change. Vancine live pricing is authoritative. The OpenRouter comparison reflects the linked public prices displayed on August 28, 2026, including active provider promotions. No claim is made about other models.',
 ] as const
 
 // ---------------------------------------------------------------------------
@@ -442,12 +444,12 @@ export const GLM53_API_FAQ: readonly Glm53ApiFaqEntry[] = [
   {
     questionKey: 'What exactly does the 20% comparison cover?',
     answerKey:
-      'The 20% figure compares Vancine with the OpenRouter standard paid listings for glm-5.3 and glm-5.3-flash only, on input, output, and cache read, as verified on August 27, 2026. Free variants, promotions, and temporary provider discounts are excluded, and no claim is made about other models.',
+      'The 20% figure compares Vancine with the linked OpenRouter public prices displayed for glm-5.3 and glm-5.3-flash on August 28, 2026, across input, output, and cache read. It includes active provider promotions and makes no claim about other models.',
   },
   {
     questionKey: 'Can the prices change?',
     answerKey:
-      'Yes. Prices may change. Vancine live pricing is authoritative. The OpenRouter comparison uses the linked standard paid listings; free variants, promotions, and temporary provider discounts are excluded.',
+      'Yes. Prices and promotions may change. Vancine live pricing is authoritative. Verify the linked OpenRouter pages for their current prices before purchasing.',
   },
   {
     questionKey: 'Do I need to change my OpenAI SDK request structure?',
@@ -497,7 +499,7 @@ export const GLM53_API_MODEL_CARDS: readonly Glm53ApiModelCard[] = [
  */
 export const GLM53_API_EVIDENCE_KEYS = [
   'GLM-5.3 and GLM-5.3 Flash share one OpenAI-compatible endpoint at https://vancine.com/v1. Switch between them by changing only the model id.',
-  'Vancine is 20% lower than OpenRouter on these two standard paid model listings.',
+  'Vancine is 20% lower than the linked OpenRouter prices currently displayed for these two models.',
   'Create an API key',
   'Open Playground',
   'GLM-5.3 and GLM-5.3 Flash API',
@@ -510,7 +512,7 @@ export const GLM53_API_EVIDENCE_KEYS = [
   'Provider-specific errors may differ between models and providers.',
   'Exact pricing',
   'Exact pricing: Vancine vs. OpenRouter',
-  'USD per 1M tokens, verified against the linked OpenRouter standard paid listings. Vancine live pricing is authoritative.',
+  'USD per 1M tokens, verified against the linked OpenRouter prices displayed on August 28, 2026. Vancine live pricing is authoritative.',
   'Model',
   'Dimension',
   'Vancine',
