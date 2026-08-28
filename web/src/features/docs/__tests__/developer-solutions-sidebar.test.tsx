@@ -107,7 +107,7 @@ beforeEach(async () => {
 })
 
 describe('Docs sidebar Developer solutions block', () => {
-  it('renders both registry entries as same-origin links on desktop', async () => {
+  it('renders the registry entries as same-origin links on desktop', async () => {
     renderSidebar()
 
     // The block heading comes from the global namespace.
@@ -116,6 +116,12 @@ describe('Docs sidebar Developer solutions block', () => {
     const kimiLink = await screen.findByRole('link', { name: 'Kimi K3 API' })
     expect(kimiLink).toHaveAttribute('href', '/kimi-k3-api')
     expect(kimiLink).not.toHaveAttribute('target')
+
+    const glmLink = await screen.findByRole('link', {
+      name: 'GLM-5.3 and GLM-5.3 Flash API',
+    })
+    expect(glmLink).toHaveAttribute('href', '/glm-api')
+    expect(glmLink).not.toHaveAttribute('target')
 
     const seedanceLink = await screen.findByRole('link', {
       name: 'Seedance 2.5 API',
@@ -191,6 +197,10 @@ describe('Docs sidebar Developer solutions block', () => {
     // Every registry link navigates OUT of /docs to a real landing route.
     const kimiLink = await screen.findByRole('link', { name: 'Kimi K3 API' })
     expect(String(kimiLink.getAttribute('href'))).not.toMatch(/^\/docs\//)
+    const glmLink = await screen.findByRole('link', {
+      name: 'GLM-5.3 and GLM-5.3 Flash API',
+    })
+    expect(String(glmLink.getAttribute('href'))).not.toMatch(/^\/docs\//)
     const seedanceLink = await screen.findByRole('link', {
       name: 'Seedance 2.5 API',
     })

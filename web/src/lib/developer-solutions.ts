@@ -27,16 +27,19 @@ For commercial licensing, please contact support@quantumnous.com
 
 export type DeveloperSolutionId =
   | 'kimi-k3-api'
+  | 'glm-api'
   | 'seedance-api'
   | 'ai-media-api'
 
 export type DeveloperSolutionRoute =
   | '/kimi-k3-api'
+  | '/glm-api'
   | '/seedance-api'
   | '/ai-media-api'
 
 export type DeveloperSolutionResource =
   | 'kimi_k3_api'
+  | 'glm_api'
   | 'seedance_api'
   | 'ai_media_api'
 
@@ -60,6 +63,14 @@ export const DEVELOPER_SOLUTIONS: readonly DeveloperSolution[] = [
     titleKey: 'Kimi K3 API',
     descriptionKey: 'Kimi K3 for coding agents and OpenAI-compatible clients.',
     resource: 'kimi_k3_api',
+  },
+  {
+    id: 'glm-api',
+    route: '/glm-api',
+    titleKey: 'GLM-5.3 and GLM-5.3 Flash API',
+    descriptionKey:
+      'GLM-5.3 and GLM-5.3 Flash through one OpenAI-compatible API.',
+    resource: 'glm_api',
   },
   {
     id: 'seedance-api',

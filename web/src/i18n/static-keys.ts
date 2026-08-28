@@ -645,9 +645,11 @@ export const STATIC_I18N_KEYS = [
   'API Solutions',
   'Developer solutions',
   'Kimi K3 API',
+  'GLM-5.3 and GLM-5.3 Flash API',
   'Seedance 2.5 API',
   'AI Media API',
   'Kimi K3 for coding agents and OpenAI-compatible clients.',
+  'GLM-5.3 and GLM-5.3 Flash through one OpenAI-compatible API.',
   'Async Doubao-Seedance-2.5 video generation through one API.',
   'Image, video, speech, and 3D generation through one API.',
 

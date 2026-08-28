@@ -26,11 +26,11 @@ import {
 } from '@/lib/developer-solutions'
 
 describe('developer solutions registry', () => {
-  test('contains exactly the three live resources', () => {
-    assert.equal(DEVELOPER_SOLUTIONS.length, 3)
+  test('contains exactly the four live resources', () => {
+    assert.equal(DEVELOPER_SOLUTIONS.length, 4)
     assert.deepEqual(
       DEVELOPER_SOLUTIONS.map((solution) => solution.id),
-      ['kimi-k3-api', 'seedance-api', 'ai-media-api']
+      ['kimi-k3-api', 'glm-api', 'seedance-api', 'ai-media-api']
     )
   })
 
@@ -62,11 +62,27 @@ describe('developer solutions registry', () => {
     )
   })
 
-  test('keeps a stable order: Kimi K3 -> Seedance -> AI Media', () => {
+  test('defines the stable GLM API solution contract', () => {
+    const byId = new Map(DEVELOPER_SOLUTIONS.map((s) => [s.id, s]))
+    const glm = byId.get('glm-api')
+    assert.equal(glm?.route, '/glm-api')
+    assert.equal(glm?.titleKey, 'GLM-5.3 and GLM-5.3 Flash API')
+    assert.equal(
+      glm?.descriptionKey,
+      'GLM-5.3 and GLM-5.3 Flash through one OpenAI-compatible API.'
+    )
+    assert.equal(glm?.resource, 'glm_api')
+  })
+
+  test('keeps a stable order: Kimi K3 -> GLM -> Seedance -> AI Media', () => {
     const ids = DEVELOPER_SOLUTIONS.map((solution) => solution.id)
     assert.ok(
-      ids.indexOf('kimi-k3-api') < ids.indexOf('seedance-api'),
-      'Kimi K3 API must precede Seedance'
+      ids.indexOf('kimi-k3-api') < ids.indexOf('glm-api'),
+      'Kimi K3 API must precede GLM API'
+    )
+    assert.ok(
+      ids.indexOf('glm-api') < ids.indexOf('seedance-api'),
+      'GLM API must precede Seedance'
     )
     assert.ok(
       ids.indexOf('seedance-api') < ids.indexOf('ai-media-api'),

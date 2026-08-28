@@ -171,7 +171,7 @@ function renderDeveloperSolutions(): RenderResult {
 }
 
 describe('DeveloperSolutions component contract', () => {
-  it('renders all three registry entries with their target routes', async () => {
+  it('renders all four registry entries with their target routes', async () => {
     renderDeveloperSolutions()
     expect(
       await screen.findByRole('heading', {
@@ -180,12 +180,16 @@ describe('DeveloperSolutions component contract', () => {
       })
     ).toBeInTheDocument()
     expect(screen.getByText('Kimi K3 API')).toBeInTheDocument()
+    expect(
+      screen.getByText('GLM-5.3 and GLM-5.3 Flash API')
+    ).toBeInTheDocument()
     expect(screen.getByText('Seedance 2.5 API')).toBeInTheDocument()
     expect(screen.getByText('AI Media API')).toBeInTheDocument()
 
     const learnMoreLinks = screen.getAllByRole('link', { name: /Learn more/ })
     const hrefs = learnMoreLinks.map((link) => link.getAttribute('href'))
     expect(hrefs).toContain('/kimi-k3-api')
+    expect(hrefs).toContain('/glm-api')
     expect(hrefs).toContain('/seedance-api')
     expect(hrefs).toContain('/ai-media-api')
     // All routes are same-origin, so no target=_blank.

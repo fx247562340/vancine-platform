@@ -2317,6 +2317,7 @@
     "GLM-5.3 and GLM-5.3 Flash API": "API GLM-5.3 và GLM-5.3 Flash",
     "GLM-5.3 and GLM-5.3 Flash pricing": "Giá GLM-5.3 và GLM-5.3 Flash",
     "GLM-5.3 and GLM-5.3 Flash share one OpenAI-compatible endpoint at https://vancine.com/v1. Switch between them by changing only the model id.": "GLM-5.3 và GLM-5.3 Flash dùng chung một endpoint tương thích OpenAI tại https://vancine.com/v1. Chuyển đổi giữa hai mô hình chỉ cần thay đổi model id.",
+    "GLM-5.3 and GLM-5.3 Flash through one OpenAI-compatible API.": "Dùng GLM-5.3 và GLM-5.3 Flash qua một API tương thích OpenAI.",
     "glm-5.3 for flagship capability": "glm-5.3 cho năng lực flagship",
     "glm-5.3 is the flagship listing for complex coding and long-context work. glm-5.3-flash is the lower-token-cost listing for high-frequency calls and multimodal input. Both are served through the same OpenAI-compatible endpoint and billed per token.": "glm-5.3 là danh sách flagship cho lập trình phức tạp và ngữ cảnh dài. glm-5.3-flash là danh sách chi phí token thấp hơn cho các lệnh gọi tần suất cao và đầu vào đa phương thức. Cả hai đều được phục vụ qua cùng một endpoint tương thích OpenAI và tính phí theo token.",
     "glm-5.3-flash for lower token cost": "glm-5.3-flash cho chi phí token thấp hơn",

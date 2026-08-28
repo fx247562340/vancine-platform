@@ -127,6 +127,7 @@ const testRouteTree = testRootRoute.addChildren([
     component: () => <PublicHeader />,
   }),
   stubRoute('/kimi-k3-api', 'kimi-page'),
+  stubRoute('/glm-api', 'glm-page'),
   stubRoute('/seedance-api', 'seedance-page'),
   stubRoute('/ai-media-api', 'ai-media-page'),
   stubRoute('/pricing', 'pricing-page'),
@@ -168,7 +169,7 @@ afterEach(() => {
 })
 
 describe('desktop API Solutions menu', () => {
-  it('opens with the keyboard and lists both registry entries', async () => {
+  it('opens with the keyboard and lists all four registry entries', async () => {
     const user = userEvent.setup()
     renderHeader()
 
@@ -197,6 +198,9 @@ describe('desktop API Solutions menu', () => {
       within(popup).getByRole('link', { name: /Kimi K3 API/ })
     ).toHaveAttribute('href', '/kimi-k3-api')
     expect(
+      within(popup).getByRole('link', { name: /GLM-5.3 and GLM-5.3 Flash API/ })
+    ).toHaveAttribute('href', '/glm-api')
+    expect(
       within(popup).getByRole('link', { name: /Seedance 2.5 API/ })
     ).toHaveAttribute('href', '/seedance-api')
     expect(
@@ -221,14 +225,14 @@ describe('desktop API Solutions menu', () => {
       expect(element).not.toBeNull()
       return element as HTMLElement
     })
-    const kimiLink = within(popup).getByRole('link', {
-      name: /Kimi K3 API/,
+    const glmLink = within(popup).getByRole('link', {
+      name: /GLM-5.3 and GLM-5.3 Flash API/,
     })
-    await user.click(kimiLink)
+    await user.click(glmLink)
 
-    expect(await screen.findByTestId('kimi-page')).toBeInTheDocument()
+    expect(await screen.findByTestId('glm-page')).toBeInTheDocument()
     expect(trackEventMock).toHaveBeenCalledWith('developer_resource_clicked', {
-      resource: 'kimi_k3_api',
+      resource: 'glm_api',
       location: 'header',
     })
   })
@@ -287,7 +291,7 @@ describe('mobile menu Developer solutions group', () => {
     expect(screen.queryByRole('link', { name: 'AI Media API' })).toBeNull()
   })
 
-  it('exposes all three solution links in the accessibility tree when the menu opens', async () => {
+  it('exposes all four solution links in the accessibility tree when the menu opens', async () => {
     const user = userEvent.setup()
     const { container } = renderHeader()
 
@@ -302,6 +306,9 @@ describe('mobile menu Developer solutions group', () => {
     expect(overlay?.hasAttribute('inert')).toBe(false)
 
     const kimiLink = await screen.findByRole('link', { name: 'Kimi K3 API' })
+    const glmLink = await screen.findByRole('link', {
+      name: 'GLM-5.3 and GLM-5.3 Flash API',
+    })
     const seedanceLink = await screen.findByRole('link', {
       name: 'Seedance 2.5 API',
     })
@@ -309,6 +316,7 @@ describe('mobile menu Developer solutions group', () => {
       name: 'AI Media API',
     })
     expect(kimiLink).toHaveAttribute('href', '/kimi-k3-api')
+    expect(glmLink).toHaveAttribute('href', '/glm-api')
     expect(seedanceLink).toHaveAttribute('href', '/seedance-api')
     expect(aiMediaLink).toHaveAttribute('href', '/ai-media-api')
   })

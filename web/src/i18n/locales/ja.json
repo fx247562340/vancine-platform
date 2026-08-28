@@ -2317,6 +2317,7 @@
     "GLM-5.3 and GLM-5.3 Flash API": "GLM-5.3 および GLM-5.3 Flash API",
     "GLM-5.3 and GLM-5.3 Flash pricing": "GLM-5.3 および GLM-5.3 Flash の料金",
     "GLM-5.3 and GLM-5.3 Flash share one OpenAI-compatible endpoint at https://vancine.com/v1. Switch between them by changing only the model id.": "GLM-5.3 と GLM-5.3 Flash は https://vancine.com/v1 の 1 つの OpenAI 互換エンドポイントを共有します。切り替えは model id を変更するだけです。",
+    "GLM-5.3 and GLM-5.3 Flash through one OpenAI-compatible API.": "GLM-5.3 と GLM-5.3 Flash を 1 つの OpenAI 互換 API で利用できます。",
     "glm-5.3 for flagship capability": "glm-5.3 はフラッグシップ性能向け",
     "glm-5.3 is the flagship listing for complex coding and long-context work. glm-5.3-flash is the lower-token-cost listing for high-frequency calls and multimodal input. Both are served through the same OpenAI-compatible endpoint and billed per token.": "glm-5.3 は複雑なコーディングや長コンテキスト向けのフラッグシップ・リスティングです。glm-5.3-flash は高頻度の呼び出しやマルチモーダル入力向けの低トークンコスト・リスティングです。どちらも同じ OpenAI 互換エンドポイントで提供され、トークン単位で課金されます。",
     "glm-5.3-flash for lower token cost": "glm-5.3-flash は低トークンコスト向け",

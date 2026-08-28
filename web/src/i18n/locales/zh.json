@@ -2317,6 +2317,7 @@
     "GLM-5.3 and GLM-5.3 Flash API": "GLM-5.3 和 GLM-5.3 Flash API",
     "GLM-5.3 and GLM-5.3 Flash pricing": "GLM-5.3 和 GLM-5.3 Flash 价格",
     "GLM-5.3 and GLM-5.3 Flash share one OpenAI-compatible endpoint at https://vancine.com/v1. Switch between them by changing only the model id.": "GLM-5.3 和 GLM-5.3 Flash 共用 https://vancine.com/v1 上的一个 OpenAI 兼容端点。只需修改 model id 即可在两者之间切换。",
+    "GLM-5.3 and GLM-5.3 Flash through one OpenAI-compatible API.": "通过一个兼容 OpenAI 的 API 使用 GLM-5.3 和 GLM-5.3 Flash。",
     "glm-5.3 for flagship capability": "glm-5.3：旗舰能力",
     "glm-5.3 is the flagship listing for complex coding and long-context work. glm-5.3-flash is the lower-token-cost listing for high-frequency calls and multimodal input. Both are served through the same OpenAI-compatible endpoint and billed per token.": "glm-5.3 是面向复杂编码和长上下文工作的旗舰列表。glm-5.3-flash 是面向高频调用和多模态输入的更低 token 成本列表。两者通过同一个 OpenAI 兼容端点提供服务，并按 token 计费。",
     "glm-5.3-flash for lower token cost": "glm-5.3-flash：更低 token 成本",
