@@ -326,3 +326,19 @@ describe('authentication session coordination', () => {
     )
   })
 })
+
+describe('isAuthBundle signup_completed strict optional boolean contract', () => {
+  test('accepts a bundle with signup_completed exactly true', () => {
+    assert.equal(isAuthBundle({ ...bundle, signup_completed: true }), true)
+  })
+
+  test('accepts an ordinary login bundle without the flag', () => {
+    assert.equal(isAuthBundle(bundle), true)
+  })
+
+  test('rejects bundles whose signup_completed is not exactly true', () => {
+    for (const forged of [false, 'true', 1, null, {}]) {
+      assert.equal(isAuthBundle({ ...bundle, signup_completed: forged }), false)
+    }
+  })
+})

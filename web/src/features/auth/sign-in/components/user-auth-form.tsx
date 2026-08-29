@@ -51,6 +51,10 @@ import type { AuthFormProps } from '@/features/auth/types'
 import { useStatus } from '@/hooks/use-status'
 import { isAuthBundle } from '@/lib/api'
 import {
+  isServerConfirmedNewUser,
+  reportGoogleAdsSignupConversion,
+} from '@/lib/google-ads'
+import {
   buildAssertionResult,
   prepareCredentialRequestOptions,
   isPasskeySupported as detectPasskeySupport,
@@ -217,6 +221,14 @@ export function UserAuthForm({
     try {
       const res = await wechatLoginByCode(wechatCode)
       if (res?.success && isAuthBundle(res.data)) {
+        // A WeChat login from the sign-in page can still durably create a
+        // brand-new account server-side. Only the server-confirmed flag
+        // (never an existing-user login) triggers the Google Ads signup
+        // conversion; the bundle's user id is the local-only per-signup
+        // dedup key and is never sent to Google.
+        if (isServerConfirmedNewUser(res.data)) {
+          reportGoogleAdsSignupConversion(res.data.user.id)
+        }
         await handleLoginSuccess(res.data, redirectTo)
         toast.success(t('Signed in via WeChat'))
         handleWeChatDialogChange(false)

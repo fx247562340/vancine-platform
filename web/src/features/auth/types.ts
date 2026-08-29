@@ -85,6 +85,35 @@ export interface ApiResponse<T = unknown> {
   data?: T
 }
 
+/**
+ * /api/user/register success payload: the server-confirmed opaque id of
+ * the account this request durably created. Used only as the local
+ * per-signup dedup key for conversion reporting; never inferred from the
+ * username, form state, or page context. No personal data beyond the id.
+ */
+export interface RegisterSuccessData {
+  user_id: number
+}
+
+/**
+ * Strictly validates a register response body: success must be exactly
+ * true and data.user_id must be a positive integer. Anything else (failure
+ * responses, malformed data, forged shapes) is rejected, so the signup
+ * conversion dedup key can only ever come from a real server-confirmed
+ * registration.
+ */
+export function isRegisterSuccess(
+  value: unknown
+): value is ApiResponse<RegisterSuccessData> {
+  if (typeof value !== 'object' || value === null) return false
+  const record = value as Record<string, unknown>
+  if (record.success !== true) return false
+  const data = record.data
+  if (typeof data !== 'object' || data === null) return false
+  const userId = (data as Record<string, unknown>).user_id
+  return typeof userId === 'number' && Number.isInteger(userId) && userId > 0
+}
+
 // ============================================================================
 // System Status
 // ============================================================================

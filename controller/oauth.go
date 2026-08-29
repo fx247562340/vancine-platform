@@ -531,6 +531,7 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 	// point. Existing-user logins, legacy-ID migration logins, and account
 	// binds (handleOAuthBind) all returned earlier and never bind.
 	acquisition.BindTouchToUser(c, user.Id)
+	markSignupCompleted(c)
 
 	return user, nil
 }
@@ -612,6 +613,7 @@ func findOrCreateGoogleUser(c *gin.Context, provider *oauth.GoogleProvider, oaut
 	// First-touch acquisition attribution: only brand-new Google users reach
 	// this point; owner logins returned above and never bind.
 	acquisition.BindTouchToUser(c, user.Id)
+	markSignupCompleted(c)
 
 	return user, nil
 }

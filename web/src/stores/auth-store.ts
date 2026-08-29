@@ -72,6 +72,13 @@ export interface AuthBundle {
   access_expires_at: number
   user: AuthUser
   session: LoginSession
+  /**
+   * Present (and true) only when the server confirmed inside this response
+   * that a brand-new user account was durably created server-side. Absent
+   * for existing-user logins, OAuth account binds, and every client-forged
+   * value that is not exactly the boolean true.
+   */
+  signup_completed?: true
 }
 
 export type AuthBootstrapState = 'idle' | 'checking' | 'complete'

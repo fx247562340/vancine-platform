@@ -24,6 +24,10 @@ import { toast } from 'sonner'
 import { wechatLoginByCode } from '@/features/auth/api'
 import { sanitizeAuthRedirect } from '@/features/auth/lib/auth-redirect'
 import { applyAuthBundle, isAuthBundle } from '@/lib/api'
+import {
+  isServerConfirmedNewUser,
+  reportGoogleAdsSignupConversion,
+} from '@/lib/google-ads'
 import { getServerErrorMessageKey } from '@/lib/server-error-message'
 
 function OAuthComponent() {
@@ -41,6 +45,14 @@ function OAuthComponent() {
         if (search?.provider === 'wechat' && search.code) {
           const res = await wechatLoginByCode(search.code)
           if (res?.success && isAuthBundle(res.data)) {
+            // A WeChat OAuth callback can durably create a brand-new account
+            // server-side. Only the server-confirmed flag (never an
+            // existing-user login) triggers the Google Ads signup
+            // conversion; the bundle's user id is the local-only per-signup
+            // dedup key and is never sent to Google.
+            if (isServerConfirmedNewUser(res.data)) {
+              reportGoogleAdsSignupConversion(res.data.user.id)
+            }
             applyAuthBundle(res.data)
             const target =
               sanitizeAuthRedirect(search?.redirect, window.location.origin) ??

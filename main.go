@@ -258,21 +258,109 @@ func InjectUmamiAnalytics() {
 	indexPage = bytes.ReplaceAll(indexPage, placeholder, analyticsInject)
 }
 
+// googleAdsEnvTokenCharset keeps injected Google Ads values inside plain
+// ASCII identifier characters, so no operator typo or hostile environment
+// value can break out of the HTML or JavaScript string it is embedded in.
+func isValidGoogleAdsEnvToken(value string) bool {
+	if value == "" {
+		return false
+	}
+	for _, r := range value {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9', r == '-', r == '_':
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// safePageLocationJS is the exact page_location override used by the GA
+// config on OAuth callback paths and by the Ads config everywhere: origin +
+// pathname only, never the query string or hash.
+const safePageLocationJS = "{page_location: location.origin + location.pathname}"
+
+// InjectGoogleAnalytics loads the shared gtag.js runtime and configures the
+// enabled Google tags. GOOGLE_ANALYTICS_ID keeps its exact legacy behavior
+// on ordinary pages (landing-page UTM data included). On OAuth callback
+// paths (/oauth, /oauth/*) the GA config also overrides page_location with
+// origin + pathname only, so the OAuth query parameters (code, state,
+// error) can never reach Google. Google Ads is enabled only when the full
+// conversion pair (GOOGLE_ADS_ID + GOOGLE_ADS_SIGNUP_CONVERSION_LABEL) is
+// valid; a lone Ads ID enables nothing. The injected Ads bootstrap runs only
+// on the production hostnames (vancine.com / www.vancine.com), so staging,
+// preview, and localhost - even when they accidentally inherit the
+// production environment variables - neither load nor configure the Ads tag
+// and never produce Google Ads requests.
 func InjectGoogleAnalytics() {
 	analyticsInjectBuilder := &strings.Builder{}
-	if os.Getenv("GOOGLE_ANALYTICS_ID") != "" {
-		gaID := os.Getenv("GOOGLE_ANALYTICS_ID")
-		// Google Analytics 4 (gtag.js)
+	gaID := os.Getenv("GOOGLE_ANALYTICS_ID")
+	adsID := strings.TrimSpace(os.Getenv("GOOGLE_ADS_ID"))
+	adsSignupConversionLabel := strings.TrimSpace(os.Getenv("GOOGLE_ADS_SIGNUP_CONVERSION_LABEL"))
+	if !isValidGoogleAdsEnvToken(adsID) {
+		if adsID != "" {
+			common.SysError("invalid GOOGLE_ADS_ID, Google Ads tag not injected")
+		}
+		adsID = ""
+	}
+	if !isValidGoogleAdsEnvToken(adsSignupConversionLabel) {
+		if adsSignupConversionLabel != "" {
+			common.SysError("invalid GOOGLE_ADS_SIGNUP_CONVERSION_LABEL, signup conversion not exposed")
+		}
+		adsSignupConversionLabel = ""
+	}
+	// Google Ads requires the full conversion pair: a valid tag id AND a
+	// valid signup conversion label. Anything less enables no Ads at all.
+	adsEnabled := adsID != "" && adsSignupConversionLabel != ""
+
+	if gaID != "" {
 		analyticsInjectBuilder.WriteString("<script async src=\"https://www.googletagmanager.com/gtag/js?id=")
 		analyticsInjectBuilder.WriteString(gaID)
 		analyticsInjectBuilder.WriteString("\"></script>")
+	}
+	if gaID != "" || adsEnabled {
 		analyticsInjectBuilder.WriteString("<script>")
 		analyticsInjectBuilder.WriteString("window.dataLayer = window.dataLayer || [];")
 		analyticsInjectBuilder.WriteString("function gtag(){dataLayer.push(arguments);}")
 		analyticsInjectBuilder.WriteString("gtag('js', new Date());")
-		analyticsInjectBuilder.WriteString("gtag('config', '")
-		analyticsInjectBuilder.WriteString(gaID)
-		analyticsInjectBuilder.WriteString("');")
+		if gaID != "" {
+			// GA config: exact legacy form on ordinary pages (landing UTM data
+			// preserved); on OAuth callback paths (/oauth, /oauth/*) the same
+			// safe page_location override applies so code/state/error never
+			// reach Google at tag initialization.
+			analyticsInjectBuilder.WriteString("if(location.pathname==='/oauth'||location.pathname.indexOf('/oauth/')===0){")
+			analyticsInjectBuilder.WriteString("gtag('config', '")
+			analyticsInjectBuilder.WriteString(gaID)
+			analyticsInjectBuilder.WriteString("', ")
+			analyticsInjectBuilder.WriteString(safePageLocationJS)
+			analyticsInjectBuilder.WriteString(");}else{")
+			analyticsInjectBuilder.WriteString("gtag('config', '")
+			analyticsInjectBuilder.WriteString(gaID)
+			analyticsInjectBuilder.WriteString("');}")
+		}
+		if adsEnabled {
+			analyticsInjectBuilder.WriteString("(function(){var h=location.hostname;if(h!=='vancine.com'&&h!=='www.vancine.com')return;")
+			if gaID == "" {
+				// No GA tag is loading gtag.js, so the Ads tag loads it itself -
+				// but only on the production hostnames, never on staging,
+				// preview, or localhost even if the env vars leak there.
+				analyticsInjectBuilder.WriteString("var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=")
+				analyticsInjectBuilder.WriteString(adsID)
+				analyticsInjectBuilder.WriteString("';document.head.appendChild(s);")
+			}
+			// Safe page_location for the Ads config everywhere: origin +
+			// pathname only, never query or hash.
+			analyticsInjectBuilder.WriteString("gtag('config', '")
+			analyticsInjectBuilder.WriteString(adsID)
+			analyticsInjectBuilder.WriteString("', ")
+			analyticsInjectBuilder.WriteString(safePageLocationJS)
+			analyticsInjectBuilder.WriteString(");")
+			// Non-sensitive runtime config for the frontend conversion helper:
+			// the send_to pair only - never user, session, or deployment data.
+			analyticsInjectBuilder.WriteString("window.__VANCINE_GOOGLE_ADS__={signupSendTo:")
+			analyticsInjectBuilder.WriteString(strconv.Quote(adsID + "/" + adsSignupConversionLabel))
+			analyticsInjectBuilder.WriteString("};})();")
+		}
 		analyticsInjectBuilder.WriteString("</script>")
 	}
 	analyticsInjectBuilder.WriteString("<!--Google Analytics QuantumNous-->\n")

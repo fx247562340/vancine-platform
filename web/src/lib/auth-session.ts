@@ -129,6 +129,12 @@ function hasValidTokenFields(value: Record<string, unknown>): boolean {
 
 export function isAuthBundle(value: unknown): value is AuthBundle {
   if (!isRecord(value)) return false
+  // Strict optional-boolean contract: when the server-confirmed signup flag
+  // is present it must be exactly the boolean true, so forged values
+  // ('true', 1, false) can never pass as a new-user bundle.
+  if (value.signup_completed !== undefined && value.signup_completed !== true) {
+    return false
+  }
   return (
     hasValidTokenFields(value) &&
     isAuthUser(value.user) &&

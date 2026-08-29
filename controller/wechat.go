@@ -106,6 +106,7 @@ func WeChatAuth(c *gin.Context) {
 			// user (registration enabled + insert succeeded) is bound; existing
 			// user logins and WeChatBind never reach this line.
 			acquisition.BindTouchToUser(c, user.Id)
+			markSignupCompleted(c)
 		} else {
 			c.JSON(http.StatusOK, gin.H{
 				"success": false,

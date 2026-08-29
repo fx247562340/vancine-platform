@@ -153,6 +153,19 @@ func recordLoginAudit(user *model.User, c *gin.Context) {
 	}, extra)
 }
 
+// signupCompletedContextKey marks gin contexts in which a brand-new user
+// account was durably created during this request. Only server-side
+// user-creation paths (OAuth/Google/WeChat signup) set it; existing-user
+// logins, account binds, and any client-supplied input never do.
+const signupCompletedContextKey = "vancine_signup_completed"
+
+// markSignupCompleted records that this request persistently created a new
+// user, so the login response can carry the server-confirmed signup fact to
+// the frontend signup-conversion tracking.
+func markSignupCompleted(c *gin.Context) {
+	c.Set(signupCompletedContextKey, true)
+}
+
 // setupLogin creates a server-controlled login Session and returns the shared
 // authentication bundle used by every login method.
 func setupLogin(user *model.User, c *gin.Context) {
@@ -194,16 +207,24 @@ func setupLoginAtAuthVersion(user *model.User, expectedAuthVersion int64, c *gin
 	service.WriteRefreshCookie(c, bundle.RefreshToken)
 	setAuthNoStore(c)
 	recordLoginAudit(user, c)
+	data := gin.H{
+		"access_token":      bundle.AccessToken,
+		"token_type":        bundle.TokenType,
+		"access_expires_at": bundle.AccessExpiresAt,
+		"session":           bundle.Session,
+		"user":              buildSelfUserData(currentUser),
+	}
+	// Server-confirmed fact for client-side signup conversion tracking: set
+	// only by paths that durably created a brand-new account in this request.
+	// Existing-user logins and account binds never set it, and clients can
+	// never forge it - the marker only comes from server-side creation paths.
+	if c.GetBool(signupCompletedContextKey) {
+		data["signup_completed"] = true
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"message": "",
 		"success": true,
-		"data": gin.H{
-			"access_token":      bundle.AccessToken,
-			"token_type":        bundle.TokenType,
-			"access_expires_at": bundle.AccessExpiresAt,
-			"session":           bundle.Session,
-			"user":              buildSelfUserData(currentUser),
-		},
+		"data":    data,
 	})
 }
 
@@ -325,9 +346,15 @@ func Register(c *gin.Context) {
 	// 绑定为软失败：无 cookie 或归因库异常都不影响注册成功。
 	acquisition.BindTouchToUser(c, insertedUser.Id)
 
+	// data.user_id 是服务端确认的本次注册结果，客户端将其用作本地去重键
+	//（同一注册的重复回调/重复渲染不重复上报转化）。它是新建账户的 id，
+	// 仅返回给正在注册的请求方，不含用户名、邮箱等个人数据。
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
+		"data": gin.H{
+			"user_id": insertedUser.Id,
+		},
 	})
 	return
 }

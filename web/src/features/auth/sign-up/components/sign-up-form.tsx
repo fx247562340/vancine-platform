@@ -49,9 +49,14 @@ import {
   getAffiliateCode,
   saveAffiliateCode,
 } from '@/features/auth/lib/storage'
+import { isRegisterSuccess } from '@/features/auth/types'
 import { useStatus } from '@/hooks/use-status'
 import { reportSignupStarted } from '@/lib/acquisition'
 import { isAuthBundle } from '@/lib/api'
+import {
+  isServerConfirmedNewUser,
+  reportGoogleAdsSignupConversion,
+} from '@/lib/google-ads'
 import { getServerErrorMessageKey } from '@/lib/server-error-message'
 import { cn } from '@/lib/utils'
 
@@ -176,6 +181,12 @@ export function SignUpForm({
       })
 
       if (res?.success) {
+        // The server-confirmed user_id is the stable per-signup dedup key
+        // (never inferred from the username or page state). Only a strictly
+        // validated success payload triggers the soft-failing conversion.
+        if (isRegisterSuccess(res) && res.data) {
+          reportGoogleAdsSignupConversion(res.data.user_id)
+        }
         toast.success(t('Account created! Please sign in'))
         redirectToLogin()
       } else {
@@ -232,6 +243,13 @@ export function SignUpForm({
       await reportSignupStarted()
       const res = await wechatLoginByCode(wechatCode)
       if (res?.success && isAuthBundle(res.data)) {
+        // Only a server-confirmed brand-new WeChat account (not an
+        // existing-user login) triggers the Google Ads conversion. The
+        // bundle's user id is the per-signup dedup key - local only, never
+        // sent to Google.
+        if (isServerConfirmedNewUser(res.data)) {
+          reportGoogleAdsSignupConversion(res.data.user.id)
+        }
         await handleLoginSuccess(res.data)
         toast.success(t('Signed in via WeChat'))
         handleWeChatDialogChange(false)

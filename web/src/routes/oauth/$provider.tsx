@@ -43,6 +43,10 @@ import {
   resolveOAuthCallbackMode,
 } from '@/features/auth/lib/oauth-callback-mode'
 import { api, applyAuthBundle, isAuthBundle } from '@/lib/api'
+import {
+  isServerConfirmedNewUser,
+  reportGoogleAdsSignupConversion,
+} from '@/lib/google-ads'
 import { getServerErrorMessageKey } from '@/lib/server-error-message'
 
 type OAuthRequestConfig = AxiosRequestConfig & {
@@ -200,6 +204,13 @@ function OAuthCallback() {
         const response = await api.get(`/api/oauth/${provider}`, config)
         if (response.data?.success && isAuthBundle(response.data?.data)) {
           applyAuthBundle(response.data.data)
+          // Only a server-confirmed brand-new OAuth account (not an
+          // existing-user login) triggers the Google Ads signup conversion;
+          // bind popups never reach this branch. The bundle's user id is
+          // the local-only per-signup dedup key and is never sent to Google.
+          if (isServerConfirmedNewUser(response.data.data)) {
+            reportGoogleAdsSignupConversion(response.data.data.user.id)
+          }
           safeNavigate(search.redirect)
           toast.success(i18next.t('Signed in successfully!'))
           return
