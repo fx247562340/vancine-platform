@@ -277,10 +277,30 @@
     "benchmarkLink": "Xem benchmark Pi coding agent với 8 mô hình",
     "universalTip": "Cài đặt chung: Base URL = {{baseUrl}}, API Key = sk-your-api-key, Model = glm-5.1 hoặc deepseek-v4-flash.",
     "configExample": "Ví dụ cấu hình",
+    "cliTitle": "Công cụ CLI",
     "guiTitle": "Công cụ GUI",
+    "hub": {
+      "title": "Hướng dẫn cài đặt theo từng coding agent",
+      "desc": "Hướng dẫn riêng cho các coding agent phổ biến: cấu hình chính xác, trạng thái xác minh, lối vào chọn mô hình và xử lý lỗi thường gặp cho từng công cụ.",
+      "viewGuide": "Xem hướng dẫn cài đặt",
+      "status": {
+        "configurationReady": "Cấu hình sẵn sàng"
+      },
+      "cards": {
+        "opencode": {
+          "protocol": "Provider OpenAI-compatible trong opencode.json"
+        },
+        "cline": {
+          "protocol": "Provider OpenAI-compatible trong extension Cline"
+        },
+        "rooCode": {
+          "protocol": "Provider OpenAI-compatible trong Roo Code"
+        }
+      },
+      "cardBoundary": "Cấu hình tương thích OpenAI của công cụ này đã sẵn sàng. Hãy làm theo hướng dẫn riêng của công cụ để kết nối với Vancine."
+    },
     "cli": {
       "codex": "Cấu hình chính thức Codex dùng ~/.codex/config.toml. Tài liệu hiện tại hiển thị giao thức Responses, nên đặt wire_api thành responses.",
-      "opencode": "OpenCode dùng opencode.json cấp dự án. Nhà cung cấp tương thích OpenAI tùy chỉnh dùng @ai-sdk/openai-compatible với options.baseURL và options.apiKey.",
       "openclaw": "Client kiểu OpenClaw thường cần base URL, API key và tên mô hình tương thích OpenAI. Tên trường khác nhau tùy bản phân phối; chọn OpenAI Compatible nếu có.",
       "hermes": "Plugin tương thích OpenAI của Hermes Agent thường dùng config.yaml hoặc biến môi trường cho base_url và api_key. Dùng các trường chính xác từ plugin đã cài."
     },
@@ -293,14 +313,6 @@
         "step4": "Nhập API key Vancine",
         "step5": "Dùng mô hình văn bản như glm-5.1 hoặc deepseek-v4-flash"
       },
-      "cline": {
-        "title": "Cline / Roo Code",
-        "step1": "Chọn Provider: OpenAI Compatible",
-        "step2": "Đặt Base URL = {{baseUrl}}",
-        "step3": "Nhập API key",
-        "step4": "Nhập tên mô hình văn bản",
-        "step5": "Lưu và gửi tin nhắn đơn giản để xác nhận kết nối"
-      },
       "cherryStudio": {
         "title": "Cherry Studio",
         "step1": "Mở Cài đặt → Dịch vụ mô hình → Thêm",
@@ -309,6 +321,79 @@
         "step4": "Nhập API key",
         "step5": "Đồng bộ hoặc thêm mô hình thủ công"
       }
+    }
+  },
+  "agentGuides": {
+    "backToAgents": "Quay lại Tích hợp Agent",
+    "common": {
+      "prerequisitesTitle": "Điều kiện tiên quyết",
+      "prereqAccount": "Một tài khoản Vancine.",
+      "prereqKey": "Một API key Vancine.",
+      "prereqTool": "{{tool}} đã được cài trên máy của bạn.",
+      "baseUrlTitle": "Base URL Vancine",
+      "baseUrlDesc": "Dùng chính xác Base URL này cho mọi request OpenAI-compatible. Không thêm đoạn path nào khác.",
+      "configTitle": "Ví dụ cấu hình",
+      "configNote": "Ví dụ chỉ chứa thông tin đăng nhập giả lập. Hãy thay sk-your-api-key bằng API key Vancine của bạn ở máy local; tuyệt đối không commit lên kho mã.",
+      "stepsTitle": "Cài đặt từng bước",
+      "modelsTitle": "Mô hình khuyến nghị",
+      "modelsDesc": "Bạn có thể dùng bất kỳ mô hình văn bản (chat) nào của Vancine. Khả năng thực tế, giới hạn ngữ cảnh và giá của mô hình được cập nhật tại trang Mô hình và trang Bảng giá, không phải tại trang này.",
+      "modelsDocsLink": "Xem danh sách mô hình",
+      "pricingLink": "Xem bảng giá",
+      "troubleshootingTitle": "Lỗi thường gặp",
+      "errors": {
+        "baseUrl": {
+          "symptom": "Lỗi 404, CORS hoặc lỗi kết nối; request bị gửi tới host khác.",
+          "fix": "Đặt Base URL chính xác là {{baseUrl}}, không thêm bất kỳ đoạn path nào."
+        },
+        "apiKey": {
+          "symptom": "401 / API key không hợp lệ.",
+          "fix": "Sao chép toàn bộ API key Vancine, không kèm khoảng trắng. Nếu key đã bị thay hoặc xóa, hãy tạo key mới trong trang quản lý key."
+        },
+        "model": {
+          "symptom": "Không tìm thấy mô hình / mô hình không tồn tại.",
+          "fix": "Dùng đúng ID mô hình trong danh sách mô hình của Vancine, ví dụ glm-5.1. ID mô hình có phân biệt hoa thường."
+        },
+        "protocol": {
+          "symptom": "Phản hồi bất thường hoặc lỗi endpoint không được hỗ trợ.",
+          "fix": "Kiểm tra giao thức mà công cụ yêu cầu: hầu hết công cụ OpenAI-compatible dùng Chat Completions (/v1/chat/completions); các công cụ kiểu Responses như Codex cần /v1/responses. Chọn đúng tùy chọn tương ứng trong {{tool}}."
+        }
+      },
+      "ctaTitle": "Bắt đầu",
+      "ctaSignUp": "Tạo tài khoản miễn phí",
+      "ctaKeys": "Quản lý API key của tôi",
+      "ctaPricing": "So sánh mô hình và bảng giá",
+      "ctaDocs": "Đọc tài liệu Chat Completions API",
+      "notOfficial": "Vancine là dịch vụ API OpenAI-compatible độc lập, không phải nhà cung cấp chính thức, đối tác hay tích hợp có sẵn của {{tool}}.",
+      "statusCallout": "Cấu hình tương thích OpenAI của công cụ này đã sẵn sàng. Hãy làm theo các bước trên trang này để kết nối với Vancine."
+    },
+    "opencode": {
+      "pageTitle": "Hướng dẫn cài đặt OpenCode",
+      "valueProp": "Kết nối coding agent dòng lệnh OpenCode với Vancine thông qua một tệp opencode.json ở cấp dự án.",
+      "step1": "Cài OpenCode và kiểm tra phiên bản.",
+      "step2": "Nếu chưa có, hãy tạo tài khoản Vancine và API key.",
+      "step3": "Tạo hoặc chỉnh opencode.json ở thư mục gốc dự án với cấu hình ở trên.",
+      "step4": "Xuất biến VANCINE_API_KEY trong shell trước khi khởi chạy OpenCode.",
+      "step5": "Khởi chạy OpenCode, chọn một mô hình của provider vancine như glm-5.1 và gửi một prompt đơn giản để xác nhận.",
+      "benchmarkTitle": "Bằng chứng xác minh",
+      "benchmarkNote": "Benchmark 8 mô hình được liên kết bên dưới chạy trong Pi coding agent, không phải trong OpenCode: nó cho thấy các mô hình này hoàn thành tác vụ coding-agent thật qua Vancine. Riêng khả năng kết nối của OpenCode được bao phủ bởi lần kiểm tra thực tế v1.18.3 mô tả trên trang này; các phiên bản OpenCode khác chưa được xác minh."
+    },
+    "cline": {
+      "pageTitle": "Hướng dẫn cài đặt Cline",
+      "valueProp": "Trỏ extension Cline trong VS Code tới endpoint OpenAI-compatible của Vancine và dùng mô hình Vancine ngay trong trình soạn thảo.",
+      "step1": "Cài extension Cline trong VS Code.",
+      "step2": "Mở cài đặt Cline và chọn OpenAI Compatible làm API provider.",
+      "step3": "Đặt Base URL là {{baseUrl}}.",
+      "step4": "Nhập API key Vancine của bạn.",
+      "step5": "Nhập ID mô hình văn bản như glm-5.1, lưu lại và gửi một tin nhắn đơn giản để xác nhận kết nối."
+    },
+    "rooCode": {
+      "pageTitle": "Hướng dẫn cài đặt Roo Code",
+      "valueProp": "Trỏ Roo Code tới endpoint OpenAI-compatible của Vancine và dùng mô hình Vancine ngay trong trình soạn thảo.",
+      "step1": "Cài extension Roo Code trong VS Code.",
+      "step2": "Mở cài đặt provider của Roo Code và chọn OpenAI Compatible.",
+      "step3": "Đặt Base URL là {{baseUrl}}.",
+      "step4": "Nhập API key Vancine của bạn.",
+      "step5": "Nhập ID mô hình văn bản như glm-5.1, lưu lại và gửi một tin nhắn đơn giản để xác nhận kết nối."
     }
   },
   "faq": {

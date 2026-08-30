@@ -23,6 +23,13 @@ var expectedSitemapLocs = []string{
 	"https://vancine.com/",
 	"https://vancine.com/pricing",
 	"https://vancine.com/docs",
+	// Agent Integration Center hub and the three first-batch agent
+	// setup guides. Each canonical appears exactly once, in this order,
+	// directly after /docs.
+	"https://vancine.com/docs/agents",
+	"https://vancine.com/docs/agents/opencode",
+	"https://vancine.com/docs/agents/cline",
+	"https://vancine.com/docs/agents/roo-code",
 	"https://vancine.com/about",
 	"https://vancine.com/user-agreement",
 	"https://vancine.com/privacy-policy",
@@ -139,18 +146,30 @@ func TestSitemapListsExactlyTheApprovedPublicPages(t *testing.T) {
 
 	// SEO-4 evergreen canonical: /glm-api appears exactly once, and
 	// both retired version-specific paths appear zero times.
-	// SEO-5: sitemap grows 13 → 14 with /coding-agent-benchmark
-	// appearing exactly once and no model-version alias routes.
-	assert.Len(t, locs, 14,
-		"sitemap must contain exactly 14 URLs with the coding-agent benchmark page")
+	// SEO-5: sitemap grows with /coding-agent-benchmark appearing
+	// exactly once and no model-version alias routes. The Agent
+	// Integration Center adds four more canonicals (hub + three setup
+	// guides) for a total of 18.
+	assert.Len(t, locs, 18,
+		"sitemap must contain exactly 18 URLs with the agent integration center pages")
 	glmEvergreenCount := 0
 	benchmarkCount := 0
+	agentsHubCount := 0
+	agentsGuideCounts := map[string]int{}
 	for _, loc := range locs {
 		if strings.HasSuffix(loc, "/glm-api") {
 			glmEvergreenCount++
 		}
 		if strings.HasSuffix(loc, "/coding-agent-benchmark") {
 			benchmarkCount++
+		}
+		if strings.HasSuffix(loc, "/docs/agents") {
+			agentsHubCount++
+		}
+		for _, tool := range []string{"opencode", "cline", "roo-code"} {
+			if strings.HasSuffix(loc, "/docs/agents/"+tool) {
+				agentsGuideCounts[tool]++
+			}
 		}
 		assert.NotContains(t, loc, "glm-5-3-api",
 			"the retired /glm-5-3-api must not appear in the sitemap")
@@ -165,6 +184,12 @@ func TestSitemapListsExactlyTheApprovedPublicPages(t *testing.T) {
 		"/glm-api must appear exactly once in the sitemap")
 	assert.Equal(t, 1, benchmarkCount,
 		"/coding-agent-benchmark must appear exactly once in the sitemap")
+	assert.Equal(t, 1, agentsHubCount,
+		"/docs/agents must appear exactly once in the sitemap")
+	for _, tool := range []string{"opencode", "cline", "roo-code"} {
+		assert.Equal(t, 1, agentsGuideCounts[tool],
+			"/docs/agents/%s must appear exactly once in the sitemap", tool)
+	}
 
 	for _, excluded := range []string{
 		"https://vancine.com/waitlist",

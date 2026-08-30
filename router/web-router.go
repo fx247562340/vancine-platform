@@ -45,6 +45,14 @@ var publicSitemapPaths = []string{
 	"/",
 	"/pricing",
 	"/docs",
+	// Agent Integration Center: the hub plus one canonical setup guide
+	// per first-batch coding agent. Lowercase paths only; no case,
+	// version or tool aliases may be added without an explicit product
+	// decision.
+	"/docs/agents",
+	"/docs/agents/opencode",
+	"/docs/agents/cline",
+	"/docs/agents/roo-code",
 	"/about",
 	"/user-agreement",
 	"/privacy-policy",

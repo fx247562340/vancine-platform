@@ -191,6 +191,66 @@ var seoPublicRouteCases = []seoPublicRouteCase{
 		wantTwitterCardValue: "summary",
 	},
 	{
+		// Agent Integration Center hub. The English metadata here is the
+		// canonical server-rendered block; the SPA's
+		// getDocsAgentsPageMetadata() must stay byte-identical to it.
+		path:                 "/docs/agents",
+		wantTitle:            "Coding Agent Integration Center | Vancine",
+		wantDescription:      "Connect OpenCode, Cline, Roo Code and other coding agents to the Vancine API. Base URL, API key and model setup guides for each tool.",
+		wantCanonical:        "https://vancine.com/docs/agents",
+		wantOGTitle:          "Coding Agent Integration Center",
+		wantOGDescription:    "Connect OpenCode, Cline, Roo Code and other coding agents to the Vancine API. Base URL, API key and model setup guides for each tool.",
+		wantOGURL:            "https://vancine.com/docs/agents",
+		wantTwitterTitle:     "Coding Agent Integration Center | Vancine",
+		wantTwitterDesc:      "Connect OpenCode, Cline, Roo Code and other coding agents to the Vancine API. Base URL, API key and model setup guides for each tool.",
+		wantTwitterCardValue: "summary",
+	},
+	{
+		// OpenCode setup guide. The SPA's
+		// getDocsAgentToolPageMetadata('opencode') must stay
+		// byte-identical to this block.
+		path:                 "/docs/agents/opencode",
+		wantTitle:            "OpenCode Setup Guide for the Vancine API | Vancine",
+		wantDescription:      "Connect OpenCode to Vancine through a project-level opencode.json: Base URL, API key and model setup, with a dedicated verification evidence section.",
+		wantCanonical:        "https://vancine.com/docs/agents/opencode",
+		wantOGTitle:          "OpenCode Setup Guide for the Vancine API",
+		wantOGDescription:    "Connect OpenCode to Vancine through a project-level opencode.json: Base URL, API key and model setup, with a dedicated verification evidence section.",
+		wantOGURL:            "https://vancine.com/docs/agents/opencode",
+		wantTwitterTitle:     "OpenCode Setup Guide for the Vancine API | Vancine",
+		wantTwitterDesc:      "Connect OpenCode to Vancine through a project-level opencode.json: Base URL, API key and model setup, with a dedicated verification evidence section.",
+		wantTwitterCardValue: "summary",
+	},
+	{
+		// Cline setup guide. The SPA's
+		// getDocsAgentToolPageMetadata('cline') must stay
+		// byte-identical to this block.
+		path:                 "/docs/agents/cline",
+		wantTitle:            "Cline Setup Guide for the Vancine API | Vancine",
+		wantDescription:      "Configure the Cline extension for the Vancine API: OpenAI-compatible Base URL, API key, model ID and fixes for the most common setup errors.",
+		wantCanonical:        "https://vancine.com/docs/agents/cline",
+		wantOGTitle:          "Cline Setup Guide for the Vancine API",
+		wantOGDescription:    "Configure the Cline extension for the Vancine API: OpenAI-compatible Base URL, API key, model ID and fixes for the most common setup errors.",
+		wantOGURL:            "https://vancine.com/docs/agents/cline",
+		wantTwitterTitle:     "Cline Setup Guide for the Vancine API | Vancine",
+		wantTwitterDesc:      "Configure the Cline extension for the Vancine API: OpenAI-compatible Base URL, API key, model ID and fixes for the most common setup errors.",
+		wantTwitterCardValue: "summary",
+	},
+	{
+		// Roo Code setup guide. The SPA's
+		// getDocsAgentToolPageMetadata('rooCode') must stay
+		// byte-identical to this block.
+		path:                 "/docs/agents/roo-code",
+		wantTitle:            "Roo Code Setup Guide for the Vancine API | Vancine",
+		wantDescription:      "Configure Roo Code for the Vancine API: OpenAI-compatible Base URL, API key, model ID and fixes for the most common setup errors.",
+		wantCanonical:        "https://vancine.com/docs/agents/roo-code",
+		wantOGTitle:          "Roo Code Setup Guide for the Vancine API",
+		wantOGDescription:    "Configure Roo Code for the Vancine API: OpenAI-compatible Base URL, API key, model ID and fixes for the most common setup errors.",
+		wantOGURL:            "https://vancine.com/docs/agents/roo-code",
+		wantTwitterTitle:     "Roo Code Setup Guide for the Vancine API | Vancine",
+		wantTwitterDesc:      "Configure Roo Code for the Vancine API: OpenAI-compatible Base URL, API key, model ID and fixes for the most common setup errors.",
+		wantTwitterCardValue: "summary",
+	},
+	{
 		path:                 "/kimi-k3-api",
 		wantTitle:            "Kimi K3 API for Coding Agents | Vancine",
 		wantDescription:      "Connect OpenCode, Cline, Roo Code, and OpenAI-compatible tools to Kimi K3 with one API key through Vancine.",
@@ -847,6 +907,77 @@ func TestCodingAgentBenchmarkHasNoVersionAliasRoutes(t *testing.T) {
 				"alias path must not serve benchmark page metadata")
 			assert.NotContains(t, body, `href="https://vancine.com/coding-agent-benchmark"`,
 				"alias path must not carry the /coding-agent-benchmark canonical")
+		})
+	}
+}
+
+// TestDocsAgentGuidesCanonicalIsPollutionProof locks the no-pollution
+// rule for the Agent Integration Center pages: Host / X-Forwarded-Host
+// headers and UTM/query parameters must never reach the canonical or
+// og:url values, and the trailing-slash form serves the same canonical.
+func TestDocsAgentGuidesCanonicalIsPollutionProof(t *testing.T) {
+	engine := newWebRouterSEOFixture(t)
+	cases := map[string]string{
+		"/docs/agents":          "https://vancine.com/docs/agents",
+		"/docs/agents/opencode": "https://vancine.com/docs/agents/opencode",
+		"/docs/agents/cline":    "https://vancine.com/docs/agents/cline",
+		"/docs/agents/roo-code": "https://vancine.com/docs/agents/roo-code",
+	}
+	for path, canonical := range cases {
+		path, canonical := path, canonical
+		t.Run(path, func(t *testing.T) {
+			requests := []*http.Request{
+				httptest.NewRequest(http.MethodGet, path+"?utm_source=ads&utm_medium=cpc&email=a@b.com&token=t", nil),
+			}
+			for _, rawPath := range []string{path + "?x=1", path + "/"} {
+				req := httptest.NewRequest(http.MethodGet, rawPath, nil)
+				req.Host = "evil.example.com"
+				req.Header.Set("X-Forwarded-Host", "evil.example.com")
+				req.Header.Set("X-Forwarded-Proto", "http")
+				req.Header.Set("Origin", "http://evil.example.com")
+				req.Header.Set("Referer", "https://evil.example.com/agents")
+				requests = append(requests, req)
+			}
+			for _, req := range requests {
+				rec := serveSEO(engine, req)
+				require.Equal(t, http.StatusOK, rec.Code)
+				body := rec.Body.String()
+				assert.NotContains(t, body, "evil.example.com")
+				assert.NotContains(t, body, "utm_")
+				assert.NotContains(t, body, "a@b.com")
+				decoded := html.UnescapeString(body)
+				assert.Contains(t, decoded, `link rel="canonical" href="`+canonical+`"`)
+				assert.Contains(t, decoded, `meta property="og:url" content="`+canonical+`"`)
+			}
+		})
+	}
+}
+
+// TestUnknownDocsAgentPathsServeNoMarketingMetadata pins that unknown
+// subpaths under /docs/agents (including case variants and abbreviations
+// of the approved tools) fall through to the existing unknown-SPA-fallback
+// contract: the default shell byte-for-byte, never an agent-page canonical
+// or metadata. There are no alias routes for the agent setup guides.
+func TestUnknownDocsAgentPathsServeNoMarketingMetadata(t *testing.T) {
+	engine := newWebRouterSEOFixture(t)
+	for _, p := range []string{
+		"/docs/agents/unknown-tool",
+		"/docs/agents/OpenCode",
+		"/docs/agents/Cline",
+		"/docs/agents/roo",
+		"/docs/agents/roo-code-v2",
+		"/docs/agents/opencode/v1",
+	} {
+		p := p
+		t.Run("GET "+p, func(t *testing.T) {
+			rec := serveSEO(engine, httptest.NewRequest(http.MethodGet, p+"?utm_source=x", nil))
+			require.Equal(t, http.StatusOK, rec.Code,
+				"unknown agent subpaths must keep the existing unknown-SPA-fallback contract")
+			body := rec.Body.String()
+			assert.Equal(t, testSPAIndexPage, body,
+				"unknown agent subpath %q must serve the original IndexPage byte-for-byte", p)
+			assert.NotContains(t, body, "vancine.com/docs/agents/",
+				"unknown agent subpath must not carry any agent guide canonical")
 		})
 	}
 }

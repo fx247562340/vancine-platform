@@ -48,20 +48,51 @@ export interface TocHeading {
   level: 2 | 3
 }
 
-export interface SearchResult {
+/** Canonical lowercase route paths of the nested agent setup guides. */
+export type DocsAgentGuidePath =
+  | '/docs/agents/opencode'
+  | '/docs/agents/cline'
+  | '/docs/agents/roo-code'
+
+/**
+ * Searchable Docs targets form a discriminated union so the type system
+ * guarantees each entry is exactly one kind of target:
+ * - top-level Docs pages carry `slug` and never `agentPath`;
+ * - nested agent setup guides carry `agentPath` and never `slug`.
+ */
+export interface SlugSearchResult {
   slug: DocsSlug
   title: string
   snippet: string
   score: number
 }
 
-export interface SearchIndexEntry {
+export interface AgentSearchResult {
+  agentPath: DocsAgentGuidePath
+  title: string
+  snippet: string
+  score: number
+}
+
+export type SearchResult = SlugSearchResult | AgentSearchResult
+
+export interface SlugSearchIndexEntry {
   slug: DocsSlug
   title: string
   titleLower: string
   body: string
   bodyLower: string
 }
+
+export interface AgentSearchIndexEntry {
+  agentPath: DocsAgentGuidePath
+  title: string
+  titleLower: string
+  body: string
+  bodyLower: string
+}
+
+export type SearchIndexEntry = SlugSearchIndexEntry | AgentSearchIndexEntry
 
 interface DocsPageProps {
   baseUrl: string

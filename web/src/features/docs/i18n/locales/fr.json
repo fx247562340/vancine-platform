@@ -277,10 +277,30 @@
     "benchmarkLink": "Voir le benchmark Pi coding agent sur 8 modèles",
     "universalTip": "Réglages universels : Base URL = {{baseUrl}}, API Key = sk-your-api-key, Model = glm-5.1 ou deepseek-v4-flash.",
     "configExample": "Exemple de configuration",
+    "cliTitle": "Outils CLI",
     "guiTitle": "Outils graphiques",
+    "hub": {
+      "title": "Guides de configuration par agent de codage",
+      "desc": "Des guides dédiés pour les agents de codage populaires : configuration exacte, statut de vérification, choix des modèles et dépannage pour chaque outil.",
+      "viewGuide": "Voir le guide",
+      "status": {
+        "configurationReady": "Configuration prête"
+      },
+      "cards": {
+        "opencode": {
+          "protocol": "Provider OpenAI-compatible dans opencode.json"
+        },
+        "cline": {
+          "protocol": "Provider OpenAI-compatible dans l'extension Cline"
+        },
+        "rooCode": {
+          "protocol": "Provider OpenAI-compatible dans Roo Code"
+        }
+      },
+      "cardBoundary": "La configuration OpenAI-compatible de cet outil est prête. Suivez son guide pour le connecter à Vancine."
+    },
     "cli": {
       "codex": "La config officielle de Codex utilise ~/.codex/config.toml. La documentation actuelle montre le protocole Responses, donc wire_api doit être responses.",
-      "opencode": "OpenCode utilise opencode.json au niveau du projet. Les fournisseurs OpenAI-compatible personnalisés utilisent @ai-sdk/openai-compatible avec options.baseURL et options.apiKey.",
       "openclaw": "Les clients de type OpenClaw nécessitent généralement l'URL de base, la clé API et le nom du modèle OpenAI-compatible. Les noms de champs varient ; choisissez OpenAI Compatible si disponible.",
       "hermes": "Les plugins OpenAI-compatible de Hermes Agent utilisent généralement config.yaml ou des variables d'environnement pour base_url et api_key. Utilisez les champs exacts du plugin installé."
     },
@@ -293,14 +313,6 @@
         "step4": "Entrer votre clé API Vancine",
         "step5": "Utiliser un modèle texte comme glm-5.1 ou deepseek-v4-flash"
       },
-      "cline": {
-        "title": "Cline / Roo Code",
-        "step1": "Sélectionner Provider : OpenAI Compatible",
-        "step2": "Définir Base URL sur {{baseUrl}}",
-        "step3": "Entrer la clé API",
-        "step4": "Entrer un nom de modèle texte",
-        "step5": "Enregistrer et envoyer un message simple pour confirmer la connexion"
-      },
       "cherryStudio": {
         "title": "Cherry Studio",
         "step1": "Ouvrir Paramètres → Services de modèle → Ajouter",
@@ -309,6 +321,79 @@
         "step4": "Entrer la clé API",
         "step5": "Synchroniser ou ajouter manuellement des modèles"
       }
+    }
+  },
+  "agentGuides": {
+    "backToAgents": "Retour à l'intégration des agents",
+    "common": {
+      "prerequisitesTitle": "Prérequis",
+      "prereqAccount": "Un compte Vancine.",
+      "prereqKey": "Une clé API Vancine.",
+      "prereqTool": "{{tool}} installé sur votre machine.",
+      "baseUrlTitle": "Base URL Vancine",
+      "baseUrlDesc": "Utilisez cette Base URL exacte pour toutes les requêtes OpenAI-compatibles. N'ajoutez aucun segment de chemin supplémentaire.",
+      "configTitle": "Exemple de configuration",
+      "configNote": "L'exemple ne contient que des identifiants fictifs. Remplacez sk-your-api-key par votre propre clé API Vancine en local ; ne la commitez jamais.",
+      "stepsTitle": "Configuration pas à pas",
+      "modelsTitle": "Modèles recommandés",
+      "modelsDesc": "Utilisez n'importe quel modèle texte (chat) de Vancine. Les capacités réelles, limites de contexte et prix des modèles sont maintenus sur les pages Modèles et Tarifs, pas sur cette page.",
+      "modelsDocsLink": "Parcourir les modèles",
+      "pricingLink": "Voir les tarifs",
+      "troubleshootingTitle": "Erreurs fréquentes",
+      "errors": {
+        "baseUrl": {
+          "symptom": "Erreurs 404, CORS ou de connexion ; les requêtes partent vers un autre hôte.",
+          "fix": "Définissez la Base URL exactement sur {{baseUrl}}, sans aucun segment de chemin supplémentaire."
+        },
+        "apiKey": {
+          "symptom": "401 / clé API invalide.",
+          "fix": "Copiez la clé API Vancine complète, sans espaces. Si elle a été remplacée ou supprimée, créez-en une nouvelle dans la gestion des clés."
+        },
+        "model": {
+          "symptom": "model not found / le modèle n'existe pas.",
+          "fix": "Utilisez un ID de modèle exact de la liste des modèles Vancine, par exemple glm-5.1. Les ID sont sensibles à la casse."
+        },
+        "protocol": {
+          "symptom": "Réponses inattendues ou erreurs d'endpoint non pris en charge.",
+          "fix": "Vérifiez le protocole attendu par l'outil : la plupart des outils OpenAI-compatibles utilisent Chat Completions (/v1/chat/completions) ; les outils de type Responses comme Codex nécessitent /v1/responses. Choisissez l'option correspondante dans {{tool}}."
+        }
+      },
+      "ctaTitle": "Commencer",
+      "ctaSignUp": "Créer un compte gratuit",
+      "ctaKeys": "Gérer mes clés API",
+      "ctaPricing": "Comparer les modèles et les tarifs",
+      "ctaDocs": "Lire la documentation Chat Completions",
+      "notOfficial": "Vancine est un service API OpenAI-compatible indépendant. Ce n'est ni un fournisseur officiel, ni un partenaire, ni une intégration native de {{tool}}.",
+      "statusCallout": "La configuration OpenAI-compatible de cet outil est prête. Suivez ce guide pour le connecter à Vancine."
+    },
+    "opencode": {
+      "pageTitle": "Guide de configuration OpenCode",
+      "valueProp": "Connectez l'agent de codage terminal OpenCode à Vancine grâce à un seul fichier opencode.json au niveau du projet.",
+      "step1": "Installez OpenCode et vérifiez sa version.",
+      "step2": "Créez un compte Vancine et une clé API si ce n'est pas encore fait.",
+      "step3": "Créez ou modifiez opencode.json à la racine de votre projet avec la configuration ci-dessus.",
+      "step4": "Exportez VANCINE_API_KEY dans votre shell avant de lancer OpenCode.",
+      "step5": "Lancez OpenCode, sélectionnez un modèle du provider vancine comme glm-5.1 et envoyez un prompt simple pour confirmer.",
+      "benchmarkTitle": "Preuves de vérification",
+      "benchmarkNote": "Le benchmark des 8 modèles lié ci-dessous a été exécuté dans le coding agent Pi, pas dans OpenCode : il montre que ces modèles accomplissent de vraies tâches de coding-agent via Vancine. La connectivité d'OpenCode elle-même est couverte par le test live v1.18.3 décrit sur cette page ; aucune autre version d'OpenCode n'a été vérifiée."
+    },
+    "cline": {
+      "pageTitle": "Guide de configuration Cline",
+      "valueProp": "Branchez l'extension Cline pour VS Code sur l'endpoint OpenAI-compatible de Vancine et utilisez les modèles Vancine directement dans votre éditeur.",
+      "step1": "Installez l'extension Cline dans VS Code.",
+      "step2": "Ouvrez les réglages de Cline et choisissez OpenAI Compatible comme fournisseur d'API.",
+      "step3": "Définissez la Base URL sur {{baseUrl}}.",
+      "step4": "Saisissez votre clé API Vancine.",
+      "step5": "Saisissez un ID de modèle texte tel que glm-5.1, enregistrez, puis envoyez un message simple pour confirmer la connexion."
+    },
+    "rooCode": {
+      "pageTitle": "Guide de configuration Roo Code",
+      "valueProp": "Branchez Roo Code sur l'endpoint OpenAI-compatible de Vancine et utilisez les modèles Vancine directement dans votre éditeur.",
+      "step1": "Installez l'extension Roo Code dans VS Code.",
+      "step2": "Ouvrez les réglages de provider de Roo Code et choisissez OpenAI Compatible.",
+      "step3": "Définissez la Base URL sur {{baseUrl}}.",
+      "step4": "Saisissez votre clé API Vancine.",
+      "step5": "Saisissez un ID de modèle texte tel que glm-5.1, enregistrez, puis envoyez un message simple pour confirmer la connexion."
     }
   },
   "faq": {

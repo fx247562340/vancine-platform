@@ -23,6 +23,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DocsCodeBlock } from '../components/code-block'
 import { initTestI18n, setDocsBundle, EN_DOCS } from './test-i18n'
 
+// Shared CodeBlock height/collapse/editor-floor contracts live in
+// src/components/ai-elements/__tests__/code-block.test.tsx. This suite only
+// covers Docs-layer wiring: DocsCodeBlock integration, the Docs copy paths
+// and the Docs horizontal-scroll carrier.
+
 function stubClipboard(impl: (text: string) => Promise<void>) {
   const writeText = vi.fn(impl)
   Object.defineProperty(global.navigator, 'clipboard', {
@@ -46,6 +51,21 @@ beforeEach(async () => {
 
 afterEach(() => {
   vi.restoreAllMocks()
+})
+
+describe('DocsCodeBlock integration', () => {
+  it('inherits the adaptive one-line height for single-line snippets', () => {
+    const { container } = render(
+      <DocsCodeBlock code='https://vancine.com/v1' />
+    )
+    // The Docs wrapper keeps the shared component's minRows={1} behavior:
+    // the Vancine Base URL block is one line tall, not four.
+    const host = container.querySelector<HTMLElement>('[role="textbox"]')
+    expect(host).not.toBeNull()
+    expect(
+      (host as HTMLElement).style.getPropertyValue('--code-editor-min-height')
+    ).toBe('3.5rem')
+  })
 })
 
 describe('DocsCodeBlock copy paths', () => {

@@ -33,9 +33,10 @@ interface RenderWithProvidersOptions {
 
 /**
  * Render a UI inside the providers Docs components rely on: i18next,
- * React Query, and a TanStack Router with a `/docs/$slug` route available as a
- * navigation target. The subject is mounted at the index route. The return
- * type (including the router) is inferred so we don't name the Router generic.
+ * React Query, and a TanStack Router with a `/docs/$slug` route and the
+ * three nested `/docs/agents/<tool>` routes available as navigation
+ * targets. The subject is mounted at the index route. The return type
+ * (including the router) is inferred so we don't name the Router generic.
  */
 export const renderWithProviders = (
   ui: ReactElement,
@@ -56,9 +57,37 @@ export const renderWithProviders = (
     path: '/docs/$slug',
     component: () => null,
   })
+  const agentGuideRoutes = [
+    '/docs/agents/opencode',
+    '/docs/agents/cline',
+    '/docs/agents/roo-code',
+  ].map((path) =>
+    createRoute({
+      getParentRoute: () => rootRoute,
+      path,
+      component: () => null,
+    })
+  )
+  const publicTargetRoutes = [
+    '/coding-agent-benchmark',
+    '/pricing',
+    '/sign-up',
+    '/keys',
+  ].map((path) =>
+    createRoute({
+      getParentRoute: () => rootRoute,
+      path,
+      component: () => null,
+    })
+  )
 
   const router = createRouter({
-    routeTree: rootRoute.addChildren([indexRoute, docsSlugRoute]),
+    routeTree: rootRoute.addChildren([
+      indexRoute,
+      docsSlugRoute,
+      ...agentGuideRoutes,
+      ...publicTargetRoutes,
+    ]),
     history: createMemoryHistory({
       initialEntries: [options.initialPath ?? '/'],
     }),

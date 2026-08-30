@@ -228,8 +228,10 @@ describe('Docs search', () => {
     }
     const results = searchDocs(buildSearchIndex(bundle), 'chat')
     assert.ok(results.length >= 1)
-    assert.equal(results[0].slug, 'chat')
-    assert.equal(results[0].score, 0)
+    const first = results[0]
+    assert.ok('slug' in first, 'chat hit must be a top-level slug result')
+    assert.equal(first.slug, 'chat')
+    assert.equal(first.score, 0)
   })
 
   it('body snippets are generated', async () => {
@@ -611,7 +613,6 @@ const VOICE_KEYS = [
 const SAME_ENGLISH_ALLOWLIST = new Set<string>([
   // Brands / product names
   'agents.gui.cursor.title',
-  'agents.gui.cline.title',
   'agents.gui.cherryStudio.title',
   'migrate.comparison.colOpenai',
   'migrate.comparison.colVancine',
@@ -619,6 +620,7 @@ const SAME_ENGLISH_ALLOWLIST = new Set<string>([
   'migrate.comparison.baseUrlOpenai',
   'migrate.comparison.modelOpenai',
   // Language-neutral technical labels / acronyms / valid cognates
+  'agentGuides.common.baseUrlTitle',
   'quickstart.infoTable.baseUrl',
   'audio.title',
   'nav.audio',

@@ -93,6 +93,66 @@ var publicMarketingPages = []publicPageMeta{
 		twitterCardValue: "summary",
 	},
 	{
+		// Agent Integration Center hub. The English values here are
+		// mirrored from the SPA's getDocsAgentsPageMetadata() and must
+		// stay byte-identical to it.
+		path:  "/docs/agents",
+		title: "Coding Agent Integration Center | Vancine",
+		description: "Connect OpenCode, Cline, Roo Code and other coding " +
+			"agents to the Vancine API. Base URL, API key and model setup " +
+			"guides for each tool.",
+		ogTitle:          "Coding Agent Integration Center",
+		ogDescription:    "Connect OpenCode, Cline, Roo Code and other coding agents to the Vancine API. Base URL, API key and model setup guides for each tool.",
+		twitterTitle:     "Coding Agent Integration Center | Vancine",
+		twitterDesc:      "Connect OpenCode, Cline, Roo Code and other coding agents to the Vancine API. Base URL, API key and model setup guides for each tool.",
+		twitterCardValue: "summary",
+	},
+	{
+		// OpenCode setup guide. The English values here are mirrored
+		// from the SPA's getDocsAgentToolPageMetadata('opencode') and
+		// must stay byte-identical to it.
+		path:  "/docs/agents/opencode",
+		title: "OpenCode Setup Guide for the Vancine API | Vancine",
+		description: "Connect OpenCode to Vancine through a project-level " +
+			"opencode.json: Base URL, API key and model setup, with " +
+			"a dedicated verification evidence section.",
+		ogTitle:          "OpenCode Setup Guide for the Vancine API",
+		ogDescription:    "Connect OpenCode to Vancine through a project-level opencode.json: Base URL, API key and model setup, with a dedicated verification evidence section.",
+		twitterTitle:     "OpenCode Setup Guide for the Vancine API | Vancine",
+		twitterDesc:      "Connect OpenCode to Vancine through a project-level opencode.json: Base URL, API key and model setup, with a dedicated verification evidence section.",
+		twitterCardValue: "summary",
+	},
+	{
+		// Cline setup guide. The English values here are mirrored
+		// from the SPA's getDocsAgentToolPageMetadata('cline') and
+		// must stay byte-identical to it.
+		path:  "/docs/agents/cline",
+		title: "Cline Setup Guide for the Vancine API | Vancine",
+		description: "Configure the Cline extension for the Vancine API: " +
+			"OpenAI-compatible Base URL, API key, model ID and fixes for " +
+			"the most common setup errors.",
+		ogTitle:          "Cline Setup Guide for the Vancine API",
+		ogDescription:    "Configure the Cline extension for the Vancine API: OpenAI-compatible Base URL, API key, model ID and fixes for the most common setup errors.",
+		twitterTitle:     "Cline Setup Guide for the Vancine API | Vancine",
+		twitterDesc:      "Configure the Cline extension for the Vancine API: OpenAI-compatible Base URL, API key, model ID and fixes for the most common setup errors.",
+		twitterCardValue: "summary",
+	},
+	{
+		// Roo Code setup guide. The English values here are mirrored
+		// from the SPA's getDocsAgentToolPageMetadata('rooCode') and
+		// must stay byte-identical to it.
+		path:  "/docs/agents/roo-code",
+		title: "Roo Code Setup Guide for the Vancine API | Vancine",
+		description: "Configure Roo Code for the Vancine API: " +
+			"OpenAI-compatible Base URL, API key, model ID and fixes for " +
+			"the most common setup errors.",
+		ogTitle:          "Roo Code Setup Guide for the Vancine API",
+		ogDescription:    "Configure Roo Code for the Vancine API: OpenAI-compatible Base URL, API key, model ID and fixes for the most common setup errors.",
+		twitterTitle:     "Roo Code Setup Guide for the Vancine API | Vancine",
+		twitterDesc:      "Configure Roo Code for the Vancine API: OpenAI-compatible Base URL, API key, model ID and fixes for the most common setup errors.",
+		twitterCardValue: "summary",
+	},
+	{
 		path:  "/kimi-k3-api",
 		title: "Kimi K3 API for Coding Agents | Vancine",
 		description: "Connect OpenCode, Cline, Roo Code, and OpenAI-compatible " +

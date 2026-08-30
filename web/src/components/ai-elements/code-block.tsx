@@ -87,6 +87,12 @@ type CodeMirrorCodeViewProps = {
   ariaLabel: string
   autoFocus?: boolean
   language: BundledLanguage | string
+  /**
+   * Minimum editor height in lines. Read-only views pass `minRows={1}` so a
+   * one-line snippet (e.g. the Vancine Base URL) is exactly one line tall;
+   * the editable CodeBlockEditor keeps the four-line minimum.
+   */
+  minRows?: number
   onChange?: (value: string) => void
   onKeyDown?: (event: globalThis.KeyboardEvent) => void
   readOnly?: boolean
@@ -244,7 +250,9 @@ function getDownloadFilename(language: string, filename?: string) {
 }
 
 function getCodeBlockHeight(lines: number) {
-  return `${Math.max(4, lines) * 1.5 + 2}rem`
+  // One content line is 1.5rem line-height + 2rem vertical padding, so a
+  // single-line block is 3.5rem tall; never pad it up to four lines.
+  return `${Math.max(1, lines) * 1.5 + 2}rem`
 }
 
 function getCodeBlockMaxHeight(
@@ -300,6 +308,7 @@ function CodeMirrorCodeView({
   ariaLabel,
   autoFocus = false,
   language,
+  minRows = 4,
   onChange,
   onKeyDown,
   readOnly = false,
@@ -311,7 +320,7 @@ function CodeMirrorCodeView({
   const editorViewRef = useRef<EditorView | null>(null)
   const initialValueRef = useRef(value)
   const onChangeRef = useRef(onChange)
-  const editorMinHeight = `${Math.max(4, rows) * 1.5 + 2}rem`
+  const editorMinHeight = `${Math.max(minRows, rows) * 1.5 + 2}rem`
   const editorExtensions = useMemo(
     () =>
       getCodeMirrorExtensions({
@@ -557,8 +566,9 @@ export const CodeBlock = ({
             typeof displayTitle === 'string' ? displayTitle : displayLanguage
           }
           language={language}
+          minRows={1}
           readOnly
-          rows={Math.min(Math.max(lineCount, 4), maxExpandedLines ?? lineCount)}
+          rows={Math.min(lineCount, maxExpandedLines ?? lineCount)}
           showLineNumbers={showLineNumbers}
           value={code}
         />

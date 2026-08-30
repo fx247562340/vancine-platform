@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Suspense, useMemo } from 'react'
+import { Suspense, lazy, useMemo, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { PublicLayout } from '@/components/layout'
@@ -29,6 +29,7 @@ import { TocProvider } from './components/toc-context'
 import { DocsI18nProvider } from './i18n/docs-i18n'
 import { useDocsI18n } from './i18n/docs-i18n-context'
 import { DOCS_NS } from './i18n/loader'
+import type { DocsAgentToolKey } from './lib/agents'
 import { normalizeApiBaseUrl } from './lib/base-url'
 import {
   DOCS_LAYOUT_CONTAINER_CLASS,
@@ -109,28 +110,62 @@ function DocsPageSlot(props: { slug: DocsSlug; baseUrl: string }) {
   )
 }
 
-function DocsLayoutReady(props: { slug: DocsSlug | null; baseUrl: string }) {
+/**
+ * Lazy-loaded nested agent setup guide (/docs/agents/<tool>). Kept out of
+ * the shared Docs layout chunk so hub and slug pages never pay for it.
+ */
+const LazyDocsAgentDetailPage = lazy(() => import('./pages/agent-detail'))
+
+function DocsAgentSlot(props: { tool: DocsAgentToolKey; baseUrl: string }) {
+  return (
+    <Suspense fallback={<DocsColdLoading />}>
+      <LazyDocsAgentDetailPage tool={props.tool} baseUrl={props.baseUrl} />
+    </Suspense>
+  )
+}
+
+function DocsLayoutReady(props: {
+  slug: DocsSlug | null
+  baseUrl: string
+  agentTool?: DocsAgentToolKey
+}) {
   const { locale } = useDocsI18n()
+  const tocKey = props.agentTool
+    ? `agent-${props.agentTool}-${locale}`
+    : `${props.slug ?? 'none'}-${locale}`
+
+  let mainContent: ReactNode
+  if (props.agentTool) {
+    mainContent = (
+      <DocsAgentSlot tool={props.agentTool} baseUrl={props.baseUrl} />
+    )
+  } else if (props.slug) {
+    mainContent = (
+      <>
+        <DocsPageSlot slug={props.slug} baseUrl={props.baseUrl} />
+        <DocsFeedback key={props.slug} slug={props.slug} />
+        <DocsPrevNext slug={props.slug} />
+      </>
+    )
+  } else {
+    mainContent = <DocsNotFound />
+  }
+
   return (
     <div className='mx-auto max-w-[1200px] px-4 pt-20 pb-8'>
-      {/* Keyed by slug+locale so headings reset on page/language change. */}
-      <TocProvider key={`${props.slug ?? 'none'}-${locale}`}>
+      {/* Keyed by page+locale so headings reset on page/language change. */}
+      <TocProvider key={tocKey}>
         <div className={DOCS_LAYOUT_CONTAINER_CLASS}>
-          {/* Navigation (stacks above content on mobile) */}
-          <DocsSidebar activeSlug={props.slug} />
+          {/* Navigation (stacks above content on mobile). Agent setup guides
+              keep the "Agent Integration" parent item group-active while the
+              matching child link owns aria-current. */}
+          <DocsSidebar
+            activeSlug={props.agentTool ? 'agents' : props.slug}
+            activeAgentTool={props.agentTool ?? null}
+          />
 
           {/* Main content */}
-          <main className={DOCS_MAIN_CLASS}>
-            {props.slug ? (
-              <>
-                <DocsPageSlot slug={props.slug} baseUrl={props.baseUrl} />
-                <DocsFeedback key={props.slug} slug={props.slug} />
-                <DocsPrevNext slug={props.slug} />
-              </>
-            ) : (
-              <DocsNotFound />
-            )}
-          </main>
+          <main className={DOCS_MAIN_CLASS}>{mainContent}</main>
 
           {/* TOC — lg (1024px) and up */}
           <aside className={DOCS_TOC_CLASS}>
@@ -142,7 +177,10 @@ function DocsLayoutReady(props: { slug: DocsSlug | null; baseUrl: string }) {
   )
 }
 
-function DocsLayoutInner(props: { slugParam: string }) {
+function DocsLayoutInner(props: {
+  slugParam: string
+  agentTool?: DocsAgentToolKey
+}) {
   const { ready, status } = useDocsI18n()
   const { status: systemStatus } = useStatus()
 
@@ -164,14 +202,26 @@ function DocsLayoutInner(props: { slugParam: string }) {
     return <DocsColdLoading />
   }
 
-  return <DocsLayoutReady slug={slug} baseUrl={baseUrl} />
+  return (
+    <DocsLayoutReady
+      slug={slug}
+      baseUrl={baseUrl}
+      agentTool={props.agentTool}
+    />
+  )
 }
 
-export function DocsLayout(props: { slugParam: string }) {
+export function DocsLayout(props: {
+  slugParam: string
+  agentTool?: DocsAgentToolKey
+}) {
   return (
     <PublicLayout showMainContainer={false}>
       <DocsI18nProvider>
-        <DocsLayoutInner slugParam={props.slugParam} />
+        <DocsLayoutInner
+          slugParam={props.slugParam}
+          agentTool={props.agentTool}
+        />
       </DocsI18nProvider>
     </PublicLayout>
   )

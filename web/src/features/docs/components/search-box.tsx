@@ -88,8 +88,12 @@ export function DocsSearchBox() {
 
   const showDropdown = open && debounced.trim().length > 0
 
-  const go = (slug: string) => {
-    void navigate({ to: '/docs/$slug', params: { slug } })
+  const go = (result: SearchResult) => {
+    if ('agentPath' in result) {
+      void navigate({ to: result.agentPath })
+    } else {
+      void navigate({ to: '/docs/$slug', params: { slug: result.slug } })
+    }
     setQuery('')
     setDebounced('')
     setOpen(false)
@@ -100,7 +104,7 @@ export function DocsSearchBox() {
     if (e.key === 'Enter') {
       if (showDropdown && activeIndex >= 0 && activeIndex < results.length) {
         e.preventDefault()
-        go(results[activeIndex].slug)
+        go(results[activeIndex])
       }
       return
     }
@@ -165,11 +169,11 @@ export function DocsSearchBox() {
           ) : (
             results.map((r, i) => (
               <li
-                key={r.slug}
+                key={'agentPath' in r ? r.agentPath : r.slug}
                 id={searchOptionId(listboxId, i)}
                 role='option'
                 aria-selected={i === activeIndex}
-                onClick={() => go(r.slug)}
+                onClick={() => go(r)}
                 onMouseEnter={() => setActiveIndex(i)}
                 className={cn(
                   'border-border block w-full cursor-pointer border-b px-3.5 py-2.5 text-left last:border-b-0',

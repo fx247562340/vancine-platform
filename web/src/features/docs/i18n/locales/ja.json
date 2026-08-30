@@ -277,10 +277,30 @@
     "benchmarkLink": "Pi コーディングエージェント 8 モデル検証を見る",
     "universalTip": "共通設定：Base URL = {{baseUrl}}、API Key = sk-your-api-key、Model = glm-5.1 または deepseek-v4-flash。",
     "configExample": "設定例",
+    "cliTitle": "CLI ツール",
     "guiTitle": "GUIツール",
+    "hub": {
+      "title": "コーディングエージェント別セットアップガイド",
+      "desc": "人気のコーディングエージェント向けの個別ガイド：各ツールの正確な設定、検証ステータス、モデル選択の入口、トラブルシューティング。",
+      "viewGuide": "セットアップガイドを見る",
+      "status": {
+        "configurationReady": "設定準備完了"
+      },
+      "cards": {
+        "opencode": {
+          "protocol": "opencode.json 内の OpenAI 互換プロバイダー"
+        },
+        "cline": {
+          "protocol": "Cline 拡張機能内の OpenAI 互換プロバイダー"
+        },
+        "rooCode": {
+          "protocol": "Roo Code 内の OpenAI 互換プロバイダー"
+        }
+      },
+      "cardBoundary": "このツールの OpenAI 互換接続設定は準備完了です。専用ガイドの手順で Vancine に接続できます。"
+    },
     "cli": {
       "codex": "Codex公式設定は~/.codex/config.tomlを使用します。現在のドキュメントはResponsesプロトコルを示しているため、wire_apiをresponsesに設定します。",
-      "opencode": "OpenCodeはプロジェクト内のopencode.jsonを使用します。カスタムOpenAI互換プロバイダーは@ai-sdk/openai-compatibleを使用し、options.baseURLとoptions.apiKeyで設定します。",
       "openclaw": "OpenClawスタイルのクライアントは通常、OpenAI互換のベースURL、APIキー、モデル名が必要です。フィールド名はディストリビューションによって異なります。OpenAI Compatibleを選択してください。",
       "hermes": "Hermes AgentのOpenAI互換プラグインは通常、config.yamlまたは環境変数でbase_urlとapi_keyを設定します。インストール済みプラグインのフィールドを使用してください。"
     },
@@ -293,14 +313,6 @@
         "step4": "Vancine APIキーを入力",
         "step5": "glm-5.1やdeepseek-v4-flashなどのテキストモデルを使用"
       },
-      "cline": {
-        "title": "Cline / Roo Code",
-        "step1": "Provider: OpenAI Compatibleを選択",
-        "step2": "Base URLを{{baseUrl}}に設定",
-        "step3": "APIキーを入力",
-        "step4": "テキストモデル名を入力",
-        "step5": "保存して簡単なメッセージを送信して接続を確認"
-      },
       "cherryStudio": {
         "title": "Cherry Studio",
         "step1": "設定 → モデルサービス → 追加を開く",
@@ -309,6 +321,79 @@
         "step4": "APIキーを入力",
         "step5": "同期または手動でモデルを追加"
       }
+    }
+  },
+  "agentGuides": {
+    "backToAgents": "Agent 統合に戻る",
+    "common": {
+      "prerequisitesTitle": "前提条件",
+      "prereqAccount": "Vancine アカウント。",
+      "prereqKey": "Vancine API キー。",
+      "prereqTool": "お使いのマシンにインストールされた {{tool}}。",
+      "baseUrlTitle": "Vancine Base URL",
+      "baseUrlDesc": "すべての OpenAI 互換リクエストに、この正確な Base URL を使用してください。余分なパスセグメントは付けないでください。",
+      "configTitle": "設定例",
+      "configNote": "例にはプレースホルダーの認証情報だけが含まれています。ローカルで sk-your-api-key をご自身の Vancine API キーに置き換えてください。コミットは厳禁です。",
+      "stepsTitle": "ステップバイステップ設定",
+      "modelsTitle": "おすすめモデル",
+      "modelsDesc": "Vancine のテキスト（chat）モデルであればどれでも使えます。モデルの実際の性能・コンテキスト制限・価格は、このページではなくモデルページと料金ページで管理されています。",
+      "modelsDocsLink": "モデル一覧を見る",
+      "pricingLink": "料金を見る",
+      "troubleshootingTitle": "よくあるエラー",
+      "errors": {
+        "baseUrl": {
+          "symptom": "404、CORS、接続エラー。リクエストが別のホストに届いている。",
+          "fix": "Base URL を {{baseUrl}} に正確に設定し、余分なパスセグメントを付けないでください。"
+        },
+        "apiKey": {
+          "symptom": "401 / API キー無効。",
+          "fix": "Vancine API キーをスペースを含めず全体をコピーしてください。キーをローテーション・削除した場合は、キー管理で新規作成してください。"
+        },
+        "model": {
+          "symptom": "モデルが見つからない / 存在しない。",
+          "fix": "Vancine のモデル一覧にある正確なモデル ID（例: glm-5.1）を使用してください。モデル ID は大文字・小文字を区別します。"
+        },
+        "protocol": {
+          "symptom": "予期しないレスポンスや、非対応エンドポイントのエラー。",
+          "fix": "ツールが想定するプロトコルを確認してください。多くの OpenAI 互換ツールは Chat Completions（/v1/chat/completions）を使用し、Codex 系の Responses ツールには /v1/responses が必要です。{{tool}} 内で該当するオプションを選んでください。"
+        }
+      },
+      "ctaTitle": "はじめる",
+      "ctaSignUp": "無料アカウントを作成",
+      "ctaKeys": "API キーを管理",
+      "ctaPricing": "モデルと料金を比較",
+      "ctaDocs": "Chat Completions API ドキュメントを読む",
+      "notOfficial": "Vancine は独立した OpenAI 互換 API サービスです。{{tool}} の公式プロバイダー、パートナー、組み込み統合ではありません。",
+      "statusCallout": "このツールの OpenAI 互換接続設定は準備完了です。このページの手順で Vancine に接続できます。"
+    },
+    "opencode": {
+      "pageTitle": "OpenCode セットアップガイド",
+      "valueProp": "プロジェクト直下の opencode.json ファイル 1 つで、ターミナル型コーディングエージェントの OpenCode を Vancine に接続します。",
+      "step1": "OpenCode をインストールし、バージョンを確認します。",
+      "step2": "まだの場合は、Vancine アカウントと API キーを作成してください。",
+      "step3": "プロジェクトルートで上記の設定を用いて opencode.json を作成・編集します。",
+      "step4": "OpenCode の起動前に、シェルで VANCINE_API_KEY をエクスポートします。",
+      "step5": "OpenCode を起動し、vancine プロバイダーから glm-5.1 などのモデルを選んで、簡単なプロンプトを送信して確認します。",
+      "benchmarkTitle": "検証証拠",
+      "benchmarkNote": "リンク先の 8 モデルベンチマークは OpenCode ではなく Pi coding agent で実行されたものです。これらのモデルが Vancine 経由で実際のコーディングタスクを完了できることを示しています。OpenCode 自体の接続性は、このページで説明している v1.18.3 の実測がカバーしており、他の OpenCode バージョンは未検証です。"
+    },
+    "cline": {
+      "pageTitle": "Cline セットアップガイド",
+      "valueProp": "VS Code の Cline 拡張機能を Vancine の OpenAI 互換エンドポイントに向け、エディター内で直接 Vancine のモデルを使えます。",
+      "step1": "VS Code に Cline 拡張機能をインストールします。",
+      "step2": "Cline の設定を開き、API プロバイダーとして OpenAI Compatible を選択します。",
+      "step3": "Base URL に {{baseUrl}} を設定します。",
+      "step4": "Vancine API キーを入力します。",
+      "step5": "glm-5.1 などのテキストモデル ID を入力して保存し、簡単なメッセージを送って接続を確認します。"
+    },
+    "rooCode": {
+      "pageTitle": "Roo Code セットアップガイド",
+      "valueProp": "Roo Code を Vancine の OpenAI 互換エンドポイントに向け、エディター内で直接 Vancine のモデルを使えます。",
+      "step1": "VS Code に Roo Code 拡張機能をインストールします。",
+      "step2": "Roo Code のプロバイダー設定を開き、OpenAI Compatible を選択します。",
+      "step3": "Base URL に {{baseUrl}} を設定します。",
+      "step4": "Vancine API キーを入力します。",
+      "step5": "glm-5.1 などのテキストモデル ID を入力して保存し、簡単なメッセージを送って接続を確認します。"
     }
   },
   "faq": {

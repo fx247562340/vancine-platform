@@ -22,20 +22,34 @@ import { useTranslation } from 'react-i18next'
 import type { BundledLanguage } from 'shiki/bundle/web'
 
 import { Badge } from '@/components/ui/badge'
+import { usePageMetadata } from '@/hooks/use-page-metadata'
 
 import { DocsCallout } from '../components/callout'
 import { DocsCodeBlock } from '../components/code-block'
 import { DocsH2, DocsH3, DocsP } from '../components/headings'
 import { useRegisterHeadings } from '../components/register-headings'
+import { DOCS_AGENT_TOOLS } from '../lib/agents'
+import { getDocsAgentsPageMetadata } from '../lib/agents-metadata'
 import type { TocHeading } from '../types'
 
+/**
+ * Module-level constant: the canonical English metadata mirrors the
+ * server-rendered /docs/agents block in router/web_metadata.go.
+ */
+const AGENTS_HUB_METADATA = getDocsAgentsPageMetadata()
+
 interface AgentCliConfig {
-  nameKey: 'codex' | 'opencode' | 'openclaw' | 'hermes'
+  nameKey: 'codex' | 'openclaw' | 'hermes'
   title: string
   language: BundledLanguage
   codeTemplate: (baseUrl: string) => string
 }
 
+/**
+ * Generic CLI configurations kept on the hub. OpenCode, Cline and Roo Code
+ * have dedicated setup guides under /docs/agents/<tool>; their full
+ * configuration is intentionally NOT duplicated here.
+ */
 const AGENT_CLI_CONFIGS: AgentCliConfig[] = [
   {
     nameKey: 'codex',
@@ -53,34 +67,6 @@ wire_api = "responses"
 
 # shell
 # export VANCINE_API_KEY="sk-your-api-key"`,
-  },
-  {
-    nameKey: 'opencode',
-    title: 'OpenCode',
-    language: 'json',
-    codeTemplate: (baseUrl) => `{
-  "$schema": "https://opencode.ai/config.json",
-  "provider": {
-    "vancine": {
-      "npm": "@ai-sdk/openai-compatible",
-      "name": "Vancine",
-      "options": {
-        "baseURL": "${baseUrl}",
-        "apiKey": "{env:VANCINE_API_KEY}"
-      },
-      "models": {
-        "glm-5.1": {
-          "name": "GLM 5.1",
-          "limit": { "context": 128000, "output": 8192 }
-        },
-        "deepseek-v4-flash": {
-          "name": "DeepSeek V4 Flash",
-          "limit": { "context": 128000, "output": 8192 }
-        }
-      }
-    }
-  }
-}`,
   },
   {
     nameKey: 'openclaw',
@@ -112,7 +98,7 @@ export OPENAI_COMPATIBLE_API_KEY="sk-your-api-key"`,
   },
 ]
 
-const AGENT_GUI_TOOLS = ['cursor', 'cline', 'cherryStudio'] as const
+const AGENT_GUI_TOOLS = ['cursor', 'cherryStudio'] as const
 
 const GUI_STEPS = [1, 2, 3, 4, 5] as const
 
@@ -120,10 +106,17 @@ export default function Agents(props: { baseUrl: string }) {
   const baseUrl = props.baseUrl
   const { t } = useTranslation('docs', { useSuspense: false })
 
+  // Public marketing route: the metadata is owned by this page. The
+  // `publicMarketingPage: true` flag prevents the system branding
+  // bootstrap in main.tsx from overwriting the route-level title.
+  usePageMetadata(AGENTS_HUB_METADATA, { publicMarketingPage: true })
+
   useRegisterHeadings(
     useMemo<TocHeading[]>(
       () => [
         { id: 'agents-title', title: t('agents.title'), level: 2 },
+        { id: 'agents-hub', title: t('agents.hub.title'), level: 3 },
+        { id: 'agents-cli', title: t('agents.cliTitle'), level: 3 },
         { id: 'agents-gui', title: t('agents.guiTitle'), level: 3 },
       ],
       [t]
@@ -157,6 +150,43 @@ export default function Agents(props: { baseUrl: string }) {
         {t('agents.universalTip', { baseUrl })}
       </DocsCallout>
 
+      <DocsH3 id='agents-hub'>{t('agents.hub.title')}</DocsH3>
+      <DocsP>{t('agents.hub.desc')}</DocsP>
+      <div className='mb-6 grid gap-4 md:grid-cols-3'>
+        {DOCS_AGENT_TOOLS.map((tool) => {
+          return (
+            <div
+              key={tool.key}
+              className='border-border bg-card flex flex-col rounded-xl border p-5 transition-shadow hover:shadow-md'
+            >
+              <div className='mb-2 flex flex-wrap items-center gap-2'>
+                <h4 className='text-foreground text-lg font-semibold'>
+                  {tool.displayName}
+                </h4>
+                {/* One unified public status: same copy and same visual
+                    variant on every card. */}
+                <Badge variant='outline'>
+                  {t('agents.hub.status.configurationReady')}
+                </Badge>
+              </div>
+              <p className='text-muted-foreground mb-2 text-xs font-medium'>
+                {t(`agents.hub.cards.${tool.key}.protocol`)}
+              </p>
+              <p className='text-muted-foreground mb-4 flex-1 text-sm leading-relaxed'>
+                {t('agents.hub.cardBoundary')}
+              </p>
+              <Link
+                to={tool.path}
+                className='text-primary text-sm font-medium underline underline-offset-4'
+              >
+                {t('agents.hub.viewGuide')}
+              </Link>
+            </div>
+          )
+        })}
+      </div>
+
+      <DocsH3 id='agents-cli'>{t('agents.cliTitle')}</DocsH3>
       {agentConfigs.map((agent) => (
         <div
           key={agent.nameKey}

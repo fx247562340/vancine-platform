@@ -277,10 +277,30 @@
     "benchmarkLink": "See the 8-model Pi coding-agent benchmark",
     "universalTip": "Universal settings: Base URL = {{baseUrl}}, API Key = sk-your-api-key, Model = glm-5.1 or deepseek-v4-flash.",
     "configExample": "Config example",
+    "cliTitle": "CLI tools",
     "guiTitle": "GUI tools",
+    "hub": {
+      "title": "Guided setup by coding agent",
+      "desc": "Dedicated setup guides for popular coding agents: exact configuration, verification status, model entry points and troubleshooting for each tool.",
+      "viewGuide": "View setup guide",
+      "status": {
+        "configurationReady": "Configuration-ready"
+      },
+      "cards": {
+        "opencode": {
+          "protocol": "OpenAI-compatible provider in opencode.json"
+        },
+        "cline": {
+          "protocol": "OpenAI-compatible provider in the Cline extension"
+        },
+        "rooCode": {
+          "protocol": "OpenAI-compatible provider in Roo Code"
+        }
+      },
+      "cardBoundary": "The OpenAI-compatible setup for this tool is ready. Follow its guide to connect it to Vancine."
+    },
     "cli": {
       "codex": "Codex official config uses ~/.codex/config.toml. Current docs show the Responses protocol, so set wire_api to responses.",
-      "opencode": "OpenCode uses project-level opencode.json. Custom OpenAI-compatible providers use @ai-sdk/openai-compatible with options.baseURL and options.apiKey.",
       "openclaw": "OpenClaw-style clients usually need the OpenAI-compatible base URL, API key, and model name. Field names vary by distribution; choose OpenAI Compatible when available.",
       "hermes": "Hermes Agent OpenAI-compatible plugins commonly use config.yaml or environment variables for base_url and api_key. Use the exact fields from the installed plugin."
     },
@@ -293,14 +313,6 @@
         "step4": "Enter your Vancine API key",
         "step5": "Use a text model such as glm-5.1 or deepseek-v4-flash"
       },
-      "cline": {
-        "title": "Cline / Roo Code",
-        "step1": "Select Provider: OpenAI Compatible",
-        "step2": "Set Base URL to {{baseUrl}}",
-        "step3": "Enter the API key",
-        "step4": "Enter a text model name",
-        "step5": "Save and send a simple message to confirm the connection"
-      },
       "cherryStudio": {
         "title": "Cherry Studio",
         "step1": "Open Settings → Model Services → Add",
@@ -309,6 +321,79 @@
         "step4": "Enter the API key",
         "step5": "Sync or manually add models"
       }
+    }
+  },
+  "agentGuides": {
+    "backToAgents": "Back to Agent Integration",
+    "common": {
+      "prerequisitesTitle": "Prerequisites",
+      "prereqAccount": "A Vancine account.",
+      "prereqKey": "A Vancine API key.",
+      "prereqTool": "{{tool}} installed on your machine.",
+      "baseUrlTitle": "Vancine Base URL",
+      "baseUrlDesc": "Use this exact Base URL for every OpenAI-compatible request. Do not add extra path segments.",
+      "configTitle": "Configuration example",
+      "configNote": "The example only contains placeholder credentials. Replace sk-your-api-key with your own Vancine API key locally; never commit it.",
+      "stepsTitle": "Step-by-step setup",
+      "modelsTitle": "Recommended models",
+      "modelsDesc": "Use any Vancine text (chat) model. Live model capabilities, context limits and prices are maintained on the Models and Pricing pages, not on this page.",
+      "modelsDocsLink": "Browse models",
+      "pricingLink": "View pricing",
+      "troubleshootingTitle": "Common errors",
+      "errors": {
+        "baseUrl": {
+          "symptom": "404, CORS or connection errors; requests hit another host.",
+          "fix": "Set the Base URL exactly to {{baseUrl}} with no extra path segments."
+        },
+        "apiKey": {
+          "symptom": "401 / invalid API key.",
+          "fix": "Copy the full Vancine API key without spaces. If it was rotated or deleted, create a new one in your key management."
+        },
+        "model": {
+          "symptom": "model not found / model does not exist.",
+          "fix": "Use an exact model ID from the Vancine model list, for example glm-5.1. Model IDs are case-sensitive."
+        },
+        "protocol": {
+          "symptom": "Unexpected responses or unsupported-endpoint errors.",
+          "fix": "Check the protocol the tool expects: most OpenAI-compatible tools use Chat Completions (/v1/chat/completions); Codex-style Responses tools need /v1/responses. Choose the matching option in {{tool}}."
+        }
+      },
+      "ctaTitle": "Get started",
+      "ctaSignUp": "Create a free account",
+      "ctaKeys": "Manage your API keys",
+      "ctaPricing": "Compare models and pricing",
+      "ctaDocs": "Read the Chat Completions API",
+      "notOfficial": "Vancine is an independent OpenAI-compatible API service. It is not an official provider, partner or built-in integration of {{tool}}.",
+      "statusCallout": "The OpenAI-compatible setup for this tool is ready. Follow this guide to connect it to Vancine."
+    },
+    "opencode": {
+      "pageTitle": "OpenCode setup guide",
+      "valueProp": "Connect the OpenCode terminal coding agent to Vancine through one project-level opencode.json file.",
+      "step1": "Install OpenCode and check its version.",
+      "step2": "Create a Vancine account and an API key if you do not have them yet.",
+      "step3": "Create or edit opencode.json in your project root with the configuration above.",
+      "step4": "Export VANCINE_API_KEY in your shell before starting OpenCode.",
+      "step5": "Start OpenCode, select a model from the vancine provider such as glm-5.1, and send a simple prompt to confirm.",
+      "benchmarkTitle": "Verification evidence",
+      "benchmarkNote": "The linked 8-model benchmark was run in the Pi coding agent, not in OpenCode: it shows these models complete real coding-agent tasks through Vancine. OpenCode connectivity itself is covered by the v1.18.3 live check described on this page, and no other OpenCode version has been verified."
+    },
+    "cline": {
+      "pageTitle": "Cline setup guide",
+      "valueProp": "Point the Cline VS Code extension at Vancine's OpenAI-compatible endpoint and use Vancine models directly in your editor.",
+      "step1": "Install the Cline extension in VS Code.",
+      "step2": "Open the Cline settings and choose OpenAI Compatible as the API provider.",
+      "step3": "Set the Base URL to {{baseUrl}}.",
+      "step4": "Enter your Vancine API key.",
+      "step5": "Enter a text model ID such as glm-5.1, save, and send a simple message to confirm the connection."
+    },
+    "rooCode": {
+      "pageTitle": "Roo Code setup guide",
+      "valueProp": "Point Roo Code at Vancine's OpenAI-compatible endpoint and use Vancine models directly in your editor.",
+      "step1": "Install the Roo Code extension in VS Code.",
+      "step2": "Open the Roo Code provider settings and choose OpenAI Compatible.",
+      "step3": "Set the Base URL to {{baseUrl}}.",
+      "step4": "Enter your Vancine API key.",
+      "step5": "Enter a text model ID such as glm-5.1, save, and send a simple message to confirm the connection."
     }
   },
   "faq": {

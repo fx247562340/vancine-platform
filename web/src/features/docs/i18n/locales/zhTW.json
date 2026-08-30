@@ -277,10 +277,30 @@
     "benchmarkLink": "查看 Pi 程式設計智能體 8 模型實測",
     "universalTip": "通用三件套：Base URL = {{baseUrl}}，API Key = sk-your-api-key，Model = glm-5.1 或 deepseek-v4-flash。",
     "configExample": "設定範例",
+    "cliTitle": "CLI 工具",
     "guiTitle": "圖形化工具",
+    "hub": {
+      "title": "依編碼 Agent 檢視接入指南",
+      "desc": "為主流編碼 Agent 提供的專屬接入指南：每個工具的精確設定、驗證狀態、模型選擇入口與常見錯誤處理。",
+      "viewGuide": "檢視接入指南",
+      "status": {
+        "configurationReady": "設定就緒"
+      },
+      "cards": {
+        "opencode": {
+          "protocol": "opencode.json 中的 OpenAI 相容 provider"
+        },
+        "cline": {
+          "protocol": "Cline 擴充功能中的 OpenAI 相容 provider"
+        },
+        "rooCode": {
+          "protocol": "Roo Code 中的 OpenAI 相容 provider"
+        }
+      },
+      "cardBoundary": "該工具的 OpenAI 相容接入配置已準備就緒，可依其專屬指南完成接入。"
+    },
     "cli": {
       "codex": "Codex 官方設定使用 ~/.codex/config.toml。它目前文件範例使用 Responses 協議，所以 wire_api 寫 responses。",
-      "opencode": "OpenCode 使用專案內 opencode.json。自訂 OpenAI 相容供應商使用 @ai-sdk/openai-compatible，並在 options.baseURL / options.apiKey 中設定。",
       "openclaw": "OpenClaw 生態裡常見的是 OpenAI-compatible base URL、API Key、模型名三件套。不同發行版欄位名可能不同，優先在 Provider 裡選擇 OpenAI Compatible。",
       "hermes": "Hermes Agent 的 OpenAI-compatible 外掛常用 config.yaml 或環境變數設定 base_url / api_key。欄位以所安裝外掛為準。"
     },
@@ -293,14 +313,6 @@
         "step4": "填入 Vancine API Key",
         "step5": "模型名填寫 glm-5.1、deepseek-v4-flash 等文字模型"
       },
-      "cline": {
-        "title": "Cline / Roo Code",
-        "step1": "選擇 Provider: OpenAI Compatible",
-        "step2": "Base URL 填 {{baseUrl}}",
-        "step3": "填入 API Key",
-        "step4": "模型名填寫文字模型",
-        "step5": "儲存後傳送一則簡單訊息確認連線"
-      },
       "cherryStudio": {
         "title": "Cherry Studio",
         "step1": "開啟 設定 → 模型服務 → 新增",
@@ -309,6 +321,79 @@
         "step4": "填入 API Key",
         "step5": "同步或手動新增模型"
       }
+    }
+  },
+  "agentGuides": {
+    "backToAgents": "返回 Agent 接入",
+    "common": {
+      "prerequisitesTitle": "前置條件",
+      "prereqAccount": "一個 Vancine 帳戶。",
+      "prereqKey": "一個 Vancine API Key。",
+      "prereqTool": "本機已安裝 {{tool}}。",
+      "baseUrlTitle": "Vancine Base URL",
+      "baseUrlDesc": "所有 OpenAI 相容請求都使用這個準確的 Base URL，不要附加額外的路徑段。",
+      "configTitle": "設定範例",
+      "configNote": "範例中只包含佔位憑證。請在本機將 sk-your-api-key 取代為你自己的 Vancine API Key，切勿提交到程式庫。",
+      "stepsTitle": "逐步設定",
+      "modelsTitle": "推薦模型",
+      "modelsDesc": "任何 Vancine 文字（chat）模型皆可使用。模型能力、上下文限制與價格以模型頁與定價頁為準，本頁不做硬編碼承諾。",
+      "modelsDocsLink": "瀏覽模型",
+      "pricingLink": "檢視價格",
+      "troubleshootingTitle": "常見錯誤",
+      "errors": {
+        "baseUrl": {
+          "symptom": "404、CORS 或連線錯誤；請求打到了其他主機。",
+          "fix": "將 Base URL 精確設定為 {{baseUrl}}，不要附加任何額外路徑段。"
+        },
+        "apiKey": {
+          "symptom": "401 / API Key 無效。",
+          "fix": "完整複製 Vancine API Key，注意不要帶空格。如果 Key 已輪換或刪除，請在 Key 管理頁重新建立。"
+        },
+        "model": {
+          "symptom": "模型不存在 / model not found。",
+          "fix": "使用 Vancine 模型清單中的準確模型 ID，例如 glm-5.1；模型 ID 區分大小寫。"
+        },
+        "protocol": {
+          "symptom": "回應異常或端點不支援的錯誤。",
+          "fix": "確認工具使用的協定：大多數 OpenAI 相容工具使用 Chat Completions（/v1/chat/completions）；Codex 風格的 Responses 工具需要 /v1/responses。請在 {{tool}} 中選擇相符的選項。"
+        }
+      },
+      "ctaTitle": "開始使用",
+      "ctaSignUp": "免費建立帳戶",
+      "ctaKeys": "管理我的 API Key",
+      "ctaPricing": "比較模型與價格",
+      "ctaDocs": "閱讀 Chat Completions API 文件",
+      "notOfficial": "Vancine 是獨立的 OpenAI 相容 API 服務，不是 {{tool}} 的官方供應商、官方合作夥伴或內建 Provider。",
+      "statusCallout": "該工具的 OpenAI 相容接入配置已準備就緒，可依本頁步驟完成接入。"
+    },
+    "opencode": {
+      "pageTitle": "OpenCode 接入指南",
+      "valueProp": "透過專案層級 opencode.json 檔案，將 OpenCode 終端機編碼 Agent 接入 Vancine。",
+      "step1": "安裝 OpenCode 並確認版本。",
+      "step2": "如果還沒有，請先建立 Vancine 帳戶與 API Key。",
+      "step3": "在專案根目錄建立或編輯 opencode.json，寫入上面的設定。",
+      "step4": "在啟動 OpenCode 前，在 shell 中匯出 VANCINE_API_KEY。",
+      "step5": "啟動 OpenCode，選擇 vancine provider 下的模型（如 glm-5.1），傳送一個簡單提示詞確認連線。",
+      "benchmarkTitle": "驗證證據",
+      "benchmarkNote": "下方連結的 8 模型評測在 Pi coding agent 中完成，並非在 OpenCode 中執行：它證明這些模型可以透過 Vancine 完成真實編碼任務。OpenCode 本身的連線能力由本頁描述的 v1.18.3 實測涵蓋，其他 OpenCode 版本未經驗證。"
+    },
+    "cline": {
+      "pageTitle": "Cline 接入指南",
+      "valueProp": "將 Cline VS Code 擴充功能指向 Vancine 的 OpenAI 相容端點，直接在編輯器中使用 Vancine 模型。",
+      "step1": "在 VS Code 中安裝 Cline 擴充功能。",
+      "step2": "開啟 Cline 設定，將 API Provider 選為 OpenAI Compatible。",
+      "step3": "將 Base URL 設定為 {{baseUrl}}。",
+      "step4": "填入你的 Vancine API Key。",
+      "step5": "填入文字模型 ID（如 glm-5.1），儲存並傳送一則簡單訊息確認連線。"
+    },
+    "rooCode": {
+      "pageTitle": "Roo Code 接入指南",
+      "valueProp": "將 Roo Code 指向 Vancine 的 OpenAI 相容端點，直接在編輯器中使用 Vancine 模型。",
+      "step1": "在 VS Code 中安裝 Roo Code 擴充功能。",
+      "step2": "開啟 Roo Code 的 Provider 設定，選擇 OpenAI Compatible。",
+      "step3": "將 Base URL 設定為 {{baseUrl}}。",
+      "step4": "填入你的 Vancine API Key。",
+      "step5": "填入文字模型 ID（如 glm-5.1），儲存並傳送一則簡單訊息確認連線。"
     }
   },
   "faq": {

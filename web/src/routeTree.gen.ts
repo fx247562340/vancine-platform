@@ -62,6 +62,11 @@ import { Route as AuthenticatedUsageLogsIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedUsageLogsSectionRouteImport } from './routes/_authenticated/usage-logs/$section'
 import { Route as AuthenticatedUsersIndexRouteImport } from './routes/_authenticated/users/index'
 import { Route as AuthenticatedWalletIndexRouteImport } from './routes/_authenticated/wallet/index'
+import { Route as DocsAgentsIndexRouteImport } from './routes/docs/agents/index'
+import { Route as DocsAgentsSplatRouteImport } from './routes/docs/agents/$'
+import { Route as DocsAgentsClineRouteImport } from './routes/docs/agents/cline'
+import { Route as DocsAgentsOpencodeRouteImport } from './routes/docs/agents/opencode'
+import { Route as DocsAgentsRooCodeRouteImport } from './routes/docs/agents/roo-code'
 import { Route as PricingModelIdIndexRouteImport } from './routes/pricing/$modelId/index'
 import { Route as AuthenticatedSystemSettingsAuthIndexRouteImport } from './routes/_authenticated/system-settings/auth/index'
 import { Route as AuthenticatedSystemSettingsAuthSectionRouteImport } from './routes/_authenticated/system-settings/auth/$section'
@@ -361,6 +366,31 @@ const AuthenticatedWalletIndexRoute =
     path: '/wallet/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const DocsAgentsIndexRoute = DocsAgentsIndexRouteImport.update({
+  id: '/docs/agents/',
+  path: '/docs/agents/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsAgentsSplatRoute = DocsAgentsSplatRouteImport.update({
+  id: '/docs/agents/$',
+  path: '/docs/agents/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsAgentsClineRoute = DocsAgentsClineRouteImport.update({
+  id: '/docs/agents/cline',
+  path: '/docs/agents/cline',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsAgentsOpencodeRoute = DocsAgentsOpencodeRouteImport.update({
+  id: '/docs/agents/opencode',
+  path: '/docs/agents/opencode',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsAgentsRooCodeRoute = DocsAgentsRooCodeRouteImport.update({
+  id: '/docs/agents/roo-code',
+  path: '/docs/agents/roo-code',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PricingModelIdIndexRoute = PricingModelIdIndexRouteImport.update({
   id: '/pricing/$modelId/',
   path: '/pricing/$modelId/',
@@ -490,6 +520,10 @@ export interface FileRoutesByFullPath {
   '/playground/image': typeof AuthenticatedPlaygroundImageRoute
   '/playground/video': typeof AuthenticatedPlaygroundVideoRoute
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
+  '/docs/agents/$': typeof DocsAgentsSplatRoute
+  '/docs/agents/cline': typeof DocsAgentsClineRoute
+  '/docs/agents/opencode': typeof DocsAgentsOpencodeRoute
+  '/docs/agents/roo-code': typeof DocsAgentsRooCodeRoute
   '/channels/': typeof AuthenticatedChannelsIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/keys/': typeof AuthenticatedKeysIndexRoute
@@ -503,6 +537,7 @@ export interface FileRoutesByFullPath {
   '/usage-logs/': typeof AuthenticatedUsageLogsIndexRoute
   '/users/': typeof AuthenticatedUsersIndexRoute
   '/wallet/': typeof AuthenticatedWalletIndexRoute
+  '/docs/agents/': typeof DocsAgentsIndexRoute
   '/pricing/$modelId/': typeof PricingModelIdIndexRoute
   '/system-settings/auth/$section': typeof AuthenticatedSystemSettingsAuthSectionRoute
   '/system-settings/billing/$section': typeof AuthenticatedSystemSettingsBillingSectionRoute
@@ -557,6 +592,10 @@ export interface FileRoutesByTo {
   '/playground/image': typeof AuthenticatedPlaygroundImageRoute
   '/playground/video': typeof AuthenticatedPlaygroundVideoRoute
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
+  '/docs/agents/$': typeof DocsAgentsSplatRoute
+  '/docs/agents/cline': typeof DocsAgentsClineRoute
+  '/docs/agents/opencode': typeof DocsAgentsOpencodeRoute
+  '/docs/agents/roo-code': typeof DocsAgentsRooCodeRoute
   '/channels': typeof AuthenticatedChannelsIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/keys': typeof AuthenticatedKeysIndexRoute
@@ -570,6 +609,7 @@ export interface FileRoutesByTo {
   '/usage-logs': typeof AuthenticatedUsageLogsIndexRoute
   '/users': typeof AuthenticatedUsersIndexRoute
   '/wallet': typeof AuthenticatedWalletIndexRoute
+  '/docs/agents': typeof DocsAgentsIndexRoute
   '/pricing/$modelId': typeof PricingModelIdIndexRoute
   '/system-settings/auth/$section': typeof AuthenticatedSystemSettingsAuthSectionRoute
   '/system-settings/billing/$section': typeof AuthenticatedSystemSettingsBillingSectionRoute
@@ -628,6 +668,10 @@ export interface FileRoutesById {
   '/_authenticated/playground/image': typeof AuthenticatedPlaygroundImageRoute
   '/_authenticated/playground/video': typeof AuthenticatedPlaygroundVideoRoute
   '/_authenticated/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
+  '/docs/agents/$': typeof DocsAgentsSplatRoute
+  '/docs/agents/cline': typeof DocsAgentsClineRoute
+  '/docs/agents/opencode': typeof DocsAgentsOpencodeRoute
+  '/docs/agents/roo-code': typeof DocsAgentsRooCodeRoute
   '/_authenticated/channels/': typeof AuthenticatedChannelsIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/keys/': typeof AuthenticatedKeysIndexRoute
@@ -641,6 +685,7 @@ export interface FileRoutesById {
   '/_authenticated/usage-logs/': typeof AuthenticatedUsageLogsIndexRoute
   '/_authenticated/users/': typeof AuthenticatedUsersIndexRoute
   '/_authenticated/wallet/': typeof AuthenticatedWalletIndexRoute
+  '/docs/agents/': typeof DocsAgentsIndexRoute
   '/pricing/$modelId/': typeof PricingModelIdIndexRoute
   '/_authenticated/system-settings/auth/$section': typeof AuthenticatedSystemSettingsAuthSectionRoute
   '/_authenticated/system-settings/billing/$section': typeof AuthenticatedSystemSettingsBillingSectionRoute
@@ -698,6 +743,10 @@ export interface FileRouteTypes {
     | '/playground/image'
     | '/playground/video'
     | '/usage-logs/$section'
+    | '/docs/agents/$'
+    | '/docs/agents/cline'
+    | '/docs/agents/opencode'
+    | '/docs/agents/roo-code'
     | '/channels/'
     | '/dashboard/'
     | '/keys/'
@@ -711,6 +760,7 @@ export interface FileRouteTypes {
     | '/usage-logs/'
     | '/users/'
     | '/wallet/'
+    | '/docs/agents/'
     | '/pricing/$modelId/'
     | '/system-settings/auth/$section'
     | '/system-settings/billing/$section'
@@ -765,6 +815,10 @@ export interface FileRouteTypes {
     | '/playground/image'
     | '/playground/video'
     | '/usage-logs/$section'
+    | '/docs/agents/$'
+    | '/docs/agents/cline'
+    | '/docs/agents/opencode'
+    | '/docs/agents/roo-code'
     | '/channels'
     | '/dashboard'
     | '/keys'
@@ -778,6 +832,7 @@ export interface FileRouteTypes {
     | '/usage-logs'
     | '/users'
     | '/wallet'
+    | '/docs/agents'
     | '/pricing/$modelId'
     | '/system-settings/auth/$section'
     | '/system-settings/billing/$section'
@@ -835,6 +890,10 @@ export interface FileRouteTypes {
     | '/_authenticated/playground/image'
     | '/_authenticated/playground/video'
     | '/_authenticated/usage-logs/$section'
+    | '/docs/agents/$'
+    | '/docs/agents/cline'
+    | '/docs/agents/opencode'
+    | '/docs/agents/roo-code'
     | '/_authenticated/channels/'
     | '/_authenticated/dashboard/'
     | '/_authenticated/keys/'
@@ -848,6 +907,7 @@ export interface FileRouteTypes {
     | '/_authenticated/usage-logs/'
     | '/_authenticated/users/'
     | '/_authenticated/wallet/'
+    | '/docs/agents/'
     | '/pricing/$modelId/'
     | '/_authenticated/system-settings/auth/$section'
     | '/_authenticated/system-settings/billing/$section'
@@ -889,6 +949,11 @@ export interface RootRouteChildren {
   RankingsIndexRoute: typeof RankingsIndexRoute
   SeedanceApiIndexRoute: typeof SeedanceApiIndexRoute
   SetupIndexRoute: typeof SetupIndexRoute
+  DocsAgentsSplatRoute: typeof DocsAgentsSplatRoute
+  DocsAgentsClineRoute: typeof DocsAgentsClineRoute
+  DocsAgentsOpencodeRoute: typeof DocsAgentsOpencodeRoute
+  DocsAgentsRooCodeRoute: typeof DocsAgentsRooCodeRoute
+  DocsAgentsIndexRoute: typeof DocsAgentsIndexRoute
   PricingModelIdIndexRoute: typeof PricingModelIdIndexRoute
 }
 
@@ -1265,6 +1330,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWalletIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/docs/agents/': {
+      id: '/docs/agents/'
+      path: '/docs/agents'
+      fullPath: '/docs/agents/'
+      preLoaderRoute: typeof DocsAgentsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/agents/$': {
+      id: '/docs/agents/$'
+      path: '/docs/agents/$'
+      fullPath: '/docs/agents/$'
+      preLoaderRoute: typeof DocsAgentsSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/agents/cline': {
+      id: '/docs/agents/cline'
+      path: '/docs/agents/cline'
+      fullPath: '/docs/agents/cline'
+      preLoaderRoute: typeof DocsAgentsClineRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/agents/opencode': {
+      id: '/docs/agents/opencode'
+      path: '/docs/agents/opencode'
+      fullPath: '/docs/agents/opencode'
+      preLoaderRoute: typeof DocsAgentsOpencodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/agents/roo-code': {
+      id: '/docs/agents/roo-code'
+      path: '/docs/agents/roo-code'
+      fullPath: '/docs/agents/roo-code'
+      preLoaderRoute: typeof DocsAgentsRooCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pricing/$modelId/': {
       id: '/pricing/$modelId/'
       path: '/pricing/$modelId'
@@ -1533,6 +1633,11 @@ const rootRouteChildren: RootRouteChildren = {
   RankingsIndexRoute: RankingsIndexRoute,
   SeedanceApiIndexRoute: SeedanceApiIndexRoute,
   SetupIndexRoute: SetupIndexRoute,
+  DocsAgentsSplatRoute: DocsAgentsSplatRoute,
+  DocsAgentsClineRoute: DocsAgentsClineRoute,
+  DocsAgentsOpencodeRoute: DocsAgentsOpencodeRoute,
+  DocsAgentsRooCodeRoute: DocsAgentsRooCodeRoute,
+  DocsAgentsIndexRoute: DocsAgentsIndexRoute,
   PricingModelIdIndexRoute: PricingModelIdIndexRoute,
 }
 export const routeTree = rootRouteImport
