@@ -2,6 +2,173 @@
 
 DO NOT send optional commentary
 
+## Codex 与执行 Agent 协作工作流（全局最高优先级）
+
+本章节是本仓库协作工作流的**唯一权威来源**。任何其他文档（包括
+`docs/acquisition/templates/claudecode-task-brief.md`）中的角色分工、阶段限制与审批流程，
+与本章节冲突时一律以本章节为准。本章节只规定"谁做什么"，不削弱、也不替代
+本文件其余规则、`docs/release-process.md` 以及各子目录 `AGENTS.md` 中更严格的
+安全、测试、发布与治理要求；两者同时生效，取更严格者。
+
+### 1. 角色定义
+
+- **范总**：项目负责人。负责在每个任务开始时指定执行 Agent，在 Codex 与执行 Agent
+  之间转交指令和报告，并在实现验收通过后逐项批准后续动作。
+- **Codex**：只读的调度、分析与验收角色。只出指令、只审核，不碰项目。
+- **执行 Agent**：实际操作项目的角色，由范总在每个任务开始时明确指定为
+  **Pi Agent** 或 **Claude Code** 之一。Pi Agent 与 Claude Code 是执行 Agent 的两种并列实现，
+  地位与权限完全相同。
+
+### 2. 执行 Agent 锁定
+
+- 每个任务开始时，范总必须指定 Pi Agent 或 Claude Code 作为该任务的**唯一执行 Agent**。
+- 一个任务从实现、整改、测试、验收整改直到发布闭环，**不得中途切换执行 Agent**：
+  不得从 Pi Agent 切换到 Claude Code，也不得从 Claude Code 切换到 Pi Agent。
+  整改轮次由同一个执行 Agent 继续承担。
+- 若任务开始时未指定执行 Agent，Codex 必须先询问范总并等待答复，**不得自行选择 Agent，
+  也不得直接操作项目**。
+- 范总按 §6 亲自完成 Layer 3 **人工页面验收**属于保留给项目所有者的人工验收动作，
+  **不构成执行 Agent 切换**，也不授权任何其他角色代作验收或代作实现。
+
+### 3. Codex 的允许范围
+
+Codex 只允许：
+
+- 只读检查项目和相关资料
+- 分析问题、设计方案、拆解任务
+- 输出可直接粘贴给执行 Agent 的完整任务指令
+- 阅读执行 Agent 回传的报告
+- 使用不会改变项目文件、Git 状态、Docker、数据库、远端或生产状态的只读命令进行审核
+- 审查 diff、测试证据、构建证据、发布证据和生产验收结果
+- 验收不通过时输出下一轮整改指令，交回**同一个**执行 Agent
+
+### 4. Codex 的禁止范围
+
+Codex **不得**：
+
+- 创建、修改、移动、重命名或删除任何项目文件
+- 使用 `apply_patch` 或任何其他方式写入项目
+- 执行代码格式化、自动修复或代码生成
+- 执行可能生成或修改项目文件的测试、构建或脚本
+- 修改 Git 暂存区、提交、分支、标签或远端状态
+- 修改 `VERSION` 或 `CHANGELOG.md`
+- 执行 commit、push、merge、rebase、deploy
+- 操作本地 Docker、数据库、Redis 或生产环境
+- 以"完成任务"为由越过执行 Agent
+- 在未指定执行 Agent 时自行实施项目改动
+
+Codex 的浏览、只读检查与验收权限**任何情况下都不构成**文件修改权限。
+也不得写成"Codex 默认可修改、仅部分任务只读"——Codex 在本项目**永久只读**。
+
+### 5. 执行 Agent 的职责
+
+被范总指定的执行 Agent 负责：
+
+- 代码、文档、测试和配置的修改
+- 创建必要的文件
+- 运行格式化、lint、测试和构建
+- 本地 Docker 及其他开发环境操作
+- 根据 Codex 的审核意见进行整改
+- 在范总逐项批准后，执行发布元数据准备（VERSION + CHANGELOG.md）、commit、push 和 deploy
+- 提供完整、可复核的执行证据
+
+### 6. 标准任务流程
+
+审批粒度先定义清楚（详见 §7）：`VERSION` 与 `CHANGELOG.md` 是一个耦合的**发布元数据准备**
+步骤，作为一个审批项一并批准与修改；它与 commit、push、deploy 构成**四个相互独立的审批阶段**。
+本节的完整四阶段流程适用于**发布型任务**；符合 §8 定义的**非发布型工作流文档任务**按 §8 执行。
+
+```text
+范总指定执行 Agent（Pi Agent 或 Claude Code）
+  → Codex 只读分析并输出任务指令
+  → 范总将指令粘贴给执行 Agent
+  → 执行 Agent 实现并运行实现阶段验证
+  → 范总把执行 Agent 的完整报告交给 Codex
+  → Codex 只读审核实现结果
+  → 不通过：Codex 输出整改指令，交回同一个执行 Agent，重复上两步
+  → 实现审核通过：进入发布准备
+  → 范总批准「发布元数据准备」（VERSION + CHANGELOG.md，一个审批项）
+  → 同一个执行 Agent 修改 VERSION 和 CHANGELOG.md
+  → 同一个执行 Agent 按 docs/release-process.md 对最终版本运行完整发布门禁
+  → Layer 3 只能按 release-process.md 选择自动化浏览器 smoke 或范总人工页面验收其中一种
+  → 选自动化浏览器 smoke：同一个执行 Agent 执行并回传证据
+  → 选人工页面验收：范总亲自完成并提供结果，同一个执行 Agent 记录、整理并回传证据
+  → 执行 Agent 回传完整门禁证据
+  → Codex 只读审核最终版本和发布门禁证据
+  → 范总单独批准 commit
+  → 同一个执行 Agent 执行 commit
+  → Codex 只读审核 commit
+  → 范总单独批准 push
+  → 同一个执行 Agent 执行 push
+  → Codex 只读审核远端结果
+  → 范总单独批准 deploy
+  → 同一个执行 Agent 执行 deploy
+  → Codex 只读审核最终发布结果
+```
+
+硬性约束：
+
+- `VERSION` / `CHANGELOG.md` 修改后，必须对**包含最终版本号与变更日志的工作区状态**
+  重新完成 `docs/release-process.md` 要求的全部发布门禁（含本地 Docker 门禁与 Layer 3）。
+- **不得**使用修改版本号之前的验收结果作为最终发布证据；也不得在发布元数据准备后直接
+  进入 commit。
+- Layer 3 默认只选一种（自动化浏览器 smoke 或范总人工页面验收），遵守本文件
+  「Automated browser release acceptance request budget」与 `docs/release-process.md`：
+  - 选**自动化浏览器 smoke**：由本任务锁定的**执行 Agent** 执行并回传证据。
+  - 选**人工页面验收**：由**范总亲自**完成并提供验收结果；执行 Agent 负责记录、整理并回传证据。
+- 范总亲自完成人工 Layer 3 页面验收**不构成执行 Agent 切换**：它只是保留给项目所有者的人工
+  验收动作，不改变本任务锁定的执行 Agent，也不授权任何其他角色代作验收。
+- Codex **不运行**构建、Docker、浏览器验收，也**不执行任何一种 Layer 3**（既不跑 smoke，
+  也不代替范总做人工验收）；Codex **只做只读审核**两条路线的证据。
+- **除**选择范总人工 Layer 3 时由范总亲自执行的**人工验收动作**之外，所有项目操作、
+  自动化验收与发布操作（含发布元数据准备、发布门禁、自动化 Layer 3、commit、push、deploy）
+  均由本任务锁定的**同一个**执行 Agent 完成。
+
+### 7. 审批边界
+
+- **四个相互独立的审批阶段**：1）发布元数据准备（`VERSION` + `CHANGELOG.md`）2）commit
+  3）push 4）deploy。上一阶段获批**不自动授权**下一阶段，每阶段均需范总单独明确批准。
+- **发布元数据准备的耦合粒度**：`VERSION` 与 `CHANGELOG.md` 是一个耦合的发布元数据准备
+  步骤，**作为一个审批项由范总一并批准**，获批后由本任务锁定的执行 Agent **一并修改**；
+  不得要求两者各自单独批准，也不得只改其一。
+- 删除文件必须经过范总批准；禁止未经批准的批量删除。
+- 生产操作必须经过范总明确批准。
+- 外部写操作（发帖、评论、回复、点赞、关注、私信等）必须经过范总明确批准。
+- 发布元数据准备、commit、push、deploy 由**执行 Agent** 操作，Codex 不操作。
+- 发布元数据准备、commit、push、deploy 均不得因实现验收通过而自动执行，必须遵守
+  `docs/release-process.md` 的既有发布门禁与逐项审批规则；最终发布门禁必须针对**包含最终
+  `VERSION` 与 `CHANGELOG.md` 的工作区状态**，修改前的验收结果不得作为最终发布证据。
+- 本章节不得削弱当前 `AGENTS.md`、`docs/release-process.md` 中更严格的安全、测试、
+  发布和治理要求。
+
+### 8. 非发布型工作流文档任务例外
+
+**定义**：仅修改**协作流程、任务模板、项目治理规则**等文档内容，且**不涉及运行时代码、
+依赖、配置、构建脚本、部署脚本或生产环境**的任务，定义为**非发布型工作流文档任务**。
+
+对该类任务作如下例外（仅适用于严格符合上述定义的任务）：
+
+1. **不执行发布元数据准备**：不修改 `VERSION` 与 `CHANGELOG.md`，也不将其作为审批阶段。
+2. **不要求发布门禁、不执行 deploy**：不要求本地 Docker、Layer 3 页面验收，且**不得在本类
+   任务下执行 deploy**；只要求与改动性质匹配的只读校验（如 `git diff --check`、`git status --short`、
+   关键词/冲突搜索）。
+3. **commit 路径**：Codex 只读验收通过且**范总明确批准 commit** 后，由本任务锁定的
+   执行 Agent 直接 commit；无需先走发布元数据准备与完整发布门禁。
+4. **审批上限：commit + push，不含 deploy**：commit 获批**不自动授权 push**，push 仍需范总
+   **单独批准**；本类任务最多只能执行**获批的 commit** 与**另行获批的 push**，
+   **不得在本例外下单独 deploy**（也不得以「文档改动也要上生产」为由临时放宽）。
+   如未来确实需要把相关变化随产品部署到生产，必须**另建发布型任务**，按其改动内容执行
+   §6 完整四阶段流程与 `docs/release-process.md` 全部门禁。
+5. **例外不得泛化**：只要改动**同时涉及**任何产品代码、运行配置、依赖或锁文件、构建
+   或部署内容（包括 Dockerfile、docker-compose、CI、部署脚本），**不得使用本例外**，
+   仍必须执行 §6 的完整四阶段发布流程。
+6. **其余规则全部保留**：本例外只减省发布阶段，**不削弱**任何既有约束——Codex **永久只读**，
+   执行 Agent **全程不得切换**，删除文件、生产操作、付费调用与外部写操作仍各需范总明确批准。
+
+任务类型的界定由**范总**在任务开始时确认；未明确界定为非发布型时，一律按发布型任务
+执行 §6 完整流程。本例外不改变 `docs/release-process.md` 对**生产发布**的全部要求：
+任何进入生产的变化都只能通过发布型任务走完整门禁，**本例外不提供任何 deploy 路径**。
+
 ## Overview
 
 This is an AI API gateway/proxy built with Go. It aggregates 40+ upstream AI providers (OpenAI, Claude, Gemini, Azure, AWS Bedrock, etc.) behind a unified API, with user management, billing, rate limiting, and an admin dashboard.
