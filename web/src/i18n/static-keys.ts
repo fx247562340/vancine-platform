@@ -653,6 +653,15 @@ export const STATIC_I18N_KEYS = [
   'Async Doubao-Seedance-2.5 video generation through one API.',
   'Image, video, speech, and 3D generation through one API.',
 
+  // Developer guides registry: titles/descriptions and the section label
+  // are passed to t() from the shared registry, not from literal t('...')
+  // calls. Guides are deliberately not part of DEVELOPER_SOLUTIONS, so they
+  // never appear in the homepage Developer solutions section or the Docs
+  // sidebar.
+  'Guides',
+  'Fast Coding Models for AI Agents',
+  'Compare Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash, and Qwen3.8 Flash.',
+
   // AI Media landing page (P6-C): data-driven section copy and FAQ keys.
   'Image generation',
   'Generation and editing through documented endpoints.',

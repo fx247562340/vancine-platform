@@ -234,6 +234,24 @@ var publicMarketingPages = []publicPageMeta{
 		twitterDesc:      "Eight Chinese AI models completed the same isolated Pi coding-agent task through Vancine. See the method, runtime, token use, and production-audited cost.",
 		twitterCardValue: "summary",
 	},
+	{
+		// Acquisition guide: /guides/fast-coding-models. The English
+		// values here are mirrored from the SPA's
+		// getFastCodingModelsPageMetadata('en') and must stay
+		// byte-identical to them. There is deliberately no top-level
+		// /fast-coding-models alias and no model subroute; both fall
+		// through to the existing unknown-SPA-fallback contract.
+		path:  "/guides/fast-coding-models",
+		title: "Four Fast Chinese AI Models for Coding Agents | Vancine",
+		description: "Compare Hy4 Preview, DeepSeek V4 Flash Vision Exp, " +
+			"GLM-5.3 Flash, and Qwen3.8 Flash through one " +
+			"OpenAI-compatible API.",
+		ogTitle:          "Four Fast Chinese AI Models for Coding Agents",
+		ogDescription:    "Compare Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash, and Qwen3.8 Flash through one OpenAI-compatible API.",
+		twitterTitle:     "Four Fast Chinese AI Models for Coding Agents",
+		twitterDesc:      "Compare Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash, and Qwen3.8 Flash through one OpenAI-compatible API.",
+		twitterCardValue: "summary",
+	},
 }
 
 // robotsTxtBody is the exact fixed document served at /robots.txt. The

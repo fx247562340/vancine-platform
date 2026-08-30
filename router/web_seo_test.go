@@ -981,3 +981,109 @@ func TestUnknownDocsAgentPathsServeNoMarketingMetadata(t *testing.T) {
 		})
 	}
 }
+
+// seoFastCodingModelsRouteCase is the route case for the acquisition
+// guide /guides/fast-coding-models, kept separate from
+// seoPublicRouteCases so the pre-existing table stays untouched.
+var seoFastCodingModelsRouteCase = seoPublicRouteCase{
+	path:                 "/guides/fast-coding-models",
+	wantTitle:            "Four Fast Chinese AI Models for Coding Agents | Vancine",
+	wantDescription:      "Compare Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash, and Qwen3.8 Flash through one OpenAI-compatible API.",
+	wantCanonical:        "https://vancine.com/guides/fast-coding-models",
+	wantOGTitle:          "Four Fast Chinese AI Models for Coding Agents",
+	wantOGDescription:    "Compare Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash, and Qwen3.8 Flash through one OpenAI-compatible API.",
+	wantOGURL:            "https://vancine.com/guides/fast-coding-models",
+	wantTwitterTitle:     "Four Fast Chinese AI Models for Coding Agents",
+	wantTwitterDesc:      "Compare Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash, and Qwen3.8 Flash through one OpenAI-compatible API.",
+	wantTwitterCardValue: "summary",
+}
+
+// TestFastCodingModelsGuideServesExactApprovedMetadata pins the public
+// contract for /guides/fast-coding-models: GET and HEAD both serve the
+// route variant, and the metadata block carries the exact approved
+// English copy.
+func TestFastCodingModelsGuideServesExactApprovedMetadata(t *testing.T) {
+	engine := newWebRouterSEOFixture(t)
+
+	t.Run("GET serves the approved metadata block", func(t *testing.T) {
+		rec := serveSEO(engine, httptest.NewRequest(http.MethodGet, "/guides/fast-coding-models", nil))
+		require.Equal(t, http.StatusOK, rec.Code)
+		assertSEOContract(t, html.UnescapeString(rec.Body.String()), "/guides/fast-coding-models", seoFastCodingModelsRouteCase)
+	})
+
+	t.Run("HEAD serves the same status and content type", func(t *testing.T) {
+		rec := serveSEO(engine, httptest.NewRequest(http.MethodHead, "/guides/fast-coding-models", nil))
+		require.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, "text/html; charset=utf-8", rec.Header().Get("Content-Type"))
+	})
+}
+
+// TestFastCodingModelsGuideCanonicalIsPollutionProof locks the
+// no-pollution rule for the guide: Host / X-Forwarded-Host / Origin /
+// Referer headers and any query or UTM parameters must never reach the
+// canonical or og:url values, and the trailing-slash form serves the
+// same canonical.
+func TestFastCodingModelsGuideCanonicalIsPollutionProof(t *testing.T) {
+	engine := newWebRouterSEOFixture(t)
+	const wantCanonical = `link rel="canonical" href="https://vancine.com/guides/fast-coding-models"`
+	const wantOGURL = `meta property="og:url" content="https://vancine.com/guides/fast-coding-models"`
+
+	utmQuery := "?utm_source=ads&utm_medium=cpc&utm_campaign=guide&utm_content=b1&utm_term=llm&email=a@b.com&token=t&api_key=k&redirect=https://evil.example.com"
+
+	requests := []*http.Request{
+		httptest.NewRequest(http.MethodGet, "/guides/fast-coding-models"+utmQuery, nil),
+	}
+	for _, rawPath := range []string{"/guides/fast-coding-models?x=1", "/guides/fast-coding-models/"} {
+		req := httptest.NewRequest(http.MethodGet, rawPath, nil)
+		req.Host = "evil.example.com"
+		req.Header.Set("X-Forwarded-Host", "evil.example.com")
+		req.Header.Set("X-Forwarded-Proto", "http")
+		req.Header.Set("Origin", "http://evil.example.com")
+		req.Header.Set("Referer", "https://evil.example.com/guide")
+		requests = append(requests, req)
+	}
+
+	for i, req := range requests {
+		req := req
+		t.Run(fmt.Sprintf("request-%d-%s", i, req.URL.RequestURI()), func(t *testing.T) {
+			rec := serveSEO(engine, req)
+			require.Equal(t, http.StatusOK, rec.Code)
+			body := rec.Body.String()
+			assert.NotContains(t, body, "evil.example.com")
+			assert.NotContains(t, body, "utm_")
+			assert.NotContains(t, body, "a@b.com")
+			decoded := html.UnescapeString(body)
+			assert.Contains(t, decoded, wantCanonical)
+			assert.Contains(t, decoded, wantOGURL)
+		})
+	}
+}
+
+// TestFastCodingModelsGuideHasNoAliasRoutes pins that no alias of the
+// guide is created: the top-level /fast-coding-models path, the
+// singular /guides/fast-coding-model, and any subpath under the guide
+// all fall through to the existing unknown-SPA-fallback contract and
+// must not carry the guide canonical or metadata.
+func TestFastCodingModelsGuideHasNoAliasRoutes(t *testing.T) {
+	engine := newWebRouterSEOFixture(t)
+	for _, p := range []string{
+		"/fast-coding-models",
+		"/guides/fast-coding-model",
+		"/guides/fast-coding-models/anything",
+		"/guides/fast-coding-models/hy4-preview",
+	} {
+		p := p
+		t.Run("GET "+p, func(t *testing.T) {
+			rec := serveSEO(engine, httptest.NewRequest(http.MethodGet, p, nil))
+			require.Equal(t, http.StatusOK, rec.Code,
+				"alias paths must keep the existing unknown-SPA-fallback contract")
+			body := rec.Body.String()
+			assert.Equal(t, testSPAIndexPage, body,
+				"alias path %q must serve the original IndexPage byte-for-byte", p)
+			assert.NotContains(t, body, "Four Fast Chinese AI Models for Coding Agents",
+				"alias path must not serve guide page metadata")
+			assert.NotContains(t, body, `href="https://vancine.com/guides/fast-coding-models"`,
+				"alias path must not carry the /guides/fast-coding-models canonical")
+		})
+	}
+}

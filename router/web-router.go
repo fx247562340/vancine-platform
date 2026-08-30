@@ -72,6 +72,10 @@ var publicSitemapPaths = []string{
 	// SEO-5 evergreen canonical: the Pi 8-model coding-agent benchmark.
 	// There is deliberately no model-version alias route.
 	"/coding-agent-benchmark",
+	// Acquisition guide: the fast coding models selection guide. Only
+	// the /guides/fast-coding-models canonical is indexed; there is
+	// deliberately no top-level alias and no model subroute.
+	"/guides/fast-coding-models",
 }
 
 // sitemapHandler serves the XML sitemap for the fixed public page set. The

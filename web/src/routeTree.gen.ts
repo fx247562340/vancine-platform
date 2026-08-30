@@ -34,6 +34,7 @@ import { Route as CodingAgentBenchmarkIndexRouteImport } from './routes/coding-a
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as DocsSlugRouteImport } from './routes/docs/$slug'
 import { Route as GlmApiIndexRouteImport } from './routes/glm-api/index'
+import { Route as GuidesFastCodingModelsRouteImport } from './routes/guides/fast-coding-models'
 import { Route as KimiK3ApiIndexRouteImport } from './routes/kimi-k3-api/index'
 import { Route as OauthProviderRouteImport } from './routes/oauth/$provider'
 import { Route as OpenrouterAlternativeIndexRouteImport } from './routes/openrouter-alternative/index'
@@ -206,6 +207,11 @@ const DocsSlugRoute = DocsSlugRouteImport.update({
 const GlmApiIndexRoute = GlmApiIndexRouteImport.update({
   id: '/glm-api/',
   path: '/glm-api/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuidesFastCodingModelsRoute = GuidesFastCodingModelsRouteImport.update({
+  id: '/guides/fast-coding-models',
+  path: '/guides/fast-coding-models',
   getParentRoute: () => rootRouteImport,
 } as any)
 const KimiK3ApiIndexRoute = KimiK3ApiIndexRouteImport.update({
@@ -500,6 +506,7 @@ export interface FileRoutesByFullPath {
   '/503': typeof errors503Route
   '/chat2link': typeof AuthenticatedChat2linkRoute
   '/docs/$slug': typeof DocsSlugRoute
+  '/guides/fast-coding-models': typeof GuidesFastCodingModelsRoute
   '/oauth/$provider': typeof OauthProviderRoute
   '/about/': typeof AboutIndexRoute
   '/ai-media-api/': typeof AiMediaApiIndexRoute
@@ -572,6 +579,7 @@ export interface FileRoutesByTo {
   '/503': typeof errors503Route
   '/chat2link': typeof AuthenticatedChat2linkRoute
   '/docs/$slug': typeof DocsSlugRoute
+  '/guides/fast-coding-models': typeof GuidesFastCodingModelsRoute
   '/oauth/$provider': typeof OauthProviderRoute
   '/about': typeof AboutIndexRoute
   '/ai-media-api': typeof AiMediaApiIndexRoute
@@ -648,6 +656,7 @@ export interface FileRoutesById {
   '/(errors)/503': typeof errors503Route
   '/_authenticated/chat2link': typeof AuthenticatedChat2linkRoute
   '/docs/$slug': typeof DocsSlugRoute
+  '/guides/fast-coding-models': typeof GuidesFastCodingModelsRoute
   '/oauth/$provider': typeof OauthProviderRoute
   '/about/': typeof AboutIndexRoute
   '/ai-media-api/': typeof AiMediaApiIndexRoute
@@ -723,6 +732,7 @@ export interface FileRouteTypes {
     | '/503'
     | '/chat2link'
     | '/docs/$slug'
+    | '/guides/fast-coding-models'
     | '/oauth/$provider'
     | '/about/'
     | '/ai-media-api/'
@@ -795,6 +805,7 @@ export interface FileRouteTypes {
     | '/503'
     | '/chat2link'
     | '/docs/$slug'
+    | '/guides/fast-coding-models'
     | '/oauth/$provider'
     | '/about'
     | '/ai-media-api'
@@ -870,6 +881,7 @@ export interface FileRouteTypes {
     | '/(errors)/503'
     | '/_authenticated/chat2link'
     | '/docs/$slug'
+    | '/guides/fast-coding-models'
     | '/oauth/$provider'
     | '/about/'
     | '/ai-media-api/'
@@ -937,6 +949,7 @@ export interface RootRouteChildren {
   errors500Route: typeof errors500Route
   errors503Route: typeof errors503Route
   DocsSlugRoute: typeof DocsSlugRoute
+  GuidesFastCodingModelsRoute: typeof GuidesFastCodingModelsRoute
   OauthProviderRoute: typeof OauthProviderRoute
   AboutIndexRoute: typeof AboutIndexRoute
   AiMediaApiIndexRoute: typeof AiMediaApiIndexRoute
@@ -1132,6 +1145,13 @@ declare module '@tanstack/react-router' {
       path: '/glm-api'
       fullPath: '/glm-api/'
       preLoaderRoute: typeof GlmApiIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guides/fast-coding-models': {
+      id: '/guides/fast-coding-models'
+      path: '/guides/fast-coding-models'
+      fullPath: '/guides/fast-coding-models'
+      preLoaderRoute: typeof GuidesFastCodingModelsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/kimi-k3-api/': {
@@ -1621,6 +1641,7 @@ const rootRouteChildren: RootRouteChildren = {
   errors500Route: errors500Route,
   errors503Route: errors503Route,
   DocsSlugRoute: DocsSlugRoute,
+  GuidesFastCodingModelsRoute: GuidesFastCodingModelsRoute,
   OauthProviderRoute: OauthProviderRoute,
   AboutIndexRoute: AboutIndexRoute,
   AiMediaApiIndexRoute: AiMediaApiIndexRoute,

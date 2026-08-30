@@ -1,3 +1,12 @@
+## 1.9.4 - 2026-08-31
+
+### 文档与获客
+
+- 新增面向 Coding Agent 的快速中国模型英文获客落地页（英文源、七语言支持），canonical 路径为 /guides/fast-coding-models，精确比较 Hy4 Preview、DeepSeek V4 Flash Vision Exp、GLM-5.3 Flash 与 Qwen3.8 Flash 四个模型。
+- 页面接入动态定价与能力信息（价格与能力实时读取自 /api/pricing，缺字段的模型明确降级且不替代）、OpenAI 兼容 Quickstart 示例、固定 owned-media UTM 转化 CTA（未登录指向注册页、已登录指向操练场），并提供服务端与客户端一致的最小化 SEO metadata、固定 canonical 及 Host/查询/UTM 污染防护；sitemap 收录精确 canonical 从 18 条增至 19 条。
+- 顶部“API Solutions”菜单新增独立 Guides 小节（分隔线 + 小节标题，桌面与移动导航共用单一数据源），不改变现有四个 API 产品项顺序，也不进入首页 Developer solutions 区块或 Docs 侧边栏。
+- 明确与 Pi coding-agent benchmark 的证据边界：该 benchmark 仅包含 glm-5.3-flash 与 qwen3.8-flash，不包含 hy4-preview 与 deepseek-v4-flash-vision-exp（deepseek-v4-flash 为不同模型 ID），不将未测试模型描述为已实测。
+
 ## 1.9.3 - 2026-08-30
 
 ### 修复

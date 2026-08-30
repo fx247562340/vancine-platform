@@ -131,6 +131,7 @@ const testRouteTree = testRootRoute.addChildren([
   stubRoute('/seedance-api', 'seedance-page'),
   stubRoute('/ai-media-api', 'ai-media-page'),
   stubRoute('/pricing', 'pricing-page'),
+  stubRoute('/guides/fast-coding-models', 'fast-coding-models-guide-page'),
 ])
 
 function renderHeader(): RenderResult {
@@ -401,6 +402,117 @@ describe('mobile menu Developer solutions group', () => {
     })
     expect(trackEventMock).toHaveBeenCalledWith('developer_resource_clicked', {
       resource: 'kimi_k3_api',
+      location: 'header',
+    })
+  })
+})
+
+describe('API Solutions menu Guide section', () => {
+  it('desktop dropdown groups the guide under a separator and Guides heading', async () => {
+    const user = userEvent.setup()
+    renderHeader()
+
+    const trigger = await screen.findByRole('button', {
+      name: 'API Solutions',
+    })
+    trigger.focus()
+    await user.keyboard('{Enter}')
+
+    const popup = await waitFor(() => {
+      const element = document.querySelector(
+        '[data-slot="navigation-menu-content"]'
+      )
+      expect(element).not.toBeNull()
+      return element as HTMLElement
+    })
+
+    // The four API product links keep their order ...
+    expect(
+      within(popup).getByRole('link', { name: /Kimi K3 API/ })
+    ).toBeInTheDocument()
+    expect(
+      within(popup).getByRole('link', { name: /AI Media API/ })
+    ).toBeInTheDocument()
+
+    // ... and the Guide appears in its own list, visually separated and
+    // grouped under the Guides subsection heading.
+    expect(within(popup).getByText('Guides')).toBeInTheDocument()
+    const guideList = within(popup).getByTestId('developer-guides-menu-list')
+    const guideLink = within(guideList).getByRole('link', {
+      name: /Fast Coding Models for AI Agents/,
+    })
+    expect(guideLink).toHaveAttribute('href', '/guides/fast-coding-models')
+    // The guide list holds only guide entries, never API products.
+    expect(
+      within(guideList).queryByRole('link', { name: /Kimi K3 API/ })
+    ).toBeNull()
+  })
+
+  it('navigates to the guide and records the guide analytics event on desktop activation', async () => {
+    const user = userEvent.setup()
+    renderHeader()
+
+    const trigger = await screen.findByRole('button', {
+      name: 'API Solutions',
+    })
+    trigger.focus()
+    await user.keyboard('{Enter}')
+
+    const popup = await waitFor(() => {
+      const element = document.querySelector(
+        '[data-slot="navigation-menu-content"]'
+      )
+      expect(element).not.toBeNull()
+      return element as HTMLElement
+    })
+    const guideLink = within(popup).getByRole('link', {
+      name: /Fast Coding Models for AI Agents/,
+    })
+    await user.click(guideLink)
+
+    expect(
+      await screen.findByTestId('fast-coding-models-guide-page')
+    ).toBeInTheDocument()
+    expect(trackEventMock).toHaveBeenCalledWith('developer_resource_clicked', {
+      resource: 'fast_coding_models_guide',
+      location: 'header',
+    })
+  })
+
+  it('mobile menu shows the guide under its own Guides group and closes on activation', async () => {
+    const user = userEvent.setup()
+    const { container } = renderHeader()
+
+    const toggle = await screen.findByRole('button', {
+      name: 'Toggle navigation menu',
+    })
+    await user.click(toggle)
+
+    const overlay = container.querySelector('.fixed.inset-0')
+    await waitFor(() => {
+      expect(overlay?.className).toContain('pointer-events-auto')
+    })
+
+    // Both groups are present: the API solutions and the Guides.
+    expect(screen.getByText('Developer solutions')).toBeInTheDocument()
+    expect(screen.getByText('Guides')).toBeInTheDocument()
+
+    const guideList = screen.getByTestId('developer-guides-mobile-list')
+    const guideLink = within(guideList).getByRole('link', {
+      name: 'Fast Coding Models for AI Agents',
+    })
+    expect(guideLink).toHaveAttribute('href', '/guides/fast-coding-models')
+
+    await user.click(guideLink)
+    expect(
+      await screen.findByTestId('fast-coding-models-guide-page')
+    ).toBeInTheDocument()
+    // Activating the guide closes the mobile menu.
+    await waitFor(() => {
+      expect(overlay?.className).toContain('pointer-events-none')
+    })
+    expect(trackEventMock).toHaveBeenCalledWith('developer_resource_clicked', {
+      resource: 'fast_coding_models_guide',
       location: 'header',
     })
   })

@@ -48,6 +48,10 @@ var expectedSitemapLocs = []string{
 	// SEO-5 evergreen canonical: the Pi 8-model coding-agent benchmark
 	// page. There is deliberately no model-version alias route.
 	"https://vancine.com/coding-agent-benchmark",
+	// Acquisition guide: the fast coding models selection guide. Only
+	// the /guides/fast-coding-models canonical is indexed; there is
+	// deliberately no top-level alias and no model subroute.
+	"https://vancine.com/guides/fast-coding-models",
 }
 
 // testSPAIndexPage is the fixture used by pre-existing sitemap tests.
@@ -149,12 +153,14 @@ func TestSitemapListsExactlyTheApprovedPublicPages(t *testing.T) {
 	// SEO-5: sitemap grows with /coding-agent-benchmark appearing
 	// exactly once and no model-version alias routes. The Agent
 	// Integration Center adds four more canonicals (hub + three setup
-	// guides) for a total of 18.
-	assert.Len(t, locs, 18,
-		"sitemap must contain exactly 18 URLs with the agent integration center pages")
+	// guides). The fast coding models acquisition guide adds one more
+	// canonical (/guides/fast-coding-models) for a total of 19.
+	assert.Len(t, locs, 19,
+		"sitemap must contain exactly 19 URLs with the agent integration center pages and the fast coding models guide")
 	glmEvergreenCount := 0
 	benchmarkCount := 0
 	agentsHubCount := 0
+	fastCodingModelsGuideCount := 0
 	agentsGuideCounts := map[string]int{}
 	for _, loc := range locs {
 		if strings.HasSuffix(loc, "/glm-api") {
@@ -165,6 +171,9 @@ func TestSitemapListsExactlyTheApprovedPublicPages(t *testing.T) {
 		}
 		if strings.HasSuffix(loc, "/docs/agents") {
 			agentsHubCount++
+		}
+		if strings.HasSuffix(loc, "/guides/fast-coding-models") {
+			fastCodingModelsGuideCount++
 		}
 		for _, tool := range []string{"opencode", "cline", "roo-code"} {
 			if strings.HasSuffix(loc, "/docs/agents/"+tool) {
@@ -186,6 +195,8 @@ func TestSitemapListsExactlyTheApprovedPublicPages(t *testing.T) {
 		"/coding-agent-benchmark must appear exactly once in the sitemap")
 	assert.Equal(t, 1, agentsHubCount,
 		"/docs/agents must appear exactly once in the sitemap")
+	assert.Equal(t, 1, fastCodingModelsGuideCount,
+		"/guides/fast-coding-models must appear exactly once in the sitemap")
 	for _, tool := range []string{"opencode", "cline", "roo-code"} {
 		assert.Equal(t, 1, agentsGuideCounts[tool],
 			"/docs/agents/%s must appear exactly once in the sitemap", tool)
