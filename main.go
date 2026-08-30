@@ -108,6 +108,9 @@ func main() {
 	// 热更新配置
 	go model.SyncOptions(common.SyncFrequency)
 
+	// 自动过期待支付订单（每小时检查一次，超过 1 小时的订单标记为 expired）
+	go model.StartPendingTopUpCleaner(1*time.Hour, 1*time.Hour)
+
 	// 周期性重载授权策略，保证多节点/多 master 部署下权限变更能传播到每个实例
 	go authz.StartPolicySync(common.SyncFrequency)
 
