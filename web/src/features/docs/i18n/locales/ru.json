@@ -288,7 +288,8 @@
       },
       "cards": {
         "opencode": {
-          "protocol": "OpenAI-совместимый провайдер в opencode.json"
+          "protocol": "Vancine доступен через каталог Provider Models.dev, который использует OpenCode.",
+          "catalogProof": "Доступно в OpenCode через каталог Provider на Models.dev"
         },
         "cline": {
           "protocol": "OpenAI-совместимый провайдер в расширении Cline"
@@ -368,14 +369,28 @@
     },
     "opencode": {
       "pageTitle": "Руководство по настройке OpenCode",
-      "valueProp": "Подключите терминальный агент кодирования OpenCode к Vancine через один файл opencode.json на уровне проекта.",
-      "step1": "Установите OpenCode и проверьте его версию.",
-      "step2": "Если их ещё нет, создайте аккаунт Vancine и API-ключ.",
-      "step3": "Создайте или отредактируйте opencode.json в корне проекта, используя конфигурацию выше.",
-      "step4": "Экспортируйте VANCINE_API_KEY в оболочке перед запуском OpenCode.",
-      "step5": "Запустите OpenCode, выберите модель провайдера vancine, например glm-5.1, и отправьте простой промпт для проверки.",
+      "valueProp": "Подключите терминальный агент кодирования OpenCode к Vancine командой /connect. OpenCode загружает Vancine из каталога Provider Models.dev, поэтому для базовой настройки не нужно создавать или править opencode.json.",
+      "noJsonNote": "Базовая настройка не требует создания или правки opencode.json.",
+      "step1": "Установите или обновите OpenCode.",
+      "step2": "Если их ещё нет, создайте аккаунт Vancine и API Key.",
+      "step3": "В OpenCode выполните /connect.",
+      "step4": "Найдите и выберите Vancine.",
+      "step5": "Вставьте свой Vancine API Key.",
+      "step6": "Выполните /models.",
+      "step7": "Выберите vancine/glm-5.3-flash или другую модель в Provider vancine, затем отправьте промпт.",
+      "advancedTitle": "Расширенная конфигурация (необязательно)",
+      "advancedNote": "Используйте opencode.json на уровне проекта только чтобы переопределить Base URL, задать whitelist / blacklist моделей, иметь ручной запасной вариант при сбое живого каталога или явно зафиксировать конфигурацию Provider. Не считайте этот файл частью базовой настройки /connect.",
+      "notOfficial": "Vancine — независимый OpenAI-совместимый API-сервис, указанный в каталоге Models.dev, который использует OpenCode. Это включение в каталог не означает официального партнёрства, рекомендации или одобрения со стороны OpenCode.",
+      "errors": {
+        "model": {
+          "fix": "Используйте точный ID модели vancine из /models или откройте страницу моделей Vancine. ID моделей чувствительны к регистру."
+        }
+      },
       "benchmarkTitle": "Доказательства проверки",
-      "benchmarkNote": "Связанный ниже бенчмарк 8 моделей выполнялся в coding-агенте Pi, а не в OpenCode: он показывает, что эти модели выполняют реальные задачи coding-агента через Vancine. Само подключение OpenCode покрыто живой проверкой v1.18.3, описанной на этой странице; другие версии OpenCode не проверялись."
+      "benchmarkNote": "Связанный ниже бенчмарк 8 моделей выполнялся в coding-агенте Pi, а не в OpenCode: он показывает, что эти модели выполняют реальные задачи coding-агента через Vancine. Само подключение OpenCode покрыто живой проверкой v1.18.3, описанной на этой странице; другие версии OpenCode не проверялись.",
+      "catalogProof": "Доступно в OpenCode через каталог Provider на Models.dev",
+      "catalogNote": "OpenCode загружает свой каталог Provider из Models.dev. Vancine указан там как OpenAI-совместимый Provider. По-прежнему нужен ваш собственный API Key Vancine.",
+      "catalogLink": "Смотреть Vancine на Models.dev"
     },
     "cline": {
       "pageTitle": "Руководство по настройке Cline",

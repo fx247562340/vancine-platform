@@ -20,6 +20,7 @@ import { screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { DocsI18nProvider } from '../i18n/docs-i18n'
+import { VANCINE_MODELS_DEV_PROVIDER_URL } from '../lib/agents'
 import Agents from '../pages/agents'
 import {
   EN_DOCS,
@@ -81,7 +82,9 @@ describe('Agent Integration hub cards', () => {
 
     await screen.findAllByRole('link', { name: 'View setup guide' })
     expect(
-      screen.getByText('OpenAI-compatible provider in opencode.json')
+      screen.getByText(
+        "Vancine is available through OpenCode's Models.dev provider catalog."
+      )
     ).toBeInTheDocument()
     expect(
       screen.getByText('OpenAI-compatible provider in the Cline extension')
@@ -111,6 +114,27 @@ describe('Agent Integration hub cards', () => {
         'The OpenAI-compatible setup for this tool is ready. Follow its guide to connect it to Vancine.'
       )
     ).toHaveLength(3)
+  })
+
+  it('shows the Models.dev catalog proof only on the OpenCode card', async () => {
+    const { container } = renderHub()
+
+    await screen.findAllByRole('link', { name: 'View setup guide' })
+    const catalogLink = screen.getByRole('link', {
+      name: 'Available in OpenCode through the Models.dev provider catalog',
+    })
+    expect(catalogLink).toHaveAttribute('href', VANCINE_MODELS_DEV_PROVIDER_URL)
+    expect(catalogLink).toHaveAttribute('target', '_blank')
+    expect(catalogLink).toHaveAttribute('rel', 'noopener noreferrer')
+    expect(
+      screen.getAllByRole('link', {
+        name: 'Available in OpenCode through the Models.dev provider catalog',
+      })
+    ).toHaveLength(1)
+    // Catalog proof is not a status and does not replace Configuration-ready.
+    expect(screen.getAllByText('Configuration-ready')).toHaveLength(3)
+    expect(container.textContent).not.toContain('official partner')
+    expect(container.textContent).not.toContain('official supplier')
   })
 
   it('keeps the benchmark link and the non-first-batch configurations', async () => {

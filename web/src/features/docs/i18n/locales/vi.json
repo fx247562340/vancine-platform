@@ -288,7 +288,8 @@
       },
       "cards": {
         "opencode": {
-          "protocol": "Provider OpenAI-compatible trong opencode.json"
+          "protocol": "Vancine có sẵn qua catalogue Provider Models.dev mà OpenCode sử dụng.",
+          "catalogProof": "Có trong OpenCode qua danh mục Provider của Models.dev"
         },
         "cline": {
           "protocol": "Provider OpenAI-compatible trong extension Cline"
@@ -368,14 +369,28 @@
     },
     "opencode": {
       "pageTitle": "Hướng dẫn cài đặt OpenCode",
-      "valueProp": "Kết nối coding agent dòng lệnh OpenCode với Vancine thông qua một tệp opencode.json ở cấp dự án.",
-      "step1": "Cài OpenCode và kiểm tra phiên bản.",
-      "step2": "Nếu chưa có, hãy tạo tài khoản Vancine và API key.",
-      "step3": "Tạo hoặc chỉnh opencode.json ở thư mục gốc dự án với cấu hình ở trên.",
-      "step4": "Xuất biến VANCINE_API_KEY trong shell trước khi khởi chạy OpenCode.",
-      "step5": "Khởi chạy OpenCode, chọn một mô hình của provider vancine như glm-5.1 và gửi một prompt đơn giản để xác nhận.",
+      "valueProp": "Kết nối coding agent dòng lệnh OpenCode với Vancine bằng /connect. OpenCode tải Vancine từ catalogue Provider của Models.dev, nên thiết lập cơ bản không cần tạo hoặc sửa opencode.json.",
+      "noJsonNote": "Thiết lập cơ bản không cần tạo hoặc sửa opencode.json.",
+      "step1": "Cài đặt hoặc cập nhật OpenCode.",
+      "step2": "Nếu chưa có, hãy tạo tài khoản Vancine và API Key.",
+      "step3": "Trong OpenCode, chạy /connect.",
+      "step4": "Tìm và chọn Vancine.",
+      "step5": "Dán API Key Vancine của bạn.",
+      "step6": "Chạy /models.",
+      "step7": "Chọn vancine/glm-5.3-flash, hoặc mô hình khác trong Provider vancine, rồi gửi prompt.",
+      "advancedTitle": "Cấu hình nâng cao (tuỳ chọn)",
+      "advancedNote": "Chỉ dùng opencode.json cấp dự án khi cần ghi đè Base URL, đặt whitelist / blacklist mô hình, dự phòng thủ công khi catalogue trực tiếp lỗi, hoặc neo một cấu hình Provider tường minh. Đừng coi tệp này là một phần của thiết lập cơ bản /connect.",
+      "notOfficial": "Vancine là dịch vụ API tương thích OpenAI độc lập, được liệt kê trong catalogue Models.dev mà OpenCode sử dụng. Việc được liệt kê không đồng nghĩa với quan hệ hợp tác chính thức, khuyến nghị hay sự chứng thực từ OpenCode.",
+      "errors": {
+        "model": {
+          "fix": "Dùng đúng ID mô hình vancine hiển thị trong /models, hoặc xem trang mô hình Vancine. ID mô hình phân biệt hoa thường."
+        }
+      },
       "benchmarkTitle": "Bằng chứng xác minh",
-      "benchmarkNote": "Benchmark 8 mô hình được liên kết bên dưới chạy trong Pi coding agent, không phải trong OpenCode: nó cho thấy các mô hình này hoàn thành tác vụ coding-agent thật qua Vancine. Riêng khả năng kết nối của OpenCode được bao phủ bởi lần kiểm tra thực tế v1.18.3 mô tả trên trang này; các phiên bản OpenCode khác chưa được xác minh."
+      "benchmarkNote": "Benchmark 8 mô hình được liên kết bên dưới chạy trong Pi coding agent, không phải trong OpenCode: nó cho thấy các mô hình này hoàn thành tác vụ coding-agent thật qua Vancine. Riêng khả năng kết nối của OpenCode được bao phủ bởi lần kiểm tra thực tế v1.18.3 mô tả trên trang này; các phiên bản OpenCode khác chưa được xác minh.",
+      "catalogProof": "Có trong OpenCode qua danh mục Provider của Models.dev",
+      "catalogNote": "OpenCode tải catalogue Provider từ Models.dev. Vancine được liệt kê ở đó với tư cách Provider tương thích OpenAI. Bạn vẫn cần dùng API Key Vancine của chính mình.",
+      "catalogLink": "Xem Vancine trên Models.dev"
     },
     "cline": {
       "pageTitle": "Hướng dẫn cài đặt Cline",

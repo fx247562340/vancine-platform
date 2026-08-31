@@ -28,7 +28,10 @@ import { DocsCallout } from '../components/callout'
 import { DocsCodeBlock } from '../components/code-block'
 import { DocsH2, DocsH3, DocsP } from '../components/headings'
 import { useRegisterHeadings } from '../components/register-headings'
-import { DOCS_AGENT_TOOLS } from '../lib/agents'
+import {
+  DOCS_AGENT_TOOLS,
+  VANCINE_MODELS_DEV_PROVIDER_URL,
+} from '../lib/agents'
 import { getDocsAgentsPageMetadata } from '../lib/agents-metadata'
 import type { TocHeading } from '../types'
 
@@ -172,6 +175,16 @@ export default function Agents(props: { baseUrl: string }) {
               <p className='text-muted-foreground mb-2 text-xs font-medium'>
                 {t(`agents.hub.cards.${tool.key}.protocol`)}
               </p>
+              {tool.key === 'opencode' ? (
+                <a
+                  href={VANCINE_MODELS_DEV_PROVIDER_URL}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  className='text-primary mb-2 text-xs font-medium underline underline-offset-4'
+                >
+                  {t('agents.hub.cards.opencode.catalogProof')}
+                </a>
+              ) : null}
               <p className='text-muted-foreground mb-4 flex-1 text-sm leading-relaxed'>
                 {t('agents.hub.cardBoundary')}
               </p>

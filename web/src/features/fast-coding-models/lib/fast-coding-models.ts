@@ -538,6 +538,7 @@ export const FAST_CODING_MODELS_I18N_KEYS = [
   'Send your first request with curl, then switch models by changing only the model field.',
   'Switch to any of the other three models by changing only the model field:',
   'Set up OpenCode, Cline, or Roo Code',
+  'Connect Vancine in OpenCode with /connect — no manual provider JSON required.',
   // Evidence boundary
   'Measured results are separate',
   'This page is a selection guide, not a benchmark. The existing Pi benchmark is a separate, single-task, single-run piece of evidence.',

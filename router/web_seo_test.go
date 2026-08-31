@@ -211,13 +211,13 @@ var seoPublicRouteCases = []seoPublicRouteCase{
 		// byte-identical to this block.
 		path:                 "/docs/agents/opencode",
 		wantTitle:            "OpenCode Setup Guide for the Vancine API | Vancine",
-		wantDescription:      "Connect OpenCode to Vancine through a project-level opencode.json: Base URL, API key and model setup, with a dedicated verification evidence section.",
+		wantDescription:      "Add Vancine in OpenCode with /connect from the Models.dev Provider catalog — no manual provider JSON required. Paste your Vancine API Key, then choose a model with /models.",
 		wantCanonical:        "https://vancine.com/docs/agents/opencode",
 		wantOGTitle:          "OpenCode Setup Guide for the Vancine API",
-		wantOGDescription:    "Connect OpenCode to Vancine through a project-level opencode.json: Base URL, API key and model setup, with a dedicated verification evidence section.",
+		wantOGDescription:    "Add Vancine in OpenCode with /connect from the Models.dev Provider catalog — no manual provider JSON required. Paste your Vancine API Key, then choose a model with /models.",
 		wantOGURL:            "https://vancine.com/docs/agents/opencode",
 		wantTwitterTitle:     "OpenCode Setup Guide for the Vancine API | Vancine",
-		wantTwitterDesc:      "Connect OpenCode to Vancine through a project-level opencode.json: Base URL, API key and model setup, with a dedicated verification evidence section.",
+		wantTwitterDesc:      "Add Vancine in OpenCode with /connect from the Models.dev Provider catalog — no manual provider JSON required. Paste your Vancine API Key, then choose a model with /models.",
 		wantTwitterCardValue: "summary",
 	},
 	{

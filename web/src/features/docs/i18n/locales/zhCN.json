@@ -288,7 +288,8 @@
       },
       "cards": {
         "opencode": {
-          "protocol": "opencode.json 中的 OpenAI 兼容 provider"
+          "protocol": "Vancine 已可通过 OpenCode 使用的 Models.dev Provider 目录接入。",
+          "catalogProof": "Vancine 已进入 OpenCode 使用的 Models.dev Provider 目录"
         },
         "cline": {
           "protocol": "Cline 扩展中的 OpenAI 兼容 provider"
@@ -368,14 +369,28 @@
     },
     "opencode": {
       "pageTitle": "OpenCode 接入指南",
-      "valueProp": "通过项目级 opencode.json 文件，将 OpenCode 终端编码 Agent 接入 Vancine。",
-      "step1": "安装 OpenCode 并确认版本。",
+      "valueProp": "在 OpenCode 中运行 /connect 即可接入 Vancine。OpenCode 会从 Models.dev 的 Provider 目录加载 Vancine，基础接入无需创建或修改 opencode.json。",
+      "noJsonNote": "基础接入无需创建或修改 opencode.json。",
+      "step1": "安装或更新 OpenCode。",
       "step2": "如果还没有，请先创建 Vancine 账户和 API Key。",
-      "step3": "在项目根目录创建或编辑 opencode.json，写入上面的配置。",
-      "step4": "在启动 OpenCode 前，在 shell 中导出 VANCINE_API_KEY。",
-      "step5": "启动 OpenCode，选择 vancine provider 下的模型（如 glm-5.1），发送一个简单提示词确认连通。",
+      "step3": "在 OpenCode 中运行 /connect。",
+      "step4": "搜索并选择 Vancine。",
+      "step5": "粘贴你自己的 Vancine API Key。",
+      "step6": "运行 /models。",
+      "step7": "选择 vancine/glm-5.3-flash，或 vancine Provider 下的其他模型，然后发送提示词。",
+      "advancedTitle": "高级配置（可选）",
+      "advancedNote": "仅在需要覆盖 Base URL、设置模型 whitelist / blacklist、实时目录异常时手动后备，或其他需要显式覆盖 Provider 配置的场景，才使用项目级 opencode.json。基础接入不必同时执行 /connect 并编写该文件。",
+      "notOfficial": "Vancine 是独立的 OpenAI 兼容 API 服务，已列入 OpenCode 使用的 Models.dev 目录。该目录收录不代表 Vancine 与 OpenCode 存在官方合作或背书关系。",
+      "errors": {
+        "model": {
+          "fix": "使用 /models 中显示的准确 vancine 模型 ID，或查看 Vancine 模型页。模型 ID 区分大小写。"
+        }
+      },
       "benchmarkTitle": "验证证据",
-      "benchmarkNote": "下方链接的 8 模型评测在 Pi coding agent 中完成，并非在 OpenCode 中运行：它证明这些模型可以通过 Vancine 完成真实编码任务。OpenCode 本身的连通性由本页描述的 v1.18.3 实测覆盖，其他 OpenCode 版本未经验证。"
+      "benchmarkNote": "下方链接的 8 模型评测在 Pi coding agent 中完成，并非在 OpenCode 中运行：它证明这些模型可以通过 Vancine 完成真实编码任务。OpenCode 本身的连通性由本页描述的 v1.18.3 实测覆盖，其他 OpenCode 版本未经验证。",
+      "catalogProof": "Vancine 已进入 OpenCode 使用的 Models.dev Provider 目录",
+      "catalogNote": "OpenCode 会从 Models.dev 加载其 Provider 目录。Vancine 已作为 OpenAI 兼容 Provider 列入该目录。你仍需使用自己的 Vancine API Key。",
+      "catalogLink": "在 Models.dev 上查看 Vancine"
     },
     "cline": {
       "pageTitle": "Cline 接入指南",

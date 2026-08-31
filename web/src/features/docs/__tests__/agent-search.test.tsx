@@ -73,6 +73,25 @@ describe('DocsSearchBox agent guide navigation', () => {
   )
 
   it.each([
+    ['Models.dev', 'OpenCode setup guide', '/docs/agents/opencode'],
+    ['Provider catalog', 'OpenCode setup guide', '/docs/agents/opencode'],
+    ['connect', 'OpenCode setup guide', '/docs/agents/opencode'],
+    ['/connect', 'OpenCode setup guide', '/docs/agents/opencode'],
+  ] as const)(
+    'searching %s finds the OpenCode catalog entry and navigates to %s',
+    async (query, title, path) => {
+      const user = userEvent.setup()
+      const { router } = renderSearch()
+      await typeAndWaitForResults(user, query)
+
+      const option = await screen.findByText(title)
+      await user.click(option)
+
+      await waitFor(() => expect(router.history.location.pathname).toBe(path))
+    }
+  )
+
+  it.each([
     ['CORS', 'Cline setup guide', '/docs/agents/cline'],
     ['invalid API key', 'OpenCode setup guide', '/docs/agents/opencode'],
   ] as const)(

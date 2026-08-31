@@ -288,7 +288,8 @@
       },
       "cards": {
         "opencode": {
-          "protocol": "OpenAI-compatible provider in opencode.json"
+          "protocol": "Vancine is available through OpenCode's Models.dev provider catalog.",
+          "catalogProof": "Available in OpenCode through the Models.dev provider catalog"
         },
         "cline": {
           "protocol": "OpenAI-compatible provider in the Cline extension"
@@ -368,14 +369,28 @@
     },
     "opencode": {
       "pageTitle": "OpenCode setup guide",
-      "valueProp": "Connect the OpenCode terminal coding agent to Vancine through one project-level opencode.json file.",
-      "step1": "Install OpenCode and check its version.",
-      "step2": "Create a Vancine account and an API key if you do not have them yet.",
-      "step3": "Create or edit opencode.json in your project root with the configuration above.",
-      "step4": "Export VANCINE_API_KEY in your shell before starting OpenCode.",
-      "step5": "Start OpenCode, select a model from the vancine provider such as glm-5.1, and send a simple prompt to confirm.",
+      "valueProp": "Connect the OpenCode terminal coding agent to Vancine with /connect. OpenCode loads Vancine from the Models.dev provider catalog, so you do not need to create or edit opencode.json for basic setup.",
+      "noJsonNote": "Basic setup does not require creating or editing opencode.json.",
+      "step1": "Install or update OpenCode.",
+      "step2": "Create a Vancine account and an API Key if you do not have them yet.",
+      "step3": "In OpenCode, run /connect.",
+      "step4": "Search for and select Vancine.",
+      "step5": "Paste your own Vancine API Key.",
+      "step6": "Run /models.",
+      "step7": "Choose vancine/glm-5.3-flash, or another model under the vancine Provider, then send a prompt.",
+      "advancedTitle": "Advanced configuration (optional)",
+      "advancedNote": "Use a project-level opencode.json only to override the Base URL, whitelist or blacklist models, fall back when the live catalog is unavailable, or pin an explicit Provider config. Do not treat this file as part of the basic /connect setup.",
+      "notOfficial": "Vancine is an independent OpenAI-compatible API service listed in the Models.dev catalog used by OpenCode. This catalog listing does not imply an official partnership or endorsement by OpenCode.",
+      "errors": {
+        "model": {
+          "fix": "Use the exact vancine model ID shown by /models, or check the Vancine models page. Model IDs are case-sensitive."
+        }
+      },
       "benchmarkTitle": "Verification evidence",
-      "benchmarkNote": "The linked 8-model benchmark was run in the Pi coding agent, not in OpenCode: it shows these models complete real coding-agent tasks through Vancine. OpenCode connectivity itself is covered by the v1.18.3 live check described on this page, and no other OpenCode version has been verified."
+      "benchmarkNote": "The linked 8-model benchmark was run in the Pi coding agent, not in OpenCode: it shows these models complete real coding-agent tasks through Vancine. OpenCode connectivity itself is covered by the v1.18.3 live check described on this page, and no other OpenCode version has been verified.",
+      "catalogProof": "Available in OpenCode through the Models.dev provider catalog",
+      "catalogNote": "OpenCode loads its provider catalog from Models.dev. Vancine is listed there as an OpenAI-compatible Provider. You still use your own Vancine API Key.",
+      "catalogLink": "View Vancine on Models.dev"
     },
     "cline": {
       "pageTitle": "Cline setup guide",

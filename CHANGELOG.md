@@ -1,3 +1,11 @@
+## 1.9.5 - 2026-08-31
+
+### 文档与获客
+
+- OpenCode 可通过 Models.dev Provider 目录直接使用 /connect 添加 Vancine，基础接入无需手写 Provider JSON。
+- opencode.json 保留为高级配置和兼容后备，用于覆盖 Base URL、模型 whitelist / blacklist，或实时目录异常时的手动配置。
+- 用户仍需使用自己的 Vancine API Key；Models.dev 目录收录不构成与 OpenCode 的官方合作或背书。
+
 ## 1.9.4 - 2026-08-31
 
 ### 文档与获客

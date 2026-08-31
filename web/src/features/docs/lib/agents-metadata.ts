@@ -93,13 +93,13 @@ export function getDocsAgentToolPageMetadata(
       return {
         title: 'OpenCode Setup Guide for the Vancine API | Vancine',
         description:
-          'Connect OpenCode to Vancine through a project-level opencode.json: Base URL, API key and model setup, with a dedicated verification evidence section.',
+          'Add Vancine in OpenCode with /connect from the Models.dev Provider catalog — no manual provider JSON required. Paste your Vancine API Key, then choose a model with /models.',
         ogTitle: 'OpenCode Setup Guide for the Vancine API',
         ogDescription:
-          'Connect OpenCode to Vancine through a project-level opencode.json: Base URL, API key and model setup, with a dedicated verification evidence section.',
+          'Add Vancine in OpenCode with /connect from the Models.dev Provider catalog — no manual provider JSON required. Paste your Vancine API Key, then choose a model with /models.',
         twitterTitle: 'OpenCode Setup Guide for the Vancine API | Vancine',
         twitterDescription:
-          'Connect OpenCode to Vancine through a project-level opencode.json: Base URL, API key and model setup, with a dedicated verification evidence section.',
+          'Add Vancine in OpenCode with /connect from the Models.dev Provider catalog — no manual provider JSON required. Paste your Vancine API Key, then choose a model with /models.',
         ogUrl: DOCS_AGENT_OPENCODE_CANONICAL,
         canonical: DOCS_AGENT_OPENCODE_CANONICAL,
       }

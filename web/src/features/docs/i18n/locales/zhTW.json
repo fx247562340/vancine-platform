@@ -288,7 +288,8 @@
       },
       "cards": {
         "opencode": {
-          "protocol": "opencode.json 中的 OpenAI 相容 provider"
+          "protocol": "Vancine 已可透過 OpenCode 使用的 Models.dev Provider 目錄接入。",
+          "catalogProof": "Vancine 已進入 OpenCode 使用的 Models.dev Provider 目錄"
         },
         "cline": {
           "protocol": "Cline 擴充功能中的 OpenAI 相容 provider"
@@ -368,14 +369,28 @@
     },
     "opencode": {
       "pageTitle": "OpenCode 接入指南",
-      "valueProp": "透過專案層級 opencode.json 檔案，將 OpenCode 終端機編碼 Agent 接入 Vancine。",
-      "step1": "安裝 OpenCode 並確認版本。",
+      "valueProp": "在 OpenCode 中執行 /connect 即可接入 Vancine。OpenCode 會從 Models.dev 的 Provider 目錄載入 Vancine，基礎接入無需建立或修改 opencode.json。",
+      "noJsonNote": "基礎接入無需建立或修改 opencode.json。",
+      "step1": "安裝或更新 OpenCode。",
       "step2": "如果還沒有，請先建立 Vancine 帳戶與 API Key。",
-      "step3": "在專案根目錄建立或編輯 opencode.json，寫入上面的設定。",
-      "step4": "在啟動 OpenCode 前，在 shell 中匯出 VANCINE_API_KEY。",
-      "step5": "啟動 OpenCode，選擇 vancine provider 下的模型（如 glm-5.1），傳送一個簡單提示詞確認連線。",
+      "step3": "在 OpenCode 中執行 /connect。",
+      "step4": "搜尋並選擇 Vancine。",
+      "step5": "貼上你自己的 Vancine API Key。",
+      "step6": "執行 /models。",
+      "step7": "選擇 vancine/glm-5.3-flash，或 vancine Provider 下的其他模型，然後傳送提示詞。",
+      "advancedTitle": "進階設定（選用）",
+      "advancedNote": "僅在需要覆寫 Base URL、設定模型 whitelist / blacklist、即時目錄異常時手動後援，或其他需要明確覆寫 Provider 設定的情境，才使用專案層級 opencode.json。基礎接入不必同時執行 /connect 並編寫該檔案。",
+      "notOfficial": "Vancine 是獨立的 OpenAI 相容 API 服務，已列入 OpenCode 使用的 Models.dev 目錄。該目錄收錄不代表 Vancine 與 OpenCode 存在官方合作或背書關係。",
+      "errors": {
+        "model": {
+          "fix": "使用 /models 中顯示的準確 vancine 模型 ID，或查看 Vancine 模型頁。模型 ID 區分大小寫。"
+        }
+      },
       "benchmarkTitle": "驗證證據",
-      "benchmarkNote": "下方連結的 8 模型評測在 Pi coding agent 中完成，並非在 OpenCode 中執行：它證明這些模型可以透過 Vancine 完成真實編碼任務。OpenCode 本身的連線能力由本頁描述的 v1.18.3 實測涵蓋，其他 OpenCode 版本未經驗證。"
+      "benchmarkNote": "下方連結的 8 模型評測在 Pi coding agent 中完成，並非在 OpenCode 中執行：它證明這些模型可以透過 Vancine 完成真實編碼任務。OpenCode 本身的連線能力由本頁描述的 v1.18.3 實測涵蓋，其他 OpenCode 版本未經驗證。",
+      "catalogProof": "Vancine 已進入 OpenCode 使用的 Models.dev Provider 目錄",
+      "catalogNote": "OpenCode 會從 Models.dev 載入其 Provider 目錄。Vancine 已作為 OpenAI 相容 Provider 列入該目錄。你仍需使用自己的 Vancine API Key。",
+      "catalogLink": "在 Models.dev 上查看 Vancine"
     },
     "cline": {
       "pageTitle": "Cline 接入指南",

@@ -30,7 +30,10 @@ import ruDocs from '../i18n/locales/ru.json'
 import viDocs from '../i18n/locales/vi.json'
 import zhCNDocs from '../i18n/locales/zhCN.json'
 import zhTWDocs from '../i18n/locales/zhTW.json'
-import type { DocsAgentToolKey } from '../lib/agents'
+import {
+  VANCINE_MODELS_DEV_PROVIDER_URL,
+  type DocsAgentToolKey,
+} from '../lib/agents'
 import DocsAgentDetailPage from '../pages/agent-detail'
 import {
   EN_DOCS,
@@ -121,6 +124,68 @@ describe('All guides share one unified Configuration-ready status', () => {
   )
 })
 
+describe('OpenCode Models.dev catalog proof', () => {
+  it('shows the catalog identifier, explanation, and Models.dev link without replacing Configuration-ready', async () => {
+    const { container } = renderGuide('opencode')
+
+    await waitForHeading(/OpenCode setup guide/)
+    const catalogProof = screen.getByRole('link', {
+      name: 'Available in OpenCode through the Models.dev provider catalog',
+    })
+    expect(catalogProof).toHaveAttribute(
+      'href',
+      VANCINE_MODELS_DEV_PROVIDER_URL
+    )
+    expect(catalogProof).toHaveAttribute('target', '_blank')
+    expect(catalogProof).toHaveAttribute('rel', 'noopener noreferrer')
+    expect(
+      screen.getByText(
+        'OpenCode loads its provider catalog from Models.dev. Vancine is listed there as an OpenAI-compatible Provider. You still use your own Vancine API Key.'
+      )
+    ).toBeInTheDocument()
+    const catalogLink = screen.getByRole('link', {
+      name: 'View Vancine on Models.dev',
+    })
+    expect(catalogLink).toHaveAttribute('href', VANCINE_MODELS_DEV_PROVIDER_URL)
+    expect(catalogLink).toHaveAttribute('target', '_blank')
+    expect(catalogLink).toHaveAttribute('rel', 'noopener noreferrer')
+    expect(screen.getAllByText('Configuration-ready').length).toBeGreaterThan(0)
+    expect(
+      screen.getByText(
+        'The OpenAI-compatible setup for this tool is ready. Follow this guide to connect it to Vancine.'
+      )
+    ).toBeInTheDocument()
+    expect(container.textContent).not.toContain('official supplier')
+    expect(container.textContent).not.toMatch(/is an official partner/)
+    expect(container.textContent).toContain(
+      'does not imply an official partnership or endorsement by OpenCode'
+    )
+  })
+
+  it('does not show the catalog proof on Cline or Roo Code', async () => {
+    const { unmount } = renderGuide('cline')
+    await waitForHeading(/Cline setup guide/)
+    expect(
+      screen.queryByRole('link', {
+        name: 'Available in OpenCode through the Models.dev provider catalog',
+      })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('link', { name: 'View Vancine on Models.dev' })
+    ).not.toBeInTheDocument()
+    unmount()
+
+    renderGuide('rooCode')
+    await waitForHeading(/Roo Code setup guide/)
+    expect(
+      screen.queryByRole('link', {
+        name: 'Available in OpenCode through the Models.dev provider catalog',
+      })
+    ).not.toBeInTheDocument()
+    expect(screen.getAllByText('Configuration-ready').length).toBeGreaterThan(0)
+  })
+})
+
 describe('OpenCode verification evidence section', () => {
   it('keeps the v1.18.3 fact, the Pi relationship and the benchmark link in one section', async () => {
     renderGuide('opencode')
@@ -142,21 +207,57 @@ describe('OpenCode verification evidence section', () => {
   })
 })
 
-describe('OpenCode configuration block', () => {
-  it('renders a pure-JSON config block and a separate shell block', async () => {
+describe('OpenCode /connect primary path', () => {
+  it('leads with /connect and /models, and keeps JSON in the optional advanced section', async () => {
     const { container } = renderGuide('opencode')
 
     await waitForHeading(/OpenCode setup guide/)
-    // The JSON block is exact file content: no shell lines appended.
+    expect(
+      screen.getByText('Basic setup does not require creating or editing opencode.json.')
+    ).toBeInTheDocument()
+    expect(screen.getByText('In OpenCode, run /connect.')).toBeInTheDocument()
+    expect(screen.getByText('Search for and select Vancine.')).toBeInTheDocument()
+    expect(screen.getByText('Paste your own Vancine API Key.')).toBeInTheDocument()
+    expect(screen.getByText('Run /models.')).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'Choose vancine/glm-5.3-flash, or another model under the vancine Provider, then send a prompt.'
+      )
+    ).toBeInTheDocument()
+
+    const stepsList = container.querySelector('ol')
+    if (!stepsList) {
+      throw new Error('OpenCode primary steps list is missing')
+    }
+    expect(stepsList.textContent).toContain('/connect')
+    expect(stepsList.textContent).toContain('/models')
+    expect(stepsList.textContent).toContain('vancine/glm-5.3-flash')
+    expect(stepsList.textContent).not.toContain('opencode.json')
+
+    const advanced = screen.getByRole('heading', {
+      name: 'Advanced configuration (optional)',
+    })
+    expect(
+      stepsList.compareDocumentPosition(advanced) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).not.toBe(0)
     expect(container.textContent).toContain('"provider"')
+    expect(container.textContent).toContain('glm-5.3-flash')
+    expect(container.textContent).not.toContain('glm-5.1')
     expect(container.textContent).not.toContain('# shell')
-    // The API-key export is shown, but as its own shell snippet.
     expect(container.textContent).toContain(
       'export VANCINE_API_KEY="sk-your-api-key"'
     )
-    // No model capability/limit data is duplicated from the model pages.
     expect(container.textContent).not.toContain('"limit"')
     expect(container.textContent).not.toContain('"context"')
+    expect(
+      screen.getByText(
+        /does not imply an official partnership or endorsement by OpenCode/
+      )
+    ).toBeInTheDocument()
+    expect(container.textContent).not.toContain(
+      'built-in integration of OpenCode'
+    )
   })
 })
 
@@ -177,10 +278,19 @@ describe('Guide prerequisites, Base URL and placeholder-only configuration', () 
         screen.getByText(`${toolName} installed on your machine.`)
       ).toBeInTheDocument()
 
-      expect(
-        screen.getByRole('heading', { name: 'Vancine Base URL' })
-      ).toBeInTheDocument()
-      expect(screen.getAllByText(BASE_URL).length).toBeGreaterThan(0)
+      if (tool === 'opencode') {
+        expect(
+          screen.queryByRole('heading', { name: 'Vancine Base URL' })
+        ).not.toBeInTheDocument()
+      } else {
+        expect(
+          screen.getByRole('heading', { name: 'Vancine Base URL' })
+        ).toBeInTheDocument()
+      }
+      expect(container.textContent).toContain(BASE_URL)
+      if (tool !== 'opencode') {
+        expect(screen.getAllByText(BASE_URL).length).toBeGreaterThan(0)
+      }
 
       // Configuration examples use only obvious placeholders.
       expect(container.textContent).toContain('sk-your-api-key')

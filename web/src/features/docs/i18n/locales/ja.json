@@ -288,7 +288,8 @@
       },
       "cards": {
         "opencode": {
-          "protocol": "opencode.json 内の OpenAI 互換プロバイダー"
+          "protocol": "Vancine は OpenCode が使用する Models.dev の Provider カタログから利用できます。",
+          "catalogProof": "OpenCode では Models.dev の Provider カタログから利用できます"
         },
         "cline": {
           "protocol": "Cline 拡張機能内の OpenAI 互換プロバイダー"
@@ -368,14 +369,28 @@
     },
     "opencode": {
       "pageTitle": "OpenCode セットアップガイド",
-      "valueProp": "プロジェクト直下の opencode.json ファイル 1 つで、ターミナル型コーディングエージェントの OpenCode を Vancine に接続します。",
-      "step1": "OpenCode をインストールし、バージョンを確認します。",
-      "step2": "まだの場合は、Vancine アカウントと API キーを作成してください。",
-      "step3": "プロジェクトルートで上記の設定を用いて opencode.json を作成・編集します。",
-      "step4": "OpenCode の起動前に、シェルで VANCINE_API_KEY をエクスポートします。",
-      "step5": "OpenCode を起動し、vancine プロバイダーから glm-5.1 などのモデルを選んで、簡単なプロンプトを送信して確認します。",
+      "valueProp": "OpenCode で /connect を実行して Vancine に接続します。OpenCode は Models.dev の Provider カタログから Vancine を読み込むため、基本セットアップでは opencode.json の作成や編集は不要です。",
+      "noJsonNote": "基本セットアップでは opencode.json の作成や編集は不要です。",
+      "step1": "OpenCode をインストールまたは更新します。",
+      "step2": "まだの場合は、Vancine アカウントと API Key を作成してください。",
+      "step3": "OpenCode で /connect を実行します。",
+      "step4": "Vancine を検索して選択します。",
+      "step5": "ご自身の Vancine API Key を貼り付けます。",
+      "step6": "/models を実行します。",
+      "step7": "vancine/glm-5.3-flash、または vancine Provider 配下の他のモデルを選んでプロンプトを送信します。",
+      "advancedTitle": "詳細設定（任意）",
+      "advancedNote": "プロジェクト直下の opencode.json は、Base URL の上書き、モデルの whitelist / blacklist、ライブカタログ異常時の手動フォールバック、または Provider 設定を明示的に固定したい場合にだけ使います。基本の /connect セットアップの一部としては扱わないでください。",
+      "notOfficial": "Vancine は独立した OpenAI 互換 API サービスであり、OpenCode が使用する Models.dev カタログに掲載されています。このカタログ掲載は、OpenCode による公式な提携、推奨、承認やお墨付きを意味しません。",
+      "errors": {
+        "model": {
+          "fix": "/models に表示される正確な vancine モデル ID を使うか、Vancine のモデルページを確認してください。モデル ID は大文字・小文字を区別します。"
+        }
+      },
       "benchmarkTitle": "検証証拠",
-      "benchmarkNote": "リンク先の 8 モデルベンチマークは OpenCode ではなく Pi coding agent で実行されたものです。これらのモデルが Vancine 経由で実際のコーディングタスクを完了できることを示しています。OpenCode 自体の接続性は、このページで説明している v1.18.3 の実測がカバーしており、他の OpenCode バージョンは未検証です。"
+      "benchmarkNote": "リンク先の 8 モデルベンチマークは OpenCode ではなく Pi coding agent で実行されたものです。これらのモデルが Vancine 経由で実際のコーディングタスクを完了できることを示しています。OpenCode 自体の接続性は、このページで説明している v1.18.3 の実測がカバーしており、他の OpenCode バージョンは未検証です。",
+      "catalogProof": "OpenCode では Models.dev の Provider カタログから利用できます",
+      "catalogNote": "OpenCode は Provider カタログを Models.dev から読み込みます。Vancine は OpenAI 互換 Provider として掲載されています。ご自身の Vancine API Key が必要です。",
+      "catalogLink": "Models.dev で Vancine を見る"
     },
     "cline": {
       "pageTitle": "Cline セットアップガイド",

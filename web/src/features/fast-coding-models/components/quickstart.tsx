@@ -112,6 +112,16 @@ export function Quickstart(props: QuickstartProps): ReactElement {
           />
           {t('Set up OpenCode, Cline, or Roo Code')}
         </Button>
+        <p className='text-muted-foreground mt-3 text-sm'>
+          <Link
+            to='/docs/agents/opencode'
+            className='text-primary font-medium underline underline-offset-4'
+          >
+            {t(
+              'Connect Vancine in OpenCode with /connect — no manual provider JSON required.'
+            )}
+          </Link>
+        </p>
       </div>
     </section>
   )

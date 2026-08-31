@@ -91,10 +91,23 @@ interface DocsCodeBlockProps {
   code: string
   title?: string
   language?: BundledLanguage
+  /** Content-sized single-line snippet; skips the full editor chrome. */
+  compact?: boolean
 }
 
 export function DocsCodeBlock(props: DocsCodeBlockProps) {
   const language = props.language ?? 'bash'
+
+  if (props.compact) {
+    return (
+      <div className='border-border bg-muted/50 my-1.5 inline-flex max-w-full items-center gap-2 overflow-x-auto rounded-md border px-3 py-1.5'>
+        <code className='text-foreground font-mono text-sm whitespace-nowrap'>
+          {props.code}
+        </code>
+        <DocsCopyButton code={props.code} iconOnly />
+      </div>
+    )
+  }
 
   return (
     <div className='mb-6'>

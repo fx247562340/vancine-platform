@@ -145,6 +145,7 @@ const testRouteTree = testRootRoute.addChildren([
   stubRoute('/pricing', 'pricing-page'),
   stubRoute('/pricing/$modelId', 'pricing-model-page'),
   stubRoute('/docs/agents', 'docs-agents-page'),
+  stubRoute('/docs/agents/opencode', 'docs-opencode-page'),
   stubRoute('/coding-agent-benchmark', 'benchmark-page'),
 ])
 
@@ -553,6 +554,23 @@ describe('quickstart', () => {
     ]) {
       expect(section.textContent).toContain(modelId)
     }
+    const docsLink = within(section).getByRole('button', {
+      name: /Set up OpenCode, Cline, or Roo Code/,
+    })
+    const href = docsLink.getAttribute('href') ?? ''
+    expect(href).toMatch(/^\/docs\/agents/)
+    expect(hrefParams(href).get('utm_content')).toBe('docs')
+  })
+
+  it('adds a compact OpenCode catalog trust signal without changing the setup CTA', async () => {
+    renderPage()
+    const section = (
+      await screen.findByRole('heading', { level: 2, name: 'Quickstart' })
+    ).closest('section') as HTMLElement
+    const catalogLink = within(section).getByRole('link', {
+      name: 'Connect Vancine in OpenCode with /connect — no manual provider JSON required.',
+    })
+    expect(catalogLink).toHaveAttribute('href', '/docs/agents/opencode')
     const docsLink = within(section).getByRole('button', {
       name: /Set up OpenCode, Cline, or Roo Code/,
     })

@@ -113,13 +113,13 @@ var publicMarketingPages = []publicPageMeta{
 		// must stay byte-identical to it.
 		path:  "/docs/agents/opencode",
 		title: "OpenCode Setup Guide for the Vancine API | Vancine",
-		description: "Connect OpenCode to Vancine through a project-level " +
-			"opencode.json: Base URL, API key and model setup, with " +
-			"a dedicated verification evidence section.",
+		description: "Add Vancine in OpenCode with /connect from the Models.dev " +
+			"Provider catalog — no manual provider JSON required. Paste your " +
+			"Vancine API Key, then choose a model with /models.",
 		ogTitle:          "OpenCode Setup Guide for the Vancine API",
-		ogDescription:    "Connect OpenCode to Vancine through a project-level opencode.json: Base URL, API key and model setup, with a dedicated verification evidence section.",
+		ogDescription:    "Add Vancine in OpenCode with /connect from the Models.dev Provider catalog — no manual provider JSON required. Paste your Vancine API Key, then choose a model with /models.",
 		twitterTitle:     "OpenCode Setup Guide for the Vancine API | Vancine",
-		twitterDesc:      "Connect OpenCode to Vancine through a project-level opencode.json: Base URL, API key and model setup, with a dedicated verification evidence section.",
+		twitterDesc:      "Add Vancine in OpenCode with /connect from the Models.dev Provider catalog — no manual provider JSON required. Paste your Vancine API Key, then choose a model with /models.",
 		twitterCardValue: "summary",
 	},
 	{

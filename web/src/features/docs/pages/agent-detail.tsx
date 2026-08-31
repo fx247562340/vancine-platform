@@ -32,6 +32,7 @@ import { DOCS_NS } from '../i18n/loader'
 import {
   getDocsAgentConfigExample,
   getDocsAgentToolProfile,
+  VANCINE_MODELS_DEV_PROVIDER_URL,
   type DocsAgentToolKey,
 } from '../lib/agents'
 import { getDocsAgentToolPageMetadata } from '../lib/agents-metadata'
@@ -47,7 +48,10 @@ const AGENT_TOOL_METADATA: Record<DocsAgentToolKey, PageMetadata> = {
   rooCode: getDocsAgentToolPageMetadata('rooCode'),
 }
 
-const STEP_NUMBERS = [1, 2, 3, 4, 5] as const
+const SHARED_STEP_NUMBERS = [1, 2, 3, 4, 5] as const
+const OPENCODE_STEP_NUMBERS = [1, 2, 3, 4, 5, 6, 7] as const
+const OPENCODE_CONNECT_COMMAND = '/connect'
+const OPENCODE_MODELS_COMMAND = '/models'
 
 const ERROR_KEYS = ['baseUrl', 'apiKey', 'model', 'protocol'] as const
 
@@ -68,6 +72,10 @@ export default function DocsAgentDetailPage(props: {
   const isAuthenticated = !!user
 
   const profile = getDocsAgentToolProfile(props.tool)
+  const isOpenCode = props.tool === 'opencode'
+  const stepNumbers = isOpenCode
+    ? OPENCODE_STEP_NUMBERS
+    : SHARED_STEP_NUMBERS
   const configBlocks = useMemo(
     () => getDocsAgentConfigExample(props.tool, props.baseUrl),
     [props.tool, props.baseUrl]
@@ -96,38 +104,63 @@ export default function DocsAgentDetailPage(props: {
         titleKey: 'agentGuides.common.prerequisitesTitle',
         level: 3,
       },
-      {
-        id: `agent-${profile.segment}-base-url`,
-        titleKey: 'agentGuides.common.baseUrlTitle',
-        level: 3,
-      },
-      {
-        id: `agent-${profile.segment}-config`,
-        titleKey: 'agentGuides.common.configTitle',
-        level: 3,
-      },
-      {
-        id: `agent-${profile.segment}-steps`,
-        titleKey: 'agentGuides.common.stepsTitle',
-        level: 3,
-      },
-      {
-        id: `agent-${profile.segment}-models`,
-        titleKey: 'agentGuides.common.modelsTitle',
-        level: 3,
-      },
-      {
-        id: `agent-${profile.segment}-errors`,
-        titleKey: 'agentGuides.common.troubleshootingTitle',
-        level: 3,
-      },
     ]
     if (props.tool === 'opencode') {
-      keys.push({
-        id: 'agent-opencode-evidence',
-        titleKey: 'agentGuides.opencode.benchmarkTitle',
-        level: 3,
-      })
+      keys.push(
+        {
+          id: 'agent-opencode-steps',
+          titleKey: 'agentGuides.common.stepsTitle',
+          level: 3,
+        },
+        {
+          id: 'agent-opencode-models',
+          titleKey: 'agentGuides.common.modelsTitle',
+          level: 3,
+        },
+        {
+          id: 'agent-opencode-errors',
+          titleKey: 'agentGuides.common.troubleshootingTitle',
+          level: 3,
+        },
+        {
+          id: 'agent-opencode-advanced',
+          titleKey: 'agentGuides.opencode.advancedTitle',
+          level: 3,
+        },
+        {
+          id: 'agent-opencode-evidence',
+          titleKey: 'agentGuides.opencode.benchmarkTitle',
+          level: 3,
+        }
+      )
+    } else {
+      keys.push(
+        {
+          id: `agent-${profile.segment}-base-url`,
+          titleKey: 'agentGuides.common.baseUrlTitle',
+          level: 3,
+        },
+        {
+          id: `agent-${profile.segment}-config`,
+          titleKey: 'agentGuides.common.configTitle',
+          level: 3,
+        },
+        {
+          id: `agent-${profile.segment}-steps`,
+          titleKey: 'agentGuides.common.stepsTitle',
+          level: 3,
+        },
+        {
+          id: `agent-${profile.segment}-models`,
+          titleKey: 'agentGuides.common.modelsTitle',
+          level: 3,
+        },
+        {
+          id: `agent-${profile.segment}-errors`,
+          titleKey: 'agentGuides.common.troubleshootingTitle',
+          level: 3,
+        }
+      )
     }
     keys.push({
       id: `agent-${profile.segment}-cta`,
@@ -163,7 +196,34 @@ export default function DocsAgentDetailPage(props: {
         </span>
         <Badge variant='outline'>{statusLabel}</Badge>
       </DocsH2>
+      {props.tool === 'opencode' ? (
+        <p className='mb-4'>
+          <a
+            href={VANCINE_MODELS_DEV_PROVIDER_URL}
+            target='_blank'
+            rel='noopener noreferrer'
+            className='text-primary text-sm font-medium underline underline-offset-4'
+          >
+            {t('agentGuides.opencode.catalogProof')}
+          </a>
+        </p>
+      ) : null}
       <DocsP>{t(`agentGuides.${props.tool}.valueProp`)}</DocsP>
+      {props.tool === 'opencode' ? (
+        <div className='border-border bg-card mb-6 rounded-xl border p-4'>
+          <p className='text-muted-foreground text-sm leading-relaxed'>
+            {t('agentGuides.opencode.catalogNote')}
+          </p>
+          <a
+            href={VANCINE_MODELS_DEV_PROVIDER_URL}
+            target='_blank'
+            rel='noopener noreferrer'
+            className='text-primary mt-2 inline-block text-sm font-medium underline underline-offset-4'
+          >
+            {t('agentGuides.opencode.catalogLink')}
+          </a>
+        </div>
+      ) : null}
       <DocsCallout type='info'>
         <strong>{statusLabel}:</strong> {t('agentGuides.common.statusCallout')}
       </DocsCallout>
@@ -177,36 +237,61 @@ export default function DocsAgentDetailPage(props: {
         <li>{t('agentGuides.common.prereqTool', interpolation)}</li>
       </ul>
 
-      <DocsH3 id={`agent-${profile.segment}-base-url`}>
-        {t('agentGuides.common.baseUrlTitle')}
-      </DocsH3>
-      <DocsP>{t('agentGuides.common.baseUrlDesc')}</DocsP>
-      <DocsCodeBlock
-        code={props.baseUrl}
-        language='bash'
-        title={t('agentGuides.common.baseUrlTitle')}
-      />
+      {isOpenCode ? null : (
+        <>
+          <DocsH3 id={`agent-${profile.segment}-base-url`}>
+            {t('agentGuides.common.baseUrlTitle')}
+          </DocsH3>
+          <DocsP>{t('agentGuides.common.baseUrlDesc')}</DocsP>
+          <DocsCodeBlock
+            code={props.baseUrl}
+            language='bash'
+            title={t('agentGuides.common.baseUrlTitle')}
+          />
 
-      <DocsH3 id={`agent-${profile.segment}-config`}>
-        {t('agentGuides.common.configTitle')}
-      </DocsH3>
-      <DocsP>{t('agentGuides.common.configNote')}</DocsP>
-      {configBlocks.map((block) => (
-        <DocsCodeBlock
-          key={block.language}
-          code={block.code}
-          language={block.language}
-          title={t('agentGuides.common.configTitle')}
-        />
-      ))}
+          <DocsH3 id={`agent-${profile.segment}-config`}>
+            {t('agentGuides.common.configTitle')}
+          </DocsH3>
+          <DocsP>{t('agentGuides.common.configNote')}</DocsP>
+          {configBlocks.map((block) => (
+            <DocsCodeBlock
+              key={block.language}
+              code={block.code}
+              language={block.language}
+              title={t('agentGuides.common.configTitle')}
+            />
+          ))}
+        </>
+      )}
 
       <DocsH3 id={`agent-${profile.segment}-steps`}>
         {t('agentGuides.common.stepsTitle')}
       </DocsH3>
-      <ol className='text-muted-foreground marker:text-primary mb-6 list-decimal space-y-1.5 pl-6 text-sm leading-relaxed marker:font-semibold'>
-        {STEP_NUMBERS.map((step) => (
+      {isOpenCode ? (
+        <DocsCallout type='tip'>
+          {t('agentGuides.opencode.noJsonNote')}
+        </DocsCallout>
+      ) : null}
+      <ol className='text-muted-foreground marker:text-primary mb-6 list-decimal space-y-3 pl-6 text-sm leading-relaxed marker:font-semibold'>
+        {stepNumbers.map((step) => (
           <li key={step}>
-            {t(`agentGuides.${props.tool}.step${step}`, interpolation)}
+            <div>
+              {t(`agentGuides.${props.tool}.step${step}`, interpolation)}
+            </div>
+            {isOpenCode && step === 3 ? (
+              <DocsCodeBlock
+                compact
+                code={OPENCODE_CONNECT_COMMAND}
+                language='bash'
+              />
+            ) : null}
+            {isOpenCode && step === 6 ? (
+              <DocsCodeBlock
+                compact
+                code={OPENCODE_MODELS_COMMAND}
+                language='bash'
+              />
+            ) : null}
           </li>
         ))}
       </ol>
@@ -244,14 +329,32 @@ export default function DocsAgentDetailPage(props: {
               {t(`agentGuides.common.errors.${errorKey}.symptom`)}
             </p>
             <p className='text-muted-foreground text-sm leading-relaxed'>
-              {t(`agentGuides.common.errors.${errorKey}.fix`, interpolation)}
+              {errorKey === 'model' && isOpenCode
+                ? t('agentGuides.opencode.errors.model.fix')
+                : t(
+                    `agentGuides.common.errors.${errorKey}.fix`,
+                    interpolation
+                  )}
             </p>
           </div>
         ))}
       </div>
 
-      {props.tool === 'opencode' ? (
+      {isOpenCode ? (
         <>
+          <DocsH3 id='agent-opencode-advanced'>
+            {t('agentGuides.opencode.advancedTitle')}
+          </DocsH3>
+          <DocsP>{t('agentGuides.opencode.advancedNote')}</DocsP>
+          <DocsP>{t('agentGuides.common.configNote')}</DocsP>
+          {configBlocks.map((block) => (
+            <DocsCodeBlock
+              key={block.language}
+              code={block.code}
+              language={block.language}
+              title={t('agentGuides.opencode.advancedTitle')}
+            />
+          ))}
           <DocsH3 id='agent-opencode-evidence'>
             {t('agentGuides.opencode.benchmarkTitle')}
           </DocsH3>
@@ -268,7 +371,9 @@ export default function DocsAgentDetailPage(props: {
       ) : null}
 
       <DocsCallout type='info'>
-        {t('agentGuides.common.notOfficial', interpolation)}
+        {isOpenCode
+          ? t('agentGuides.opencode.notOfficial')
+          : t('agentGuides.common.notOfficial', interpolation)}
       </DocsCallout>
 
       <DocsH3 id={`agent-${profile.segment}-cta`}>

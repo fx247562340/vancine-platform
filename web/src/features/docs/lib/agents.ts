@@ -33,6 +33,10 @@ export type DocsAgentToolKey = 'opencode' | 'cline' | 'rooCode'
 
 export type DocsAgentToolPath = DocsAgentGuidePath
 
+/** Live Models.dev provider catalog page for Vancine. */
+export const VANCINE_MODELS_DEV_PROVIDER_URL =
+  'https://models.dev/providers/vancine/'
+
 export interface DocsAgentToolProfile {
   key: DocsAgentToolKey
   /** Canonical lowercase path segment (also the route suffix). */
@@ -114,7 +118,7 @@ export function getDocsAgentConfigExample(
         "apiKey": "{env:VANCINE_API_KEY}"
       },
       "models": {
-        "glm-5.1": {}
+        "glm-5.3-flash": {}
       }
     }
   }

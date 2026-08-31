@@ -19,7 +19,11 @@ For commercial licensing, please contact support@quantumnous.com
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { DOCS_AGENT_TOOLS, getDocsAgentConfigExample } from '../agents.ts'
+import {
+  DOCS_AGENT_TOOLS,
+  getDocsAgentConfigExample,
+  VANCINE_MODELS_DEV_PROVIDER_URL,
+} from '../agents.ts'
 
 // A real Vancine/OpenAI-style key: sk- followed by 20+ alphanumerics.
 // Config examples must only ever carry obvious placeholders.
@@ -44,6 +48,13 @@ describe('Docs agent tool profiles', () => {
         `${tool.key} must not expose a status tier`
       )
     }
+  })
+
+  it('pins the Models.dev provider catalog URL', () => {
+    assert.equal(
+      VANCINE_MODELS_DEV_PROVIDER_URL,
+      'https://models.dev/providers/vancine/'
+    )
   })
 })
 
@@ -112,6 +123,14 @@ describe('Docs agent config examples', () => {
     }
     const models = parsed.provider?.vancine?.models ?? {}
     assert.ok(Object.keys(models).length > 0, 'models map must not be empty')
+    assert.ok(
+      !opencodeJson.includes('glm-5.1'),
+      'OpenCode example must not use glm-5.1'
+    )
+    assert.ok(
+      Object.hasOwn(models, 'glm-5.3-flash'),
+      'OpenCode example may only pin a live catalog model such as glm-5.3-flash'
+    )
     for (const [modelId, value] of Object.entries(models)) {
       assert.deepEqual(
         value,

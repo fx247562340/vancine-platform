@@ -643,6 +643,94 @@ const SAME_ENGLISH_ALLOWLIST = new Set<string>([
   'audio.voices.arabic',
 ])
 
+describe('OpenCode /connect primary path copy', () => {
+  it('keeps /connect and /models in all seven locales and never names glm-5.1', () => {
+    for (const code of LOCALE_CODES) {
+      const map = flattenToMap(readJson(path.join(LOCALES_DIR, `${code}.json`)))
+      const step3 = map.get('agentGuides.opencode.step3') ?? ''
+      const step6 = map.get('agentGuides.opencode.step6') ?? ''
+      const step7 = map.get('agentGuides.opencode.step7') ?? ''
+      assert.ok(
+        step3.includes('/connect'),
+        `${code} step3 must include /connect`
+      )
+      assert.ok(step6.includes('/models'), `${code} step6 must include /models`)
+      assert.ok(
+        step7.includes('vancine/glm-5.3-flash'),
+        `${code} step7 must include vancine/glm-5.3-flash`
+      )
+      assert.ok(
+        (map.get('agentGuides.opencode.noJsonNote') ?? '').trim(),
+        `${code} missing noJsonNote`
+      )
+      assert.ok(
+        (map.get('agentGuides.opencode.advancedTitle') ?? '').trim(),
+        `${code} missing advancedTitle`
+      )
+      assert.ok(
+        (map.get('agentGuides.opencode.notOfficial') ?? '').includes(
+          'Models.dev'
+        ),
+        `${code} OpenCode disclaimer must name Models.dev`
+      )
+      for (const [key, value] of map) {
+        if (!key.startsWith('agentGuides.opencode.')) continue
+        assert.equal(
+          value.includes('glm-5.1'),
+          false,
+          `${code} ${key} must not name glm-5.1`
+        )
+      }
+    }
+  })
+})
+
+describe('OpenCode Models.dev catalog copy', () => {
+  const catalogKeys = [
+    'agents.hub.cards.opencode.catalogProof',
+    'agentGuides.opencode.catalogProof',
+    'agentGuides.opencode.catalogNote',
+    'agentGuides.opencode.catalogLink',
+  ]
+
+  it('keeps catalog keys in all seven locales with Models.dev and no partnership claims', () => {
+    for (const code of LOCALE_CODES) {
+      const map = flattenToMap(readJson(path.join(LOCALES_DIR, `${code}.json`)))
+      for (const key of catalogKeys) {
+        const value = map.get(key) ?? ''
+        assert.ok(value.trim(), `${code} missing/empty ${key}`)
+        assert.ok(
+          value.includes('Models.dev'),
+          `${code} ${key} must name Models.dev`
+        )
+        assert.equal(
+          value.includes('official partner'),
+          false,
+          `${code} ${key}`
+        )
+        assert.equal(
+          value.includes('official supplier'),
+          false,
+          `${code} ${key}`
+        )
+      }
+      const note = map.get('agentGuides.opencode.catalogNote') ?? ''
+      assert.ok(
+        note.includes('Provider'),
+        `${code} catalogNote must keep Provider`
+      )
+      assert.ok(
+        note.includes('API Key'),
+        `${code} catalogNote must keep API Key`
+      )
+      assert.ok(
+        note.includes('OpenCode'),
+        `${code} catalogNote must keep OpenCode`
+      )
+    }
+  })
+})
+
 describe('Same-English values', () => {
   it('asserts zero un-allowlisted same-English values (and no stale allowlist)', () => {
     const enMap = flattenToMap(readJson(path.join(LOCALES_DIR, 'en.json')))

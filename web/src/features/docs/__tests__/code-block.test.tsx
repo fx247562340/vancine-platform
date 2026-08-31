@@ -54,6 +54,14 @@ afterEach(() => {
 })
 
 describe('DocsCodeBlock integration', () => {
+  it('compact snippets skip the editor chrome and stay content-sized', () => {
+    const { container } = render(
+      <DocsCodeBlock compact code='/connect' language='bash' />
+    )
+    expect(container.querySelector('[role="textbox"]')).toBeNull()
+    expect(container.querySelector('code')?.textContent).toBe('/connect')
+  })
+
   it('inherits the adaptive one-line height for single-line snippets', () => {
     const { container } = render(
       <DocsCodeBlock code='https://vancine.com/v1' />
