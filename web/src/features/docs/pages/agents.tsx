@@ -30,7 +30,12 @@ import { DocsH2, DocsH3, DocsP } from '../components/headings'
 import { useRegisterHeadings } from '../components/register-headings'
 import {
   DOCS_AGENT_TOOLS,
+  PI_LOGIN_COMMAND,
+  PI_MODEL_COMMAND,
+  PI_PROVIDER_INSTALL_COMMAND,
   VANCINE_MODELS_DEV_PROVIDER_URL,
+  VANCINE_PI_PROVIDER_GITHUB_URL,
+  VANCINE_PI_PROVIDER_NPM_URL,
 } from '../lib/agents'
 import { getDocsAgentsPageMetadata } from '../lib/agents-metadata'
 import type { TocHeading } from '../types'
@@ -119,6 +124,7 @@ export default function Agents(props: { baseUrl: string }) {
       () => [
         { id: 'agents-title', title: t('agents.title'), level: 2 },
         { id: 'agents-hub', title: t('agents.hub.title'), level: 3 },
+        { id: 'agents-pi', title: t('agents.pi.title'), level: 3 },
         { id: 'agents-cli', title: t('agents.cliTitle'), level: 3 },
         { id: 'agents-gui', title: t('agents.guiTitle'), level: 3 },
       ],
@@ -197,6 +203,51 @@ export default function Agents(props: { baseUrl: string }) {
             </div>
           )
         })}
+      </div>
+
+      <DocsH3 id='agents-pi'>{t('agents.pi.title')}</DocsH3>
+      <DocsP>{t('agents.pi.desc')}</DocsP>
+      <div className='border-border bg-card mb-6 rounded-xl border p-5'>
+        <p className='mb-4 flex flex-wrap gap-x-4 gap-y-2 text-sm'>
+          <a
+            href={VANCINE_PI_PROVIDER_NPM_URL}
+            target='_blank'
+            rel='noopener noreferrer'
+            className='text-primary font-medium underline underline-offset-4'
+          >
+            {t('agents.pi.npmLabel')}
+          </a>
+          <a
+            href={VANCINE_PI_PROVIDER_GITHUB_URL}
+            target='_blank'
+            rel='noopener noreferrer'
+            className='text-primary font-medium underline underline-offset-4'
+          >
+            {t('agents.pi.githubLabel')}
+          </a>
+        </p>
+        <ol className='text-muted-foreground marker:text-primary mb-4 list-decimal space-y-3 pl-5 text-sm leading-relaxed marker:font-semibold'>
+          <li>
+            <div>{t('agents.pi.stepInstall')}</div>
+            <DocsCodeBlock
+              compact
+              code={PI_PROVIDER_INSTALL_COMMAND}
+              language='bash'
+            />
+          </li>
+          <li>
+            <div>{t('agents.pi.stepLogin')}</div>
+            <DocsCodeBlock compact code={PI_LOGIN_COMMAND} language='bash' />
+          </li>
+          <li>{t('agents.pi.stepSelect')}</li>
+          <li>
+            <div>{t('agents.pi.stepModel')}</div>
+            <DocsCodeBlock compact code={PI_MODEL_COMMAND} language='bash' />
+          </li>
+          <li>{t('agents.pi.stepChoose')}</li>
+        </ol>
+        <DocsCallout type='tip'>{t('agents.pi.catalogNote')}</DocsCallout>
+        <DocsCallout type='info'>{t('agents.pi.notOfficial')}</DocsCallout>
       </div>
 
       <DocsH3 id='agents-cli'>{t('agents.cliTitle')}</DocsH3>

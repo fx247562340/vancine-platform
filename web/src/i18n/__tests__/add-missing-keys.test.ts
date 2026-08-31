@@ -613,3 +613,147 @@ describe('add-missing-keys staging failure cleans temps and keeps originals', ()
     }
   })
 })
+
+const DOCS_LOCALES = ['en', 'zhCN', 'zhTW', 'fr', 'ru', 'ja', 'vi']
+
+function makeDocsFixtureDir(): string {
+  const dir = mkdtempSync(join(tmpdir(), 'add-missing-keys-docs-'))
+  for (const locale of DOCS_LOCALES) {
+    writeFileSync(
+      join(dir, `${locale}.json`),
+      `${JSON.stringify(
+        {
+          agents: {
+            title: `title-${locale}`,
+            hub: { title: `hub-${locale}` },
+          },
+        },
+        null,
+        2
+      )}\n`,
+      'utf8'
+    )
+  }
+  return dir
+}
+
+function snapshotDocs(dir: string): Map<string, string> {
+  const snap = new Map<string, string>()
+  for (const locale of DOCS_LOCALES) {
+    snap.set(locale, readFileSync(join(dir, `${locale}.json`), 'utf8'))
+  }
+  return snap
+}
+
+function explicitDocsEntryArgs(key: string): string[] {
+  const args = ['--docs', '--key', key]
+  for (const locale of DOCS_LOCALES) {
+    args.push(`--${locale}`, `${key} :: ${locale}`)
+  }
+  return args
+}
+
+describe('add-missing-keys --docs nested locale contract', () => {
+  test('writes a dotted key into the nested Docs table and keeps siblings', () => {
+    const dir = makeDocsFixtureDir()
+    try {
+      const run = runScript(explicitDocsEntryArgs('agents.pi.title'), dir)
+      assert.equal(run.status, 0, `stderr: ${run.stderr}`)
+      for (const locale of DOCS_LOCALES) {
+        const json = JSON.parse(
+          readFileSync(join(dir, `${locale}.json`), 'utf8')
+        ) as {
+          agents: { title: string; hub: { title: string }; pi: { title: string } }
+        }
+        assert.equal(json.agents.title, `title-${locale}`)
+        assert.equal(json.agents.hub.title, `hub-${locale}`)
+        assert.equal(json.agents.pi.title, `agents.pi.title :: ${locale}`)
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  test('rejects app locale flags such as --zh and writes no file', () => {
+    const dir = makeDocsFixtureDir()
+    const before = snapshotDocs(dir)
+    try {
+      const args = ['--docs', '--key', 'agents.pi.title']
+      for (const locale of DOCS_LOCALES.filter((l) => l !== 'zhCN')) {
+        args.push(`--${locale}`, `val-${locale}`)
+      }
+      args.push('--zh', 'should-not-map')
+      const run = runScript(args, dir)
+      assert.notEqual(run.status, 0, `stderr: ${run.stderr}`)
+      assert.match(run.stderr, /--zh/)
+      for (const locale of DOCS_LOCALES) {
+        assert.equal(
+          readFileSync(join(dir, `${locale}.json`), 'utf8'),
+          before.get(locale)
+        )
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  test('rejects a non-dotted docs key before any write', () => {
+    const dir = makeDocsFixtureDir()
+    const before = snapshotDocs(dir)
+    try {
+      const run = runScript(explicitDocsEntryArgs('notADottedKey'), dir)
+      assert.notEqual(run.status, 0, `stderr: ${run.stderr}`)
+      assert.match(run.stderr, /dotted path/)
+      for (const locale of DOCS_LOCALES) {
+        assert.equal(
+          readFileSync(join(dir, `${locale}.json`), 'utf8'),
+          before.get(locale)
+        )
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  test('does not overwrite an existing nested key without --force', () => {
+    const dir = makeDocsFixtureDir()
+    try {
+      const first = runScript(explicitDocsEntryArgs('agents.pi.title'), dir)
+      assert.equal(first.status, 0, `stderr: ${first.stderr}`)
+      const afterFirst = snapshotDocs(dir)
+      const args = ['--docs', '--key', 'agents.pi.title']
+      for (const locale of DOCS_LOCALES) {
+        args.push(`--${locale}`, `OVERWRITE :: ${locale}`)
+      }
+      const second = runScript(args, dir)
+      assert.equal(second.status, 0, `stderr: ${second.stderr}`)
+      assert.match(second.stdout, /skipped 7/)
+      for (const locale of DOCS_LOCALES) {
+        assert.equal(
+          readFileSync(join(dir, `${locale}.json`), 'utf8'),
+          afterFirst.get(locale)
+        )
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  test('rejects setting a leaf under a string parent', () => {
+    const dir = makeDocsFixtureDir()
+    const before = snapshotDocs(dir)
+    try {
+      const run = runScript(explicitDocsEntryArgs('agents.title.nested'), dir)
+      assert.notEqual(run.status, 0, `stderr: ${run.stderr}`)
+      assert.match(run.stderr, /not an object/)
+      for (const locale of DOCS_LOCALES) {
+        assert.equal(
+          readFileSync(join(dir, `${locale}.json`), 'utf8'),
+          before.get(locale)
+        )
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+})

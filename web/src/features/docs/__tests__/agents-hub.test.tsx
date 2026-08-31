@@ -20,7 +20,14 @@ import { screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { DocsI18nProvider } from '../i18n/docs-i18n'
-import { VANCINE_MODELS_DEV_PROVIDER_URL } from '../lib/agents'
+import {
+  PI_LOGIN_COMMAND,
+  PI_MODEL_COMMAND,
+  PI_PROVIDER_INSTALL_COMMAND,
+  VANCINE_MODELS_DEV_PROVIDER_URL,
+  VANCINE_PI_PROVIDER_GITHUB_URL,
+  VANCINE_PI_PROVIDER_NPM_URL,
+} from '../lib/agents'
 import Agents from '../pages/agents'
 import {
   EN_DOCS,
@@ -171,6 +178,51 @@ describe('Agent Integration hub cards', () => {
     expect(screen.queryByText('Cline / Roo Code')).not.toBeInTheDocument()
     // Codex (not first-batch) keeps its full configuration on the hub.
     expect(container.textContent).toContain('model_provider = "vancine"')
+  })
+
+  it('shows the Pi Provider quick-start with install, login and model commands', async () => {
+    const { container } = renderHub()
+
+    expect(
+      await screen.findByRole('heading', { name: 'Pi Coding Agent' })
+    ).toBeInTheDocument()
+    expect(document.querySelector('#agents-pi')).not.toBeNull()
+    expect(
+      screen.getByText(PI_PROVIDER_INSTALL_COMMAND)
+    ).toBeInTheDocument()
+    expect(screen.getByText(PI_LOGIN_COMMAND)).toBeInTheDocument()
+    expect(screen.getByText(PI_MODEL_COMMAND)).toBeInTheDocument()
+    expect(container.textContent).not.toContain('0.1.1')
+  })
+
+  it('exposes the npm and GitHub sources as safe external links', async () => {
+    renderHub()
+
+    await screen.findByRole('heading', { name: 'Pi Coding Agent' })
+    const npmLink = screen.getByRole('link', { name: 'npm package' })
+    expect(npmLink).toHaveAttribute('href', VANCINE_PI_PROVIDER_NPM_URL)
+    expect(npmLink).toHaveAttribute('target', '_blank')
+    expect(npmLink).toHaveAttribute('rel', 'noopener noreferrer')
+    const githubLink = screen.getByRole('link', { name: 'GitHub' })
+    expect(githubLink).toHaveAttribute('href', VANCINE_PI_PROVIDER_GITHUB_URL)
+    expect(githubLink).toHaveAttribute('target', '_blank')
+    expect(githubLink).toHaveAttribute('rel', 'noopener noreferrer')
+  })
+
+  it('states the community-extension disclaimer independently of the setup steps', async () => {
+    renderHub()
+
+    await screen.findByRole('heading', { name: 'Pi Coding Agent' })
+    expect(
+      screen.getByText(
+        'pi-provider-vancine is a community extension published and maintained by Vancine. It does not constitute official cooperation, certification, or endorsement between Pi, Earendil Works, or their maintainers and Vancine.'
+      )
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'The model catalog is provided dynamically by Vancine. The extension caches and revalidates it, so you do not maintain a model whitelist.'
+      )
+    ).toBeInTheDocument()
   })
 
   it('applies the /docs/agents page metadata while mounted', async () => {

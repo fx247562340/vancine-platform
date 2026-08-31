@@ -21,19 +21,23 @@ For commercial licensing, please contact support@quantumnous.com.
 /**
  * add-missing-keys.mjs — add explicit translation keys to locale files.
  *
- * This is the ONLY sanctioned way to add i18n keys to the flat locale
- * JSON files in src/i18n/locales/. The script is deterministic,
+ * This is the ONLY sanctioned way to add i18n keys to locale JSON files.
+ * Default mode writes the flat locale files in src/i18n/locales/. Pass
+ * --docs to write the nested Docs locale files in
+ * src/features/docs/i18n/locales/. The script is deterministic,
  * surgical, and FAIL-CLOSED:
  *
  *   - Every entry MUST explicitly provide a value for ALL seven locales
- *     (en, zh, zh-TW, fr, ru, ja, vi). There is NO implicit English
+ *     of the active mode (app: en, zh, zh-TW, fr, ru, ja, vi; docs:
+ *     en, zhCN, zhTW, fr, ru, ja, vi). There is NO implicit English
  *     fallback: a missing locale aborts the whole run before any file
  *     is read or written.
  *   - Validation of the complete argument set and of every locale file
  *     happens BEFORE any write. A rejected run leaves all seven files
- *     byte-identical. Both the JSON root and its translation value must
- *     be plain objects in every locale file; a structurally invalid or
- *     missing translation is rejected, never silently replaced.
+ *     byte-identical. In default mode both the JSON root and its
+ *     translation value must be plain objects; in --docs mode the JSON
+ *     root must be a plain object (no translation wrapper). A
+ *     structurally invalid file is rejected, never silently replaced.
  *   - Keys that already exist in a locale are never overwritten unless
  *     --force is passed.
  *   - On success each locale file is replaced AT MOST ONCE. The write
@@ -64,11 +68,20 @@ For commercial licensing, please contact support@quantumnous.com.
  *       --zh '中文翻译' --zh-TW '...' --fr '...' --ru '...' --ja '...' --vi '...' \
  *     [--force]
  *
+ *   node scripts/add-missing-keys.mjs --docs \
+ *     --key 'agents.pi.title' \
+ *       --en '...' --zhCN '...' --zhTW '...' --fr '...' --ru '...' --ja '...' --vi '...' \
+ *     [--force]
+ *
  *   --key <text>     Declare a key to add. May be repeated.
+ *                    In --docs mode the key must be a dotted path.
  *   --<locale> <text>
  *                    Translation for the most recently declared --key.
  *                    ALL seven locale flags are mandatory per key.
- *                    Locales: en, zh, zh-TW, fr, ru, ja, vi.
+ *                    App locales: en, zh, zh-TW, fr, ru, ja, vi.
+ *                    Docs locales (--docs): en, zhCN, zhTW, fr, ru, ja, vi.
+ *   --docs           Write nested Docs locale files instead of the flat
+ *                    app translation table.
  *   --force          Overwrite existing keys (default: never overwrite).
  *
  *   Value boundary: the token after --key or any --<locale> flag must
@@ -79,16 +92,26 @@ For commercial licensing, please contact support@quantumnous.com.
  * 2 on any validation failure — in which case nothing is written.
  *
  * Tests point ADD_MISSING_KEYS_LOCALES_DIR at a fixture directory; the
- * default is the real locale directory resolved from the web/ root.
+ * default is src/i18n/locales, or src/features/docs/i18n/locales when
+ * --docs is passed.
  */
 
 import fs from 'node:fs'
 import path from 'node:path'
 
-const LOCALES_DIR = path.resolve(
-  process.env.ADD_MISSING_KEYS_LOCALES_DIR || 'src/i18n/locales'
-)
-const SUPPORTED_LOCALES = ['en', 'zh', 'zh-TW', 'fr', 'ru', 'ja', 'vi']
+const APP_LOCALES = ['en', 'zh', 'zh-TW', 'fr', 'ru', 'ja', 'vi']
+const DOCS_LOCALES = ['en', 'zhCN', 'zhTW', 'fr', 'ru', 'ja', 'vi']
+const DOCS_KEY_PATTERN =
+  /^[A-Za-z][A-Za-z0-9]*(?:\.[A-Za-z][A-Za-z0-9]*)+$/
+
+function resolveLocalesDir(docs) {
+  if (process.env.ADD_MISSING_KEYS_LOCALES_DIR) {
+    return path.resolve(process.env.ADD_MISSING_KEYS_LOCALES_DIR)
+  }
+  return path.resolve(
+    docs ? 'src/features/docs/i18n/locales' : 'src/i18n/locales'
+  )
+}
 
 function fail(message) {
   process.stderr.write(`add-missing-keys: ${message}\n`)
@@ -102,15 +125,22 @@ function fail(message) {
 function parseArgs(argv) {
   // A value slot (after --key or after a locale flag) must carry a real
   // text token. ANY token starting with "--" is an option token — known
-  // or not (--force, --de, --unknown) — and therefore means the value
-  // was omitted: fail closed. Plain text that merely starts with a
-  // single hyphen ("- up to 50%") stays valid.
+  // or not (--force, --docs, --de, --unknown) — and therefore means the
+  // value was omitted: fail closed. Plain text that merely starts with
+  // a single hyphen ("- up to 50%") stays valid.
+  // --docs is scanned first so --zhCN/--zhTW are accepted only in docs
+  // mode, even when --docs appears after locale flags.
+  const docs = argv.includes('--docs')
+  const supportedLocales = docs ? DOCS_LOCALES : APP_LOCALES
   const entries = []
   let current = null
   let force = false
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
+    if (arg === '--docs') {
+      continue
+    }
     if (arg === '--key') {
       const value = argv[++i]
       if (value === undefined) {
@@ -134,9 +164,9 @@ function parseArgs(argv) {
     }
     if (arg.startsWith('--')) {
       const locale = arg.slice(2)
-      if (!SUPPORTED_LOCALES.includes(locale)) {
+      if (!supportedLocales.includes(locale)) {
         fail(
-          `unknown flag ${arg}; supported locales: ${SUPPORTED_LOCALES.join(', ')} (plus --key and --force)`
+          `unknown flag ${arg}; supported locales: ${supportedLocales.join(', ')} (plus --key, --force${docs ? ' and --docs' : ''})`
         )
       }
       if (!current) {
@@ -163,7 +193,7 @@ function parseArgs(argv) {
   if (entries.length === 0) {
     fail('nothing to do: pass at least one --key')
   }
-  return { entries, force }
+  return { entries, force, docs, supportedLocales }
 }
 
 /**
@@ -171,7 +201,7 @@ function parseArgs(argv) {
  * locale file is read or written, so a rejected invocation can never
  * partially modify the locale table.
  */
-function validateEntries(entries) {
+function validateEntries(entries, supportedLocales, docs) {
   const seen = new Set()
   for (const entry of entries) {
     if (seen.has(entry.key)) {
@@ -179,17 +209,24 @@ function validateEntries(entries) {
     }
     seen.add(entry.key)
 
-    const missing = SUPPORTED_LOCALES.filter(
+    if (docs && !DOCS_KEY_PATTERN.test(entry.key)) {
+      fail(
+        `docs key ${JSON.stringify(entry.key)} must be a dotted path of ` +
+          'identifier segments (for example agents.pi.title)'
+      )
+    }
+
+    const missing = supportedLocales.filter(
       (locale) => !Object.hasOwn(entry.values, locale)
     )
     if (missing.length > 0) {
       fail(
         `key ${JSON.stringify(entry.key)} is missing explicit values for locale(s): ` +
           `${missing.join(', ')}. Every key must provide all seven locales ` +
-          `(${SUPPORTED_LOCALES.join(', ')}); there is no English fallback.`
+          `(${supportedLocales.join(', ')}); there is no English fallback.`
       )
     }
-    for (const locale of SUPPORTED_LOCALES) {
+    for (const locale of supportedLocales) {
       const value = entry.values[locale]
       if (typeof value !== 'string' || value.trim() === '') {
         fail(
@@ -207,6 +244,39 @@ function validateEntries(entries) {
 
 function isPlainObject(v) {
   return typeof v === 'object' && v !== null && !Array.isArray(v)
+}
+
+function nestedHas(obj, dottedKey) {
+  const parts = dottedKey.split('.')
+  let current = obj
+  for (const part of parts) {
+    if (!isPlainObject(current) || !Object.hasOwn(current, part)) {
+      return false
+    }
+    current = current[part]
+  }
+  return true
+}
+
+function nestedSet(obj, dottedKey, value) {
+  const parts = dottedKey.split('.')
+  let current = obj
+  for (let i = 0; i < parts.length - 1; i++) {
+    const part = parts[i]
+    if (!Object.hasOwn(current, part)) {
+      current[part] = {}
+    } else if (!isPlainObject(current[part])) {
+      fail(
+        `cannot set ${dottedKey}: ${parts.slice(0, i + 1).join('.')} is not an object`
+      )
+    }
+    current = current[part]
+  }
+  const leaf = parts.at(-1)
+  if (Object.hasOwn(current, leaf) && isPlainObject(current[leaf])) {
+    fail(`cannot set ${dottedKey}: it is an object branch, not a leaf`)
+  }
+  current[leaf] = value
 }
 
 function stringifyLocaleCompare(value, indent = 0) {
@@ -230,10 +300,10 @@ function stringifyLocaleCompare(value, indent = 0) {
   return JSON.stringify(value)
 }
 
-function readAllLocales() {
+function readAllLocales(localesDir, supportedLocales, docs) {
   const locales = []
-  for (const locale of SUPPORTED_LOCALES) {
-    const file = path.join(LOCALES_DIR, `${locale}.json`)
+  for (const locale of supportedLocales) {
+    const file = path.join(localesDir, `${locale}.json`)
     let bytes
     try {
       bytes = fs.readFileSync(file)
@@ -252,11 +322,13 @@ function readAllLocales() {
     if (!isPlainObject(json)) {
       fail(`locale ${locale} at ${file}: root is not a plain object`)
     }
-    if (!Object.hasOwn(json, 'translation')) {
-      fail(`locale ${locale} at ${file}: missing "translation" key`)
-    }
-    if (!isPlainObject(json.translation)) {
-      fail(`locale ${locale} at ${file}: "translation" is not a plain object`)
+    if (!docs) {
+      if (!Object.hasOwn(json, 'translation')) {
+        fail(`locale ${locale} at ${file}: missing "translation" key`)
+      }
+      if (!isPlainObject(json.translation)) {
+        fail(`locale ${locale} at ${file}: "translation" is not a plain object`)
+      }
     }
     // originalBytes is kept verbatim so a failed commit can restore every
     // replaced file to its exact pre-run bytes.
@@ -280,19 +352,25 @@ function readAllLocales() {
 // value is rejected before a single byte is written.
 // ---------------------------------------------------------------------------
 
-function resolveFaultEnv(name) {
+function resolveFaultEnv(name, supportedLocales) {
   const target = process.env[name]
   if (target === undefined || target === '') return null
-  if (!SUPPORTED_LOCALES.includes(target)) {
-    fail(`${name} must name one of: ${SUPPORTED_LOCALES.join(', ')}`)
+  if (!supportedLocales.includes(target)) {
+    fail(`${name} must name one of: ${supportedLocales.join(', ')}`)
   }
   return target
 }
 
-function resolveFaults() {
+function resolveFaults(supportedLocales) {
   return {
-    stage: resolveFaultEnv('ADD_MISSING_KEYS_TEST_FAIL_AT_STAGE'),
-    replace: resolveFaultEnv('ADD_MISSING_KEYS_TEST_FAIL_AT_LOCALE'),
+    stage: resolveFaultEnv(
+      'ADD_MISSING_KEYS_TEST_FAIL_AT_STAGE',
+      supportedLocales
+    ),
+    replace: resolveFaultEnv(
+      'ADD_MISSING_KEYS_TEST_FAIL_AT_LOCALE',
+      supportedLocales
+    ),
   }
 }
 
@@ -376,29 +454,38 @@ function commitWithRollback(writes, faults) {
 // ---------------------------------------------------------------------------
 
 function main() {
-  const { entries, force } = parseArgs(process.argv.slice(2))
+  const { entries, force, docs, supportedLocales } = parseArgs(
+    process.argv.slice(2)
+  )
 
   // 1) Validate the complete argument set — before touching any file.
-  validateEntries(entries)
-  const faults = resolveFaults()
+  validateEntries(entries, supportedLocales, docs)
+  const faults = resolveFaults(supportedLocales)
 
   // 2) Read and parse every locale file — still before any write.
-  const locales = readAllLocales()
+  const localesDir = resolveLocalesDir(docs)
+  const locales = readAllLocales(localesDir, supportedLocales, docs)
 
   // 3) Compute all seven final contents in memory.
   let added = 0
   let skipped = 0
   const writes = []
   for (const { locale, file, json, originalBytes } of locales) {
-    const table = json.translation
+    const table = docs ? json : json.translation
     let changed = false
     for (const entry of entries) {
-      const exists = Object.hasOwn(table, entry.key)
+      const exists = docs
+        ? nestedHas(table, entry.key)
+        : Object.hasOwn(table, entry.key)
       if (exists && !force) {
         skipped++
         continue
       }
-      table[entry.key] = entry.values[locale]
+      if (docs) {
+        nestedSet(table, entry.key, entry.values[locale])
+      } else {
+        table[entry.key] = entry.values[locale]
+      }
       added++
       changed = true
     }
@@ -407,7 +494,9 @@ function main() {
         locale,
         file,
         originalBytes,
-        finalContent: `${stringifyLocaleCompare(json)}\n`,
+        finalContent: docs
+          ? `${JSON.stringify(json, null, 2)}\n`
+          : `${stringifyLocaleCompare(json)}\n`,
       })
     }
   }

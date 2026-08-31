@@ -92,6 +92,24 @@ describe('DocsSearchBox agent guide navigation', () => {
   )
 
   it.each([
+    ['Pi', 'Agent Integration', '/docs/agents'],
+    ['pi-provider-vancine', 'Agent Integration', '/docs/agents'],
+    ['npm', 'Agent Integration', '/docs/agents'],
+  ] as const)(
+    'searching %s finds the Agent hub and navigates to %s',
+    async (query, title, path) => {
+      const user = userEvent.setup()
+      const { router } = renderSearch()
+      await typeAndWaitForResults(user, query)
+
+      const option = await screen.findByText(title)
+      await user.click(option)
+
+      await waitFor(() => expect(router.history.location.pathname).toBe(path))
+    }
+  )
+
+  it.each([
     ['CORS', 'Cline setup guide', '/docs/agents/cline'],
     ['invalid API key', 'OpenCode setup guide', '/docs/agents/opencode'],
   ] as const)(

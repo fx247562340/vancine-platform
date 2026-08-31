@@ -322,6 +322,19 @@
         "step4": "填入 API Key",
         "step5": "同步或手动添加模型"
       }
+    },
+    "pi": {
+      "title": "Pi Coding Agent",
+      "desc": "从 npm 安装 Vancine Pi Provider，使用你自己的 Vancine API Key 登录，然后选择模型。",
+      "npmLabel": "npm 包",
+      "githubLabel": "GitHub",
+      "stepInstall": "安装扩展：",
+      "stepLogin": "启动 Pi 后运行：",
+      "stepSelect": "选择 Vancine，并粘贴你自己的 Vancine API Key。",
+      "stepModel": "运行：",
+      "stepChoose": "在 Vancine Provider 下选择模型并开始使用。",
+      "catalogNote": "模型目录由 Vancine 动态提供。扩展会缓存并重新验证该目录，因此你无需手动维护模型白名单。",
+      "notOfficial": "pi-provider-vancine 是由 Vancine 发布和维护的社区扩展。它不构成 Pi、Earendil Works 或其维护者与 Vancine 之间的官方合作、认证或背书。"
     }
   },
   "agentGuides": {

@@ -322,6 +322,19 @@
         "step4": "Nhập API key",
         "step5": "Đồng bộ hoặc thêm mô hình thủ công"
       }
+    },
+    "pi": {
+      "title": "Pi Coding Agent",
+      "desc": "Cài Vancine Pi Provider từ npm, đăng nhập bằng khóa API Vancine của bạn, rồi chọn mô hình.",
+      "npmLabel": "gói npm",
+      "githubLabel": "GitHub",
+      "stepInstall": "Cài tiện ích:",
+      "stepLogin": "Khởi động Pi, sau đó chạy:",
+      "stepSelect": "Chọn Vancine và dán khóa API Vancine của bạn.",
+      "stepModel": "Chạy:",
+      "stepChoose": "Chọn mô hình trong Vancine Provider và bắt đầu sử dụng.",
+      "catalogNote": "Danh mục mô hình do Vancine cung cấp động. Tiện ích sẽ lưu bộ nhớ đệm và xác thực lại danh mục, nên bạn không cần tự duy trì danh sách trắng mô hình.",
+      "notOfficial": "pi-provider-vancine là tiện ích cộng đồng do Vancine phát hành và duy trì. Nó không cấu thành hợp tác chính thức, chứng nhận hay sự chứng thực giữa Pi, Earendil Works hoặc những người bảo trì của họ với Vancine."
     }
   },
   "agentGuides": {

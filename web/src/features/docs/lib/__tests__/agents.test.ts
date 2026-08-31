@@ -22,7 +22,12 @@ import { describe, it } from 'node:test'
 import {
   DOCS_AGENT_TOOLS,
   getDocsAgentConfigExample,
+  PI_LOGIN_COMMAND,
+  PI_MODEL_COMMAND,
+  PI_PROVIDER_INSTALL_COMMAND,
   VANCINE_MODELS_DEV_PROVIDER_URL,
+  VANCINE_PI_PROVIDER_GITHUB_URL,
+  VANCINE_PI_PROVIDER_NPM_URL,
 } from '../agents.ts'
 
 // A real Vancine/OpenAI-style key: sk- followed by 20+ alphanumerics.
@@ -55,6 +60,25 @@ describe('Docs agent tool profiles', () => {
       VANCINE_MODELS_DEV_PROVIDER_URL,
       'https://models.dev/providers/vancine/'
     )
+  })
+
+  it('pins the Vancine Pi Provider npm and GitHub sources without a version pin', () => {
+    assert.equal(
+      VANCINE_PI_PROVIDER_NPM_URL,
+      'https://www.npmjs.com/package/pi-provider-vancine'
+    )
+    assert.equal(
+      VANCINE_PI_PROVIDER_GITHUB_URL,
+      'https://github.com/fx247562340/vancine-pi-provider'
+    )
+    assert.equal(
+      PI_PROVIDER_INSTALL_COMMAND,
+      'pi install npm:pi-provider-vancine'
+    )
+    assert.equal(PI_LOGIN_COMMAND, '/login')
+    assert.equal(PI_MODEL_COMMAND, '/model')
+    assert.equal(PI_PROVIDER_INSTALL_COMMAND.includes('0.1.1'), false)
+    assert.equal(PI_PROVIDER_INSTALL_COMMAND.includes('@'), false)
   })
 })
 

@@ -37,6 +37,19 @@ export type DocsAgentToolPath = DocsAgentGuidePath
 export const VANCINE_MODELS_DEV_PROVIDER_URL =
   'https://models.dev/providers/vancine/'
 
+/** Published Vancine Pi Provider on npm. Always install latest; never pin a version in docs. */
+export const VANCINE_PI_PROVIDER_NPM_URL =
+  'https://www.npmjs.com/package/pi-provider-vancine'
+
+/** Public source for the Vancine-maintained Pi community extension. */
+export const VANCINE_PI_PROVIDER_GITHUB_URL =
+  'https://github.com/fx247562340/vancine-pi-provider'
+
+export const PI_PROVIDER_INSTALL_COMMAND =
+  'pi install npm:pi-provider-vancine'
+export const PI_LOGIN_COMMAND = '/login'
+export const PI_MODEL_COMMAND = '/model'
+
 export interface DocsAgentToolProfile {
   key: DocsAgentToolKey
   /** Canonical lowercase path segment (also the route suffix). */

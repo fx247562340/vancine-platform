@@ -614,6 +614,8 @@ const SAME_ENGLISH_ALLOWLIST = new Set<string>([
   // Brands / product names
   'agents.gui.cursor.title',
   'agents.gui.cherryStudio.title',
+  'agents.pi.title',
+  'agents.pi.githubLabel',
   'migrate.comparison.colOpenai',
   'migrate.comparison.colVancine',
   // URLs / model identifiers
@@ -727,6 +729,58 @@ describe('OpenCode Models.dev catalog copy', () => {
         note.includes('OpenCode'),
         `${code} catalogNote must keep OpenCode`
       )
+    }
+  })
+})
+
+describe('Pi Provider hub copy', () => {
+  it('keeps npm install semantics, dynamic catalog wording, and the community-extension disclaimer in all seven locales', () => {
+    for (const code of LOCALE_CODES) {
+      const map = flattenToMap(readJson(path.join(LOCALES_DIR, `${code}.json`)))
+      for (const key of [
+        'agents.pi.title',
+        'agents.pi.desc',
+        'agents.pi.npmLabel',
+        'agents.pi.githubLabel',
+        'agents.pi.stepInstall',
+        'agents.pi.stepLogin',
+        'agents.pi.stepSelect',
+        'agents.pi.stepModel',
+        'agents.pi.stepChoose',
+        'agents.pi.catalogNote',
+        'agents.pi.notOfficial',
+      ]) {
+        assert.ok(map.get(key)?.trim(), `${code} missing/empty ${key}`)
+      }
+      const notOfficial = map.get('agents.pi.notOfficial') ?? ''
+      assert.ok(
+        notOfficial.includes('pi-provider-vancine'),
+        `${code} disclaimer must name pi-provider-vancine`
+      )
+      assert.ok(
+        notOfficial.includes('Earendil Works'),
+        `${code} disclaimer must name Earendil Works`
+      )
+      const desc = map.get('agents.pi.desc') ?? ''
+      const npmLabel = map.get('agents.pi.npmLabel') ?? ''
+      assert.ok(
+        desc.toLowerCase().includes('npm') ||
+          npmLabel.toLowerCase().includes('npm'),
+        `${code} must mention npm in the Pi copy`
+      )
+      for (const [key, value] of map) {
+        if (!key.startsWith('agents.pi.')) continue
+        assert.equal(
+          value.includes('0.1.1'),
+          false,
+          `${code} ${key} must not pin 0.1.1`
+        )
+        assert.equal(
+          /real[- ]?time|absolutely live/i.test(value),
+          false,
+          `${code} ${key} must not claim absolute real-time catalog fetches`
+        )
+      }
     }
   })
 })

@@ -196,13 +196,13 @@ var seoPublicRouteCases = []seoPublicRouteCase{
 		// getDocsAgentsPageMetadata() must stay byte-identical to it.
 		path:                 "/docs/agents",
 		wantTitle:            "Coding Agent Integration Center | Vancine",
-		wantDescription:      "Connect OpenCode, Cline, Roo Code and other coding agents to the Vancine API. Base URL, API key and model setup guides for each tool.",
+		wantDescription:      "Connect Pi, OpenCode, Cline and Roo Code to the Vancine API. Install the Vancine Pi Provider from npm or follow tool-specific setup guides.",
 		wantCanonical:        "https://vancine.com/docs/agents",
 		wantOGTitle:          "Coding Agent Integration Center",
-		wantOGDescription:    "Connect OpenCode, Cline, Roo Code and other coding agents to the Vancine API. Base URL, API key and model setup guides for each tool.",
+		wantOGDescription:    "Connect Pi, OpenCode, Cline and Roo Code to the Vancine API. Install the Vancine Pi Provider from npm or follow tool-specific setup guides.",
 		wantOGURL:            "https://vancine.com/docs/agents",
 		wantTwitterTitle:     "Coding Agent Integration Center | Vancine",
-		wantTwitterDesc:      "Connect OpenCode, Cline, Roo Code and other coding agents to the Vancine API. Base URL, API key and model setup guides for each tool.",
+		wantTwitterDesc:      "Connect Pi, OpenCode, Cline and Roo Code to the Vancine API. Install the Vancine Pi Provider from npm or follow tool-specific setup guides.",
 		wantTwitterCardValue: "summary",
 	},
 	{

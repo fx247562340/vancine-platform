@@ -61,13 +61,13 @@ describe('Agent Integration Center metadata contract', () => {
     assert.deepEqual(getDocsAgentsPageMetadata(), {
       title: 'Coding Agent Integration Center | Vancine',
       description:
-        'Connect OpenCode, Cline, Roo Code and other coding agents to the Vancine API. Base URL, API key and model setup guides for each tool.',
+        'Connect Pi, OpenCode, Cline and Roo Code to the Vancine API. Install the Vancine Pi Provider from npm or follow tool-specific setup guides.',
       ogTitle: 'Coding Agent Integration Center',
       ogDescription:
-        'Connect OpenCode, Cline, Roo Code and other coding agents to the Vancine API. Base URL, API key and model setup guides for each tool.',
+        'Connect Pi, OpenCode, Cline and Roo Code to the Vancine API. Install the Vancine Pi Provider from npm or follow tool-specific setup guides.',
       twitterTitle: 'Coding Agent Integration Center | Vancine',
       twitterDescription:
-        'Connect OpenCode, Cline, Roo Code and other coding agents to the Vancine API. Base URL, API key and model setup guides for each tool.',
+        'Connect Pi, OpenCode, Cline and Roo Code to the Vancine API. Install the Vancine Pi Provider from npm or follow tool-specific setup guides.',
       ogUrl: 'https://vancine.com/docs/agents',
       canonical: 'https://vancine.com/docs/agents',
     })

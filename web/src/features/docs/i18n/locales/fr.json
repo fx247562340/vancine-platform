@@ -322,6 +322,19 @@
         "step4": "Entrer la clé API",
         "step5": "Synchroniser ou ajouter manuellement des modèles"
       }
+    },
+    "pi": {
+      "title": "Pi Coding Agent",
+      "desc": "Installez le Vancine Pi Provider depuis npm, connectez-vous avec votre propre clé API Vancine, puis choisissez un modèle.",
+      "npmLabel": "paquet npm",
+      "githubLabel": "GitHub",
+      "stepInstall": "Installer l'extension :",
+      "stepLogin": "Démarrez Pi, puis exécutez :",
+      "stepSelect": "Sélectionnez Vancine et collez votre propre clé API Vancine.",
+      "stepModel": "Exécutez :",
+      "stepChoose": "Choisissez un modèle sous le Provider Vancine et commencez à l'utiliser.",
+      "catalogNote": "Le catalogue de modèles est fourni dynamiquement par Vancine. L'extension le met en cache et le revalide, vous n'avez donc pas à maintenir une liste blanche de modèles.",
+      "notOfficial": "pi-provider-vancine est une extension communautaire publiée et maintenue par Vancine. Elle ne constitue pas une coopération officielle, une certification ou une caution entre Pi, Earendil Works ou leurs mainteneurs et Vancine."
     }
   },
   "agentGuides": {
