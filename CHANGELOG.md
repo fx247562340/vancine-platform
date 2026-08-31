@@ -1,3 +1,13 @@
+## 1.10.0 - 2026-08-31
+
+### Pi Provider 与模型目录
+
+- 新增公开 `GET /api/pi/catalog`，为 Vancine 自维护的 Pi 社区 Provider 提供实时模型目录。该目录不是 npm 已发布包，也不构成与 Pi 的官方合作、认证或背书。
+- 目录动态覆盖平台当前启用且具备已验证 Pi 元数据的 Token 计费 OpenAI Chat Completions 模型；首批重点验证元数据包括 hy4-preview、deepseek-v4-flash-vision-exp、glm-5.3-flash 与 qwen3.8-flash。并非所有平台模型都会无条件进入 Pi。
+- 启用状态、OpenAI Chat Completions 能力以及 USD/百万 Tokens 价格来自平台实时配置；静态 registry 只维护已验证的 Pi 元数据（名称、模态、上下文窗口、最大输出、reasoning）。
+- 目录自动排除未启用、不支持实时 Chat Completions、按次计费、动态/阶梯计费、缺少必要 Pi 元数据或价格非法的模型。缺少可靠元数据时宁可省略，不得猜测。
+- 支持 ETag、Last-Modified 和条件请求（304）。模型上下架或价格变化会在下次目录刷新中反映，无需重新发布 npm Provider 包。
+
 ## 1.9.5 - 2026-08-31
 
 ### 文档与获客
