@@ -133,6 +133,38 @@ func TestPiCatalogPriorityModelFields(t *testing.T) {
 	assert.Equal(t, 131072, qwen.MaxTokens)
 }
 
+func TestPiCatalogDoubaoContextWindows(t *testing.T) {
+	pricing := []model.Pricing{
+		chatPricing("Doubao-Seed-2.1-pro", 0.1, 1),
+		chatPricing("Doubao-Seed-2.1-turbo", 0.1, 1),
+		chatPricing("doubao-seed-evolving", 0.1, 1),
+	}
+	svc := catalogService(t, pricing, time.Unix(1, 0).UTC())
+	models, skipped := svc.BuildModels(pricing)
+	require.Empty(t, skipped)
+	require.Len(t, models, 3)
+
+	byID := map[string]PiCatalogModel{}
+	for _, item := range models {
+		byID[item.ID] = item
+	}
+
+	pro, ok := byID["Doubao-Seed-2.1-pro"]
+	require.True(t, ok)
+	assert.Equal(t, 256000, pro.ContextWindow)
+	assert.Equal(t, 256000, pro.MaxTokens)
+
+	turbo, ok := byID["Doubao-Seed-2.1-turbo"]
+	require.True(t, ok)
+	assert.Equal(t, 256000, turbo.ContextWindow)
+	assert.Equal(t, 256000, turbo.MaxTokens)
+
+	evolving, ok := byID["doubao-seed-evolving"]
+	require.True(t, ok)
+	assert.Equal(t, 1024000, evolving.ContextWindow)
+	assert.Equal(t, 256000, evolving.MaxTokens)
+}
+
 func TestPiCatalogCostComesFromLiveRatiosNotRegistry(t *testing.T) {
 	pricing := []model.Pricing{
 		{

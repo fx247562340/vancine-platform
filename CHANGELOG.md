@@ -1,3 +1,12 @@
+## 1.10.1 - 2026-08-31
+
+### 修复
+
+- 修正 Pi 动态模型目录中 `doubao-seed-evolving` 的上下文窗口，由错误的 256K 改为 1024K。
+- `Doubao-Seed-2.1-pro` 与 `Doubao-Seed-2.1-turbo` 仍保持 256K。
+- 最大输出长度仍为 256K。
+- Pi Provider 会在目录刷新后取得新值，无需重新发布 npm 包。
+
 ## 1.10.0 - 2026-08-31
 
 ### Pi Provider 与模型目录

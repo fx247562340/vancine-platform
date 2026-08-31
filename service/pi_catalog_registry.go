@@ -260,9 +260,9 @@ var piCatalogRegistry = loadPiCatalogRegistry([]PiModelMeta{
 		Endpoint:      piCatalogEndpoint,
 		Input:         []string{piCatalogInputText, piCatalogInputImage},
 		Reasoning:     true,
-		ContextWindow: 256000,
+		ContextWindow: 1024000,
 		MaxTokens:     256000,
-		Source:        "vancine-models-dev/models.dev/models/bytedance-seed/seed-evolving.toml (accessed 2026-08-14; sources seed.bytedance.com/en/seed2 and volcengine docs 82379/1330310). Pi input keeps text+image; video dropped.",
+		Source:        "vancine-models-dev/models.dev/models/bytedance-seed/seed-evolving.toml (accessed 2026-08-14; sources seed.bytedance.com/en/seed2 and volcengine docs 82379/1330310). Evolving context window is 1024K; Doubao-Seed-2.1-pro and Doubao-Seed-2.1-turbo remain 256K. Do not generalize 1024K to the Doubao Seed 2.1 series. Pi input keeps text+image; video dropped.",
 	},
 })
 
