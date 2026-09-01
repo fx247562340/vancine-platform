@@ -123,9 +123,10 @@ describe('fast-coding-models i18n completeness', () => {
     }
     assert.deepEqual(mismatched, [])
   })
-  test('proper model ids stay verbatim in every locale', () => {
-    // The four exact model ids must never be transliterated or renamed
-    // by translation in any key that references them.
+  test('no user-visible key contains a hardcoded model id', () => {
+    // The guide is tag-driven, not id-driven. Hyphenated model ids
+    // (e.g. "hy4-preview") must not appear in any user-facing string;
+    // the page resolves the live fast-tagged catalog at runtime.
     const protectedIds = [
       'hy4-preview',
       'deepseek-v4-flash-vision-exp',
@@ -135,18 +136,10 @@ describe('fast-coding-models i18n completeness', () => {
     const idKeys = FAST_CODING_MODELS_I18N_KEYS.filter((key) =>
       protectedIds.some((id) => key.includes(id))
     )
-    assert.ok(idKeys.length >= 4)
-    const mangled: string[] = []
-    for (const key of idKeys) {
-      for (const id of protectedIds) {
-        if (!key.includes(id)) continue
-        for (const [locale, table] of Object.entries(LOCALES)) {
-          if (!(table[key] ?? '').includes(id)) {
-            mangled.push(`${locale}: ${key} (${id})`)
-          }
-        }
-      }
-    }
-    assert.deepEqual(mangled, [])
+    assert.deepEqual(
+      idKeys,
+      [],
+      'FAST_CODING_MODELS_I18N_KEYS must not hardcode specific model ids'
+    )
   })
 })

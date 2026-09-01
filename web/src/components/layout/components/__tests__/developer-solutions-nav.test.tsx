@@ -439,7 +439,7 @@ describe('API Solutions menu Guide section', () => {
     expect(within(popup).getByText('Guides')).toBeInTheDocument()
     const guideList = within(popup).getByTestId('developer-guides-menu-list')
     const guideLink = within(guideList).getByRole('link', {
-      name: /Fast Coding Models for AI Agents/,
+      name: /Fast AI Models/,
     })
     expect(guideLink).toHaveAttribute('href', '/guides/fast-coding-models')
     // The guide list holds only guide entries, never API products.
@@ -466,7 +466,7 @@ describe('API Solutions menu Guide section', () => {
       return element as HTMLElement
     })
     const guideLink = within(popup).getByRole('link', {
-      name: /Fast Coding Models for AI Agents/,
+      name: /Fast AI Models/,
     })
     await user.click(guideLink)
 
@@ -499,7 +499,7 @@ describe('API Solutions menu Guide section', () => {
 
     const guideList = screen.getByTestId('developer-guides-mobile-list')
     const guideLink = within(guideList).getByRole('link', {
-      name: 'Fast Coding Models for AI Agents',
+      name: 'Fast AI Models',
     })
     expect(guideLink).toHaveAttribute('href', '/guides/fast-coding-models')
 

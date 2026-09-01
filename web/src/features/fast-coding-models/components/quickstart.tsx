@@ -25,12 +25,12 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { trackEvent } from '@/lib/analytics'
 
+import { useFastCodingModelsPricing } from '../hooks/use-fast-coding-models-pricing'
 import {
-  FAST_CODING_MODELS_ALTERNATE_MODELS,
-  FAST_CODING_MODELS_CURL_EXAMPLE,
   FAST_CODING_MODELS_RESOURCE,
   FAST_CODING_MODELS_RESOURCE_EVENT,
-  getFastCodingModelsCtaTarget,
+  buildFastCodingModelsCtaSearch,
+  getFastCodingModelsCurlExample,
 } from '../lib/fast-coding-models'
 import { CopyableCode } from './copyable-code'
 
@@ -41,18 +41,25 @@ export interface QuickstartProps {
 }
 
 /**
- * Compact curl quickstart defaulting to glm-5.3-flash, with the other
- * three exact model ids listed beside it. Full coding-agent setup
- * (OpenCode / Cline / Roo Code) is intentionally linked instead of
- * duplicated — the docs Agent Integration Center stays the single
- * maintenance point.
+ * Compact curl quickstart with a dynamic default model and dynamic
+ * alternate chips. The default is the first live fast-tagged model
+ * (sorted case-insensitive by model_name); alternates are every other
+ * fast-tagged model. When the fast catalog is empty, no curl is
+ * rendered and a clear empty state is shown instead.
+ *
+ * Full coding-agent setup (OpenCode / Cline / Roo Code) is
+ * intentionally linked instead of duplicated — the docs Agent
+ * Integration Center stays the single maintenance point.
  */
 export function Quickstart(props: QuickstartProps): ReactElement {
   const { t } = useTranslation()
-  const docsTarget = getFastCodingModelsCtaTarget(
-    props.isAuthenticated,
-    'docs',
-    props.search
+  const pricing = useFastCodingModelsPricing()
+  const docsTarget = buildFastCodingModelsCtaSearch('docs', props.search)
+
+  const defaultModel = pricing.models[0] ?? null
+  const alternates = pricing.models.slice(1)
+  const curlExample = getFastCodingModelsCurlExample(
+    defaultModel?.model_name ?? null
   )
 
   return (
@@ -75,29 +82,42 @@ export function Quickstart(props: QuickstartProps): ReactElement {
         </p>
       </div>
 
-      <div className='mt-6'>
-        <CopyableCode code={FAST_CODING_MODELS_CURL_EXAMPLE} label='curl' />
-      </div>
+      {curlExample ? (
+        <div className='mt-6'>
+          <CopyableCode code={curlExample} label='curl' />
+        </div>
+      ) : (
+        <p
+          data-testid='fast-coding-models-curl-empty'
+          className='text-muted-foreground bg-muted/40 border-border mt-6 rounded-lg border p-4 text-sm'
+        >
+          {t('No code sample is available while the fast catalog is empty.')}
+        </p>
+      )}
 
-      <p className='text-muted-foreground mt-4 text-sm'>
-        {t(
-          'Switch to any of the other three models by changing only the model field:'
-        )}
-      </p>
-      <ul className='mt-2 flex flex-wrap gap-2'>
-        {FAST_CODING_MODELS_ALTERNATE_MODELS.map((modelId) => (
-          <li key={modelId}>
-            <code className='bg-muted/60 rounded-md px-2 py-1 font-mono text-sm'>
-              {modelId}
-            </code>
-          </li>
-        ))}
-      </ul>
+      {alternates.length > 0 && (
+        <>
+          <p className='text-muted-foreground mt-4 text-sm'>
+            {t(
+              'Switch to any of the other fast models by changing only the model field:'
+            )}
+          </p>
+          <ul className='mt-2 flex flex-wrap gap-2' data-testid='fast-coding-models-alternate-list'>
+            {alternates.map((model) => (
+              <li key={model.model_name}>
+                <code className='bg-muted/60 rounded-md px-2 py-1 font-mono text-sm'>
+                  {model.model_name}
+                </code>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
 
       <div className='mt-8'>
         <Button
           variant='outline'
-          render={<Link to='/docs/agents' search={docsTarget.search} />}
+          render={<Link to='/docs/agents' search={docsTarget} />}
           onClick={() =>
             trackEvent(FAST_CODING_MODELS_RESOURCE_EVENT, {
               resource: FAST_CODING_MODELS_RESOURCE,

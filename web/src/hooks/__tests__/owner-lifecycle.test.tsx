@@ -439,7 +439,7 @@ describe('public marketing page metadata switches', () => {
       usePageMetadata(getHomePageMetadata('en'), { publicMarketingPage: true })
     )
     expect(document.title).toBe(
-      'Chinese AI Models API for Global Developers | Vancine'
+      'Chinese Frontier & Fast AI Models API | Vancine'
     )
 
     const kimi = renderHook(() =>

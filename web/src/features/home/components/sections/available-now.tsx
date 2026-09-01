@@ -140,7 +140,6 @@ function FeaturedGrid({
   rawVendors: HomepagePricingVendor[]
   width: number
 }) {
-  const { t } = useTranslation()
   const isTablet = width >= 768 && width < 1280
   const isMobile = width < 768
   const { columns, maxWidth } = featuredGridColumns(featured.length)
@@ -158,20 +157,13 @@ function FeaturedGrid({
   else if (isTablet) responsiveGridCols = tabletGridCols
 
   return (
-    <>
-      <p className='text-muted-foreground mx-auto mb-6 max-w-2xl text-center text-sm'>
-        {t(
-          'Featured models live on the public catalog. Open a model or browse the full marketplace.'
-        )}
-      </p>
-      <div className='mx-auto' style={{ maxWidth }}>
-        <div className={`grid gap-5 ${responsiveGridCols}`}>
-          {featured.map((model) => (
-            <Card key={model.model_name} model={model} vendors={rawVendors} />
-          ))}
-        </div>
+    <div className='mx-auto' style={{ maxWidth }}>
+      <div className={`grid gap-5 ${responsiveGridCols}`}>
+        {featured.map((model) => (
+          <Card key={model.model_name} model={model} vendors={rawVendors} />
+        ))}
       </div>
-    </>
+    </div>
   )
 }
 
@@ -190,8 +182,13 @@ export function AvailableNow({ pricing }: { pricing: HomepagePricingState }) {
       <div className='mx-auto max-w-6xl'>
         <AnimateInView className='mb-10 text-center'>
           <h2 className='text-2xl font-bold tracking-tight md:text-3xl'>
-            {t('Available now')}
+            {t('Flagship models — available now')}
           </h2>
+          <p className='text-muted-foreground mx-auto mt-3 max-w-2xl text-sm md:text-base'>
+            {t(
+              'Frontier capability for demanding reasoning, coding, and multimodal workloads.'
+            )}
+          </p>
         </AnimateInView>
 
         {status === 'loading' ? (

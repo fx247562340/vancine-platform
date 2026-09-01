@@ -61,13 +61,14 @@ type publicPageMeta struct {
 var publicMarketingPages = []publicPageMeta{
 	{
 		path:  "/",
-		title: "Chinese AI Models API for Global Developers | Vancine",
-		description: "Access the latest flagship Chinese AI models for text, " +
-			"image, video, audio and 3D through one OpenAI-compatible API.",
-		ogTitle:          "Chinese AI Models API for Global Developers",
-		ogDescription:    "Access the latest flagship Chinese AI models for text, image, video, audio and 3D through one OpenAI-compatible API.",
-		twitterTitle:     "Chinese AI Models API for Global Developers",
-		twitterDesc:      "Access the latest flagship Chinese AI models for text, image, video, audio and 3D through one OpenAI-compatible API.",
+		title: "Chinese Frontier & Fast AI Models API | Vancine",
+		description: "Access flagship and fast-inference Chinese AI models for " +
+			"reasoning, coding, multimodal workflows, AI agents, and high-throughput " +
+			"applications through one OpenAI-compatible API.",
+		ogTitle:       "Chinese Frontier & Fast AI Models API",
+		ogDescription: "Access flagship and fast-inference Chinese AI models for reasoning, coding, multimodal workflows, AI agents, and high-throughput applications through one OpenAI-compatible API.",
+		twitterTitle:  "Chinese Frontier & Fast AI Models API",
+		twitterDesc:   "Access flagship and fast-inference Chinese AI models for reasoning, coding, multimodal workflows, AI agents, and high-throughput applications through one OpenAI-compatible API.",
 		twitterCardValue: "summary",
 	},
 	{
@@ -242,14 +243,14 @@ var publicMarketingPages = []publicPageMeta{
 		// /fast-coding-models alias and no model subroute; both fall
 		// through to the existing unknown-SPA-fallback contract.
 		path:  "/guides/fast-coding-models",
-		title: "Four Fast Chinese AI Models for Coding Agents | Vancine",
-		description: "Compare Hy4 Preview, DeepSeek V4 Flash Vision Exp, " +
-			"GLM-5.3 Flash, and Qwen3.8 Flash through one " +
-			"OpenAI-compatible API.",
-		ogTitle:          "Four Fast Chinese AI Models for Coding Agents",
-		ogDescription:    "Compare Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash, and Qwen3.8 Flash through one OpenAI-compatible API.",
-		twitterTitle:     "Four Fast Chinese AI Models for Coding Agents",
-		twitterDesc:      "Compare Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash, and Qwen3.8 Flash through one OpenAI-compatible API.",
+		title: "Fast Chinese AI Models for Coding and High-Throughput Workloads | Vancine",
+		description: "Explore fast-inference Chinese AI models available through " +
+			"Vancine’s OpenAI-compatible API, with live pricing and model " +
+			"capabilities from the current catalog.",
+		ogTitle:       "Fast Chinese AI Models for Coding and High-Throughput Workloads",
+		ogDescription: "Explore fast-inference Chinese AI models available through Vancine’s OpenAI-compatible API, with live pricing and model capabilities from the current catalog.",
+		twitterTitle:  "Fast Chinese AI Models for Coding and High-Throughput Workloads",
+		twitterDesc:   "Explore fast-inference Chinese AI models available through Vancine’s OpenAI-compatible API, with live pricing and model capabilities from the current catalog.",
 		twitterCardValue: "summary",
 	},
 }

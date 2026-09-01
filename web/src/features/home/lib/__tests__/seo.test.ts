@@ -55,27 +55,27 @@ describe('home page metadata', () => {
     const metadata = getHomePageMetadata('en')
     assert.equal(
       metadata.title,
-      'Chinese AI Models API for Global Developers | Vancine'
+      'Chinese Frontier & Fast AI Models API | Vancine'
     )
     assert.equal(
       metadata.description,
-      'Access the latest flagship Chinese AI models for text, image, video, audio and 3D through one OpenAI-compatible API.'
+      'Access flagship and fast-inference Chinese AI models for reasoning, coding, multimodal workflows, AI agents, and high-throughput applications through one OpenAI-compatible API.'
     )
     assert.equal(
       metadata.ogTitle,
-      'Chinese AI Models API for Global Developers'
+      'Chinese Frontier & Fast AI Models API'
     )
     assert.equal(
       metadata.ogDescription,
-      'Access the latest flagship Chinese AI models for text, image, video, audio and 3D through one OpenAI-compatible API.'
+      'Access flagship and fast-inference Chinese AI models for reasoning, coding, multimodal workflows, AI agents, and high-throughput applications through one OpenAI-compatible API.'
     )
     assert.equal(
       metadata.twitterTitle,
-      'Chinese AI Models API for Global Developers'
+      'Chinese Frontier & Fast AI Models API'
     )
     assert.equal(
       metadata.twitterDescription,
-      'Access the latest flagship Chinese AI models for text, image, video, audio and 3D through one OpenAI-compatible API.'
+      'Access flagship and fast-inference Chinese AI models for reasoning, coding, multimodal workflows, AI agents, and high-throughput applications through one OpenAI-compatible API.'
     )
   })
 

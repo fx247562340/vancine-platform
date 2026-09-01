@@ -23,21 +23,16 @@ import type { PricingModel } from '@/features/pricing/types'
 
 import {
   buildFastCodingModelsCtaSearch,
-  FAST_CODING_MODEL_GUIDANCE_KEY,
-  FAST_CODING_MODEL_IDS,
-  FAST_CODING_MODEL_PREVIEW,
-  FAST_CODING_MODELS_ALTERNATE_MODELS,
   FAST_CODING_MODELS_API_BASE_URL,
   FAST_CODING_MODELS_API_KEY_PLACEHOLDER,
   FAST_CODING_MODELS_CANONICAL,
   FAST_CODING_MODELS_CTA_DESTINATION_AUTH,
-  FAST_CODING_MODELS_CURL_EXAMPLE,
-  FAST_CODING_MODELS_DEFAULT_MODEL,
   FAST_CODING_MODELS_EVIDENCE_KEYS,
   FAST_CODING_MODELS_FAQ,
   FAST_CODING_MODELS_UTM,
   formatFastCodingModelsTokenCount,
   getFastCodingModelsCtaTarget,
+  getFastCodingModelsCurlExample,
   getFastCodingModelsPageMetadata,
   getFastCodingModelsPriceSummary,
   selectFastCodingModelsPricing,
@@ -46,14 +41,13 @@ import {
 /**
  * Pure business contract tests for the /guides/fast-coding-models
  * acquisition guide. Locked values:
- *   - the four exact model ids (closed set, strict selection);
+ *   - the selection is tag-driven (exact "fast" token) with no model-id
+ *     allowlist, no fixed count, and no fallback to a different model;
  *   - fixed owned-media UTMs and full inbound-parameter scrubbing;
  *   - seven-language metadata with byte-identical English vs. Go
  *     server metadata (router/web_metadata.go entry);
  *   - the evidence boundary never extrapolates the Pi benchmark to
- *     models that were not tested;
- *   - degradation semantics: missing models and failed requests never
- *     substitute another model.
+ *     fast-tagged models that were not tested.
  */
 
 // The canonical English metadata block served by router/web_metadata.go.
@@ -61,15 +55,15 @@ import {
 // asserted below; keep this in sync with the Go entry only via the
 // shared contract, never by loosening an assertion.
 const GO_EN_METADATA = {
-  title: 'Four Fast Chinese AI Models for Coding Agents | Vancine',
+  title: 'Fast Chinese AI Models for Coding and High-Throughput Workloads | Vancine',
   description:
-    'Compare Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash, and Qwen3.8 Flash through one OpenAI-compatible API.',
-  ogTitle: 'Four Fast Chinese AI Models for Coding Agents',
+    'Explore fast-inference Chinese AI models available through Vancine’s OpenAI-compatible API, with live pricing and model capabilities from the current catalog.',
+  ogTitle: 'Fast Chinese AI Models for Coding and High-Throughput Workloads',
   ogDescription:
-    'Compare Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash, and Qwen3.8 Flash through one OpenAI-compatible API.',
-  twitterTitle: 'Four Fast Chinese AI Models for Coding Agents',
+    'Explore fast-inference Chinese AI models available through Vancine’s OpenAI-compatible API, with live pricing and model capabilities from the current catalog.',
+  twitterTitle: 'Fast Chinese AI Models for Coding and High-Throughput Workloads',
   twitterDescription:
-    'Compare Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash, and Qwen3.8 Flash through one OpenAI-compatible API.',
+    'Explore fast-inference Chinese AI models available through Vancine’s OpenAI-compatible API, with live pricing and model capabilities from the current catalog.',
 }
 
 function fixtureModel(overrides: Partial<PricingModel>): PricingModel {
@@ -84,84 +78,72 @@ function fixtureModel(overrides: Partial<PricingModel>): PricingModel {
   }
 }
 
-describe('the four-model closed set', () => {
-  test('contains exactly the four approved model ids in order', () => {
-    assert.deepEqual(
-      [...FAST_CODING_MODEL_IDS],
-      [
-        'hy4-preview',
-        'deepseek-v4-flash-vision-exp',
-        'glm-5.3-flash',
-        'qwen3.8-flash',
-      ]
-    )
-  })
-
-  test('preview flag marks only hy4-preview', () => {
-    assert.deepEqual(
-      FAST_CODING_MODEL_IDS.map((id) => FAST_CODING_MODEL_PREVIEW[id]),
-      [true, false, false, false]
-    )
-  })
-
-  test('every model id carries neutral editorial guidance', () => {
-    for (const modelId of FAST_CODING_MODEL_IDS) {
-      const key = FAST_CODING_MODEL_GUIDANCE_KEY[modelId]
-      assert.ok(key.length > 0, `${modelId} must have guidance`)
-      assert.ok(
-        !/best|fastest|cheapest|winner/i.test(key),
-        `${modelId} guidance must avoid ranking words`
-      )
-    }
-  })
-})
-
-describe('pricing selection', () => {
-  test('selects exactly the four ids by strict equality, in guide order', () => {
+describe('tag-driven selection (no allowlist)', () => {
+  test('selects every model whose tags carry the exact "fast" token', () => {
     const models = [
-      fixtureModel({ id: 10, model_name: 'qwen3.8-flash' }),
-      fixtureModel({ id: 11, model_name: 'hy4-preview' }),
-      fixtureModel({ id: 12, model_name: 'unrelated-model' }),
-      fixtureModel({ id: 13, model_name: 'glm-5.3-flash' }),
-      fixtureModel({ id: 14, model_name: 'deepseek-v4-flash-vision-exp' }),
+      fixtureModel({ id: 10, model_name: 'a-flash', tags: 'fast' }),
+      fixtureModel({ id: 11, model_name: 'b-text', tags: 'text' }),
+      fixtureModel({ id: 12, model_name: 'c-flash', tags: 'fast,preview' }),
     ]
-    const slots = selectFastCodingModelsPricing(models)
-    assert.equal(slots.length, 4)
+    const result = selectFastCodingModelsPricing(models)
     assert.deepEqual(
-      slots.map((slot) => slot.modelId),
-      [
-        'hy4-preview',
-        'deepseek-v4-flash-vision-exp',
-        'glm-5.3-flash',
-        'qwen3.8-flash',
-      ]
-    )
-    assert.deepEqual(
-      slots.map((slot) => slot.model?.id),
-      [11, 14, 13, 10]
+      result.map((m) => m.model_name),
+      ['a-flash', 'c-flash']
     )
   })
 
-  test('never matches case, prefix, or substring variants', () => {
+  test('case- and whitespace-insensitive; partial tag never matches', () => {
     const models = [
-      fixtureModel({ model_name: 'HY4-PREVIEW' }),
-      fixtureModel({ model_name: 'hy4-preview-2' }),
-      fixtureModel({ model_name: 'glm-5.3' }),
-      fixtureModel({ model_name: 'deepseek-v4-flash' }),
-      fixtureModel({ model_name: 'qwen3.8-flash-beta' }),
+      fixtureModel({ model_name: 'good-1', tags: '  FAST , other ' }),
+      fixtureModel({ model_name: 'bad-1', tags: 'fast-preview' }),
+      fixtureModel({ model_name: 'bad-2', tags: 'breakfast' }),
+      fixtureModel({ model_name: 'bad-3', tags: 'not-featured' }),
     ]
-    const slots = selectFastCodingModelsPricing(models)
-    for (const slot of slots) {
-      assert.equal(slot.model, null, `${slot.modelId} must stay missing`)
-    }
+    const result = selectFastCodingModelsPricing(models)
+    assert.deepEqual(
+      result.map((m) => m.model_name),
+      ['good-1']
+    )
   })
 
-  test('always yields four slots — a missing model degrades, never substitutes', () => {
-    const slots = selectFastCodingModelsPricing([])
-    assert.equal(slots.length, 4)
-    for (const slot of slots) {
-      assert.equal(slot.model, null)
-    }
+  test('sorts case-insensitive by model_name, no fixed count', () => {
+    const models = [
+      fixtureModel({ id: 1, model_name: 'Zeta', tags: 'fast' }),
+      fixtureModel({ id: 2, model_name: 'alpha', tags: 'fast' }),
+      fixtureModel({ id: 3, model_name: 'Beta', tags: 'fast' }),
+      fixtureModel({ id: 4, model_name: 'gamma', tags: 'fast' }),
+      fixtureModel({ id: 5, model_name: 'delta', tags: 'fast' }),
+    ]
+    const result = selectFastCodingModelsPricing(models)
+    assert.equal(result.length, 5)
+    assert.deepEqual(
+      result.map((m) => m.model_name),
+      ['alpha', 'Beta', 'delta', 'gamma', 'Zeta']
+    )
+  })
+
+  test('returns empty when no model has the fast tag', () => {
+    const models = [
+      fixtureModel({ model_name: 'a', tags: 'text' }),
+      fixtureModel({ model_name: 'b', tags: 'featured' }),
+    ]
+    assert.deepEqual(selectFastCodingModelsPricing(models), [])
+  })
+
+  test('newly tagged models appear, untagged models disappear — no allowlist', () => {
+    const before = selectFastCodingModelsPricing([
+      fixtureModel({ model_name: 'a', tags: 'fast' }),
+    ])
+    assert.deepEqual(before.map((m) => m.model_name), ['a'])
+
+    const after = selectFastCodingModelsPricing([
+      fixtureModel({ model_name: 'a', tags: 'text' }),
+      fixtureModel({ model_name: 'zzz-future-flash', tags: 'fast' }),
+    ])
+    assert.deepEqual(
+      after.map((m) => m.model_name),
+      ['zzz-future-flash']
+    )
   })
 })
 
@@ -339,56 +321,48 @@ describe('page metadata', () => {
 
 describe('quickstart contract', () => {
   test('the curl example targets the canonical endpoint with the env placeholder', () => {
+    const example = getFastCodingModelsCurlExample('some-fast-model')
+    assert.ok(example !== null)
+    const safe = example ?? ''
     assert.ok(
-      FAST_CODING_MODELS_CURL_EXAMPLE.includes(
-        `${FAST_CODING_MODELS_API_BASE_URL}/chat/completions`
-      )
+      safe.includes(`${FAST_CODING_MODELS_API_BASE_URL}/chat/completions`)
     )
+    assert.ok(safe.includes(`Bearer ${FAST_CODING_MODELS_API_KEY_PLACEHOLDER}`))
     assert.ok(
-      FAST_CODING_MODELS_CURL_EXAMPLE.includes(
-        `Bearer ${FAST_CODING_MODELS_API_KEY_PLACEHOLDER}`
-      )
-    )
-    assert.ok(
-      !FAST_CODING_MODELS_CURL_EXAMPLE.includes('sk-'),
+      !safe.includes('sk-'),
       'the example must never carry a real-looking key literal'
     )
+    assert.ok(safe.includes('"model": "some-fast-model"'))
   })
 
-  test('the default model is glm-5.3-flash and the alternates are the other three exact ids', () => {
-    assert.equal(FAST_CODING_MODELS_DEFAULT_MODEL, 'glm-5.3-flash')
-    assert.ok(
-      FAST_CODING_MODELS_CURL_EXAMPLE.includes(
-        `"model": "${FAST_CODING_MODELS_DEFAULT_MODEL}"`
-      )
-    )
-    assert.deepEqual([...FAST_CODING_MODELS_ALTERNATE_MODELS].sort(), [
-      'deepseek-v4-flash-vision-exp',
-      'hy4-preview',
-      'qwen3.8-flash',
-    ])
-    assert.ok(
-      !FAST_CODING_MODELS_ALTERNATE_MODELS.includes(
-        FAST_CODING_MODELS_DEFAULT_MODEL
-      )
-    )
+  test('returns null when the fast catalog is empty — never synthesizes a model id', () => {
+    assert.equal(getFastCodingModelsCurlExample(null), null)
   })
 })
 
 describe('evidence boundary', () => {
-  test('the benchmark membership facts include only the two tested models', () => {
+  test('does not claim benchmark membership for any fast-tagged model', () => {
     const joined = FAST_CODING_MODELS_EVIDENCE_KEYS.join(' ')
-    assert.ok(joined.includes('includes glm-5.3-flash and qwen3.8-flash'))
-    assert.ok(joined.includes('does not include hy4-preview'))
-    assert.ok(joined.includes('does not include deepseek-v4-flash-vision-exp'))
     assert.ok(
-      joined.includes('deepseek-v4-flash listed there is a different model ID')
+      joined.includes('does not claim benchmark membership'),
+      'evidence must explicitly disclaim benchmark membership'
     )
     assert.ok(
-      joined.includes(
-        'Do not extend those results to models that were not tested'
+      joined.includes('See the benchmark page for recorded results'),
+      'evidence must link to the benchmark page'
+    )
+    // No per-id factual claim about which models are in the benchmark.
+    for (const id of [
+      'glm-5.3-flash',
+      'qwen3.8-flash',
+      'hy4-preview',
+      'deepseek-v4-flash-vision-exp',
+    ]) {
+      assert.ok(
+        !joined.includes(id),
+        `evidence must not name the model id "${id}"`
       )
-    )
+    }
   })
 })
 
@@ -416,5 +390,23 @@ describe('FAQ and disclosure', () => {
     assert.ok(
       partnership.answerKey.includes('not the official vendor, partner')
     )
+  })
+
+  test('the "how do I switch" answer is generic — never names specific ids', () => {
+    const switching = FAST_CODING_MODELS_FAQ.find(
+      (entry) => entry.questionKey === 'How do I switch models?'
+    )
+    assert.ok(switching)
+    for (const id of [
+      'hy4-preview',
+      'deepseek-v4-flash-vision-exp',
+      'glm-5.3-flash',
+      'qwen3.8-flash',
+    ]) {
+      assert.ok(
+        !switching.answerKey.includes(id),
+        `switching answer must not name "${id}"`
+      )
+    }
   })
 })

@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { QUOTA_TYPE_VALUES } from '@/features/pricing/constants'
 import { formatPrice } from '@/features/pricing/lib/price'
+import { selectFast } from '@/features/home/lib/homepage-pricing'
 import type { ModelCapability, PricingModel } from '@/features/pricing/types'
 import type { PageMetadata } from '@/hooks/use-page-metadata'
 import {
@@ -27,8 +28,10 @@ import {
 
 /**
  * Pure business logic for the /guides/fast-coding-models acquisition
- * guide. The page compares EXACTLY four model ids — never renamed,
- * expanded, or substituted — through one OpenAI-compatible endpoint.
+ * guide. The page lists every model whose `tags` carry the exact
+ * "fast" token, in stable case-insensitive `model_name` order. There
+ * is no per-id whitelist, no fixed count, and no fallback to a
+ * different model when a tag is missing.
  *
  * This page is display and copy only: it does not change pricing,
  * billing, model ratios, channels, or any database state. Live prices
@@ -51,75 +54,34 @@ export const FAST_CODING_MODELS_API_BASE_URL = 'https://vancine.com/v1'
 export const FAST_CODING_MODELS_API_KEY_PLACEHOLDER = '$VANCINE_API_KEY'
 
 // ---------------------------------------------------------------------------
-// The four models — a closed, exact set
+// Selection — derived from the live /api/pricing "fast" tag
 // ---------------------------------------------------------------------------
 
 /**
- * The exact four model ids this guide compares. The set is closed:
- * selection is strict string equality on `model_name`, so no other
- * model can ever leak into the page, and a missing id degrades to an
- * explicit missing state instead of being substituted.
+ * The list of models shown on the guide. The source of truth is the
+ * `tags` field on each entry in /api/pricing: the exact token "fast"
+ * is required, so the list is data-driven, not code-driven. The
+ * selection is reused for every section (cards, comparison, quickstart,
+ * evidence) and is sorted case-insensitive by `model_name`.
+ *
+ * Generic over the input element type T — callers pass `PricingModel`
+ * for live catalog rows, and the function returns `PricingModel[]`
+ * without an unsafe `as` cast.
  */
-export const FAST_CODING_MODEL_IDS = [
-  'hy4-preview',
-  'deepseek-v4-flash-vision-exp',
-  'glm-5.3-flash',
-  'qwen3.8-flash',
-] as const
-
-export type FastCodingModelId = (typeof FAST_CODING_MODEL_IDS)[number]
 
 /**
- * Preview flag per model id, fixed editorial metadata. Only
- * hy4-preview is actually a preview release; the flag is declared
- * explicitly per id instead of being derived from the id string.
+ * Select the guide's models from a live /api/pricing list. The
+ * generic `selectFast` from the homepage lib is reused so the input
+ * element type T is preserved end-to-end without an unsafe `as` cast.
+ * A model is included iff its `tags` field carries the exact "fast"
+ * token. Sorted case-insensitive by `model_name`. No model id is
+ * hardcoded, no fixed count is enforced, and no model is substituted
+ * when the fast tag is missing.
  */
-export const FAST_CODING_MODEL_PREVIEW: Record<FastCodingModelId, boolean> = {
-  'hy4-preview': true,
-  'deepseek-v4-flash-vision-exp': false,
-  'glm-5.3-flash': false,
-  'qwen3.8-flash': false,
-}
-
-/**
- * Neutral, editorial "Consider when…" guidance per model id. These are
- * selection suggestions, never measured claims; the page renders them
- * visually separate from platform facts.
- */
-export const FAST_CODING_MODEL_GUIDANCE_KEY: Record<FastCodingModelId, string> =
-  {
-    'hy4-preview':
-      'Consider when you want early access to a preview release and can tolerate preview-level changes.',
-    'deepseek-v4-flash-vision-exp':
-      'Consider when your coding agent reads images or screenshots and you want an experimental flash-class model.',
-    'glm-5.3-flash':
-      'Consider when you want a flash-class GLM model that also appears in the Vancine Pi coding-agent benchmark.',
-    'qwen3.8-flash':
-      'Consider when you want a flash-class Qwen model that also appears in the Vancine Pi coding-agent benchmark.',
-  }
-
-/** One slot per exact model id, in the fixed guide order. */
-export interface FastCodingModelsPricingSlot {
-  modelId: FastCodingModelId
-  /** The live pricing entry, or null when the model is not listed. */
-  model: PricingModel | null
-}
-
-/**
- * Select exactly the four guide models from a live /api/pricing model
- * list, preserving the fixed guide order. Matching is strict string
- * equality on model_name — case, prefix, and substring matches are
- * impossible — and every id always yields a slot, so a missing model
- * surfaces as an explicit degradation state and can never be replaced
- * by a different model.
- */
-export function selectFastCodingModelsPricing(
-  models: readonly PricingModel[]
-): FastCodingModelsPricingSlot[] {
-  return FAST_CODING_MODEL_IDS.map((modelId) => ({
-    modelId,
-    model: models.find((model) => model.model_name === modelId) ?? null,
-  }))
+export function selectFastCodingModelsPricing<T extends { model_name: string; tags?: string }>(
+  models: readonly T[]
+): T[] {
+  return selectFast(models)
 }
 
 /** Display-ready USD prices per 1M tokens, resolved via the shared
@@ -237,81 +199,81 @@ const FAST_CODING_MODELS_METADATA: Record<
   // The English block is pinned byte-for-byte against
   // router/web_metadata.go's /guides/fast-coding-models entry.
   en: {
-    title: 'Four Fast Chinese AI Models for Coding Agents | Vancine',
+    title: 'Fast Chinese AI Models for Coding and High-Throughput Workloads | Vancine',
     description:
-      'Compare Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash, and Qwen3.8 Flash through one OpenAI-compatible API.',
-    ogTitle: 'Four Fast Chinese AI Models for Coding Agents',
+      'Explore fast-inference Chinese AI models available through Vancine’s OpenAI-compatible API, with live pricing and model capabilities from the current catalog.',
+    ogTitle: 'Fast Chinese AI Models for Coding and High-Throughput Workloads',
     ogDescription:
-      'Compare Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash, and Qwen3.8 Flash through one OpenAI-compatible API.',
-    twitterTitle: 'Four Fast Chinese AI Models for Coding Agents',
+      'Explore fast-inference Chinese AI models available through Vancine’s OpenAI-compatible API, with live pricing and model capabilities from the current catalog.',
+    twitterTitle: 'Fast Chinese AI Models for Coding and High-Throughput Workloads',
     twitterDescription:
-      'Compare Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash, and Qwen3.8 Flash through one OpenAI-compatible API.',
+      'Explore fast-inference Chinese AI models available through Vancine’s OpenAI-compatible API, with live pricing and model capabilities from the current catalog.',
   },
   zhCN: {
-    title: '面向 Coding Agent 的四个快速中国 AI 模型 | Vancine',
+    title: '面向编码与高吞吐负载的快速中国 AI 模型 | Vancine',
     description:
-      '通过一个 OpenAI 兼容 API，比较 Hy4 Preview、DeepSeek V4 Flash Vision Exp、GLM-5.3 Flash 和 Qwen3.8 Flash。',
-    ogTitle: '面向 Coding Agent 的四个快速中国 AI 模型',
+      '通过 Vancine 提供的 OpenAI 兼容 API，探索当前目录中可用的快速推理中国 AI 模型，获取实时价格与能力信息。',
+    ogTitle: '面向编码与高吞吐负载的快速中国 AI 模型',
     ogDescription:
-      '通过一个 OpenAI 兼容 API，比较 Hy4 Preview、DeepSeek V4 Flash Vision Exp、GLM-5.3 Flash 和 Qwen3.8 Flash。',
-    twitterTitle: '面向 Coding Agent 的四个快速中国 AI 模型',
+      '通过 Vancine 提供的 OpenAI 兼容 API，探索当前目录中可用的快速推理中国 AI 模型，获取实时价格与能力信息。',
+    twitterTitle: '面向编码与高吞吐负载的快速中国 AI 模型',
     twitterDescription:
-      '通过一个 OpenAI 兼容 API，比较 Hy4 Preview、DeepSeek V4 Flash Vision Exp、GLM-5.3 Flash 和 Qwen3.8 Flash。',
+      '通过 Vancine 提供的 OpenAI 兼容 API，探索当前目录中可用的快速推理中国 AI 模型，获取实时价格与能力信息。',
   },
   zhTW: {
-    title: '面向 Coding Agent 的四個快速中國 AI 模型 | Vancine',
+    title: '面向編碼與高吞吐負載的快速中國 AI 模型 | Vancine',
     description:
-      '透過一個 OpenAI 相容 API，比較 Hy4 Preview、DeepSeek V4 Flash Vision Exp、GLM-5.3 Flash 與 Qwen3.8 Flash。',
-    ogTitle: '面向 Coding Agent 的四個快速中國 AI 模型',
+      '透過 Vancine 提供的 OpenAI 相容 API，探索目前目錄中可用的快速推論中國 AI 模型，取得即時價格與能力資訊。',
+    ogTitle: '面向編碼與高吞吐負載的快速中國 AI 模型',
     ogDescription:
-      '透過一個 OpenAI 相容 API，比較 Hy4 Preview、DeepSeek V4 Flash Vision Exp、GLM-5.3 Flash 與 Qwen3.8 Flash。',
-    twitterTitle: '面向 Coding Agent 的四個快速中國 AI 模型',
+      '透過 Vancine 提供的 OpenAI 相容 API，探索目前目錄中可用的快速推論中國 AI 模型，取得即時價格與能力資訊。',
+    twitterTitle: '面向編碼與高吞吐負載的快速中國 AI 模型',
     twitterDescription:
-      '透過一個 OpenAI 相容 API，比較 Hy4 Preview、DeepSeek V4 Flash Vision Exp、GLM-5.3 Flash 與 Qwen3.8 Flash。',
+      '透過 Vancine 提供的 OpenAI 相容 API，探索目前目錄中可用的快速推論中國 AI 模型，取得即時價格與能力資訊。',
   },
   fr: {
-    title: 'Quatre modèles d’IA chinois rapides pour agents de code | Vancine',
+    title: 'Modèles d’IA chinois rapides pour code et workloads à haut débit | Vancine',
     description:
-      'Comparez Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash et Qwen3.8 Flash via une seule API compatible OpenAI.',
-    ogTitle: 'Quatre modèles d’IA chinois rapides pour agents de code',
+      'Explorez les modèles d’IA chinois à inférence rapide disponibles via l’API compatible OpenAI de Vancine, avec tarifs en direct et capacités issues du catalogue actuel.',
+    ogTitle: 'Modèles d’IA chinois rapides pour code et workloads à haut débit',
     ogDescription:
-      'Comparez Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash et Qwen3.8 Flash via une seule API compatible OpenAI.',
-    twitterTitle: 'Quatre modèles d’IA chinois rapides pour agents de code',
+      'Explorez les modèles d’IA chinois à inférence rapide disponibles via l’API compatible OpenAI de Vancine, avec tarifs en direct et capacités issues du catalogue actuel.',
+    twitterTitle: 'Modèles d’IA chinois rapides pour code et workloads à haut débit',
     twitterDescription:
-      'Comparez Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash et Qwen3.8 Flash via une seule API compatible OpenAI.',
+      'Explorez les modèles d’IA chinois à inférence rapide disponibles via l’API compatible OpenAI de Vancine, avec tarifs en direct et capacités issues du catalogue actuel.',
   },
   ru: {
-    title: 'Четыре быстрые китайские ИИ-модели для кодинг-агентов | Vancine',
+    title: 'Быстрые китайские ИИ-модели для кода и высоконагруженных задач | Vancine',
     description:
-      'Сравните Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash и Qwen3.8 Flash через один OpenAI-совместимый API.',
-    ogTitle: 'Четыре быстрые китайские ИИ-модели для кодинг-агентов',
+      'Изучите быстрые китайские ИИ-модели, доступные через OpenAI-совместимый API Vancine, с актуальными ценами и возможностями из текущего каталога.',
+    ogTitle: 'Быстрые китайские ИИ-модели для кода и высоконагруженных задач',
     ogDescription:
-      'Сравните Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash и Qwen3.8 Flash через один OpenAI-совместимый API.',
-    twitterTitle: 'Четыре быстрые китайские ИИ-модели для кодинг-агентов',
+      'Изучите быстрые китайские ИИ-модели, доступные через OpenAI-совместимый API Vancine, с актуальными ценами и возможностями из текущего каталога.',
+    twitterTitle: 'Быстрые китайские ИИ-модели для кода и высоконагруженных задач',
     twitterDescription:
-      'Сравните Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash и Qwen3.8 Flash через один OpenAI-совместимый API.',
+      'Изучите быстрые китайские ИИ-модели, доступные через OpenAI-совместимый API Vancine, с актуальными ценами и возможностями из текущего каталога.',
   },
   ja: {
-    title: 'コーディングエージェント向け中国発高速 AI モデル 4 選 | Vancine',
+    title: 'コーディングと高スループット向け中国発高速 AI モデル | Vancine',
     description:
-      'Hy4 Preview、DeepSeek V4 Flash Vision Exp、GLM-5.3 Flash、Qwen3.8 Flash を 1 つの OpenAI 互換 API で比較。',
-    ogTitle: 'コーディングエージェント向け中国発高速 AI モデル 4 選',
+      'Vancine の OpenAI 互換 API で利用できる、中国発の高速推論 AI モデルを現在のカタログから探索。リアルタイム価格と機能を確認できます。',
+    ogTitle: 'コーディングと高スループット向け中国発高速 AI モデル',
     ogDescription:
-      'Hy4 Preview、DeepSeek V4 Flash Vision Exp、GLM-5.3 Flash、Qwen3.8 Flash を 1 つの OpenAI 互換 API で比較。',
-    twitterTitle: 'コーディングエージェント向け中国発高速 AI モデル 4 選',
+      'Vancine の OpenAI 互換 API で利用できる、中国発の高速推論 AI モデルを現在のカタログから探索。リアルタイム価格と機能を確認できます。',
+    twitterTitle: 'コーディングと高スループット向け中国発高速 AI モデル',
     twitterDescription:
-      'Hy4 Preview、DeepSeek V4 Flash Vision Exp、GLM-5.3 Flash、Qwen3.8 Flash を 1 つの OpenAI 互換 API で比較。',
+      'Vancine の OpenAI 互換 API で利用できる、中国発の高速推論 AI モデルを現在のカタログから探索。リアルタイム価格と機能を確認できます。',
   },
   vi: {
-    title: 'Bốn mô hình AI Trung Quốc tốc độ cao cho coding agent | Vancine',
+    title: 'Mô hình AI Trung Quốc tốc độ cao cho code và workloads thông lượng lớn | Vancine',
     description:
-      'So sánh Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash và Qwen3.8 Flash qua một API tương thích OpenAI.',
-    ogTitle: 'Bốn mô hình AI Trung Quốc tốc độ cao cho coding agent',
+      'Khám phá các mô hình AI Trung Quốc suy luận nhanh có sẵn qua API tương thích OpenAI của Vancine, với giá theo thời gian thực và năng lực từ danh mục hiện hành.',
+    ogTitle: 'Mô hình AI Trung Quốc tốc độ cao cho code và workloads thông lượng lớn',
     ogDescription:
-      'So sánh Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash và Qwen3.8 Flash qua một API tương thích OpenAI.',
-    twitterTitle: 'Bốn mô hình AI Trung Quốc tốc độ cao cho coding agent',
+      'Khám phá các mô hình AI Trung Quốc suy luận nhanh có sẵn qua API tương thích OpenAI của Vancine, với giá theo thời gian thực và năng lực từ danh mục hiện hành.',
+    twitterTitle: 'Mô hình AI Trung Quốc tốc độ cao cho code và workloads thông lượng lớn',
     twitterDescription:
-      'So sánh Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash và Qwen3.8 Flash qua một API tương thích OpenAI.',
+      'Khám phá các mô hình AI Trung Quốc suy luận nhanh có sẵn qua API tương thích OpenAI của Vancine, với giá theo thời gian thực và năng lực từ danh mục hiện hành.',
   },
 }
 
@@ -404,35 +366,34 @@ function trimTrailingZeros(value: string): string {
 // Quickstart
 // ---------------------------------------------------------------------------
 
-/** The curl example always defaults to glm-5.3-flash. */
-export const FAST_CODING_MODELS_DEFAULT_MODEL: FastCodingModelId =
-  'glm-5.3-flash'
-
-/** The three alternatives listed beside the curl example. */
-export const FAST_CODING_MODELS_ALTERNATE_MODELS: readonly FastCodingModelId[] =
-  FAST_CODING_MODEL_IDS.filter(
-    (modelId) => modelId !== FAST_CODING_MODELS_DEFAULT_MODEL
-  )
-
-export const FAST_CODING_MODELS_CURL_EXAMPLE = `curl ${FAST_CODING_MODELS_API_BASE_URL}/chat/completions \\
+/**
+ * Build the curl example using the first live fast-tagged model as the
+ * default. When the fast list is empty, returns null — the caller must
+ * render an empty state and never a curl with a fake model id.
+ */
+export function getFastCodingModelsCurlExample(
+  defaultModelId: string | null
+): string | null {
+  if (!defaultModelId) return null
+  return `curl ${FAST_CODING_MODELS_API_BASE_URL}/chat/completions \\
   -H "Authorization: Bearer ${FAST_CODING_MODELS_API_KEY_PLACEHOLDER}" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "model": "${FAST_CODING_MODELS_DEFAULT_MODEL}",
+    "model": "${defaultModelId}",
     "messages": [
       { "role": "user", "content": "Fix this function so the tests pass." }
     ]
   }'`
+}
 
 /**
- * The exact benchmark membership facts rendered in the evidence
- * boundary section, kept as fixed i18n keys.
+ * The fixed evidence-boundary facts. The guide is a selection guide,
+ * not a benchmark; the "fast" tag is not equivalent to measured
+ * performance, benchmark membership, or official partnership.
  */
 export const FAST_CODING_MODELS_EVIDENCE_KEYS = [
-  'The benchmark includes glm-5.3-flash and qwen3.8-flash.',
-  'The benchmark does not include hy4-preview.',
-  'The benchmark does not include deepseek-v4-flash-vision-exp; the deepseek-v4-flash listed there is a different model ID.',
-  'Do not extend those results to models that were not tested.',
+  'This page reflects the current fast-tagged catalog and does not claim benchmark membership or measured performance for any model.',
+  'See the benchmark page for recorded results, and do not extend those results to fast-tagged models that were not tested.',
 ] as const
 
 // ---------------------------------------------------------------------------
@@ -448,7 +409,7 @@ export const FAST_CODING_MODELS_FAQ: readonly FastCodingModelsFaqEntry[] = [
   {
     questionKey: 'How do I switch models?',
     answerKey:
-      'Keep the same Base URL and API key, and change only the model field of the request to hy4-preview, deepseek-v4-flash-vision-exp, glm-5.3-flash, or qwen3.8-flash.',
+      'Keep the same Base URL and API key, and change only the model field of your request to another model shown in the live fast-model catalog.',
   },
   {
     questionKey: 'Where does the live price come from?',
@@ -468,6 +429,15 @@ export const FAST_CODING_MODELS_FAQ: readonly FastCodingModelsFaqEntry[] = [
 ]
 
 /**
+ * Generic, honest guidance rendered identically on every card and in
+ * the comparison table. There is no per-model-id guidance: the
+ * decision between fast-tagged models is left to live pricing, context
+ * window, and capability facts.
+ */
+export const FAST_CODING_MODELS_GENERIC_GUIDANCE_KEY =
+  'Compare live prices, context limits, and capabilities to choose the model that fits your workload.'
+
+/**
  * Every translation key this page passes to t(). Locale completeness
  * tests iterate this list. Model ids, numbers, URLs, and code are
  * excluded.
@@ -475,13 +445,13 @@ export const FAST_CODING_MODELS_FAQ: readonly FastCodingModelsFaqEntry[] = [
 export const FAST_CODING_MODELS_I18N_KEYS = [
   // Hero
   'Model selection guide',
-  'Four fast Chinese AI models for coding agents',
-  'Compare Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash, and Qwen3.8 Flash through one OpenAI-compatible API.',
-  'Compare the four models',
+  'Fast Chinese AI models for coding and high-throughput workloads',
+  'Explore fast-inference Chinese AI models available through Vancine’s OpenAI-compatible API, with live pricing and model capabilities from the current catalog.',
+  'Compare the fast models',
   'Start with Vancine',
-  // One endpoint, four models
-  'One endpoint, four models',
-  'All four models share one OpenAI-compatible endpoint at https://vancine.com/v1. Switch models by changing only the model field of your request.',
+  // One endpoint, dynamic model list
+  'One endpoint, dynamic fast models',
+  'Every model tagged "fast" in the public catalog shares one OpenAI-compatible endpoint at https://vancine.com/v1. Switch models by changing only the model field of your request.',
   'Base URL',
   'API Key',
   'Model IDs',
@@ -501,19 +471,17 @@ export const FAST_CODING_MODELS_I18N_KEYS = [
   'Not listed in live pricing right now.',
   'View live pricing',
   'Live pricing is unavailable right now. The guide and the CTAs still work; check the pricing page for the latest figures.',
-  // Guidance
-  ...Object.values(FAST_CODING_MODEL_GUIDANCE_KEY),
+  'No fast models are listed in the public catalog right now.',
+  FAST_CODING_MODELS_GENERIC_GUIDANCE_KEY,
   // Comparison
   'Comparison',
-  'Platform facts below come from live pricing metadata. Editorial guidance is marked separately.',
-  'Editorial guidance',
+  'Platform facts below come from live pricing metadata. Catalog description is shown on each card.',
   'Model',
   'Input price',
   'Output price',
   'Cache read price',
   'Input modalities',
   'Context window',
-  'Consider when…',
   'per 1M tokens',
   // Capability and modality labels (shared vocabulary with the pricing page)
   'Function calling',
@@ -536,12 +504,13 @@ export const FAST_CODING_MODELS_I18N_KEYS = [
   // Quickstart
   'Quickstart',
   'Send your first request with curl, then switch models by changing only the model field.',
-  'Switch to any of the other three models by changing only the model field:',
+  'Switch to any of the other fast models by changing only the model field:',
+  'No code sample is available while the fast catalog is empty.',
   'Set up OpenCode, Cline, or Roo Code',
   'Connect Vancine in OpenCode with /connect — no manual provider JSON required.',
   // Evidence boundary
   'Measured results are separate',
-  'This page is a selection guide, not a benchmark. The existing Pi benchmark is a separate, single-task, single-run piece of evidence.',
+  'This page is a selection guide for fast-inference models, not a benchmark.',
   ...FAST_CODING_MODELS_EVIDENCE_KEYS,
   'View the benchmark',
   // Quickstart copy helpers shared with the copyable code block
@@ -557,5 +526,5 @@ export const FAST_CODING_MODELS_I18N_KEYS = [
   'Prices and capabilities can change; the model square and the live pricing API are the source of truth.',
   // Final CTA
   'Start with one endpoint',
-  'Create an API key, point your coding agent at https://vancine.com/v1, and switch between the four models by changing only the model field.',
+  'Create an API key, point your coding agent at https://vancine.com/v1, and switch between fast models by changing only the model field.',
 ] as const

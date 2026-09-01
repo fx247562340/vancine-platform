@@ -21,38 +21,35 @@ import { useTranslation } from 'react-i18next'
 
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { hasPreviewTag } from '@/features/home/lib/homepage-pricing'
 import type { PricingModel } from '@/features/pricing/types'
 import { getLobeIcon } from '@/lib/lobe-icon'
 
 import { useFastCodingModelsPricing } from '../hooks/use-fast-coding-models-pricing'
 import {
-  FAST_CODING_MODEL_GUIDANCE_KEY,
-  FAST_CODING_MODEL_PREVIEW,
   FAST_CODING_MODELS_CAPABILITY_LABEL_KEY,
   FAST_CODING_MODELS_MODALITY_LABEL_KEY,
   formatFastCodingModelsTokenCount,
   getFastCodingModelsPriceSummary,
-  type FastCodingModelsPricingSlot,
 } from '../lib/fast-coding-models'
 import { FAST_CODING_MODELS_COMPARISON_SECTION_ID } from './hero'
 
 /**
- * Side-by-side comparison of the four exact models. Desktop gets a
- * semantic table; below the md breakpoint the same facts render as four
+ * Side-by-side comparison of every fast-tagged model. Desktop gets a
+ * semantic table; below the md breakpoint the same facts render as
  * readable cards — the page never scrolls horizontally. Platform facts
- * come from live pricing metadata; the "Consider when…" row is
- * editorial guidance and is visually marked as such.
+ * come from live pricing metadata; there is no per-id editorial row.
  */
 export function Comparison(): ReactElement {
   const { t } = useTranslation()
   const pricing = useFastCodingModelsPricing()
-  const slots = pricing.slots
+  const models = pricing.models
 
-  const hasContext = slots.some(
-    (slot) => slot.model?.context_length !== undefined
+  const hasContext = models.some(
+    (model) => model.context_length !== undefined
   )
-  const hasMaxOutput = slots.some(
-    (slot) => slot.model?.max_output_tokens !== undefined
+  const hasMaxOutput = models.some(
+    (model) => model.max_output_tokens !== undefined
   )
 
   return (
@@ -71,7 +68,7 @@ export function Comparison(): ReactElement {
           </h2>
           <p className='text-muted-foreground text-sm'>
             {t(
-              'Platform facts below come from live pricing metadata. Editorial guidance is marked separately.'
+              'Platform facts below come from live pricing metadata. Catalog description is shown on each card.'
             )}
           </p>
         </div>
@@ -99,14 +96,33 @@ export function Comparison(): ReactElement {
           </p>
         )}
 
-        {!pricing.isLoading && (
+        {!pricing.isLoading && models.length === 0 && !pricing.error && (
+          <p
+            data-testid='fast-coding-models-comparison-empty'
+            className='text-muted-foreground bg-muted/40 border-border rounded-lg border p-4 text-sm'
+          >
+            {t('No fast models are listed in the public catalog right now.')}
+          </p>
+        )}
+
+        {!pricing.isLoading && models.length > 0 && (
           <>
-            {/* Desktop: semantic comparison table */}
+            {/* Desktop: semantic comparison table inside a local horizontal
+                scroll container. The wrapper carries role="region" with an
+                aria-label so keyboard and assistive tech users can name and
+                scroll the table independently; the table itself never causes
+                page-level horizontal overflow because the wrapper contains
+                any column overflow. min-w makes each model column at least
+                180px wide so additional fast models remain readable. */}
             <div
               data-testid='fast-coding-models-comparison-table'
-              className='hidden md:block'
+              role='region'
+              aria-label={t('Comparison')}
+              className='hidden overflow-x-auto md:block'
             >
-              <table className='w-full border-separate border-spacing-0 text-sm'>
+              <table className='w-full min-w-[180px] border-separate border-spacing-0 text-sm'
+                style={{ minWidth: `${Math.max(models.length, 1) * 180 + 200}px` }}
+              >
                 <caption className='sr-only'>{t('Comparison')}</caption>
                 <thead>
                   <tr>
@@ -116,9 +132,9 @@ export function Comparison(): ReactElement {
                     >
                       {t('Model')}
                     </th>
-                    {slots.map((slot) => (
+                    {models.map((model) => (
                       <th
-                        key={slot.modelId}
+                        key={model.model_name}
                         scope='col'
                         className='border-border border-b p-3 text-left align-bottom'
                       >
@@ -127,16 +143,13 @@ export function Comparison(): ReactElement {
                               aria-hidden also keeps the missing-icon fallback out of
                               the accessibility tree. */}
                           <span aria-hidden='true' className='shrink-0'>
-                            {getLobeIcon(
-                              slot.model?.icon ?? slot.model?.vendor_icon,
-                              20
-                            )}
+                            {getLobeIcon(model.icon, 20)}
                           </span>
                           <code className='font-mono text-sm font-semibold'>
-                            {slot.modelId}
+                            {model.model_name}
                           </code>
                         </span>
-                        {FAST_CODING_MODEL_PREVIEW[slot.modelId] && (
+                        {hasPreviewTag(model.tags) && (
                           <Badge variant='secondary' className='mt-1.5'>
                             {t('Preview')}
                           </Badge>
@@ -150,12 +163,12 @@ export function Comparison(): ReactElement {
                     label={t('Input price')}
                     unit={t('per 1M tokens')}
                   >
-                    {slots.map((slot) => (
+                    {models.map((model) => (
                       <td
-                        key={slot.modelId}
+                        key={model.model_name}
                         className='border-border border-b p-3'
                       >
-                        {priceOf(slot)?.input ?? '—'}
+                        {priceOf(model)?.input ?? '—'}
                       </td>
                     ))}
                   </ComparisonRow>
@@ -163,12 +176,12 @@ export function Comparison(): ReactElement {
                     label={t('Output price')}
                     unit={t('per 1M tokens')}
                   >
-                    {slots.map((slot) => (
+                    {models.map((model) => (
                       <td
-                        key={slot.modelId}
+                        key={model.model_name}
                         className='border-border border-b p-3'
                       >
-                        {priceOf(slot)?.output ?? '—'}
+                        {priceOf(model)?.output ?? '—'}
                       </td>
                     ))}
                   </ComparisonRow>
@@ -176,44 +189,44 @@ export function Comparison(): ReactElement {
                     label={t('Cache read price')}
                     unit={t('per 1M tokens')}
                   >
-                    {slots.map((slot) => (
+                    {models.map((model) => (
                       <td
-                        key={slot.modelId}
+                        key={model.model_name}
                         className='border-border border-b p-3'
                       >
-                        {priceOf(slot)?.cache ?? '—'}
+                        {priceOf(model)?.cache ?? '—'}
                       </td>
                     ))}
                   </ComparisonRow>
                   <ComparisonRow label={t('Input modalities')}>
-                    {slots.map((slot) => (
+                    {models.map((model) => (
                       <td
-                        key={slot.modelId}
+                        key={model.model_name}
                         className='border-border border-b p-3'
                       >
-                        {modalitiesOf(slot, t)}
+                        {modalitiesOf(model, t)}
                       </td>
                     ))}
                   </ComparisonRow>
                   <ComparisonRow label={t('Capabilities')}>
-                    {slots.map((slot) => (
+                    {models.map((model) => (
                       <td
-                        key={slot.modelId}
+                        key={model.model_name}
                         className='border-border border-b p-3'
                       >
-                        {capabilitiesOf(slot, t)}
+                        {capabilitiesOf(model, t)}
                       </td>
                     ))}
                   </ComparisonRow>
                   {hasContext && (
                     <ComparisonRow label={t('Context window')}>
-                      {slots.map((slot) => (
+                      {models.map((model) => (
                         <td
-                          key={slot.modelId}
+                          key={model.model_name}
                           className='border-border border-b p-3'
                         >
                           {formatFastCodingModelsTokenCount(
-                            slot.model?.context_length
+                            model.context_length
                           ) ?? '—'}
                         </td>
                       ))}
@@ -221,43 +234,29 @@ export function Comparison(): ReactElement {
                   )}
                   {hasMaxOutput && (
                     <ComparisonRow label={t('Max output')}>
-                      {slots.map((slot) => (
+                      {models.map((model) => (
                         <td
-                          key={slot.modelId}
+                          key={model.model_name}
                           className='border-border border-b p-3'
                         >
                           {formatFastCodingModelsTokenCount(
-                            slot.model?.max_output_tokens
+                            model.max_output_tokens
                           ) ?? '—'}
                         </td>
                       ))}
                     </ComparisonRow>
                   )}
-                  <tr data-testid='fast-coding-models-guidance-row'>
-                    <th scope='row' className='p-3 text-left align-top'>
-                      <span className='font-medium'>{t('Consider when…')}</span>{' '}
-                      <Badge variant='outline'>{t('Editorial guidance')}</Badge>
-                    </th>
-                    {slots.map((slot) => (
-                      <td
-                        key={slot.modelId}
-                        className='text-muted-foreground p-3 align-top text-xs italic'
-                      >
-                        {t(FAST_CODING_MODEL_GUIDANCE_KEY[slot.modelId])}
-                      </td>
-                    ))}
-                  </tr>
                 </tbody>
               </table>
             </div>
 
-            {/* Mobile: four readable cards, no horizontal overflow */}
+            {/* Mobile: readable cards, no horizontal overflow */}
             <div
               data-testid='fast-coding-models-comparison-cards'
               className='flex flex-col gap-4 md:hidden'
             >
-              {slots.map((slot) => (
-                <MobileComparisonCard key={slot.modelId} slot={slot} />
+              {models.map((model) => (
+                <MobileComparisonCard key={model.model_name} model={model} />
               ))}
             </div>
           </>
@@ -267,15 +266,15 @@ export function Comparison(): ReactElement {
   )
 }
 
-function priceOf(slot: FastCodingModelsPricingSlot) {
-  return slot.model ? getFastCodingModelsPriceSummary(slot.model) : null
+function priceOf(model: PricingModel) {
+  return getFastCodingModelsPriceSummary(model)
 }
 
 function modalitiesOf(
-  slot: FastCodingModelsPricingSlot,
+  model: PricingModel,
   t: (key: string) => string
 ): string {
-  const modalities = slot.model?.input_modalities
+  const modalities = model.input_modalities
   if (!Array.isArray(modalities) || modalities.length === 0) return '—'
   return modalities
     .map((m) => t(FAST_CODING_MODELS_MODALITY_LABEL_KEY[m] ?? m))
@@ -283,10 +282,10 @@ function modalitiesOf(
 }
 
 function capabilitiesOf(
-  slot: FastCodingModelsPricingSlot,
+  model: PricingModel,
   t: (key: string) => string
 ): string {
-  const capabilities = slot.model?.capabilities
+  const capabilities = model.capabilities
   if (!Array.isArray(capabilities) || capabilities.length === 0) return '—'
   return capabilities
     .map((c) => t(FAST_CODING_MODELS_CAPABILITY_LABEL_KEY[c] ?? c))
@@ -314,26 +313,29 @@ function ComparisonRow(props: {
 }
 
 function MobileComparisonCard(props: {
-  slot: FastCodingModelsPricingSlot
+  model: PricingModel
 }): ReactElement {
   const { t } = useTranslation()
-  const model: PricingModel | null = props.slot.model
-  const prices = priceOf(props.slot)
-  const context = formatFastCodingModelsTokenCount(model?.context_length)
-  const maxOutput = formatFastCodingModelsTokenCount(model?.max_output_tokens)
+  const model: PricingModel = props.model
+  const prices = priceOf(model)
+  const context = formatFastCodingModelsTokenCount(model.context_length)
+  const maxOutput = formatFastCodingModelsTokenCount(model.max_output_tokens)
 
   return (
-    <div className='bg-card border-border rounded-xl border p-4'>
+    <div
+      className='bg-card border-border rounded-xl border p-4'
+      data-testid={`fast-coding-comparison-card-${model.model_name}`}
+    >
       <div className='flex items-center gap-2'>
         {/* Decorative: the model id text is the accessible name; aria-hidden
             also keeps the missing-icon fallback out of the accessibility tree. */}
         <span aria-hidden='true' className='shrink-0'>
-          {getLobeIcon(model?.icon ?? model?.vendor_icon, 20)}
+          {getLobeIcon(model.icon, 20)}
         </span>
         <code className='font-mono text-sm font-semibold'>
-          {props.slot.modelId}
+          {model.model_name}
         </code>
-        {FAST_CODING_MODEL_PREVIEW[props.slot.modelId] && (
+        {hasPreviewTag(model.tags) && (
           <Badge variant='secondary'>{t('Preview')}</Badge>
         )}
       </div>
@@ -355,10 +357,10 @@ function MobileComparisonCard(props: {
       </dl>
       <ul className='text-muted-foreground mt-3 flex flex-col gap-1 text-xs'>
         <li>
-          {t('Input modalities')}: {modalitiesOf(props.slot, t)}
+          {t('Input modalities')}: {modalitiesOf(model, t)}
         </li>
         <li>
-          {t('Capabilities')}: {capabilitiesOf(props.slot, t)}
+          {t('Capabilities')}: {capabilitiesOf(model, t)}
         </li>
         {context && (
           <li>
@@ -371,12 +373,6 @@ function MobileComparisonCard(props: {
           </li>
         )}
       </ul>
-      <p className='border-border text-muted-foreground mt-3 border-t pt-3 text-xs italic'>
-        <Badge variant='outline' className='mb-1 not-italic'>
-          {t('Editorial guidance')}
-        </Badge>
-        {t(FAST_CODING_MODEL_GUIDANCE_KEY[props.slot.modelId])}
-      </p>
     </div>
   )
 }

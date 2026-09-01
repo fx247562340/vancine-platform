@@ -32,10 +32,11 @@ import {
 } from '../lib/fast-coding-models'
 
 /**
- * Evidence boundary: this guide is not a benchmark. The existing Pi
- * benchmark is linked as separate, single-task, single-run evidence,
- * with explicit membership facts so no result is ever extrapolated to
- * hy4-preview or deepseek-v4-flash-vision-exp.
+ * Evidence boundary: this guide is a selection guide for the live
+ * fast-tagged catalog, not a benchmark. The benchmark page is
+ * linked as a separate, single-source-of-truth for measured
+ * performance; this guide never extrapolates any benchmark result to
+ * fast-tagged models that were not actually tested.
  */
 export function EvidenceBoundary(): ReactElement {
   const { t } = useTranslation()
@@ -57,7 +58,7 @@ export function EvidenceBoundary(): ReactElement {
         </h2>
         <p className='text-muted-foreground mt-2 text-sm'>
           {t(
-            'This page is a selection guide, not a benchmark. The existing Pi benchmark is a separate, single-task, single-run piece of evidence.'
+            'This page is a selection guide for fast-inference models, not a benchmark.'
           )}
         </p>
         <ul className='text-muted-foreground mt-4 flex list-disc flex-col gap-2 pl-5 text-sm'>

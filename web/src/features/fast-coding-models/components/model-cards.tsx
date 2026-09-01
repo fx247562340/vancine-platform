@@ -25,34 +25,31 @@ import { useTranslation } from 'react-i18next'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { hasPreviewTag } from '@/features/home/lib/homepage-pricing'
 import type { PricingModel } from '@/features/pricing/types'
 import { trackEvent } from '@/lib/analytics'
 import { getLobeIcon } from '@/lib/lobe-icon'
 
 import { useFastCodingModelsPricing } from '../hooks/use-fast-coding-models-pricing'
 import {
-  FAST_CODING_MODEL_GUIDANCE_KEY,
-  FAST_CODING_MODEL_PREVIEW,
   FAST_CODING_MODELS_CAPABILITY_LABEL_KEY,
+  FAST_CODING_MODELS_GENERIC_GUIDANCE_KEY,
   FAST_CODING_MODELS_MODALITY_LABEL_KEY,
   FAST_CODING_MODELS_RESOURCE,
   FAST_CODING_MODELS_RESOURCE_EVENT,
   formatFastCodingModelsTokenCount,
   getFastCodingModelsPriceSummary,
-  type FastCodingModelId,
-  type FastCodingModelsPricingSlot,
 } from '../lib/fast-coding-models'
 
 const SKELETON_CARDS = ['first', 'second', 'third', 'fourth'] as const
 
 /**
- * The four selection cards. Prices, capabilities, and catalog facts
- * come live from the /api/pricing payload through the shared pricing
- * helpers; the page never synthesizes missing data. Loading renders a
- * stable four-card skeleton, a failed request renders an inline banner
- * (the rest of the page keeps working), and a model missing from the
- * live pricing renders an explicit degradation state with a link to
- * the pricing page — never a substitute model.
+ * Dynamic model cards. Every card is a model from the live /api/pricing
+ * payload that carries the exact "fast" tag. There is no fixed count,
+ * no allowlist, and no fallback to a different model. Loading renders
+ * a stable four-card skeleton, a failed request renders an inline
+ * banner, and an empty fast catalog renders a clean empty state with
+ * a link to the full model square — never a placeholder or substitute.
  */
 export function ModelCards(): ReactElement {
   const { t } = useTranslation()
@@ -130,58 +127,21 @@ export function ModelCards(): ReactElement {
           </div>
         )}
 
-        {!pricing.isLoading && !pricing.error && (
-          <div className='grid gap-4 sm:grid-cols-2 xl:grid-cols-4'>
-            {pricing.slots.map((slot) => (
-              <ModelCard key={slot.modelId} slot={slot} />
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
-  )
-}
-
-function ModelCard(props: { slot: FastCodingModelsPricingSlot }): ReactElement {
-  const { t } = useTranslation()
-  const model = props.slot.model
-
-  return (
-    <Card data-testid={`fast-coding-model-card-${props.slot.modelId}`}>
-      <CardHeader>
-        <div className='flex items-center gap-2.5'>
-          {/* Decorative: the model id text is the accessible name; aria-hidden
-              also keeps the missing-icon fallback out of the accessibility tree. */}
-          <span aria-hidden='true' className='shrink-0'>
-            {getLobeIcon(model?.icon ?? model?.vendor_icon, 32)}
-          </span>
-          <div className='flex min-w-0 flex-col'>
-            <code className='truncate font-mono text-sm font-semibold'>
-              {props.slot.modelId}
-            </code>
-            {FAST_CODING_MODEL_PREVIEW[props.slot.modelId] && (
-              <Badge variant='secondary' className='mt-1 w-fit'>
-                {t('Preview')}
-              </Badge>
-            )}
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className='flex flex-1 flex-col gap-3'>
-        {model ? (
-          <ModelFacts model={model} modelId={props.slot.modelId} />
-        ) : (
-          <div className='flex flex-1 flex-col gap-3'>
+        {!pricing.isLoading && !pricing.error && pricing.models.length === 0 && (
+          <div
+            data-testid='fast-coding-models-cards-empty'
+            className='bg-muted/40 border-border rounded-xl border p-6 text-center'
+          >
             <p className='text-muted-foreground text-sm'>
-              {t('Not listed in live pricing right now.')}
+              {t('No fast models are listed in the public catalog right now.')}
             </p>
             <Link
               to='/pricing'
-              className='text-primary inline-flex items-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline'
+              className='text-primary mt-3 inline-flex items-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline'
               onClick={() =>
                 trackEvent(FAST_CODING_MODELS_RESOURCE_EVENT, {
                   resource: 'pricing',
-                  location: 'fast_coding_models_card_missing',
+                  location: 'fast_coding_models_cards_empty',
                 })
               }
             >
@@ -194,33 +154,73 @@ function ModelCard(props: { slot: FastCodingModelsPricingSlot }): ReactElement {
             </Link>
           </div>
         )}
+
+        {!pricing.isLoading && !pricing.error && pricing.models.length > 0 && (
+          <div
+            className='grid gap-4 sm:grid-cols-2 xl:grid-cols-4'
+            data-testid='fast-coding-models-cards-grid'
+          >
+            {pricing.models.map((model) => (
+              <ModelCard key={model.model_name} model={model} />
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
+function ModelCard(props: { model: PricingModel }): ReactElement {
+  const { t } = useTranslation()
+  const model = props.model
+  const isPreview = hasPreviewTag(model.tags)
+
+  return (
+    <Card data-testid={`fast-coding-model-card-${model.model_name}`}>
+      <CardHeader>
+        <div className='flex items-center gap-2.5'>
+          {/* Decorative: the model id text is the accessible name; aria-hidden
+              also keeps the missing-icon fallback out of the accessibility tree. */}
+          <span aria-hidden='true' className='shrink-0'>
+            {getLobeIcon(model.icon, 32)}
+          </span>
+          <div className='flex min-w-0 flex-col'>
+            <code className='truncate font-mono text-sm font-semibold'>
+              {model.model_name}
+            </code>
+            {isPreview && (
+              <Badge variant='secondary' className='mt-1 w-fit'>
+                {t('Preview')}
+              </Badge>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className='flex flex-1 flex-col gap-3'>
+        <ModelFacts model={model} />
       </CardContent>
     </Card>
   )
 }
 
-function ModelFacts(props: {
-  model: PricingModel
-  modelId: FastCodingModelId
-}): ReactElement {
+function ModelFacts(props: { model: PricingModel }): ReactElement {
   const { t } = useTranslation()
-  const prices = getFastCodingModelsPriceSummary(props.model)
-  const context = formatFastCodingModelsTokenCount(props.model.context_length)
-  const maxOutput = formatFastCodingModelsTokenCount(
-    props.model.max_output_tokens
-  )
-  const modalities = Array.isArray(props.model.input_modalities)
-    ? props.model.input_modalities
+  const model = props.model
+  const prices = getFastCodingModelsPriceSummary(model)
+  const context = formatFastCodingModelsTokenCount(model.context_length)
+  const maxOutput = formatFastCodingModelsTokenCount(model.max_output_tokens)
+  const modalities = Array.isArray(model.input_modalities)
+    ? model.input_modalities
     : []
-  const capabilities = Array.isArray(props.model.capabilities)
-    ? props.model.capabilities
+  const capabilities = Array.isArray(model.capabilities)
+    ? model.capabilities
     : []
 
   return (
     <div className='flex flex-1 flex-col gap-3'>
-      {props.model.description && (
+      {model.description && (
         <p className='text-muted-foreground line-clamp-3 text-sm'>
-          {props.model.description}
+          {model.description}
         </p>
       )}
 
@@ -274,12 +274,12 @@ function ModelFacts(props: {
       </ul>
 
       <p className='border-border text-muted-foreground border-t pt-3 text-xs italic'>
-        {t(FAST_CODING_MODEL_GUIDANCE_KEY[props.modelId])}
+        {t(FAST_CODING_MODELS_GENERIC_GUIDANCE_KEY)}
       </p>
 
       <Link
         to='/pricing/$modelId'
-        params={{ modelId: props.modelId }}
+        params={{ modelId: model.model_name }}
         className='text-primary mt-auto inline-flex items-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline'
         onClick={() =>
           trackEvent(FAST_CODING_MODELS_RESOURCE_EVENT, {

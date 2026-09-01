@@ -41,10 +41,10 @@ describe('developer guides registry', () => {
   test('defines the stable guide contract', () => {
     const guide = DEVELOPER_GUIDES[0]
     assert.equal(guide.route, '/guides/fast-coding-models')
-    assert.equal(guide.titleKey, 'Fast Coding Models for AI Agents')
+    assert.equal(guide.titleKey, 'Fast AI Models')
     assert.equal(
       guide.descriptionKey,
-      'Compare Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash, and Qwen3.8 Flash.'
+      'Explore the current fast-inference catalog for coding, multimodal, and high-throughput workloads.'
     )
     assert.equal(guide.resource, 'fast_coding_models_guide')
     assert.equal(DEVELOPER_GUIDES_SECTION_LABEL_KEY, 'Guides')

@@ -18,16 +18,20 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useMemo } from 'react'
 
+import type { PricingModel } from '@/features/pricing/types'
 import { usePricingData } from '@/features/pricing/hooks/use-pricing-data'
 
-import {
-  selectFastCodingModelsPricing,
-  type FastCodingModelsPricingSlot,
-} from '../lib/fast-coding-models'
+import { selectFastCodingModelsPricing } from '../lib/fast-coding-models'
 
 export interface FastCodingModelsPricingState {
-  /** Exactly four slots in the fixed guide order; never substituted. */
-  slots: FastCodingModelsPricingSlot[]
+  /**
+   * Every model tagged "fast" in the public /api/pricing payload,
+   * sorted case-insensitive by model_name. The list is data-driven
+   * and has no fixed count or per-id allowlist. The element type
+   * matches the live /api/pricing `PricingModel` shape because
+   * `selectFastCodingModelsPricing` is generic over its input.
+   */
+  models: PricingModel[]
   isLoading: boolean
   /** Non-null when the /api/pricing request failed. */
   error: Error | null
@@ -35,17 +39,20 @@ export interface FastCodingModelsPricingState {
 }
 
 /**
- * Live pricing for exactly the four guide models. Reads the shared
- * ['pricing'] react-query cache through usePricingData, so this page
- * never duplicates the pricing fetch contract, and selects the exact
- * model ids with strict equality. A failed request surfaces as
- * `error` and must only degrade the pricing sections — never the
- * article, navigation, or CTAs.
+ * Live fast-tagged catalog for the guide. Reads the shared ['pricing']
+ * react-query cache through usePricingData, so this page never
+ * duplicates the pricing fetch contract, and selects every model whose
+ * `tags` carry the exact "fast" token. A failed request surfaces as
+ * `error` and only degrades the pricing sections — never the article,
+ * navigation, or CTAs.
  */
 export function useFastCodingModelsPricing(): FastCodingModelsPricingState {
   const { models, isLoading, error, refetch } = usePricingData()
 
-  const slots = useMemo(() => selectFastCodingModelsPricing(models), [models])
+  const fastModels = useMemo(
+    () => selectFastCodingModelsPricing(models),
+    [models]
+  )
 
-  return { slots, isLoading, error: error ?? null, refetch }
+  return { models: fastModels, isLoading, error: error ?? null, refetch }
 }

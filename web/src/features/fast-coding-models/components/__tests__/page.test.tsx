@@ -39,10 +39,7 @@ import type { ReactNode } from 'react'
 import { I18nextProvider, initReactI18next } from 'react-i18next'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import {
-  FAST_CODING_MODEL_IDS,
-  FAST_CODING_MODELS_CANONICAL,
-} from '@/features/fast-coding-models/lib/fast-coding-models'
+import { FAST_CODING_MODELS_CANONICAL } from '@/features/fast-coding-models/lib/fast-coding-models'
 import type { PricingData, PricingModel } from '@/features/pricing/types'
 import { resetMetadataRegistry } from '@/hooks/use-page-metadata'
 import enLocale from '@/i18n/locales/en.json'
@@ -185,12 +182,21 @@ function fixtureModel(overrides: Partial<PricingModel>): PricingModel {
   }
 }
 
-function fixturePricing(modelNames: readonly string[]): PricingData {
+/** Build a /api/pricing payload. Only models with `tags` containing the
+ *  exact "fast" token render on the page. */
+function fixturePricing(opts: {
+  fast: ReadonlyArray<{ model_name: string; tags?: string }>
+  nonFast?: ReadonlyArray<{ model_name: string; tags?: string }>
+}): PricingData {
+  const fast = opts.fast.map((m, i) =>
+    fixtureModel({ id: i + 1, tags: 'fast', ...m })
+  )
+  const nonFast = (opts.nonFast ?? []).map((m, i) =>
+    fixtureModel({ id: 100 + i, tags: 'text', ...m })
+  )
   return {
     success: true,
-    data: modelNames.map((name, index) =>
-      fixtureModel({ id: index + 1, model_name: name })
-    ),
+    data: [...fast, ...nonFast],
     vendors: [],
     group_ratio: { default: 1 },
     usable_group: { default: { desc: 'default', ratio: 1 } },
@@ -198,6 +204,16 @@ function fixturePricing(modelNames: readonly string[]): PricingData {
     auto_groups: [],
   }
 }
+
+const DEFAULT_FAST_MODELS: ReadonlyArray<{
+  model_name: string
+  tags?: string
+}> = [
+  { model_name: 'flash-alpha' },
+  { model_name: 'flash-beta', tags: 'fast,preview' },
+  { model_name: 'flash-gamma' },
+  { model_name: 'flash-delta' },
+]
 
 const realInitialAuthData = {
   user: useAuthStore.getState().auth.user,
@@ -224,7 +240,9 @@ beforeEach(async () => {
   restoreAuthStore()
   getPricingMock.mockReset()
   trackEventMock.mockClear()
-  getPricingMock.mockResolvedValue(fixturePricing(FAST_CODING_MODEL_IDS))
+  getPricingMock.mockResolvedValue(
+    fixturePricing({ fast: DEFAULT_FAST_MODELS })
+  )
   vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {})
 })
 
@@ -236,17 +254,17 @@ afterEach(() => {
 })
 
 describe('page structure', () => {
-  it('renders one H1 naming the guide and all four exact model ids', async () => {
+  it('renders one H1 naming the guide and every fast-tagged model', async () => {
     renderPage()
     const headings = await screen.findAllByRole('heading', { level: 1 })
     expect(headings).toHaveLength(1)
     expect(headings[0]).toHaveTextContent(
-      'Four fast Chinese AI models for coding agents'
+      'Fast Chinese AI models for coding and high-throughput workloads'
     )
 
-    for (const modelId of FAST_CODING_MODEL_IDS) {
+    for (const model of DEFAULT_FAST_MODELS) {
       await waitFor(() => {
-        expect(document.body.textContent ?? '').toContain(modelId)
+        expect(document.body.textContent ?? '').toContain(model.model_name)
       })
     }
   })
@@ -254,7 +272,7 @@ describe('page structure', () => {
   it('renders every required section heading', async () => {
     renderPage()
     for (const section of [
-      'One endpoint, four models',
+      'One endpoint, dynamic fast models',
       'Pick the model that fits your agent',
       'Comparison',
       'Quickstart',
@@ -268,14 +286,20 @@ describe('page structure', () => {
     }
   })
 
-  it('keeps the endpoint facts: Base URL, env placeholder, four model ids', async () => {
+  it('keeps the endpoint facts: Base URL, env placeholder, dynamic model ids', async () => {
     renderPage()
     await screen.findByRole('heading', { level: 1 })
+    // Wait for pricing data to resolve so the endpoint-id list is populated.
+    await waitFor(() =>
+      expect(
+        screen.queryByTestId('fast-coding-models-endpoint-id-list')
+      ).toBeInTheDocument()
+    )
     const text = document.body.textContent ?? ''
     expect(text).toContain('https://vancine.com/v1')
     expect(text).toContain('$VANCINE_API_KEY')
-    for (const modelId of FAST_CODING_MODEL_IDS) {
-      expect(text).toContain(modelId)
+    for (const model of DEFAULT_FAST_MODELS) {
+      expect(text).toContain(model.model_name)
     }
   })
 })
@@ -320,61 +344,61 @@ describe('live pricing states', () => {
     ).toBeGreaterThan(0)
   })
 
-  it('renders four cards with live prices and links to /pricing/{modelId}', async () => {
+  it('renders one card per fast-tagged model with live prices and a /pricing/{modelId} link', async () => {
     renderPage()
-    for (const modelId of FAST_CODING_MODEL_IDS) {
+    // Wait for at least one card to appear (signals pricing data resolved).
+    await screen.findByTestId(
+      `fast-coding-model-card-${DEFAULT_FAST_MODELS[0].model_name}`
+    )
+    for (const model of DEFAULT_FAST_MODELS) {
       const card = await screen.findByTestId(
-        `fast-coding-model-card-${modelId}`
+        `fast-coding-model-card-${model.model_name}`
       )
-      expect(within(card).getByText(modelId)).toBeInTheDocument()
+      expect(within(card).getByText(model.model_name)).toBeInTheDocument()
       const details = within(card).getByRole('link', {
         name: /Model details/,
       })
-      expect(details).toHaveAttribute('href', `/pricing/${modelId}`)
+      expect(details).toHaveAttribute(
+        'href',
+        `/pricing/${model.model_name}`
+      )
     }
   })
 
-  it('marks only hy4-preview as Preview', async () => {
+  it('marks the preview-tagged model as Preview and no other model', async () => {
     renderPage()
-    const hy4Card = await screen.findByTestId(
-      'fast-coding-model-card-hy4-preview'
+    const previewModel = DEFAULT_FAST_MODELS.find(
+      (m) => (m.tags ?? '').includes('preview')
     )
-    expect(within(hy4Card).getByText('Preview')).toBeInTheDocument()
-    for (const modelId of FAST_CODING_MODEL_IDS.slice(1)) {
+    if (!previewModel) throw new Error('fixture missing preview-tagged model')
+    const previewCard = await screen.findByTestId(
+      `fast-coding-model-card-${previewModel.model_name}`
+    )
+    expect(within(previewCard).getByText('Preview')).toBeInTheDocument()
+    for (const model of DEFAULT_FAST_MODELS) {
+      if (model.model_name === previewModel.model_name) continue
       const card = await screen.findByTestId(
-        `fast-coding-model-card-${modelId}`
+        `fast-coding-model-card-${model.model_name}`
       )
       expect(within(card).queryByText('Preview')).toBeNull()
     }
   })
 
-  it('shows an explicit degradation state for a missing model without substituting another', async () => {
+  it('renders an explicit empty state when the fast catalog is empty', async () => {
     getPricingMock.mockResolvedValue(
-      fixturePricing(
-        FAST_CODING_MODEL_IDS.filter((id) => id !== 'qwen3.8-flash')
-      )
+      fixturePricing({ fast: [], nonFast: [{ model_name: 'plain' }] })
     )
     renderPage()
 
-    const missingCard = await screen.findByTestId(
-      'fast-coding-model-card-qwen3.8-flash'
-    )
     expect(
-      within(missingCard).getByText('Not listed in live pricing right now.')
+      await screen.findByTestId('fast-coding-models-cards-empty')
     ).toBeInTheDocument()
     expect(
-      within(missingCard).getByRole('link', { name: /View live pricing/ })
-    ).toHaveAttribute('href', '/pricing')
-
-    // The other three models keep their live cards.
-    for (const modelId of FAST_CODING_MODEL_IDS.slice(0, 3)) {
-      const card = await screen.findByTestId(
-        `fast-coding-model-card-${modelId}`
-      )
-      expect(
-        within(card).queryByText('Not listed in live pricing right now.')
-      ).toBeNull()
-    }
+      await screen.findByTestId('fast-coding-models-comparison-empty')
+    ).toBeInTheDocument()
+    expect(
+      await screen.findByTestId('fast-coding-models-curl-empty')
+    ).toBeInTheDocument()
   })
 })
 
@@ -387,37 +411,84 @@ describe('comparison responsive contract', () => {
     const cardsWrapper = await screen.findByTestId(
       'fast-coding-models-comparison-cards'
     )
-    // The table is desktop-only and the cards are mobile-only; neither
-    // wrapper uses a horizontal overflow container.
+    // The table is desktop-only and the cards are mobile-only. The
+    // table wrapper now owns its own local horizontal scroll (overflow-x-auto)
+    // so additional fast-tagged models can never push the page itself
+    // into horizontal overflow; the mobile cards do not need a scroll
+    // container.
     expect(tableWrapper.className).toContain('hidden')
     expect(tableWrapper.className).toContain('md:block')
+    expect(tableWrapper.className).toContain('overflow-x-auto')
+    expect(tableWrapper.getAttribute('role')).toBe('region')
+    expect(tableWrapper.getAttribute('aria-label')).toBeTruthy()
     expect(cardsWrapper.className).toContain('md:hidden')
-    expect(tableWrapper.className).not.toContain('overflow-x')
-    expect(cardsWrapper.className).not.toContain('overflow-x')
 
     const table = within(tableWrapper).getByRole('table')
     const headerCells = [...table.querySelectorAll('thead th')].map(
       (th) => th.textContent ?? ''
     )
     expect(headerCells[0]).toContain('Model')
-    for (const modelId of FAST_CODING_MODEL_IDS) {
-      expect(headerCells.join(' ')).toContain(modelId)
+    for (const model of DEFAULT_FAST_MODELS) {
+      expect(headerCells.join(' ')).toContain(model.model_name)
     }
   })
 
-  it('separates platform facts from editorial guidance in the table', async () => {
+  it('renders the generic guidance verbatim on every card', async () => {
     renderPage()
-    const guidanceRow = await screen.findByTestId(
-      'fast-coding-models-guidance-row'
+    await screen.findByTestId(
+      `fast-coding-model-card-${DEFAULT_FAST_MODELS[0].model_name}`
     )
-    expect(guidanceRow.textContent).toContain('Consider when…')
-    expect(guidanceRow.textContent).toContain('Editorial guidance')
-    for (const modelId of FAST_CODING_MODEL_IDS) {
+    for (const model of DEFAULT_FAST_MODELS) {
       const card = await screen.findByTestId(
-        `fast-coding-model-card-${modelId}`
+        `fast-coding-model-card-${model.model_name}`
       )
-      expect(card.textContent).toContain('Consider when')
+      expect(card.textContent).toContain(
+        'Compare live prices, context limits, and capabilities to choose the model that fits your workload.'
+      )
     }
+  })
+})
+
+describe('layout contract beyond four fast models', () => {
+  // Generic fixture: any model with the exact "fast" tag must render;
+  // no hardcoded per-id assertion is made.
+  const manyFastModels = Array.from({ length: 6 }, (_, i) => ({
+    model_name: `m-flash-${i}`,
+    tags: 'fast',
+  }))
+
+  it('renders every fast-tagged model in the cards grid without a fixed cap', async () => {
+    getPricingMock.mockResolvedValue(fixturePricing({ fast: manyFastModels }))
+    renderPage()
+    await screen.findByTestId('fast-coding-models-cards-grid')
+    for (const m of manyFastModels) {
+      expect(
+        await screen.findByTestId(`fast-coding-model-card-${m.model_name}`)
+      ).toBeInTheDocument()
+    }
+  })
+
+  it('desktop comparison table grows to fit any number of fast models with a local scroll container', async () => {
+    getPricingMock.mockResolvedValue(fixturePricing({ fast: manyFastModels }))
+    renderPage()
+    const tableWrapper = await screen.findByTestId(
+      'fast-coding-models-comparison-table'
+    )
+    const cardsWrapper = await screen.findByTestId(
+      'fast-coding-models-comparison-cards'
+    )
+    // The desktop table wrapper must always own a local horizontal scroll
+    // container regardless of the number of columns, and the mobile
+    // cards wrapper never does. This protects the page from horizontal
+    // overflow when the fast catalog grows beyond four.
+    expect(tableWrapper.className).toContain('overflow-x-auto')
+    expect(cardsWrapper.className).not.toContain('overflow-x')
+    // The local scroll container is exposed as a labelled region so
+    // keyboard and assistive tech users can name and scroll it.
+    expect(tableWrapper.getAttribute('role')).toBe('region')
+    expect(
+      (tableWrapper.getAttribute('aria-label') ?? '').length
+    ).toBeGreaterThan(0)
   })
 })
 
@@ -517,7 +588,7 @@ describe('CTA destinations and UTM contract', () => {
     >
     renderPage()
     const compare = await screen.findByRole('button', {
-      name: /Compare the four models/,
+      name: /Compare the fast models/,
     })
     compare.click()
     expect(scrollSpy).toHaveBeenCalled()
@@ -529,31 +600,35 @@ describe('CTA destinations and UTM contract', () => {
 })
 
 describe('quickstart', () => {
-  it('shows the curl example with the env placeholder and glm-5.3-flash default', async () => {
+  it('shows the curl example with the env placeholder and the first fast model as default', async () => {
     renderPage()
     const codeBlock = await screen.findByTestId('fast-coding-models-code-block')
     expect(codeBlock.textContent).toContain(
       'https://vancine.com/v1/chat/completions'
     )
     expect(codeBlock.textContent).toContain('Bearer $VANCINE_API_KEY')
-    expect(codeBlock.textContent).toContain('"model": "glm-5.3-flash"')
+    // First fast model in fixture is flash-alpha; curl defaults to it.
+    expect(codeBlock.textContent).toContain('"model": "flash-alpha"')
     // The block grows with its content: no fixed height styles or classes.
     expect(codeBlock.style.height).toBe('')
     expect(codeBlock.className).not.toMatch(/\bh-\d/)
   })
 
-  it('lists exactly the other three model ids and links to /docs/agents', async () => {
+  it('lists the remaining fast models as alternates and links to /docs/agents', async () => {
     renderPage()
+    // Wait for pricing data to land (signals via the endpoint id list).
+    await screen.findByTestId('fast-coding-models-endpoint-id-list')
     const section = (
       await screen.findByRole('heading', { level: 2, name: 'Quickstart' })
     ).closest('section') as HTMLElement
-    for (const modelId of [
-      'hy4-preview',
-      'deepseek-v4-flash-vision-exp',
-      'qwen3.8-flash',
-    ]) {
-      expect(section.textContent).toContain(modelId)
+    const altList = within(section).getByTestId(
+      'fast-coding-models-alternate-list'
+    )
+    for (const model of DEFAULT_FAST_MODELS.slice(1)) {
+      expect(altList.textContent).toContain(model.model_name)
     }
+    // The default model is NOT listed in the alternates.
+    expect(altList.textContent).not.toContain(DEFAULT_FAST_MODELS[0].model_name)
     const docsLink = within(section).getByRole('button', {
       name: /Set up OpenCode, Cline, or Roo Code/,
     })
@@ -581,22 +656,16 @@ describe('quickstart', () => {
 })
 
 describe('evidence boundary', () => {
-  it('keeps the benchmark evidence separate and never extrapolates to untested models', async () => {
+  it('disclaims benchmark membership and links to the benchmark page', async () => {
     renderPage()
     const boundary = await screen.findByTestId(
       'fast-coding-models-evidence-boundary'
     )
     const text = boundary.textContent ?? ''
     expect(text).toContain(
-      'The benchmark includes glm-5.3-flash and qwen3.8-flash.'
+      'does not claim benchmark membership or measured performance'
     )
-    expect(text).toContain('The benchmark does not include hy4-preview.')
-    expect(text).toContain(
-      'The benchmark does not include deepseek-v4-flash-vision-exp'
-    )
-    expect(text).toContain(
-      'Do not extend those results to models that were not tested.'
-    )
+    expect(text).toContain('See the benchmark page for recorded results')
     expect(
       within(boundary).getByRole('button', { name: /View the benchmark/ })
     ).toHaveAttribute('href', '/coding-agent-benchmark')

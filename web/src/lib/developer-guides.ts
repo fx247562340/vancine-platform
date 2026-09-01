@@ -51,9 +51,9 @@ export const DEVELOPER_GUIDES: readonly DeveloperGuide[] = [
   {
     id: 'fast-coding-models',
     route: '/guides/fast-coding-models',
-    titleKey: 'Fast Coding Models for AI Agents',
+    titleKey: 'Fast AI Models',
     descriptionKey:
-      'Compare Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash, and Qwen3.8 Flash.',
+      'Explore the current fast-inference catalog for coding, multimodal, and high-throughput workloads.',
     resource: 'fast_coding_models_guide',
   },
 ]

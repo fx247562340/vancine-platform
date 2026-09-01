@@ -156,14 +156,14 @@ type seoPublicRouteCase struct {
 var seoPublicRouteCases = []seoPublicRouteCase{
 	{
 		path:                 "/",
-		wantTitle:            "Chinese AI Models API for Global Developers | Vancine",
-		wantDescription:      "Access the latest flagship Chinese AI models for text, image, video, audio and 3D through one OpenAI-compatible API.",
+		wantTitle:            "Chinese Frontier & Fast AI Models API | Vancine",
+		wantDescription:      "Access flagship and fast-inference Chinese AI models for reasoning, coding, multimodal workflows, AI agents, and high-throughput applications through one OpenAI-compatible API.",
 		wantCanonical:        "https://vancine.com/",
-		wantOGTitle:          "Chinese AI Models API for Global Developers",
-		wantOGDescription:    "Access the latest flagship Chinese AI models for text, image, video, audio and 3D through one OpenAI-compatible API.",
+		wantOGTitle:          "Chinese Frontier & Fast AI Models API",
+		wantOGDescription:    "Access flagship and fast-inference Chinese AI models for reasoning, coding, multimodal workflows, AI agents, and high-throughput applications through one OpenAI-compatible API.",
 		wantOGURL:            "https://vancine.com/",
-		wantTwitterTitle:     "Chinese AI Models API for Global Developers",
-		wantTwitterDesc:      "Access the latest flagship Chinese AI models for text, image, video, audio and 3D through one OpenAI-compatible API.",
+		wantTwitterTitle:     "Chinese Frontier & Fast AI Models API",
+		wantTwitterDesc:      "Access flagship and fast-inference Chinese AI models for reasoning, coding, multimodal workflows, AI agents, and high-throughput applications through one OpenAI-compatible API.",
 		wantTwitterCardValue: "summary",
 	},
 	{
@@ -987,14 +987,14 @@ func TestUnknownDocsAgentPathsServeNoMarketingMetadata(t *testing.T) {
 // seoPublicRouteCases so the pre-existing table stays untouched.
 var seoFastCodingModelsRouteCase = seoPublicRouteCase{
 	path:                 "/guides/fast-coding-models",
-	wantTitle:            "Four Fast Chinese AI Models for Coding Agents | Vancine",
-	wantDescription:      "Compare Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash, and Qwen3.8 Flash through one OpenAI-compatible API.",
+	wantTitle:            "Fast Chinese AI Models for Coding and High-Throughput Workloads | Vancine",
+	wantDescription:      "Explore fast-inference Chinese AI models available through Vancine’s OpenAI-compatible API, with live pricing and model capabilities from the current catalog.",
 	wantCanonical:        "https://vancine.com/guides/fast-coding-models",
-	wantOGTitle:          "Four Fast Chinese AI Models for Coding Agents",
-	wantOGDescription:    "Compare Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash, and Qwen3.8 Flash through one OpenAI-compatible API.",
+	wantOGTitle:          "Fast Chinese AI Models for Coding and High-Throughput Workloads",
+	wantOGDescription:    "Explore fast-inference Chinese AI models available through Vancine’s OpenAI-compatible API, with live pricing and model capabilities from the current catalog.",
 	wantOGURL:            "https://vancine.com/guides/fast-coding-models",
-	wantTwitterTitle:     "Four Fast Chinese AI Models for Coding Agents",
-	wantTwitterDesc:      "Compare Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash, and Qwen3.8 Flash through one OpenAI-compatible API.",
+	wantTwitterTitle:     "Fast Chinese AI Models for Coding and High-Throughput Workloads",
+	wantTwitterDesc:      "Explore fast-inference Chinese AI models available through Vancine’s OpenAI-compatible API, with live pricing and model capabilities from the current catalog.",
 	wantTwitterCardValue: "summary",
 }
 

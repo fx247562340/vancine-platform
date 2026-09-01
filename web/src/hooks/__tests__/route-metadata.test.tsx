@@ -58,7 +58,7 @@ describe('Home route metadata contract', () => {
     )
 
     const expectedTitle =
-      'Chinese AI Models API for Global Developers | Vancine'
+      'Chinese Frontier & Fast AI Models API | Vancine'
     expect(document.title).toBe(expectedTitle)
     expect(
       document.head.querySelector('meta[name="title"]')?.getAttribute('content')
@@ -68,13 +68,13 @@ describe('Home route metadata contract', () => {
         .querySelector('meta[name="description"]')
         ?.getAttribute('content')
     ).toBe(
-      'Access the latest flagship Chinese AI models for text, image, video, audio and 3D through one OpenAI-compatible API.'
+      'Access flagship and fast-inference Chinese AI models for reasoning, coding, multimodal workflows, AI agents, and high-throughput applications through one OpenAI-compatible API.'
     )
     expect(
       document.head
         .querySelector('meta[property="og:title"]')
         ?.getAttribute('content')
-    ).toBe('Chinese AI Models API for Global Developers')
+    ).toBe('Chinese Frontier & Fast AI Models API')
     expect(
       document.head
         .querySelector('meta[property="og:url"]')
@@ -113,7 +113,7 @@ describe('Home route metadata contract', () => {
     const headTitleTags = document.head.querySelectorAll('meta[name="title"]')
     expect(headTitleTags).toHaveLength(1)
     expect(headTitleTags[0].getAttribute('content')).toBe(
-      'Chinese AI Models API for Global Developers | Vancine'
+      'Chinese Frontier & Fast AI Models API | Vancine'
     )
     unmount()
   })

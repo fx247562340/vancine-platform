@@ -20,11 +20,11 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { FastCodingModelsPage } from '@/features/fast-coding-models'
 
-// Acquisition guide: the fast coding models selection guide. The
-// canonical lives under /guides/ and covers exactly four model ids
-// (hy4-preview, deepseek-v4-flash-vision-exp, glm-5.3-flash,
-// qwen3.8-flash). There is deliberately no top-level alias and no
-// model subroute.
+// Acquisition guide: the fast AI models selection guide. The
+// canonical lives under /guides/ and lists every model whose live
+// /api/pricing entry carries the exact "fast" tag, in stable
+// case-insensitive model_name order. There is deliberately no
+// top-level alias and no model subroute.
 export const Route = createFileRoute('/guides/fast-coding-models')({
   component: FastCodingModelsPage,
 })

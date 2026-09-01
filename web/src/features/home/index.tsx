@@ -27,17 +27,25 @@ import { usePageMetadata } from '@/hooks/use-page-metadata'
 import { isLikelyHtml } from '@/lib/content-format'
 import { useAuthStore } from '@/stores/auth-store'
 
-import { AvailableNow, CTA, Evidence, Hero, Why } from './components'
+import {
+  AvailableNow,
+  CTA,
+  Evidence,
+  FastModels,
+  Hero,
+  Why,
+} from './components'
 import { useHomePageContent, useHomepagePricing } from './hooks'
 import { getHomePageMetadata } from './lib/seo'
 
 // v1.2.0 default built-in homepage section order (frozen).
 //   1. Hero
-//   2. Available now (also the live-model marketplace surface)
-//   3. Why Vancine
-//   4. Verified evidence
-//   5. Final CTA
-//   6. Footer
+//   2. Available now (flagship models — data-driven from /api/pricing "featured" tag)
+//   3. Fast models (data-driven from /api/pricing "fast" tag, deduped vs flagship)
+//   4. Why Vancine
+//   5. Verified evidence
+//   6. Final CTA
+//   7. Footer
 // The Stack / DeveloperSolutions / Marketplace sections are kept in the
 // codebase for the docs sidebar and shared registry consumers, but the
 // built-in homepage no longer renders them as standalone blocks. When an
@@ -145,6 +153,7 @@ export function Home() {
     <PublicLayout showMainContainer={false}>
       <Hero isAuthenticated={isAuthenticated} pricing={pricing} />
       <AvailableNow pricing={pricing} />
+      <FastModels pricing={pricing} />
       <Why />
       <Evidence />
       <CTA isAuthenticated={isAuthenticated} />

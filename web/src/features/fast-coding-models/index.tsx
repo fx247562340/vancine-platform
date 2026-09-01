@@ -37,10 +37,11 @@ import { getFastCodingModelsPageMetadata } from './lib/fast-coding-models'
 
 /**
  * Acquisition guide for /guides/fast-coding-models. One canonical
- * selection guide compares exactly four model ids (hy4-preview,
- * deepseek-v4-flash-vision-exp, glm-5.3-flash, qwen3.8-flash) through
- * one OpenAI-compatible endpoint. English metadata is the contract
- * enforced by router/web_seo_test.go.
+ * selection guide lists every model whose live /api/pricing entry
+ * carries the exact "fast" tag — no fixed count, no per-id
+ * allowlist, and no substitution when the fast tag is missing.
+ * English metadata is the contract enforced by
+ * router/web_seo_test.go.
  */
 export function FastCodingModelsPage(): ReactElement {
   const { i18n } = useTranslation()

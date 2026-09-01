@@ -42,9 +42,10 @@ export interface HeroProps {
 
 /**
  * Above-the-fold introduction: the guide eyebrow, one H1 naming the
- * scope, the four-model summary, and two CTAs — a same-page scroll to
- * the comparison section and the auth-aware "Start with Vancine"
- * conversion link carrying only the fixed owned-media UTMs.
+ * scope, the dynamic fast-tagged catalog summary, and two CTAs — a
+ * same-page scroll to the comparison section and the auth-aware
+ * "Start with Vancine" conversion link carrying only the fixed
+ * owned-media UTMs.
  */
 export function Hero(props: HeroProps): ReactElement {
   const { t } = useTranslation()
@@ -72,11 +73,11 @@ export function Hero(props: HeroProps): ReactElement {
           data-testid='fast-coding-models-h1'
           className='text-4xl font-bold tracking-tight md:text-5xl'
         >
-          {t('Four fast Chinese AI models for coding agents')}
+          {t('Fast Chinese AI models for coding and high-throughput workloads')}
         </h1>
         <p className='text-muted-foreground max-w-2xl text-base md:text-lg'>
           {t(
-            'Compare Hy4 Preview, DeepSeek V4 Flash Vision Exp, GLM-5.3 Flash, and Qwen3.8 Flash through one OpenAI-compatible API.'
+            'Explore fast-inference Chinese AI models available through Vancine’s OpenAI-compatible API, with live pricing and model capabilities from the current catalog.'
           )}
         </p>
         <div className='flex flex-wrap items-center justify-center gap-3'>
@@ -93,7 +94,7 @@ export function Hero(props: HeroProps): ReactElement {
                 ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
             }}
           >
-            {t('Compare the four models')}
+            {t('Compare the fast models')}
             <HugeiconsIcon
               icon={ArrowRight01Icon}
               data-icon='inline-end'

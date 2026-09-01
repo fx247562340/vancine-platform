@@ -219,6 +219,7 @@ function makePricing(
     count: 0,
     models: [],
     featured: [],
+    fast: [],
     vendors: [],
     rawVendors: [],
     ...overrides,

@@ -224,7 +224,7 @@ async function initTestI18n(): Promise<void> {
 describe('Homepage i18n renders translated copy (not English fallback)', () => {
   // English source strings that must NOT appear once a non-English locale is
   // active — if any of these match, the UI fell back to English.
-  const HERO_EN = "China's frontier AI models. One API."
+  const HERO_EN = 'One API for Chinese frontier and high-performance AI models'
   const MARKETPLACE_EN = 'Live model marketplace'
   const CTA_EN = "Start building with China's frontier models"
   const DISCLAIMER_EN =
@@ -362,7 +362,7 @@ function renderHome() {
 function getHeroSection(): HTMLElement {
   const heading = screen.getByRole('heading', {
     level: 1,
-    name: "China's frontier AI models. One API.",
+    name: 'One API for Chinese frontier and high-performance AI models',
   })
   const section = heading.closest('section')
   if (!section) throw new Error('Hero heading is not inside a <section>')
@@ -392,7 +392,7 @@ describe('R6: cached content lazy initializer', () => {
     expect(
       screen.queryByRole('heading', {
         level: 1,
-        name: "China's frontier AI models. One API.",
+        name: 'One API for Chinese frontier and high-performance AI models',
       })
     ).not.toBeInTheDocument()
   })
@@ -402,7 +402,7 @@ describe('R6: cached content lazy initializer', () => {
     renderHome()
     const heading = await screen.findByRole('heading', {
       level: 1,
-      name: "China's frontier AI models. One API.",
+      name: 'One API for Chinese frontier and high-performance AI models',
     })
     expect(heading).toBeInTheDocument()
   })
@@ -413,7 +413,7 @@ describe('R6: cached content lazy initializer', () => {
     renderHome()
     await screen.findByRole('heading', {
       level: 1,
-      name: "China's frontier AI models. One API.",
+      name: 'One API for Chinese frontier and high-performance AI models',
     })
     expect(screen.queryByTitle('Custom Home Page')).not.toBeInTheDocument()
     expect(localStorage.getItem('home_page_content')).toBeNull()
@@ -432,7 +432,7 @@ describe('R6: cached content lazy initializer', () => {
     expect(
       screen.queryByRole('heading', {
         level: 1,
-        name: "China's frontier AI models. One API.",
+        name: 'One API for Chinese frontier and high-performance AI models',
       })
     ).not.toBeInTheDocument()
   })
@@ -458,7 +458,7 @@ describe('R6: cached content lazy initializer', () => {
     renderHome()
     await screen.findByRole('heading', {
       level: 1,
-      name: "China's frontier AI models. One API.",
+      name: 'One API for Chinese frontier and high-performance AI models',
     })
     expect(consoleSpy).toHaveBeenCalledWith(
       'Failed to load home page content:',
@@ -467,7 +467,7 @@ describe('R6: cached content lazy initializer', () => {
     expect(
       screen.getByRole('heading', {
         level: 1,
-        name: "China's frontier AI models. One API.",
+        name: 'One API for Chinese frontier and high-performance AI models',
       })
     ).toBeInTheDocument()
     consoleSpy.mockRestore()
@@ -480,7 +480,7 @@ describe('R7+R8: Hero CTA destinations and analytics', () => {
     renderHome()
     await screen.findByRole('heading', {
       level: 1,
-      name: "China's frontier AI models. One API.",
+      name: 'One API for Chinese frontier and high-performance AI models',
     })
     const hero = getHeroSection()
     const btn = within(hero).getByRole('button', {
@@ -502,7 +502,7 @@ describe('R7+R8: Hero CTA destinations and analytics', () => {
     renderHome()
     await screen.findByRole('heading', {
       level: 1,
-      name: "China's frontier AI models. One API.",
+      name: 'One API for Chinese frontier and high-performance AI models',
     })
     const hero = getHeroSection()
     const btn = within(hero).getByRole('button', {
@@ -517,7 +517,7 @@ describe('R7+R8: Hero CTA destinations and analytics', () => {
     renderHome()
     await screen.findByRole('heading', {
       level: 1,
-      name: "China's frontier AI models. One API.",
+      name: 'One API for Chinese frontier and high-performance AI models',
     })
     const hero = getHeroSection()
     const btn = within(hero).getByRole('button', {
@@ -544,7 +544,7 @@ describe('R7+R8: Hero CTA destinations and analytics', () => {
     renderHome()
     await screen.findByRole('heading', {
       level: 1,
-      name: "China's frontier AI models. One API.",
+      name: 'One API for Chinese frontier and high-performance AI models',
     })
     const hero = getHeroSection()
     const btn = within(hero).getByRole('button', {
@@ -563,7 +563,7 @@ describe('R7+R8: Hero CTA destinations and analytics', () => {
     renderHome()
     await screen.findByRole('heading', {
       level: 1,
-      name: "China's frontier AI models. One API.",
+      name: 'One API for Chinese frontier and high-performance AI models',
     })
     const hero = getHeroSection()
     const btn = within(hero).getByRole('button', {
@@ -583,7 +583,7 @@ describe('R8: Documentation control', () => {
     renderHome()
     await screen.findByRole('heading', {
       level: 1,
-      name: "China's frontier AI models. One API.",
+      name: 'One API for Chinese frontier and high-performance AI models',
     })
     const hero = getHeroSection()
     const link = within(hero).getByRole('button', { name: /Documentation/i })
@@ -598,7 +598,7 @@ describe('R8: Documentation control', () => {
     renderHome()
     await screen.findByRole('heading', {
       level: 1,
-      name: "China's frontier AI models. One API.",
+      name: 'One API for Chinese frontier and high-performance AI models',
     })
     const hero = getHeroSection()
     expect(
@@ -612,7 +612,7 @@ describe('R8: Documentation control', () => {
     renderHome()
     await screen.findByRole('heading', {
       level: 1,
-      name: "China's frontier AI models. One API.",
+      name: 'One API for Chinese frontier and high-performance AI models',
     })
     const hero = getHeroSection()
     expect(
@@ -626,7 +626,7 @@ describe('R8: Documentation control', () => {
     renderHome()
     await screen.findByRole('heading', {
       level: 1,
-      name: "China's frontier AI models. One API.",
+      name: 'One API for Chinese frontier and high-performance AI models',
     })
     const hero = getHeroSection()
     expect(
@@ -641,7 +641,7 @@ describe('Final CTA', () => {
     renderHome()
     await screen.findByRole('heading', {
       level: 1,
-      name: "China's frontier AI models. One API.",
+      name: 'One API for Chinese frontier and high-performance AI models',
     })
     const h2 = screen.getByRole('heading', {
       level: 2,
@@ -663,7 +663,7 @@ describe('Final CTA', () => {
     renderHome()
     await screen.findByRole('heading', {
       level: 1,
-      name: "China's frontier AI models. One API.",
+      name: 'One API for Chinese frontier and high-performance AI models',
     })
     const h2 = screen.getByRole('heading', {
       level: 2,
@@ -682,12 +682,48 @@ describe('Final CTA', () => {
 })
 
 describe('Hero copy', () => {
+  it('aligns the primary modules and the three-zone compatibility rail on desktop', async () => {
+    getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
+    renderHome()
+    await screen.findByRole('heading', {
+      level: 1,
+      name: 'One API for Chinese frontier and high-performance AI models',
+    })
+
+    const hero = getHeroSection()
+    const primaryGrid = within(hero).getByTestId('hero-primary-grid')
+    const copyPanel = within(hero).getByTestId('hero-copy-panel')
+    const terminalPanel = within(hero).getByTestId('hero-terminal-panel')
+    expect(primaryGrid).toHaveClass('lg:items-stretch')
+    expect(copyPanel).toHaveClass('lg:min-h-[528px]')
+    expect(terminalPanel).toHaveClass('lg:min-h-[528px]')
+
+    const rail = within(hero).getByTestId('hero-proof-rail')
+    expect(rail).toHaveClass('lg:grid-cols-12')
+    expect(rail).toHaveClass('lg:items-start')
+    expect(rail).not.toHaveClass('lg:items-end')
+    expect(rail).toHaveClass('min-w-0')
+    expect(within(rail).getByText('Universal access')).toBeInTheDocument()
+    expect(
+      within(rail).queryByText('Supported Applications')
+    ).not.toBeInTheDocument()
+    expect(within(rail).getByText('Cherry Studio')).toBeInTheDocument()
+    expect(within(rail).getByText('CC Switch')).toBeInTheDocument()
+    expect(
+      within(rail).getByText('OpenAI-compatible clients and agents')
+    ).toBeInTheDocument()
+
+    const stats = within(rail).getByTestId('hero-proof-stats')
+    expect(stats).toHaveClass('grid')
+    expect(stats).not.toHaveClass('sm:flex-nowrap')
+  })
+
   it('no banned model names', async () => {
     getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
     renderHome()
     await screen.findByRole('heading', {
       level: 1,
-      name: "China's frontier AI models. One API.",
+      name: 'One API for Chinese frontier and high-performance AI models',
     })
     const hero = getHeroSection()
     const text = hero.textContent ?? ''
@@ -713,7 +749,7 @@ describe('Hero copy', () => {
     renderHome()
     await screen.findByRole('heading', {
       level: 1,
-      name: "China's frontier AI models. One API.",
+      name: 'One API for Chinese frontier and high-performance AI models',
     })
     // The hero text must not leak the upstream product name.
     const hero = getHeroSection()
@@ -805,7 +841,7 @@ describe('P6-C discovery routes', () => {
     renderHome()
     await screen.findByRole('heading', {
       level: 1,
-      name: "China's frontier AI models. One API.",
+      name: 'One API for Chinese frontier and high-performance AI models',
     })
     const body = document.body.textContent ?? ''
     expect(body).not.toContain('Kimi K3 API')
@@ -822,7 +858,7 @@ describe('Footer attribution', () => {
     renderHome()
     await screen.findByRole('heading', {
       level: 1,
-      name: "China's frontier AI models. One API.",
+      name: 'One API for Chinese frontier and high-performance AI models',
     })
     expect(
       screen.queryByRole('link', {
@@ -847,7 +883,7 @@ describe('P11-B: homepage pricing wiring', () => {
     renderHome()
     await screen.findByRole('heading', {
       level: 1,
-      name: "China's frontier AI models. One API.",
+      name: 'One API for Chinese frontier and high-performance AI models',
     })
     expect(getPricingMock).toHaveBeenCalledTimes(1)
   })
@@ -887,7 +923,9 @@ describe('P11-B: homepage pricing wiring', () => {
     // model renders only in AvailableNow — assert a single occurrence.
     expect(screen.getByText('TestModel')).toBeInTheDocument()
     expect(screen.getByText('TestVendor')).toBeInTheDocument()
-    expect(screen.getByText('Available now')).toBeInTheDocument()
+    expect(
+      screen.getByText('Flagship models — available now')
+    ).toBeInTheDocument()
   })
 
   it('shows no fake model count when pricing is loading', async () => {
@@ -897,7 +935,7 @@ describe('P11-B: homepage pricing wiring', () => {
     renderHome()
     await screen.findByRole('heading', {
       level: 1,
-      name: "China's frontier AI models. One API.",
+      name: 'One API for Chinese frontier and high-performance AI models',
     })
     // "Available models" label (the live count column) must not appear while
     // pricing is still loading.
@@ -910,7 +948,7 @@ describe('P11-B: homepage pricing wiring', () => {
     renderHome()
     await screen.findByRole('heading', {
       level: 1,
-      name: "China's frontier AI models. One API.",
+      name: 'One API for Chinese frontier and high-performance AI models',
     })
     expect(screen.queryByText('Available models')).not.toBeInTheDocument()
   })
@@ -929,7 +967,7 @@ describe('P11-B: homepage pricing wiring', () => {
     renderHome()
     await screen.findByRole('heading', {
       level: 1,
-      name: "China's frontier AI models. One API.",
+      name: 'One API for Chinese frontier and high-performance AI models',
     })
     expect(screen.queryByText('Available models')).not.toBeInTheDocument()
   })
@@ -945,10 +983,12 @@ describe('P11-B: homepage pricing wiring', () => {
     expect(
       screen.queryByRole('heading', {
         level: 1,
-        name: "China's frontier AI models. One API.",
+        name: 'One API for Chinese frontier and high-performance AI models',
       })
     ).not.toBeInTheDocument()
-    expect(screen.queryByText('Available now')).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('Flagship models — available now')
+    ).not.toBeInTheDocument()
   })
 
   it('custom HTML override skips built-in homepage', async () => {
@@ -960,7 +1000,9 @@ describe('P11-B: homepage pricing wiring', () => {
     await waitFor(() => {
       expect(document.querySelector('.custom-home-content')).not.toBeNull()
     })
-    expect(screen.queryByText('Available now')).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('Flagship models — available now')
+    ).not.toBeInTheDocument()
   })
 
   it('cached URL override does not fire pricing request', async () => {
@@ -994,7 +1036,9 @@ describe('P11-B: homepage pricing wiring', () => {
     await waitFor(() => {
       expect(document.querySelector('.custom-home-content')).not.toBeNull()
     })
-    expect(screen.queryByText('Available now')).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('Flagship models — available now')
+    ).not.toBeInTheDocument()
   })
 
   it('instance isolation: pending in-flight — signal aborted on unmount, new signal on remount', async () => {
@@ -1026,7 +1070,7 @@ describe('P11-B: homepage pricing wiring', () => {
     const { unmount: unmount1 } = renderWithSharedClient()
     await screen.findByRole('heading', {
       level: 1,
-      name: "China's frontier AI models. One API.",
+      name: 'One API for Chinese frontier and high-performance AI models',
     })
     expect(getPricingMock).toHaveBeenCalledTimes(1)
 
@@ -1060,7 +1104,7 @@ describe('P11-B: homepage pricing wiring', () => {
     renderWithSharedClient()
     await screen.findByRole('heading', {
       level: 1,
-      name: "China's frontier AI models. One API.",
+      name: 'One API for Chinese frontier and high-performance AI models',
     })
     expect(getPricingMock).toHaveBeenCalledTimes(2)
 
@@ -1157,7 +1201,7 @@ describe('P11-B: homepage pricing wiring', () => {
     })
 
     // After second fetch resolves, only NEW_MODEL should be shown.
-    // NEW_MODEL is featured, so it renders in both Available now and the
+    // NEW_MODEL is featured, so it renders in both the Flagship module and the
     // Live model marketplace — assert presence, not uniqueness.
     await screen.findAllByText('NEW_MODEL')
     expect(screen.getAllByText('NewVendor').length).toBeGreaterThanOrEqual(1)
@@ -1173,7 +1217,7 @@ describe('P11-B: homepage pricing wiring', () => {
       expect(
         screen.getByRole('heading', {
           level: 1,
-          name: "China's frontier AI models. One API.",
+          name: 'One API for Chinese frontier and high-performance AI models',
         })
       ).toBeInTheDocument()
     })
@@ -1231,14 +1275,14 @@ describe('P11-B: homepage pricing wiring', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('v1.2.0: built-in homepage section order is Hero → AvailableNow → Why → Evidence → CTA → Footer', async () => {
+  it('v1.2.0: built-in homepage section order is Hero → AvailableNow → FastModels → Why → Evidence → CTA → Footer', async () => {
     getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
     renderHome()
     await waitFor(() => {
       expect(
         screen.getByRole('heading', {
           level: 1,
-          name: "China's frontier AI models. One API.",
+          name: 'One API for Chinese frontier and high-performance AI models',
         })
       ).toBeInTheDocument()
     })
@@ -1253,11 +1297,11 @@ describe('P11-B: homepage pricing wiring', () => {
 
     const hero = screen.getByRole('heading', {
       level: 1,
-      name: "China's frontier AI models. One API.",
+      name: 'One API for Chinese frontier and high-performance AI models',
     })
     const availableNow = screen.getByRole('heading', {
       level: 2,
-      name: 'Available now',
+      name: 'Flagship models — available now',
     })
     const why = screen.getByRole('heading', {
       level: 2,
@@ -1291,7 +1335,7 @@ describe('P11-B: homepage pricing wiring', () => {
       expect(
         screen.getByRole('heading', {
           level: 1,
-          name: "China's frontier AI models. One API.",
+          name: 'One API for Chinese frontier and high-performance AI models',
         })
       ).toBeInTheDocument()
     })
@@ -1340,7 +1384,7 @@ describe('P11-B: homepage pricing wiring', () => {
     renderHome()
     await screen.findByRole('heading', {
       level: 1,
-      name: "China's frontier AI models. One API.",
+      name: 'One API for Chinese frontier and high-performance AI models',
     })
     await screen.findByText('TestModel')
 
@@ -1402,7 +1446,7 @@ describe('P11-B: homepage pricing wiring', () => {
     renderHome()
     await screen.findByRole('heading', {
       level: 1,
-      name: "China's frontier AI models. One API.",
+      name: 'One API for Chinese frontier and high-performance AI models',
     })
 
     const hero = getHeroSection()
@@ -1437,7 +1481,7 @@ describe('P11-B: homepage pricing wiring', () => {
     renderHome()
     await screen.findByRole('heading', {
       level: 1,
-      name: "China's frontier AI models. One API.",
+      name: 'One API for Chinese frontier and high-performance AI models',
     })
 
     const hero = getHeroSection()
@@ -1537,18 +1581,20 @@ describe('P11-B: homepage pricing wiring', () => {
       releasePricing(strictData)
     })
     // The component should render correctly with pricing data.
-    // StrictModel is featured, so it renders in Available now; the
+    // StrictModel is featured, so it renders in the Flagship module; the
     // marketplace section is no longer mounted in v1.2.0 so the model
     // appears exactly once.
     await waitFor(() =>
       expect(screen.getByText('StrictModel')).toBeInTheDocument()
     )
-    // StrictVendor appears in the Available now card.
+    // StrictVendor appears in the Flagship card.
     expect(screen.getByText('StrictVendor')).toBeInTheDocument()
     // "Available models" is rendered once in the Hero (inline with the
     // dynamic count) — assert a single, exact occurrence.
     expect(screen.getByText('Available models')).toBeInTheDocument()
-    expect(screen.getByText('Available now')).toBeInTheDocument()
+    expect(
+      screen.getByText('Flagship models — available now')
+    ).toBeInTheDocument()
     expect(
       screen.queryByRole('heading', {
         level: 2,

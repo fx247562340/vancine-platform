@@ -69,7 +69,7 @@ export function FinalCta(props: FinalCtaProps): ReactElement {
         </h2>
         <p className='text-muted-foreground max-w-xl text-sm md:text-base'>
           {t(
-            'Create an API key, point your coding agent at https://vancine.com/v1, and switch between the four models by changing only the model field.'
+            'Create an API key, point your coding agent at https://vancine.com/v1, and switch between fast models by changing only the model field.'
           )}
         </p>
         <div className='flex flex-wrap items-center justify-center gap-3'>

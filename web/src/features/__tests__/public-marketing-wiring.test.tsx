@@ -96,7 +96,10 @@ vi.mock('@/features/home/api', () => ({
 vi.mock('@/features/home/hooks/use-homepage-pricing', () => ({
   useHomepagePricing: () => ({
     models: [],
+    featured: [],
+    fast: [],
     vendors: [],
+    rawVendors: [],
     groupRatio: {},
     usableGroup: {},
     endpointMap: {},
@@ -104,6 +107,10 @@ vi.mock('@/features/home/hooks/use-homepage-pricing', () => ({
     isLoading: false,
     priceRate: 1,
     usdExchangeRate: 1,
+    count: 0,
+    ok: true,
+    status: 'empty',
+    refetch: () => undefined,
   }),
 }))
 
@@ -348,7 +355,7 @@ describe('public marketing route wiring', () => {
     })
     safeApplySystemName('Acme Cloud')
     expect(document.title).toBe(
-      'Chinese AI Models API for Global Developers | Vancine'
+      'Chinese Frontier & Fast AI Models API | Vancine'
     )
     unmount()
     // After the page unmounts, the next branding write is allowed.
@@ -368,7 +375,7 @@ describe('metadata elements survive unrelated re-renders', () => {
       expect(isPublicMarketingMetadataActive()).toBe(true)
     })
     expect(document.title).toBe(
-      'Chinese AI Models API for Global Developers | Vancine'
+      'Chinese Frontier & Fast AI Models API | Vancine'
     )
 
     const titleEl = document.head.querySelector('meta[name="title"]')
@@ -406,7 +413,7 @@ describe('metadata elements survive unrelated re-renders', () => {
       canonicalEl
     )
     expect(document.title).toBe(
-      'Chinese AI Models API for Global Developers | Vancine'
+      'Chinese Frontier & Fast AI Models API | Vancine'
     )
     expect(document.head.innerHTML).toBe(headBefore)
   })

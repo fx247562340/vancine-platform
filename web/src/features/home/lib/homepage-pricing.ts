@@ -40,7 +40,18 @@ export interface HomepagePricingState {
   status: HomepagePricingStatus
   count: number | null
   models: HomepagePricingModel[]
+  /**
+   * Models tagged with the exact "featured" token, sorted by model_name
+   * (case-insensitive), capped at 4. No hardcoded allowlist.
+   */
   featured: HomepagePricingModel[]
+  /**
+   * Models tagged with the exact "fast" token, sorted by model_name
+   * (case-insensitive). Homepage-only: deduplicated against `featured` so
+   * a model carrying both tags appears once on the homepage. The fast
+   * guide reads the same selection but without dedup.
+   */
+  fast: HomepagePricingModel[]
   vendors: string[]
   rawVendors: HomepagePricingVendor[]
 }
@@ -57,6 +68,7 @@ export const LOADING_STATE: HomepagePricingState = {
   count: null,
   models: [],
   featured: [],
+  fast: [],
   vendors: [],
   rawVendors: [],
 }
@@ -67,6 +79,7 @@ export const ERROR_STATE: HomepagePricingState = {
   count: null,
   models: [],
   featured: [],
+  fast: [],
   vendors: [],
   rawVendors: [],
 }
@@ -79,9 +92,9 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim() !== ''
 }
 
-function sortByModelName(
-  a: HomepagePricingModel,
-  b: HomepagePricingModel
+function sortByModelName<T extends { model_name: string }>(
+  a: T,
+  b: T
 ): number {
   return a.model_name.localeCompare(b.model_name, undefined, NAME_COLLATOR)
 }
@@ -113,16 +126,21 @@ export function selectMarketplace(
 }
 
 /**
- * Select up to 4 models whose tags contain the exact token "featured".
- * Sorted case-insensitive by model_name. No hardcoded allowlist.
+ * Generic featured-tag selector. Preserves the input element type T so
+ * the caller never needs an `as` cast to recover the original model
+ * shape. A model is included iff its `tags` field carries the exact
+ * "featured" token (after comma-split, trim, and lowercase
+ * normalization). Sorted case-insensitive by `model_name`, capped at
+ * 4. No hardcoded allowlist.
  */
-export function selectFeatured(
-  models: HomepagePricingModel[]
-): HomepagePricingModel[] {
+export function selectFeatured<
+  T extends { model_name: string; tags?: string },
+>(models: readonly T[]): T[] {
   if (!Array.isArray(models)) return []
-  const featured: HomepagePricingModel[] = []
+  const featured: T[] = []
   for (const item of models) {
-    if (!item || !isNonEmptyString(item.model_name)) continue
+    if (!item || typeof item.model_name !== 'string') continue
+    if (item.model_name.trim() === '') continue
     const tags = tagList(item.tags)
     if (tags.includes('featured')) {
       featured.push(item)
@@ -130,6 +148,64 @@ export function selectFeatured(
   }
   featured.sort(sortByModelName)
   return featured.slice(0, 4)
+}
+
+/**
+ * Generic fast-tag selector. Preserves the input element type T so the
+ * caller never needs an `as` cast to recover the original model shape.
+ * A model is included iff its `tags` field carries the exact "fast"
+ * token (after comma-split, trim, and lowercase normalization). The
+ * result is always sorted case-insensitive by `model_name`. No model
+ * id is hardcoded, no fixed count is enforced, and no model is
+ * substituted when the fast tag is missing. Used by the
+ * fast-coding-models guide to render the live fast-tagged catalog
+ * (without dedup) and by the homepage FastModels module
+ * (deduplicated against `featured`, see `selectFastForHomepage`).
+ */
+export function selectFast<T extends { model_name: string; tags?: string }>(
+  models: readonly T[]
+): T[] {
+  if (!Array.isArray(models)) return []
+  const out: T[] = []
+  for (const item of models) {
+    if (!item || typeof item.model_name !== 'string') continue
+    if (item.model_name.trim() === '') continue
+    const tags = tagList(item.tags)
+    if (tags.includes('fast')) {
+      out.push(item)
+    }
+  }
+  out.sort(sortByModelName)
+  return out
+}
+
+/**
+ * Homepage "Fast models" selector: same rules as `selectFast` but
+ * excludes any model already shown in `selectFeatured` so a model
+ * carrying both tags does not appear twice on the homepage. Capped at
+ * 4 (homepage cap). The generic T is preserved end-to-end so callers
+ * always receive the same shape they passed in.
+ */
+export function selectFastForHomepage<
+  T extends { model_name: string; tags?: string },
+>(models: readonly T[]): T[] {
+  if (!Array.isArray(models)) return []
+  const featuredNames = new Set(
+    selectFeatured(models).map((m) => m.model_name)
+  )
+  return selectFast(models)
+    .filter((m) => !featuredNames.has(m.model_name))
+    .slice(0, 4)
+}
+
+/**
+ * True iff the model carries the exact "preview" token in its tags.
+ * Used to drive the preview badge on model cards.
+ */
+export function hasPreviewTag(
+  tags: string | undefined | null
+): boolean {
+  return tagList(tags).includes('preview')
 }
 
 /**
@@ -245,6 +321,7 @@ export function normalizePricingResponse(
   vendorNames.sort((a, b) => a.localeCompare(b, undefined, NAME_COLLATOR))
 
   const featured = selectFeatured(models)
+  const fast = selectFastForHomepage(models)
   const count = models.length
 
   return {
@@ -253,6 +330,7 @@ export function normalizePricingResponse(
     count,
     models,
     featured,
+    fast,
     vendors: vendorNames,
     rawVendors,
   }

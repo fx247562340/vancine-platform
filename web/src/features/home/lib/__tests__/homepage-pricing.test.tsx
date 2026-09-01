@@ -22,6 +22,9 @@ import {
   tagList,
   selectFeatured,
   selectMarketplace,
+  selectFast,
+  selectFastForHomepage,
+  hasPreviewTag,
   endpointChips,
   resolveVendorName,
   skeletonCountForWidth,
@@ -302,6 +305,230 @@ describe('selectFeatured', () => {
     const result = selectFeatured(models)
     expect(result).toHaveLength(1)
     expect(result[0].model_name).toBe('zzz-custom-model-xyz')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// selectFast
+// ---------------------------------------------------------------------------
+
+describe('selectFast', () => {
+  const model = (name: string, tags: string): HomepagePricingModel => ({
+    model_name: name,
+    description: '',
+    tags,
+    supported_endpoint_types: [],
+  })
+
+  it('selects models with the exact "fast" token (case-insensitive)', () => {
+    const models = [
+      model('A', 'Fast,text'),
+      model('B', 'text'),
+      model('C', 'fast'),
+    ]
+    const result = selectFast(models)
+    expect(result.map((m) => m.model_name)).toEqual(['A', 'C'])
+  })
+
+  it('trims and lowercases tags before matching', () => {
+    const models = [model('X', '  FAST , other ')]
+    const result = selectFast(models)
+    expect(result).toHaveLength(1)
+    expect(result[0].model_name).toBe('X')
+  })
+
+  it('does NOT match partial tag "fast-preview"', () => {
+    const models = [model('A', 'fast-preview'), model('B', 'fast')]
+    const result = selectFast(models)
+    expect(result).toHaveLength(1)
+    expect(result[0].model_name).toBe('B')
+  })
+
+  it('does NOT match "breakfast" or other partial strings', () => {
+    const models = [model('A', 'breakfast'), model('B', 'fastest')]
+    expect(selectFast(models)).toHaveLength(0)
+  })
+
+  it('sorts results case-insensitive by model_name', () => {
+    const models = [
+      model('zebra', 'fast'),
+      model('Alpha', 'fast'),
+      model('beta', 'fast'),
+    ]
+    const result = selectFast(models)
+    expect(result.map((m) => m.model_name)).toEqual(['Alpha', 'beta', 'zebra'])
+  })
+
+  it('returns ALL matching models, no slice cap', () => {
+    const models = Array.from({ length: 8 }, (_, i) =>
+      model(`m-${String.fromCharCode(97 + i)}`, 'fast')
+    )
+    const result = selectFast(models)
+    expect(result).toHaveLength(8)
+  })
+
+  it('returns empty array when input is not an array', () => {
+    expect(selectFast(null as unknown as HomepagePricingModel[])).toEqual([])
+  })
+
+  it('skips items with empty model_name', () => {
+    const models = [model('', 'fast'), model('valid', 'fast')]
+    const result = selectFast(models)
+    expect(result).toHaveLength(1)
+    expect(result[0].model_name).toBe('valid')
+  })
+
+  it('has no hardcoded allowlist — any model with "fast" tag is selected', () => {
+    const models = [model('zzz-future-flash-model', 'fast')]
+    const result = selectFast(models)
+    expect(result).toHaveLength(1)
+    expect(result[0].model_name).toBe('zzz-future-flash-model')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// selectFastForHomepage
+// ---------------------------------------------------------------------------
+
+describe('selectFastForHomepage', () => {
+  const model = (name: string, tags: string): HomepagePricingModel => ({
+    model_name: name,
+    description: '',
+    tags,
+    supported_endpoint_types: [],
+  })
+
+  it('excludes any model already in selectFeatured (dedup)', () => {
+    const models = [
+      model('only-featured', 'featured'),
+      model('both', 'featured,fast'),
+      model('only-fast', 'fast'),
+    ]
+    const result = selectFastForHomepage(models)
+    expect(result.map((m) => m.model_name)).toEqual(['only-fast'])
+  })
+
+  it('caps at 4 results on homepage', () => {
+    const models = [
+      model('f1', 'featured'),
+      ...Array.from({ length: 6 }, (_, i) =>
+        model(`fl-${i}`, 'fast')
+      ),
+    ]
+    const result = selectFastForHomepage(models)
+    expect(result).toHaveLength(4)
+  })
+
+  it('sorts by model_name (case-insensitive) before slicing', () => {
+    const models = [
+      model('zeta', 'fast'),
+      model('alpha', 'fast'),
+      model('Beta', 'fast'),
+      model('gamma', 'fast'),
+    ]
+    const result = selectFastForHomepage(models)
+    expect(result.map((m) => m.model_name)).toEqual([
+      'alpha',
+      'Beta',
+      'gamma',
+      'zeta',
+    ])
+  })
+
+  it('returns empty when no fast models exist', () => {
+    const models = [model('A', 'featured'), model('B', 'text')]
+    expect(selectFastForHomepage(models)).toEqual([])
+  })
+
+  it('returns empty when all fast models are also featured', () => {
+    const models = [
+      model('A', 'featured,fast'),
+      model('B', 'featured,fast'),
+    ]
+    expect(selectFastForHomepage(models)).toEqual([])
+  })
+})
+
+// ---------------------------------------------------------------------------
+// hasPreviewTag
+// ---------------------------------------------------------------------------
+
+describe('hasPreviewTag', () => {
+  it('returns true for exact preview token', () => {
+    expect(hasPreviewTag('preview')).toBe(true)
+    expect(hasPreviewTag('Preview')).toBe(true)
+    expect(hasPreviewTag('text,preview')).toBe(true)
+  })
+
+  it('returns false for partial or other tags', () => {
+    expect(hasPreviewTag('preview-build')).toBe(false)
+    expect(hasPreviewTag('fast')).toBe(false)
+    expect(hasPreviewTag('featured')).toBe(false)
+  })
+
+  it('returns false for null / undefined / empty', () => {
+    expect(hasPreviewTag(null)).toBe(false)
+    expect(hasPreviewTag(undefined)).toBe(false)
+    expect(hasPreviewTag('')).toBe(false)
+    expect(hasPreviewTag('   ')).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// normalizePricingResponse: fast field contract
+// ---------------------------------------------------------------------------
+
+describe('normalizePricingResponse (fast field)', () => {
+  const makeModel = (
+    overrides: Partial<HomepagePricingModel> = {}
+  ): HomepagePricingModel => ({
+    model_name: 'gpt-4o',
+    description: '',
+    tags: 'text',
+    supported_endpoint_types: [],
+    ...overrides,
+  })
+
+  it('populates fast with all fast-tagged models (deduped against featured)', () => {
+    const payload = {
+      success: true,
+      data: [
+        makeModel({ model_name: 'feat-only', tags: 'featured' }),
+        makeModel({ model_name: 'both', tags: 'featured,fast' }),
+        makeModel({ model_name: 'fast-only', tags: 'fast' }),
+        makeModel({ model_name: 'plain', tags: 'text' }),
+      ],
+    }
+    const state = normalizePricingResponse(payload)
+    expect(state.fast.map((m) => m.model_name)).toEqual(['fast-only'])
+  })
+
+  it('caps fast at 4 entries on homepage', () => {
+    const payload = {
+      success: true,
+      data: Array.from({ length: 6 }, (_, i) =>
+        makeModel({ model_name: `f-${i}`, tags: 'fast' })
+      ),
+    }
+    const state = normalizePricingResponse(payload)
+    expect(state.fast).toHaveLength(4)
+  })
+
+  it('exposes empty fast when no fast models exist', () => {
+    const payload = {
+      success: true,
+      data: [makeModel({ model_name: 'plain', tags: 'text' })],
+    }
+    const state = normalizePricingResponse(payload)
+    expect(state.fast).toEqual([])
+  })
+
+  it('LOADING_STATE includes fast: []', () => {
+    expect(LOADING_STATE.fast).toEqual([])
+  })
+
+  it('ERROR_STATE includes fast: []', () => {
+    expect(ERROR_STATE.fast).toEqual([])
   })
 })
 

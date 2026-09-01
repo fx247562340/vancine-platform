@@ -19,20 +19,21 @@ For commercial licensing, please contact support@quantumnous.com
 import type { ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { useFastCodingModelsPricing } from '../hooks/use-fast-coding-models-pricing'
 import {
-  FAST_CODING_MODEL_IDS,
   FAST_CODING_MODELS_API_BASE_URL,
   FAST_CODING_MODELS_API_KEY_PLACEHOLDER,
 } from '../lib/fast-coding-models'
 
 /**
- * "One endpoint, four models": the shared Base URL, the environment
- * variable API-key placeholder (never a real credential), and the four
- * exact model ids. Copy stresses that switching models only changes
- * the request's model field.
+ * "One endpoint, dynamic fast models": the shared Base URL, the
+ * environment variable API-key placeholder (never a real credential),
+ * and the live list of fast-tagged model ids. Copy stresses that
+ * switching models only changes the request's model field.
  */
 export function EndpointOverview(): ReactElement {
   const { t } = useTranslation()
+  const pricing = useFastCodingModelsPricing()
 
   return (
     <section
@@ -44,11 +45,11 @@ export function EndpointOverview(): ReactElement {
           id='fast-coding-models-endpoint-title'
           className='text-3xl font-bold'
         >
-          {t('One endpoint, four models')}
+          {t('One endpoint, dynamic fast models')}
         </h2>
         <p className='text-muted-foreground'>
           {t(
-            'All four models share one OpenAI-compatible endpoint at https://vancine.com/v1. Switch models by changing only the model field of your request.'
+            'Every model tagged "fast" in the public catalog shares one OpenAI-compatible endpoint at https://vancine.com/v1. Switch models by changing only the model field of your request.'
           )}
         </p>
       </div>
@@ -79,15 +80,27 @@ export function EndpointOverview(): ReactElement {
           <span className='text-muted-foreground text-xs font-semibold tracking-widest uppercase'>
             {t('Model IDs')}
           </span>
-          <ul className='flex flex-wrap gap-2'>
-            {FAST_CODING_MODEL_IDS.map((modelId) => (
-              <li key={modelId}>
-                <code className='bg-muted/60 rounded-md px-2 py-1 font-mono text-sm'>
-                  {modelId}
-                </code>
-              </li>
-            ))}
-          </ul>
+          {pricing.models.length > 0 ? (
+            <ul
+              className='flex flex-wrap gap-2'
+              data-testid='fast-coding-models-endpoint-id-list'
+            >
+              {pricing.models.map((model) => (
+                <li key={model.model_name}>
+                  <code className='bg-muted/60 rounded-md px-2 py-1 font-mono text-sm'>
+                    {model.model_name}
+                  </code>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p
+              data-testid='fast-coding-models-endpoint-id-empty'
+              className='text-muted-foreground text-sm'
+            >
+              {t('No fast models are listed in the public catalog right now.')}
+            </p>
+          )}
         </div>
       </div>
     </section>

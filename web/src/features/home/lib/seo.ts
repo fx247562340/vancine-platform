@@ -49,83 +49,81 @@ const HOME_METADATA: Record<InterfaceLanguageCode, HomeLanguageMetadata> = {
   // The Twitter fields must remain byte-identical to the Go side so the
   // server-rendered HTML and the SPA agree for crawlers and link unfurls.
   en: {
-    title: 'Chinese AI Models API for Global Developers | Vancine',
+    title: 'Chinese Frontier & Fast AI Models API | Vancine',
     description:
-      'Access the latest flagship Chinese AI models for text, image, video, audio and 3D through one OpenAI-compatible API.',
-    ogTitle: 'Chinese AI Models API for Global Developers',
+      'Access flagship and fast-inference Chinese AI models for reasoning, coding, multimodal workflows, AI agents, and high-throughput applications through one OpenAI-compatible API.',
+    ogTitle: 'Chinese Frontier & Fast AI Models API',
     ogDescription:
-      'Access the latest flagship Chinese AI models for text, image, video, audio and 3D through one OpenAI-compatible API.',
-    twitterTitle: 'Chinese AI Models API for Global Developers',
+      'Access flagship and fast-inference Chinese AI models for reasoning, coding, multimodal workflows, AI agents, and high-throughput applications through one OpenAI-compatible API.',
+    twitterTitle: 'Chinese Frontier & Fast AI Models API',
     twitterDescription:
-      'Access the latest flagship Chinese AI models for text, image, video, audio and 3D through one OpenAI-compatible API.',
+      'Access flagship and fast-inference Chinese AI models for reasoning, coding, multimodal workflows, AI agents, and high-throughput applications through one OpenAI-compatible API.',
   },
   zhCN: {
-    title: '面向全球开发者的中国 AI 模型 API | Vancine',
+    title: '中国前沿 + 快速 AI 模型 API | Vancine',
     description:
-      '通过一个 OpenAI 兼容的 API，集中访问最新一代中国旗舰 AI 模型，覆盖文本、图片、视频、语音与 3D。',
-    ogTitle: '面向全球开发者的中国 AI 模型 API',
+      '通过一个 OpenAI 兼容的 API，访问旗舰与快速推理的中国 AI 模型，覆盖推理、编码、多模态工作流、AI agent 与高吞吐应用。',
+    ogTitle: '中国前沿 + 快速 AI 模型 API',
     ogDescription:
-      '通过一个 OpenAI 兼容的 API，集中访问最新一代中国旗舰 AI 模型，覆盖文本、图片、视频、语音与 3D。',
-    twitterTitle: '面向全球开发者的中国 AI 模型 API',
+      '通过一个 OpenAI 兼容的 API，访问旗舰与快速推理的中国 AI 模型，覆盖推理、编码、多模态工作流、AI agent 与高吞吐应用。',
+    twitterTitle: '中国前沿 + 快速 AI 模型 API',
     twitterDescription:
-      '通过一个 OpenAI 兼容的 API，集中访问最新一代中国旗舰 AI 模型，覆盖文本、图片、视频、语音与 3D。',
+      '通过一个 OpenAI 兼容的 API，访问旗舰与快速推理的中国 AI 模型，覆盖推理、编码、多模态工作流、AI agent 与高吞吐应用。',
   },
   zhTW: {
-    title: '為全球開發者打造的中國 AI 模型 API | Vancine',
+    title: '中國前沿 + 快速 AI 模型 API | Vancine',
     description:
-      '透過單一 OpenAI 相容 API，集中取用最新一代中國旗艦 AI 模型，涵蓋文字、圖片、影片、語音與 3D。',
-    ogTitle: '為全球開發者打造的中國 AI 模型 API',
+      '透過單一 OpenAI 相容 API，存取旗艦與快速推論的中國 AI 模型，涵蓋推論、編碼、多模態工作流、AI agent 與高吞吐應用。',
+    ogTitle: '中國前沿 + 快速 AI 模型 API',
     ogDescription:
-      '透過單一 OpenAI 相容 API，集中取用最新一代中國旗艦 AI 模型，涵蓋文字、圖片、影片、語音與 3D。',
-    twitterTitle: '為全球開發者打造的中國 AI 模型 API',
+      '透過單一 OpenAI 相容 API，存取旗艦與快速推論的中國 AI 模型，涵蓋推論、編碼、多模態工作流、AI agent 與高吞吐應用。',
+    twitterTitle: '中國前沿 + 快速 AI 模型 API',
     twitterDescription:
-      '透過單一 OpenAI 相容 API，集中取用最新一代中國旗艦 AI 模型，涵蓋文字、圖片、影片、語音與 3D。',
+      '透過單一 OpenAI 相容 API，存取旗艦與快速推論的中國 AI 模型，涵蓋推論、編碼、多模態工作流、AI agent 與高吞吐應用。',
   },
   fr: {
-    title:
-      "API de modèles d'IA chinois pour développeurs internationaux | Vancine",
+    title: 'API de modèles d’IA chinois phares et rapides | Vancine',
     description:
-      "Accédez aux derniers modèles d'IA chinois phares pour le texte, l'image, la vidéo, l'audio et la 3D via une seule API compatible OpenAI.",
-    ogTitle: "API de modèles d'IA chinois pour développeurs internationaux",
+      'Accédez aux modèles d’IA chinois phares et à inférence rapide pour le raisonnement, le code, les workflows multimodaux, les agents d’IA et les applications à haut débit via une seule API compatible OpenAI.',
+    ogTitle: 'API de modèles d’IA chinois phares et rapides',
     ogDescription:
-      "Accédez aux derniers modèles d'IA chinois phares pour le texte, l'image, la vidéo, l'audio et la 3D via une seule API compatible OpenAI.",
-    twitterTitle:
-      "API de modèles d'IA chinois pour développeurs internationaux",
+      'Accédez aux modèles d’IA chinois phares et à inférence rapide pour le raisonnement, le code, les workflows multimodaux, les agents d’IA et les applications à haut débit via une seule API compatible OpenAI.',
+    twitterTitle: 'API de modèles d’IA chinois phares et rapides',
     twitterDescription:
-      "Accédez aux derniers modèles d'IA chinois phares pour le texte, l'image, la vidéo, l'audio et la 3D via une seule API compatible OpenAI.",
+      'Accédez aux modèles d’IA chinois phares et à inférence rapide pour le raisonnement, le code, les workflows multimodaux, les agents d’IA et les applications à haut débit via une seule API compatible OpenAI.',
   },
   ru: {
-    title: 'API китайских моделей ИИ для разработчиков по всему миру | Vancine',
+    title: 'API передовых и быстрых китайских ИИ-моделей | Vancine',
     description:
-      'Получите доступ к новейшим флагманским китайским моделям ИИ для текста, изображений, видео, аудио и 3D через один OpenAI-совместимый API.',
-    ogTitle: 'API китайских моделей ИИ для разработчиков по всему миру',
+      'Получите доступ к флагманским и быстрым китайским ИИ-моделям для рассуждений, кода, мультимодальных сценариев, ИИ-агентов и высоконагруженных приложений через один OpenAI-совместимый API.',
+    ogTitle: 'API передовых и быстрых китайских ИИ-моделей',
     ogDescription:
-      'Получите доступ к новейшим флагманским китайским моделям ИИ для текста, изображений, видео, аудио и 3D через один OpenAI-совместимый API.',
-    twitterTitle: 'API китайских моделей ИИ для разработчиков по всему миру',
+      'Получите доступ к флагманским и быстрым китайским ИИ-моделям для рассуждений, кода, мультимодальных сценариев, ИИ-агентов и высоконагруженных приложений через один OpenAI-совместимый API.',
+    twitterTitle: 'API передовых и быстрых китайских ИИ-моделей',
     twitterDescription:
-      'Получите доступ к новейшим флагманским китайским моделям ИИ для текста, изображений, видео, аудио и 3D через один OpenAI-совместимый API.',
+      'Получите доступ к флагманским и быстрым китайским ИИ-моделям для рассуждений, кода, мультимодальных сценариев, ИИ-агентов и высоконагруженных приложений через один OpenAI-совместимый API.',
   },
   ja: {
-    title: 'グローバル開発者向け中国 AI モデル API | Vancine',
+    title: '中国発・最先端＆高速 AI モデル API | Vancine',
     description:
-      'テキスト、画像、動画、音声、3D に対応する最新の中国製フラッグシップ AI モデルを、OpenAI 互換の単一 API で。',
-    ogTitle: 'グローバル開発者向け中国 AI モデル API',
+      '推論、コーディング、マルチモーダルワークフロー、AI エージェント、高スループットアプリ向けに、最先端と高速推論の中国製 AI モデルを 1 つの OpenAI 互換 API で。',
+    ogTitle: '中国発・最先端＆高速 AI モデル API',
     ogDescription:
-      'テキスト、画像、動画、音声、3D に対応する最新の中国製フラッグシップ AI モデルを、OpenAI 互換の単一 API で。',
-    twitterTitle: 'グローバル開発者向け中国 AI モデル API',
+      '推論、コーディング、マルチモーダルワークフロー、AI エージェント、高スループットアプリ向けに、最先端と高速推論の中国製 AI モデルを 1 つの OpenAI 互換 API で。',
+    twitterTitle: '中国発・最先端＆高速 AI モデル API',
     twitterDescription:
-      'テキスト、画像、動画、音声、3D に対応する最新の中国製フラッグシップ AI モデルを、OpenAI 互換の単一 API で。',
+      '推論、コーディング、マルチモーダルワークフロー、AI エージェント、高スループットアプリ向けに、最先端と高速推論の中国製 AI モデルを 1 つの OpenAI 互換 API で。',
   },
   vi: {
-    title: 'API mô hình AI Trung Quốc cho nhà phát triển toàn cầu | Vancine',
+    title: 'API mô hình AI Trung Quốc hàng đầu & tốc độ cao | Vancine',
     description:
-      'Truy cập các mô hình AI hàng đầu Trung Quốc mới nhất cho văn bản, hình ảnh, video, âm thanh và 3D thông qua một API tương thích OpenAI.',
-    ogTitle: 'API mô hình AI Trung Quốc cho nhà phát triển toàn cầu',
+      'Truy cập các mô hình AI Trung Quốc hàng đầu và suy luận nhanh cho lập luận, code, quy trình đa phương thức, AI agent và ứng dụng thông lượng lớn qua một API tương thích OpenAI.',
+    ogTitle: 'API mô hình AI Trung Quốc hàng đầu & tốc độ cao',
     ogDescription:
-      'Truy cập các mô hình AI hàng đầu Trung Quốc mới nhất cho văn bản, hình ảnh, video, âm thanh và 3D thông qua một API tương thích OpenAI.',
-    twitterTitle: 'API mô hình AI Trung Quốc cho nhà phát triển toàn cầu',
+      'Truy cập các mô hình AI Trung Quốc hàng đầu và suy luận nhanh cho lập luận, code, quy trình đa phương thức, AI agent và ứng dụng thông lượng lớn qua một API tương thích OpenAI.',
+    twitterTitle: 'API mô hình AI Trung Quốc hàng đầu & tốc độ cao',
     twitterDescription:
-      'Truy cập các mô hình AI hàng đầu Trung Quốc mới nhất cho văn bản, hình ảnh, video, âm thanh và 3D thông qua một API tương thích OpenAI.',
+      'Truy cập các mô hình AI Trung Quốc hàng đầu và suy luận nhanh cho lập luận, code, quy trình đa phương thức, AI agent và ứng dụng thông lượng lớn qua một API tương thích OpenAI.',
   },
 }
 
