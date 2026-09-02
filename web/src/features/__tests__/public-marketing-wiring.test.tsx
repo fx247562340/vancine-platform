@@ -114,6 +114,45 @@ vi.mock('@/features/home/hooks/use-homepage-pricing', () => ({
   }),
 }))
 
+vi.mock('@/features/home/hooks/use-homepage-stats', () => ({
+  useHomepageStats: () => ({
+    status: 'ready',
+    stats: {
+      window_days: 30,
+      successful_requests: { value: 0, availability: 'unavailable' },
+      processed_tokens: { value: 0, availability: 'unavailable' },
+      active_vendor_count: { value: 0, availability: 'unavailable' },
+      available_model_count: { value: 0, availability: 'unavailable' },
+      as_of: 0,
+    },
+  }),
+}))
+
+// AnimateInView in jsdom: the intersection observer is unavailable
+// in the test environment, so it must be polyfilled before the
+// homepage is mounted. The public-marketing-wiring test mounts the
+// Home page in a silent error boundary, so without the polyfill the
+// AnimateInView effect throws and the page is unmounted before
+// usePageMetadata can register the public marketing lock.
+class IntersectionObserverStub {
+  root = null
+  rootMargin = ''
+  thresholds = []
+  observe(): void {}
+  unobserve(): void {}
+  disconnect(): void {}
+  takeRecords(): IntersectionObserverEntry[] {
+    return []
+  }
+}
+if (typeof globalThis.IntersectionObserver === 'undefined') {
+  Object.defineProperty(globalThis, 'IntersectionObserver', {
+    configurable: true,
+    writable: true,
+    value: IntersectionObserverStub,
+  })
+}
+
 vi.mock('@/features/pricing/api', () => ({
   getPricing: vi.fn().mockResolvedValue({
     success: true,

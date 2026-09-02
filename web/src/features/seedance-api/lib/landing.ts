@@ -461,7 +461,7 @@ export const SEEDANCE_FAQ: readonly SeedanceFaqEntry[] = [
 export const SEEDANCE_I18N_KEYS = [
   'Seedance 2.5 API for Async Video Generation',
   'Submit a Doubao-Seedance-2.5 video task and retrieve the result through one Vancine API key.',
-  'Start free',
+  'Create account',
   'Go to Playground',
   'View quickstart',
   'How async video generation works',

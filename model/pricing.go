@@ -95,6 +95,64 @@ func GetVendors() []PricingVendor {
 	return vendorsList
 }
 
+// CountedStats is the aggregate result exposed to the homepage
+// stats endpoint. Both counts come from a single walk over the
+// same pricing list, so the two numbers can never disagree about
+// which models were considered.
+type CountedStats struct {
+	VendorCount int
+	ModelCount  int
+}
+
+// CountActiveVendorsAndModels walks the provided pricing list once
+// and returns the distinct vendor count and the distinct model
+// count in a single pass. The caller is responsible for passing the
+// SAME anonymous public-available set the public /api/pricing
+// endpoint serves — i.e. model.GetPricing() filtered through
+// controller.filterPricingByUsableGroups with the anonymous usable
+// groups. Counting from the unfiltered list would leak models that
+// are only reachable through private groups into a public marketing
+// number, so this function deliberately takes an already-filtered
+// slice instead of reading the global cache itself.
+//
+// Counting rules:
+//   - A model is counted when its ModelName is non-empty; the same
+//     model name is counted once even if several pricing rows carry
+//     it.
+//   - A vendor is counted when at least one counted model row
+//     carries that VendorID. VendorID <= 0 is the legacy
+//     "unassigned" bucket and never counts as a real vendor.
+//
+// An empty (or nil) list returns zero counts — that is the honest
+// "nothing is publicly available" state, not an error.
+func CountActiveVendorsAndModels(pricing []Pricing) CountedStats {
+	if len(pricing) == 0 {
+		return CountedStats{}
+	}
+	vendorSeen := make(map[int]struct{}, len(pricing))
+	modelSeen := make(map[string]struct{}, len(pricing))
+	vendorCount := 0
+	modelCount := 0
+	for _, item := range pricing {
+		if item.ModelName == "" {
+			continue
+		}
+		if _, ok := modelSeen[item.ModelName]; !ok {
+			modelSeen[item.ModelName] = struct{}{}
+			modelCount++
+		}
+		if item.VendorID <= 0 {
+			continue
+		}
+		if _, ok := vendorSeen[item.VendorID]; ok {
+			continue
+		}
+		vendorSeen[item.VendorID] = struct{}{}
+		vendorCount++
+	}
+	return CountedStats{VendorCount: vendorCount, ModelCount: modelCount}
+}
+
 func GetModelSupportEndpointTypes(model string) []constant.EndpointType {
 	if model == "" {
 		return make([]constant.EndpointType, 0)

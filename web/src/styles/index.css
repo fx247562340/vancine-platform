@@ -508,6 +508,220 @@ For commercial licensing, please contact support@quantumnous.com
   animation: landing-fade-right 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Vancine hero light field.
+ *
+ * The WebGL canvas is intentionally one continuous atmosphere instead of two
+ * pasted side decorations. Its transparent render is clipped to the hero and
+ * the central vignette protects headline contrast in both appearances. A CSS
+ * fallback supplies the same cyan-violet-magenta direction when WebGL2 is not
+ * available; it never runs an independent decorative animation.
+ */
+.vancine-light-tunnel {
+  position: absolute;
+  overflow: hidden;
+  isolation: isolate;
+  user-select: none;
+  opacity: 0.88;
+  contain: strict;
+}
+
+.vancine-light-tunnel-canvas,
+.vancine-light-tunnel-fallback,
+.vancine-light-tunnel-vignette {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.vancine-light-tunnel-canvas {
+  z-index: 1;
+  object-fit: cover;
+  filter: saturate(1.08) contrast(1.02);
+  mask-image: linear-gradient(to bottom, black 0%, black 68%, transparent 100%);
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    black 0%,
+    black 68%,
+    transparent 100%
+  );
+}
+
+.dark .vancine-light-tunnel-canvas {
+  filter: saturate(1.12) contrast(1.04);
+}
+
+.vancine-light-tunnel-fallback {
+  z-index: 0;
+  /* Brand palette comes from the CSS theme tokens defined in
+   * theme.css (`--vancine-light-tunnel-{cool,violet,warm,pulse}`).
+   * The WebGL uniforms in `brand-light-tunnel.tsx` read the same
+   * tokens via getComputedStyle, so the CSS fallback cannot drift
+   * away from the live render. The alpha is expressed through
+   * color-mix(..., transparent) so the brand RGB triplet stays a
+   * single source of truth. */
+  background:
+    radial-gradient(
+      ellipse 66% 92% at -3% 56%,
+      color-mix(in oklab, var(--vancine-light-tunnel-violet) 23%, transparent) 0 18%,
+      transparent 42%
+    ),
+    radial-gradient(
+      ellipse 66% 92% at 103% 54%,
+      color-mix(in oklab, var(--vancine-light-tunnel-warm) 21%, transparent) 0 18%,
+      transparent 42%
+    ),
+    radial-gradient(
+      ellipse 84% 72% at 50% 98%,
+      color-mix(in oklab, var(--vancine-light-tunnel-cool) 9%, transparent),
+      transparent 66%
+    );
+  opacity: 0.92;
+  transition: opacity 500ms ease;
+  mask-image: linear-gradient(to bottom, black 0%, black 66%, transparent 100%);
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    black 0%,
+    black 66%,
+    transparent 100%
+  );
+}
+
+.dark .vancine-light-tunnel-fallback {
+  opacity: 1;
+  filter: saturate(1.2) brightness(1.08);
+}
+
+.vancine-light-tunnel[data-renderer='ready']
+  .vancine-light-tunnel-fallback {
+  opacity: 0.2;
+}
+
+.vancine-light-tunnel-vignette {
+  z-index: 2;
+  background: radial-gradient(
+    ellipse 46% 62% at 50% 48%,
+    color-mix(in oklab, var(--background) 90%, transparent) 0%,
+    color-mix(in oklab, var(--background) 72%, transparent) 36%,
+    transparent 74%
+  );
+}
+
+.vancine-hero-scene-transition {
+  position: absolute;
+  z-index: 3;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: clamp(7rem, 14vw, 11rem);
+  pointer-events: none;
+  /* Brand palette comes from the same CSS theme tokens as the
+   * light tunnel WebGL uniforms and the fallback. The hue
+   * distribution is unchanged: violet on the left, warm on the
+   * right, with a soft muted-to-background wash. The brand
+   * triplet stays a single source of truth. */
+  background:
+    radial-gradient(
+      ellipse 52% 76% at 21% 100%,
+      color-mix(in oklab, var(--vancine-light-tunnel-violet) 8%, transparent),
+      transparent 72%
+    ),
+    radial-gradient(
+      ellipse 52% 76% at 79% 100%,
+      color-mix(in oklab, var(--vancine-light-tunnel-warm) 7%, transparent),
+      transparent 72%
+    ),
+    linear-gradient(
+      to bottom,
+      transparent,
+      color-mix(in oklab, var(--muted) 16%, transparent) 58%,
+      color-mix(in oklab, var(--muted) 42%, var(--background)) 100%
+    );
+}
+
+.vancine-scene-followup {
+  isolation: isolate;
+  /* Same brand token source as the WebGL uniforms and the light
+   * tunnel fallback. Hue distribution is unchanged: violet on the
+   * left, warm on the right, fading into the muted wash. */
+  background:
+    radial-gradient(
+      ellipse 62% 9rem at 20% 0%,
+      color-mix(in oklab, var(--vancine-light-tunnel-violet) 6.5%, transparent),
+      transparent 78%
+    ),
+    radial-gradient(
+      ellipse 62% 9rem at 80% 0%,
+      color-mix(in oklab, var(--vancine-light-tunnel-warm) 5.5%, transparent),
+      transparent 78%
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--muted) 42%, var(--background)) 0%,
+      color-mix(in oklab, var(--muted) 14%, var(--background)) 9rem,
+      color-mix(in oklab, var(--muted) 5%, var(--background)) 100%
+    );
+}
+
+.dark .vancine-hero-scene-transition {
+  /* Dark theme brand palette is resolved from the same
+   * `.dark` overrides in theme.css, so the scene-transition reads
+   * the dark brand tokens automatically without an extra branch. */
+  background:
+    radial-gradient(
+      ellipse 54% 78% at 20% 100%,
+      color-mix(in oklab, var(--vancine-light-tunnel-violet) 11%, transparent),
+      transparent 72%
+    ),
+    radial-gradient(
+      ellipse 54% 78% at 80% 100%,
+      color-mix(in oklab, var(--vancine-light-tunnel-warm) 10%, transparent),
+      transparent 72%
+    ),
+    linear-gradient(
+      to bottom,
+      transparent,
+      color-mix(in oklab, var(--muted) 12%, transparent) 58%,
+      color-mix(in oklab, var(--muted) 32%, var(--background)) 100%
+    );
+}
+
+.dark .vancine-scene-followup {
+  background:
+    radial-gradient(
+      ellipse 62% 9rem at 20% 0%,
+      color-mix(in oklab, var(--vancine-light-tunnel-violet) 8%, transparent),
+      transparent 78%
+    ),
+    radial-gradient(
+      ellipse 62% 9rem at 80% 0%,
+      color-mix(in oklab, var(--vancine-light-tunnel-warm) 7.5%, transparent),
+      transparent 78%
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--muted) 32%, var(--background)) 0%,
+      color-mix(in oklab, var(--muted) 11%, var(--background)) 9rem,
+      color-mix(in oklab, var(--muted) 4%, var(--background)) 100%
+    );
+}
+
+@media (max-width: 767px) {
+  .vancine-light-tunnel {
+    opacity: 0.72;
+  }
+
+  .vancine-light-tunnel-vignette {
+    background: radial-gradient(
+      ellipse 62% 58% at 50% 46%,
+      color-mix(in oklab, var(--background) 92%, transparent) 0%,
+      color-mix(in oklab, var(--background) 68%, transparent) 42%,
+      transparent 82%
+    );
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .landing-animate-fade-up,
   .landing-animate-fade-in,

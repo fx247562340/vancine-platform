@@ -105,6 +105,47 @@ vi.mock('@/features/pricing/api', () => ({
   getPricing: (...args: unknown[]) => getPricingMock(...args),
 }))
 
+// Mock the shared `api` HTTP client. The homepage stats hook reads
+// /api/homepage/stats through it; the mock is a thin wrapper that
+// returns either a stubbed bare payload or a rejection based on the
+// URL. Default behaviour (no override) is "no stats yet" so the
+// pre-existing tests do not need to know about the stats endpoint
+// unless they explicitly opt in via apiGetMock.mockImplementation.
+//
+// The handler serves the BARE payload — no success/data envelope:
+//   { window_days, successful_requests, processed_tokens,
+//     active_vendor_count, available_model_count, as_of }
+// where each aggregate is a { value, availability } triple. The
+// default mock returns all-unavailable so the hero renders
+// em-dashes unless a test explicitly opts in.
+//
+// vi.mock is hoisted to the top of the file by Vitest, so the
+// captured `apiGetMock` reference must also be hoisted via
+// `vi.hoisted` to exist by the time the mock factory runs.
+const { apiGetMock } = vi.hoisted(() => {
+  const unavailableTriple = { value: 0, availability: 'unavailable' }
+  const defaultStats = {
+    window_days: 30,
+    successful_requests: unavailableTriple,
+    processed_tokens: unavailableTriple,
+    active_vendor_count: unavailableTriple,
+    available_model_count: unavailableTriple,
+    as_of: 0,
+  }
+  const mock = (url: string) => {
+    if (url === '/api/homepage/stats') {
+      return Promise.resolve({ data: defaultStats })
+    }
+    return Promise.resolve({ data: null })
+  }
+  return { apiGetMock: vi.fn().mockImplementation(mock) }
+})
+vi.mock('@/lib/api', () => ({
+  api: {
+    get: (...args: unknown[]) => apiGetMock(...args),
+  },
+}))
+
 vi.mock('@lobehub/icons', () => ({
   CherryStudio: Object.assign(() => null, { Color: () => null }),
 }))
@@ -164,6 +205,26 @@ beforeEach(async () => {
   trackEventMock.mockClear()
   getHomePageContentMock.mockReset()
   getPricingMock.mockReset()
+  apiGetMock.mockReset()
+  // Default: stats API returns the bare all-unavailable payload so
+  // the hero tiles render em-dashes unless a test explicitly opts
+  // in.
+  apiGetMock.mockImplementation((url: string) => {
+    if (url === '/api/homepage/stats') {
+      const unavailableTriple = { value: 0, availability: 'unavailable' }
+      return Promise.resolve({
+        data: {
+          window_days: 30,
+          successful_requests: unavailableTriple,
+          processed_tokens: unavailableTriple,
+          active_vendor_count: unavailableTriple,
+          available_model_count: unavailableTriple,
+          as_of: 0,
+        },
+      })
+    }
+    return Promise.resolve({ data: null })
+  })
   // Default: pricing API returns empty success so tests don't hang
   getPricingMock.mockResolvedValue({
     success: true,
@@ -228,7 +289,7 @@ describe('Homepage i18n renders translated copy (not English fallback)', () => {
   const MARKETPLACE_EN = 'Live model marketplace'
   const CTA_EN = "Start building with China's frontier models"
   const DISCLAIMER_EN =
-    'New accounts may receive $1 in promotional API credit when the current signup bonus is enabled. Credit, eligibility, and availability can change; usage depends on model and workload.'
+    'Create an account, add credit, and start using the API with transparent usage-based pricing.'
 
   let zhBundle: Record<string, unknown> | null
   let frBundle: Record<string, unknown> | null
@@ -291,7 +352,7 @@ describe('Homepage i18n renders translated copy (not English fallback)', () => {
     expect(h2s.length).toBeGreaterThanOrEqual(2)
     // The Final CTA disclaimer must not be the English source; Chinese copy is present.
     expect(pageText.includes(DISCLAIMER_EN)).toBe(false)
-    expect(pageText).toContain('美元')
+    expect(pageText).toContain('按量计费')
   })
 
   it('fr homepage is localized (not English fallback)', async () => {
@@ -308,8 +369,8 @@ describe('Homepage i18n renders translated copy (not English fallback)', () => {
     expect(h2s.some((t) => t === MARKETPLACE_EN)).toBe(false)
     expect(h2s.some((t) => t === CTA_EN)).toBe(false)
     expect(pageText.includes(DISCLAIMER_EN)).toBe(false)
-    // French disclaimer copy is present.
-    expect(pageText).toContain("bonus d'inscription")
+    // French disclaimer copy is present (prepaid usage-based pricing).
+    expect(pageText.toLowerCase()).toContain('tarification transparente')
   })
 })
 
@@ -475,7 +536,7 @@ describe('R6: cached content lazy initializer', () => {
 })
 
 describe('R7+R8: Hero CTA destinations and analytics', () => {
-  it('guest primary CTA: Start building free → /sign-up', async () => {
+  it('guest primary CTA: Create account → /sign-up', async () => {
     getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
     renderHome()
     await screen.findByRole('heading', {
@@ -484,12 +545,12 @@ describe('R7+R8: Hero CTA destinations and analytics', () => {
     })
     const hero = getHeroSection()
     const btn = within(hero).getByRole('button', {
-      name: /Start building free/i,
+      name: /^Create account$/i,
     })
     expect(btn).toHaveAttribute('href', '/sign-up')
   })
 
-  it('authenticated primary CTA: Start building free → /dashboard', async () => {
+  it('authenticated primary CTA: Go to Dashboard → /dashboard', async () => {
     const prev = useAuthStore.getState().auth
     useAuthStore.setState({
       auth: {
@@ -506,7 +567,7 @@ describe('R7+R8: Hero CTA destinations and analytics', () => {
     })
     const hero = getHeroSection()
     const btn = within(hero).getByRole('button', {
-      name: /Start building free/i,
+      name: /^Go to Dashboard$/i,
     })
     expect(btn).toHaveAttribute('href', '/dashboard')
   })
@@ -567,7 +628,7 @@ describe('R7+R8: Hero CTA destinations and analytics', () => {
     })
     const hero = getHeroSection()
     const btn = within(hero).getByRole('button', {
-      name: /Start building free/i,
+      name: /^Create account$/i,
     })
     await user.click(btn)
     expect(trackEventMock).toHaveBeenCalledWith('get_started_clicked', {
@@ -636,7 +697,7 @@ describe('R8: Documentation control', () => {
 })
 
 describe('Final CTA', () => {
-  it('primary button says Start building free', async () => {
+  it('primary button says Create account (guest) → /sign-up', async () => {
     getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
     renderHome()
     await screen.findByRole('heading', {
@@ -650,11 +711,38 @@ describe('Final CTA', () => {
     const section = h2.closest('section')
     if (!section) throw new Error('CTA heading not in section')
     expect(
-      within(section).getByRole('button', { name: /Start building free/i })
+      within(section).getByRole('button', { name: /^Create account$/i })
     ).toBeInTheDocument()
     expect(
       within(section).queryByRole('button', { name: /Get.*free API credit/i })
     ).not.toBeInTheDocument()
+  })
+
+  it('primary button says Go to Dashboard (authenticated) → /dashboard', async () => {
+    const prev = useAuthStore.getState().auth
+    useAuthStore.setState({
+      auth: {
+        ...prev,
+        user: { id: 1, username: 'u', role: 100 },
+        accessToken: 'tok',
+      },
+    })
+    getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
+    renderHome()
+    await screen.findByRole('heading', {
+      level: 1,
+      name: 'One API for Chinese frontier and high-performance AI models',
+    })
+    const h2 = screen.getByRole('heading', {
+      level: 2,
+      name: "Start building with China's frontier models",
+    })
+    const section = h2.closest('section')
+    if (!section) throw new Error('CTA heading not in section')
+    const btn = within(section).getByRole('button', {
+      name: /^Go to Dashboard$/i,
+    })
+    expect(btn).toHaveAttribute('href', '/dashboard')
   })
 
   it('fires get_started_clicked { final_cta }', async () => {
@@ -672,7 +760,7 @@ describe('Final CTA', () => {
     const section = h2.closest('section')
     if (!section) throw new Error('CTA heading not in section')
     const btn = within(section).getByRole('button', {
-      name: /Start building free/i,
+      name: /^Create account$/i,
     })
     await user.click(btn)
     expect(trackEventMock).toHaveBeenCalledWith('get_started_clicked', {
@@ -681,8 +769,94 @@ describe('Final CTA', () => {
   })
 })
 
+describe('VANCINE-PREPAID-COPY: prepaid copy and inactive-promo prohibition', () => {
+  it('renders the new prepaid CTA disclaimer in the Final CTA section', async () => {
+    getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
+    renderHome()
+    await screen.findByRole('heading', {
+      level: 1,
+      name: 'One API for Chinese frontier and high-performance AI models',
+    })
+    const h2 = screen.getByRole('heading', {
+      level: 2,
+      name: "Start building with China's frontier models",
+    })
+    const section = h2.closest('section')
+    if (!section) throw new Error('CTA heading not in section')
+    expect(section).toHaveTextContent(
+      /Create an account, add credit, and start using the API with transparent usage-based pricing\./
+    )
+  })
+
+  it('homepage does not mention the inactive $1 promo or signup bonus', async () => {
+    getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
+    renderHome()
+    await screen.findByRole('heading', {
+      level: 1,
+      name: 'One API for Chinese frontier and high-performance AI models',
+    })
+    const pageText = document.body.textContent ?? ''
+    expect(pageText).not.toContain('Start building free')
+    expect(pageText).not.toContain('signup bonus')
+    expect(pageText).not.toContain('promotional API credit')
+    expect(pageText).not.toContain('$1')
+  })
+})
+
+describe('VANCINE-BRAND-REDESIGN-FINAL-REMEDIATION: stats disclaimer and dt/dd order', () => {
+  it('renders the new Aggregated operation metrics disclaimer in the hero', async () => {
+    getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
+    renderHome()
+    await screen.findByRole('heading', {
+      level: 1,
+      name: 'One API for Chinese frontier and high-performance AI models',
+    })
+    const disclaimer = await screen.findByTestId('hero-stats-disclaimer')
+    expect(disclaimer.textContent ?? '').toContain('Aggregated operation metrics may be delayed')
+    // The former "Live operation metrics" copy is gone.
+    expect(disclaimer.textContent ?? '').not.toContain('Live operation metrics')
+  })
+
+  it('does not render the old Live operation metrics copy anywhere on the page', async () => {
+    getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
+    renderHome()
+    await screen.findByRole('heading', {
+      level: 1,
+      name: 'One API for Chinese frontier and high-performance AI models',
+    })
+    const pageText = document.body.textContent ?? ''
+    expect(pageText).not.toContain('Live operation metrics')
+  })
+
+  it('emits stat tiles in dt-then-dd DOM order, value visually first', async () => {
+    getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
+    renderHome()
+    await screen.findByRole('heading', {
+      level: 1,
+      name: 'One API for Chinese frontier and high-performance AI models',
+    })
+    const statsRow = screen.getByTestId('hero-stats-row')
+    const tile = within(statsRow).getByTestId('hero-stat-successful-requests')
+    // The <dt> describing the tile MUST come before the <dd> holding
+    // the value in DOM order — the spec requires the term before
+    // the description it terms. Visual order is controlled by
+    // flex order, not DOM order.
+    const dt = tile.querySelector('dt')
+    const dd = tile.querySelector('dd')
+    expect(dt).not.toBeNull()
+    expect(dd).not.toBeNull()
+    const dtEl = dt as Element
+    const ddEl = dd as Element
+    const dtPos = [...tile.children].indexOf(dtEl)
+    const ddPos = [...tile.children].indexOf(ddEl)
+    expect(dtPos).toBeLessThan(ddPos)
+    expect(dtEl.textContent).toContain('Successful requests')
+    expect(ddEl.textContent).toMatch(/[\d—]/)
+  })
+})
+
 describe('Hero copy', () => {
-  it('aligns the primary modules and the three-zone compatibility rail on desktop', async () => {
+  it('renders the brand light field, three live stats, and the CTAs', async () => {
     getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
     renderHome()
     await screen.findByRole('heading', {
@@ -691,31 +865,63 @@ describe('Hero copy', () => {
     })
 
     const hero = getHeroSection()
-    const primaryGrid = within(hero).getByTestId('hero-primary-grid')
-    const copyPanel = within(hero).getByTestId('hero-copy-panel')
-    const terminalPanel = within(hero).getByTestId('hero-terminal-panel')
-    expect(primaryGrid).toHaveClass('lg:items-stretch')
-    expect(copyPanel).toHaveClass('lg:min-h-[528px]')
-    expect(terminalPanel).toHaveClass('lg:min-h-[528px]')
-
-    const rail = within(hero).getByTestId('hero-proof-rail')
-    expect(rail).toHaveClass('lg:grid-cols-12')
-    expect(rail).toHaveClass('lg:items-start')
-    expect(rail).not.toHaveClass('lg:items-end')
-    expect(rail).toHaveClass('min-w-0')
-    expect(within(rail).getByText('Universal access')).toBeInTheDocument()
+    // v1.12.0: the hero is a single column, no terminal panel and
+    // no three-zone rail. One decorative light field spans the hero.
     expect(
-      within(rail).queryByText('Supported Applications')
+      within(hero).queryByTestId('hero-primary-grid')
     ).not.toBeInTheDocument()
-    expect(within(rail).getByText('Cherry Studio')).toBeInTheDocument()
-    expect(within(rail).getByText('CC Switch')).toBeInTheDocument()
     expect(
-      within(rail).getByText('OpenAI-compatible clients and agents')
+      within(hero).queryByTestId('hero-copy-panel')
+    ).not.toBeInTheDocument()
+    expect(
+      within(hero).queryByTestId('hero-terminal-panel')
+    ).not.toBeInTheDocument()
+    expect(
+      within(hero).queryByTestId('hero-proof-rail')
+    ).not.toBeInTheDocument()
+
+    const lightField = within(hero).getByTestId('brand-light-tunnel')
+    expect(lightField).toHaveClass('pointer-events-none')
+    expect(lightField.getAttribute('aria-hidden')).toBe('true')
+    expect(lightField.querySelector('img')).not.toBeInTheDocument()
+    // The light field layer is clipped inside the hero, so the canvas can
+    // never create horizontal scroll or escape onto the navigation.
+    const lightFieldLayer = lightField.parentElement
+    expect(lightFieldLayer).toHaveClass('overflow-hidden')
+    expect(lightFieldLayer).toHaveClass('pointer-events-none')
+
+    // Three live stats render as peer <div>s inside a <dl>.
+    const statsRow = within(hero).getByTestId('hero-stats-row')
+    expect(statsRow.tagName).toBe('DL')
+    expect(
+      within(statsRow).getByTestId('hero-stat-successful-requests')
+    ).toBeInTheDocument()
+    expect(
+      within(statsRow).getByTestId('hero-stat-processed-tokens')
+    ).toBeInTheDocument()
+    expect(
+      within(statsRow).getByTestId('hero-stat-available-models')
     ).toBeInTheDocument()
 
-    const stats = within(rail).getByTestId('hero-proof-stats')
-    expect(stats).toHaveClass('grid')
-    expect(stats).not.toHaveClass('sm:flex-nowrap')
+    // Old v1.2.0 peer facts are gone.
+    expect(
+      within(hero).queryByTestId('hero-stat-openai-compatible')
+    ).not.toBeInTheDocument()
+    expect(
+      within(hero).queryByTestId('hero-stat-unified-api-and-billing')
+    ).not.toBeInTheDocument()
+
+    // The Cherry Studio / CC Switch chip pair lives in the
+    // ToolsAndAccess section now, not the hero.
+    expect(within(hero).queryByText('Cherry Studio')).not.toBeInTheDocument()
+    expect(within(hero).queryByText('CC Switch')).not.toBeInTheDocument()
+
+    // The "Read the docs" link replaced the old "Documentation" button
+    // when no docs_link is configured. We assert the link target so
+    // the contract is explicit.
+    expect(
+      within(hero).getByRole('link', { name: /Read the docs/i })
+    ).toHaveAttribute('href', '/docs')
   })
 
   it('no banned model names', async () => {
@@ -928,7 +1134,7 @@ describe('P11-B: homepage pricing wiring', () => {
     ).toBeInTheDocument()
   })
 
-  it('shows no fake model count when pricing is loading', async () => {
+  it('shows the em-dash placeholder when pricing is loading', async () => {
     getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
     // Never resolve pricing → loading state persists
     getPricingMock.mockReturnValue(new Promise(() => {}))
@@ -937,12 +1143,16 @@ describe('P11-B: homepage pricing wiring', () => {
       level: 1,
       name: 'One API for Chinese frontier and high-performance AI models',
     })
-    // "Available models" label (the live count column) must not appear while
-    // pricing is still loading.
-    expect(screen.queryByText('Available models')).not.toBeInTheDocument()
+    const hero = getHeroSection()
+    // The label is always present, but the value is the em-dash
+    // placeholder while pricing is loading — never a fallback to
+    // the vendor count.
+    const available = within(hero).getByTestId('hero-stat-available-models')
+    expect(within(available).getByText('Available models')).toBeInTheDocument()
+    expect(within(available).getByText('—')).toBeInTheDocument()
   })
 
-  it('shows no fake model count when pricing errors', async () => {
+  it('shows the em-dash placeholder when pricing errors', async () => {
     getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
     getPricingMock.mockRejectedValue(new Error('pricing error'))
     renderHome()
@@ -950,10 +1160,13 @@ describe('P11-B: homepage pricing wiring', () => {
       level: 1,
       name: 'One API for Chinese frontier and high-performance AI models',
     })
-    expect(screen.queryByText('Available models')).not.toBeInTheDocument()
+    const hero = getHeroSection()
+    const available = within(hero).getByTestId('hero-stat-available-models')
+    expect(within(available).getByText('Available models')).toBeInTheDocument()
+    expect(within(available).getByText('—')).toBeInTheDocument()
   })
 
-  it('shows no fake model count when pricing returns empty', async () => {
+  it('shows a real 0 when pricing returns an empty catalog', async () => {
     getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
     getPricingMock.mockResolvedValue({
       success: true,
@@ -969,7 +1182,13 @@ describe('P11-B: homepage pricing wiring', () => {
       level: 1,
       name: 'One API for Chinese frontier and high-performance AI models',
     })
-    expect(screen.queryByText('Available models')).not.toBeInTheDocument()
+    const hero = getHeroSection()
+    const available = within(hero).getByTestId('hero-stat-available-models')
+    expect(within(available).getByText('Available models')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(within(available).getByText('0')).toBeInTheDocument()
+    })
+    expect(within(available).queryByText('—')).not.toBeInTheDocument()
   })
 
   it('custom URL override skips built-in homepage', async () => {
@@ -1275,7 +1494,7 @@ describe('P11-B: homepage pricing wiring', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('v1.2.0: built-in homepage section order is Hero → AvailableNow → FastModels → Why → Evidence → CTA → Footer', async () => {
+  it('v1.12.0: built-in homepage section order is Hero → AvailableNow → FastModels → ToolsAndAccess → ApiCodeSection → Why → Evidence → CTA → Footer', async () => {
     getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
     renderHome()
     await waitFor(() => {
@@ -1315,6 +1534,8 @@ describe('P11-B: homepage pricing wiring', () => {
       level: 2,
       name: "Start building with China's frontier models",
     })
+    const toolsAndAccess = screen.getByTestId('homepage-tools-access-section')
+    const apiCode = screen.getByTestId('homepage-api-code-section')
     const footer = screen.getByRole('contentinfo')
     expect(footer).toBeInTheDocument()
 
@@ -1322,10 +1543,13 @@ describe('P11-B: homepage pricing wiring', () => {
       (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0
 
     expect(following(hero, availableNow)).toBe(true)
-    expect(following(availableNow, why)).toBe(true)
+    expect(following(availableNow, toolsAndAccess)).toBe(true)
+    expect(following(toolsAndAccess, apiCode)).toBe(true)
+    expect(following(apiCode, why)).toBe(true)
     expect(following(why, evidence)).toBe(true)
     expect(following(evidence, cta)).toBe(true)
     expect(following(cta, footer)).toBe(true)
+    expect(following(footer, cta)).toBe(false)
   })
 
   it('P11-D: HowItWorks, Features, and Stats headings are absent from built-in homepage', async () => {
@@ -1357,7 +1581,37 @@ describe('P11-B: homepage pricing wiring', () => {
     expect(screen.queryByText('scheduling controls')).not.toBeInTheDocument()
   })
 
-  it('v1.2.0 hero stats: the dynamic count, "OpenAI-compatible", and "Unified API and billing" render as three peer <li> facts', async () => {
+  it('v1.12.0 hero stats: the three live stats render with values from the homepage-stats endpoint', async () => {
+    // The v2 wire shape: every aggregate is a { value, availability }
+    // triple. The hero reads the value verbatim when availability is
+    // "ok" and falls back to the em-dash placeholder otherwise.
+    const statsPayload = {
+      window_days: 30,
+      successful_requests: {
+        value: 12345,
+        availability: 'ok' as const,
+      },
+      processed_tokens: {
+        value: 67890000,
+        availability: 'ok' as const,
+      },
+      active_vendor_count: {
+        value: 6,
+        availability: 'ok' as const,
+      },
+      available_model_count: {
+        value: 9,
+        availability: 'ok' as const,
+      },
+      as_of: 1_700_000_000,
+    }
+    apiGetMock.mockImplementation((url: string) => {
+      if (url === '/api/homepage/stats') {
+        return Promise.resolve({ data: statsPayload })
+      }
+      return Promise.resolve({ data: null })
+    })
+
     getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
     getPricingMock.mockResolvedValue({
       success: true,
@@ -1389,59 +1643,77 @@ describe('P11-B: homepage pricing wiring', () => {
     await screen.findByText('TestModel')
 
     const hero = getHeroSection()
-    // Assert the structural list: exactly three <li> facts in the
-    // hero stats strip when pricing is ready with at least one model.
+    // The "available models" tile consumes the pricing model count,
+    // NOT the stats active_vendor_count. The two numbers describe
+    // different things and the hero tile is bound to the model count.
     const available = within(hero).getByTestId('hero-stat-available-models')
     expect(available).toBeInTheDocument()
-    expect(available.querySelector('span')?.textContent).toBe('1')
+    expect(within(available).getByText('1')).toBeInTheDocument()
     expect(within(available).getByText('Available models')).toBeInTheDocument()
 
-    const openai = within(hero).getByTestId('hero-stat-openai-compatible')
-    expect(openai).toBeInTheDocument()
-    expect(within(openai).getByText('OpenAI-compatible')).toBeInTheDocument()
+    // The 30-day counts render their values verbatim.
+    const successful = within(hero).getByTestId('hero-stat-successful-requests')
+    expect(within(successful).getByText('12,345')).toBeInTheDocument()
 
-    const billing = within(hero).getByTestId(
-      'hero-stat-unified-api-and-billing'
-    )
-    expect(billing).toBeInTheDocument()
+    const processed = within(hero).getByTestId('hero-stat-processed-tokens')
+    // 67.89M in compact notation.
+    expect(within(processed).getByText('67.9M')).toBeInTheDocument()
+
+    // The peer-fact trio is the entire hero stat strip.
+    const statTiles = [
+      'hero-stat-successful-requests',
+      'hero-stat-processed-tokens',
+      'hero-stat-available-models',
+    ]
+    for (const id of statTiles) {
+      expect(within(hero).getByTestId(id)).toBeInTheDocument()
+    }
+
+    // v1.2.0 fact pair stays gone.
     expect(
-      within(billing).getByText('Unified API and billing')
-    ).toBeInTheDocument()
-
-    // The strip <ul> contains exactly these three <li> children.
-    const statItems = [...within(hero).getAllByRole('listitem')].filter((el) =>
-      [
-        'hero-stat-available-models',
-        'hero-stat-openai-compatible',
-        'hero-stat-unified-api-and-billing',
-      ].some(
-        (id) =>
-          el.querySelector(`[data-testid="${id}"]`) ||
-          el.getAttribute('data-testid') === id
-      )
-    )
-    expect(statItems).toHaveLength(3)
-
-    // "OpenAI-compatible" and "Unified API and billing" are peer facts
-    // in their own <li>; neither is a sub-label of the other.
-    expect(
-      within(openai).queryByText('Unified API and billing')
+      within(hero).queryByText('OpenAI-compatible')
     ).not.toBeInTheDocument()
     expect(
-      within(billing).queryByText('OpenAI-compatible')
+      within(hero).queryByText('Unified API and billing')
     ).not.toBeInTheDocument()
-
-    // The duplicate v1.2.0 fact pair must not render anywhere on the
-    // hero. The i18n keys are still in the locale files because they
-    // are referenced from elsewhere (admin / future) — only the hero
-    // stats list stops using them.
-    expect(within(hero).queryByText('One bill')).not.toBeInTheDocument()
-    expect(within(hero).queryByText('One API')).not.toBeInTheDocument()
   })
 
-  it('v1.2.0 hero stats: the dynamic count <li> is omitted while pricing is loading; the two static peer <li> still render', async () => {
+  it('v1.12.0 hero stats: pricing is loading → available models tile shows em-dash, vendor count is rendered by ToolsAndAccess instead', async () => {
+    // The third tile is no longer a fallback to the vendor count: the
+    // hero strictly shows the model count, and the ToolsAndAccess
+    // section owns the vendor count tile. With pricing still loading,
+    // the hero's third tile is the em-dash placeholder.
+    const statsPayload = {
+      window_days: 30,
+      successful_requests: {
+        value: 0,
+        availability: 'unavailable' as const,
+      },
+      processed_tokens: {
+        value: 0,
+        availability: 'unavailable' as const,
+      },
+      active_vendor_count: {
+        value: 6,
+        availability: 'ok' as const,
+      },
+      available_model_count: {
+        value: 0,
+        availability: 'unavailable' as const,
+      },
+      as_of: 1_700_000_000,
+    }
+    apiGetMock.mockImplementation((url: string) => {
+      if (url === '/api/homepage/stats') {
+        return Promise.resolve({ data: statsPayload })
+      }
+      return Promise.resolve({ data: null })
+    })
+
     getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
-    // Never resolve pricing → loading state persists
+    // Never resolve pricing → loading state persists. The hero must
+    // still render the third tile, but it must show the em-dash
+    // placeholder rather than the vendor count.
     getPricingMock.mockReturnValue(new Promise(() => {}))
     renderHome()
     await screen.findByRole('heading', {
@@ -1450,34 +1722,31 @@ describe('P11-B: homepage pricing wiring', () => {
     })
 
     const hero = getHeroSection()
-    // The live-count <li> must be hidden while pricing is loading.
+    const available = within(hero).getByTestId('hero-stat-available-models')
+    // The available-models tile must NOT show the vendor count
+    // (6) when pricing is loading; the label stays "Available
+    // models" and the value is the em-dash placeholder.
+    expect(within(available).getByText('—')).toBeInTheDocument()
+    expect(within(available).getByText('Available models')).toBeInTheDocument()
+    expect(within(available).queryByText('6')).not.toBeInTheDocument()
+    // The hero must not invent an "Integrated model vendors" label
+    // in place of the model count.
     expect(
-      within(hero).queryByTestId('hero-stat-available-models')
+      within(available).queryByText('Integrated model vendors')
     ).not.toBeInTheDocument()
-    // The two static facts remain in their own <li>.
-    const openai = within(hero).getByTestId('hero-stat-openai-compatible')
-    const billing = within(hero).getByTestId(
-      'hero-stat-unified-api-and-billing'
-    )
-    expect(within(openai).getByText('OpenAI-compatible')).toBeInTheDocument()
-    expect(
-      within(billing).getByText('Unified API and billing')
-    ).toBeInTheDocument()
-    // And the duplicate fact pair is still absent.
-    expect(within(hero).queryByText('One bill')).not.toBeInTheDocument()
   })
 
-  it('v1.2.0 hero stats: pricing is empty → count <li> omitted, two static peer <li> still render', async () => {
-    getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
-    getPricingMock.mockResolvedValue({
-      success: true,
-      data: [],
-      vendors: [],
-      group_ratio: {},
-      usable_group: {},
-      supported_endpoint: {},
-      auto_groups: [],
+  it('v1.12.0 hero stats: stats endpoint unreachable → all three tiles show em-dash placeholders', async () => {
+    apiGetMock.mockImplementation((url: string) => {
+      if (url === '/api/homepage/stats') {
+        return Promise.reject(new Error('boom'))
+      }
+      return Promise.resolve({ data: null })
     })
+
+    getHomePageContentMock.mockResolvedValue({ success: false, data: '' })
+    // Pricing also loading — every aggregate is unknown.
+    getPricingMock.mockReturnValue(new Promise(() => {}))
     renderHome()
     await screen.findByRole('heading', {
       level: 1,
@@ -1485,18 +1754,15 @@ describe('P11-B: homepage pricing wiring', () => {
     })
 
     const hero = getHeroSection()
-    // Empty array is not "ready with count >= 1" — the live-count <li>
-    // stays hidden. Empty and loading states are intentionally
-    // indistinguishable from the user's point of view.
-    expect(
-      within(hero).queryByTestId('hero-stat-available-models')
-    ).not.toBeInTheDocument()
-    expect(
-      within(hero).getByTestId('hero-stat-openai-compatible')
-    ).toBeInTheDocument()
-    expect(
-      within(hero).getByTestId('hero-stat-unified-api-and-billing')
-    ).toBeInTheDocument()
+    const successful = within(hero).getByTestId('hero-stat-successful-requests')
+    const processed = within(hero).getByTestId('hero-stat-processed-tokens')
+    const available = within(hero).getByTestId('hero-stat-available-models')
+    // Every tile shows the em-dash placeholder when its aggregate
+    // has not (or cannot) arrived. This is the contract: the hero
+    // NEVER shows a spinner or an error — it always renders.
+    expect(within(successful).getByText('—')).toBeInTheDocument()
+    expect(within(processed).getByText('—')).toBeInTheDocument()
+    expect(within(available).getByText('—')).toBeInTheDocument()
   })
 
   it('StrictMode: single Home instance renders correctly and pricing query deduplicates', async () => {

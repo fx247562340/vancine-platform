@@ -178,8 +178,8 @@ export function AvailableNow({ pricing }: { pricing: HomepagePricingState }) {
   const skeletonCount = skeletonCountForWidth(width)
 
   return (
-    <section className='border-border/40 bg-muted/5 relative z-10 border-y px-6 py-20 md:py-24'>
-      <div className='mx-auto max-w-6xl'>
+    <section className='vancine-scene-followup border-border/40 relative z-10 border-b px-6 py-20 md:py-24'>
+      <div className='relative z-10 mx-auto max-w-6xl'>
         <AnimateInView className='mb-10 text-center'>
           <h2 className='text-2xl font-bold tracking-tight md:text-3xl'>
             {t('Flagship models — available now')}

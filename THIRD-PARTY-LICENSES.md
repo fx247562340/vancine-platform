@@ -100,6 +100,7 @@ Transitive dependencies should be audited before a final external release.
 | web | production | npm | `motion` | `12.42.2` | MIT |
 | web | production | npm | `nanoid` | `5.1.16` | MIT |
 | web | production | npm | `next-themes` | `0.4.6` | MIT |
+| web | production | npm | `ogl` | `1.0.11` | Unlicense |
 | web | production | npm | `qrcode.react` | `4.2.0` | ISC |
 | web | production | npm | `react` | `19.2.7` | MIT |
 | web | production | npm | `react-day-picker` | `10.0.1` | MIT |
@@ -139,6 +140,7 @@ Transitive dependencies should be audited before a final external release.
 | web | development | npm | `oxfmt` | `0.57.0` | MIT |
 | web | development | npm | `oxlint` | `1.74.0` | MIT |
 | web | development | npm | `shadcn` | `4.13.1` | MIT |
+| web | source adaptation | TypeScript | React Bits `LightTunnel` | source snapshot `2026-09-02` | MIT + Commons Clause |
 | electron    | development | npm       | `cross-env`                                           | `7.0.3`                              | MIT                                                |
 | electron    | development | npm       | `electron`                                            | `39.8.5`                             | MIT                                                |
 | electron    | development | npm       | `electron-builder`                                    | `26.7.0`                             | MIT                                                |
@@ -286,6 +288,37 @@ furnished to do so, subject to the following conditions:
 
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+### MIT + Commons Clause
+
+MIT + Commons Clause License Condition v1.0
+
+Copyright (c) 2026 David Haz
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, and distribute the Software as part of an
+application, website, or product, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+Commons Clause Restriction
+
+You may use this Software, including for any commercial purpose, so long as you
+do not sell, sublicense, or redistribute the components themselves—whether
+alone, in a bundle, or as a ported version.
+
+No Warranty
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,

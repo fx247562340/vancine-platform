@@ -78,7 +78,7 @@ export function Hero(props: HeroProps): ReactElement {
               trackEvent(SEEDANCE_CTA_EVENT, { location: 'seedance_hero' })
             }
           >
-            {props.isAuthenticated ? t('Go to Playground') : t('Start free')}
+            {props.isAuthenticated ? t('Go to Playground') : t('Create account')}
             <HugeiconsIcon
               icon={ArrowRight01Icon}
               data-icon='inline-end'

@@ -57,7 +57,7 @@ export function CTA(props: CTAProps) {
         </h2>
         <p className='text-muted-foreground/80 mx-auto mt-5 max-w-md text-sm leading-relaxed md:text-base'>
           {t(
-            'New accounts may receive $1 in promotional API credit when the current signup bonus is enabled. Credit, eligibility, and availability can change; usage depends on model and workload.'
+            'Create an account, add credit, and start using the API with transparent usage-based pricing.'
           )}
         </p>
         <div className='mt-8 flex items-center justify-center gap-3'>
@@ -68,7 +68,7 @@ export function CTA(props: CTAProps) {
               trackEvent('get_started_clicked', { location: 'final_cta' })
             }
           >
-            {t('Start building free')}
+            {props.isAuthenticated ? t('Go to Dashboard') : t('Create account')}
             <ArrowRight className='ml-1 size-3.5 transition-transform duration-200 group-hover:translate-x-0.5' />
           </Button>
           <Button

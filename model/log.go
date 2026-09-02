@@ -2,6 +2,7 @@ package model
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
@@ -690,6 +691,175 @@ func SumUsedToken(logType int, startTimestamp int64, endTimestamp int64, modelNa
 	}
 	tx.Where("type = ?", LogTypeConsume).Scan(&token)
 	return token
+}
+
+// CountDistinctSuccessfulRequestIds returns the number of distinct
+// successful client-initiated relay requests in the given
+// [startTimestamp, endTimestamp] window.
+//
+// A "successful request" is one distinct request_id that the relay
+// served and billed in the chat/responses/embeddings/realtime/audio
+// surface area. LogTypeConsume alone is not proof of success: the
+// count applies these filters on top of the type + non-empty
+// request_id baseline:
+//
+//  1. Corrupt-counter exclusion. Rows with a negative quota or
+//     negative token counters are impossible states (billing never
+//     writes them); they are excluded rather than trusted.
+//  2. Explicit-failure exclusion. Consume rows whose Other JSON
+//     records stream_status.status=error or violation_fee=true are
+//     billed events of a failed request, not successes.
+//  3. Unprovable-stream exclusion. A streaming consume row whose
+//     prompt + completion token count is zero never delivered any
+//     content, so success cannot be proven and the row is excluded.
+//  4. Zero-token zero-quota exclusion. A consume row with no tokens
+//     and no quota is the upstream-failure / timeout pattern: the
+//     relay wrote a consume log but nothing was served. Non-stream
+//     rows that billed a positive quota with zero tokens are kept.
+//
+// Coverage boundary (what this metric deliberately does NOT cover):
+//   - Requests that failed before a consume log was written never
+//     appear in the logs table as LogTypeConsume at all, so they can
+//     neither inflate nor deflate the count — they are simply absent.
+//   - Deploys running with LogConsumeEnabled=false write no consume
+//     rows and therefore under-report.
+//   - A request whose consume row was lost (DB write failure) is not
+//     counted; the log write is the proof of success this metric
+//     relies on.
+//   - This filter only reads existing consume-log markers; it does
+//     not change how logs or billing are written.
+//
+// Why DISTINCT request_id, not COUNT(*): LogTypeConsume rows can be
+// written for a single request in multiple stages (initial settle,
+// mid-stream rows), and DISTINCT collapses them to one count per
+// client-initiated request.
+//
+// Task requests (image / video / 3D) are intentionally NOT blanket-
+// excluded by is_task:true. A task that was accepted and logged with
+// a non-empty request_id, a non-corrupt counter, and no failure
+// marker IS a successful client request — the homepage must count it
+// alongside every other successful request. The subsequent task
+// settlement rows (pre-consume recalc, refund/rebill) almost always
+// have no request_id and therefore never reach the DISTINCT
+// aggregation, so they do not double-count the original submission.
+//
+// Why the LIKE on stream_status / violation_fee: SQLite, MySQL, and
+// PostgreSQL have different JSON-extraction dialects. A portable LIKE
+// on the serialized JSON column matches the same rows on every
+// database without depending on a JSON1 extension or a vendor
+// function. The substring is the literal encoding produced by the
+// standard library JSON encoder's compact form, so it is stable
+// across Go versions.
+//
+// The ctx is wired into the query so the homepage handler's
+// aggregate timeout can interrupt a pathological scan. The query
+// only ever touches indexed columns and never exposes user, channel,
+// or key data — that is the read shape the homepage contract
+// requires.
+//
+// Returns (count, nil) on success, or (0, err) on a database
+// failure. The homepage handler surfaces the error to the logger and
+// reports the tile as "unavailable" rather than fabricating a value.
+func CountDistinctSuccessfulRequestIds(ctx context.Context, startTimestamp int64, endTimestamp int64) (int64, error) {
+	if startTimestamp <= 0 {
+		return 0, errors.New("homepage stats: startTimestamp must be positive")
+	}
+	if endTimestamp < startTimestamp {
+		return 0, errors.New("homepage stats: endTimestamp must be >= startTimestamp")
+	}
+	// buildLogLikeCondition emits a portable LIKE clause plus the
+	// bound parameter. The patterns are structural (no user input).
+	// Underscores in JSON keys (violation_fee) must go through the
+	// sanitizer so LIKE does not treat them as single-char wildcards.
+	markers := []string{
+		`"status":"error"`,
+		`"violation_fee":true`,
+	}
+	var total int64
+	tx := LOG_DB.WithContext(ctx).Table("logs").
+		Where("type = ?", LogTypeConsume).
+		Where("request_id <> ''").
+		Where("created_at >= ?", startTimestamp).
+		Where("created_at <= ?", endTimestamp).
+		// Corrupt counters can never describe a successful request.
+		Where("quota >= 0 AND prompt_tokens >= 0 AND completion_tokens >= 0").
+		// A streaming row with no delivered tokens cannot prove
+		// success. The boolean literal is bound as a driver value so
+		// SQLite, MySQL, and PostgreSQL all compare correctly. The
+		// predicate checks each column independently to avoid a
+		// row-level `prompt + completion` arithmetic that could
+		// overflow int4 on PostgreSQL when both columns are near
+		// INT32_MAX. Each column is a single int4 equality
+		// comparison against zero, which is exact on every
+		// supported engine.
+		Where("NOT (is_stream = ? AND prompt_tokens = 0 AND completion_tokens = 0)", true).
+		// Zero tokens AND zero quota is the upstream-failure /
+		// timeout consume-log pattern: billed nothing, served
+		// nothing. Each column is checked independently against
+		// zero; this is exact on int4 and never overflows.
+		Where("NOT (prompt_tokens = 0 AND completion_tokens = 0 AND quota = 0)")
+	for _, marker := range markers {
+		condition, pattern, err := buildLogLikeCondition("other", "%"+marker+"%")
+		if err != nil {
+			return 0, err
+		}
+		tx = tx.Where("NOT ("+condition+")", pattern)
+	}
+	if err := tx.Distinct("request_id").Count(&total).Error; err != nil {
+		return 0, err
+	}
+	return total, nil
+}
+
+// SumConsumeTokens returns the total processed tokens
+// (prompt + completion) across every LogTypeConsume row in the
+// [startTimestamp, endTimestamp] window.
+//
+// Unlike CountDistinctSuccessfulRequestIds this metric keeps task
+// settlements — tokens are real platform usage regardless of the
+// row's role — but it still drops rows with negative counters, which
+// are impossible states a corrupt row could otherwise drag into the
+// sum. An empty window is a legitimate 0, not an error.
+//
+// PostgreSQL safety: each token column is declared as int4 in this
+// schema, but the GORM `int` field is also int4. A single SUM over
+// an int4 column is safe in PostgreSQL because the planner widens
+// the accumulator to bigint (numeric) at the aggregate boundary. The
+// risk this function guards against is the intermediate `prompt +
+// completion` overflow on a single row, not the SUM itself, so the
+// two columns are aggregated independently with COALESCE and added
+// only after the database has produced two safe bigint partial
+// sums. SQLite and MySQL coerce the int4 SUM result to INTEGER
+// (int64) on the same path, so the value is safely transported back
+// to Go as int64.
+//
+// Returns (sum, nil) on success or (0, err) when the database query
+// fails or reports a negative sum (which is treated as corruption,
+// not as a number worth publishing).
+func SumConsumeTokens(ctx context.Context, startTimestamp int64, endTimestamp int64) (int64, error) {
+	if startTimestamp <= 0 {
+		return 0, errors.New("homepage stats: startTimestamp must be positive")
+	}
+	if endTimestamp < startTimestamp {
+		return 0, errors.New("homepage stats: endTimestamp must be >= startTimestamp")
+	}
+	var prompt sql.NullInt64
+	var completion sql.NullInt64
+	err := LOG_DB.WithContext(ctx).Table("logs").
+		Where("type = ?", LogTypeConsume).
+		Where("created_at >= ?", startTimestamp).
+		Where("created_at <= ?", endTimestamp).
+		Where("quota >= 0 AND prompt_tokens >= 0 AND completion_tokens >= 0").
+		Select("COALESCE(SUM(prompt_tokens), 0) AS prompt, COALESCE(SUM(completion_tokens), 0) AS completion").
+		Row().Scan(&prompt, &completion)
+	if err != nil {
+		return 0, err
+	}
+	total := prompt.Int64 + completion.Int64
+	if total < 0 {
+		return 0, errors.New("homepage stats: token sum is negative; treating as corrupt")
+	}
+	return total, nil
 }
 
 func CountOldLog(ctx context.Context, targetTimestamp int64) (int64, error) {

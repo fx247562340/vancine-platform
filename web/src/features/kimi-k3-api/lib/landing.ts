@@ -531,7 +531,7 @@ export const KIMI_K3_I18N_KEYS = [
   'Kimi K3 API for Coding Agents',
   'China frontier AI, one developer path',
   'Connect OpenCode, Cline, Roo Code, and OpenAI-compatible tools to Kimi K3 with one Vancine API key.',
-  'Start free',
+  'Create account',
   'Go to Playground',
   'View quickstart',
   'Quickstart',

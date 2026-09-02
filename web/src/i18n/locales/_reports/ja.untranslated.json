@@ -10,10 +10,12 @@
   "Node.js": "Node.js",
   "OpenAI SDK": "OpenAI SDK",
   "OpenCode": "OpenCode",
+  "Pi Agent": "Pi Agent",
   "Pi Coding Agent": "Pi Coding Agent",
   "Python": "Python",
   "Roo Code": "Roo Code",
   "Seedance 2.5 API": "Seedance 2.5 API",
+  "The same OpenAI-compatible request shape works against Chat, Responses, Claude, and Gemini endpoints. Switch models by changing only the model field.": "The same OpenAI-compatible request shape works against Chat, Responses, Claude, and Gemini endpoints. Switch models by changing only the model field.",
   "Vancine": "Vancine",
   "Vancine &lt;noreply@example.com&gt;": "Vancine &lt;noreply@example.com&gt;"
 }

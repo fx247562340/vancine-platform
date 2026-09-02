@@ -227,7 +227,7 @@ describe('CTA destinations and UTM safety', () => {
       '/kimi-k3-api/?utm_source=launch&utm_campaign=kimi&email=a@b.com&api_key=sk-secret&redirect=%2Fevil'
     )
 
-    const heroCta = await screen.findByRole('button', { name: /Start free/ })
+    const heroCta = await screen.findByRole('button', { name: /Create account/ })
     expect(heroCta).toHaveAttribute(
       'href',
       '/sign-up?utm_source=launch&utm_campaign=kimi'
@@ -410,7 +410,7 @@ describe('anonymous analytics emissions', () => {
 
     const second = renderPage('/kimi-k3-api/?utm_source=launch&email=a@b.com')
     await screen.findByRole('heading', { level: 1 })
-    await user.click(screen.getByRole('button', { name: /Start free/ }))
+    await user.click(screen.getByRole('button', { name: /Create account/ }))
     second.unmount()
 
     expect(trackEventMock.mock.calls.length).toBeGreaterThanOrEqual(2)
@@ -443,5 +443,62 @@ describe('FAQ keyboard accessibility', () => {
     await waitFor(() => {
       expect(screen.getByText(/Check live pricing/)).toBeVisible()
     })
+  })
+})
+
+describe('VANCINE-FINAL-GATE-REMEDIATION: no inactive-promo copy on the Kimi K3 page', () => {
+  const FORBIDDEN_SUBSTRINGS = [
+    'Start free',
+    '$1',
+    'promotional API credit',
+    'signup bonus',
+  ] as const
+
+  it('guest page does not contain any inactive-promo copy', async () => {
+    renderPage()
+    await screen.findByRole('heading', { level: 1 })
+    const pageText = document.body.textContent ?? ''
+    for (const needle of FORBIDDEN_SUBSTRINGS) {
+      expect(pageText).not.toContain(needle)
+    }
+  })
+
+  it('authenticated page does not contain any inactive-promo copy', async () => {
+    setAuthenticated(true)
+    renderPage()
+    await screen.findByRole('heading', { level: 1 })
+    const pageText = document.body.textContent ?? ''
+    for (const needle of FORBIDDEN_SUBSTRINGS) {
+      expect(pageText).not.toContain(needle)
+    }
+  })
+
+  it('guest primary CTA is Create account and points to /sign-up', async () => {
+    renderPage()
+    const heroCta = await screen.findByRole('button', { name: /Create account/ })
+    expect(heroCta).toHaveAttribute('href', '/sign-up')
+  })
+
+  it('authenticated primary CTA is Go to Playground and points to /playground', async () => {
+    setAuthenticated(true)
+    renderPage()
+    const heroCta = await screen.findByRole('button', {
+      name: /Go to Playground/,
+    })
+    expect(heroCta).toHaveAttribute('href', '/playground')
+  })
+
+  it('guest UTM allowlist still strips sensitive parameters', async () => {
+    renderPage(
+      '/kimi-k3-api/?utm_source=launch&utm_campaign=kimi&email=a@b.com&api_key=sk-secret&redirect=%2Fevil&token=t-1'
+    )
+    const heroCta = await screen.findByRole('button', { name: /Create account/ })
+    const href = String(heroCta.getAttribute('href'))
+    expect(href).toContain('utm_source=launch')
+    expect(href).toContain('utm_campaign=kimi')
+    expect(href).not.toContain('email')
+    expect(href).not.toContain('api_key')
+    expect(href).not.toContain('redirect')
+    expect(href).not.toContain('token')
   })
 })

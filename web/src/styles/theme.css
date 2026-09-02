@@ -176,6 +176,34 @@ For commercial licensing, please contact support@quantumnous.com
     var(--foreground) 16%,
     var(--background)
   );
+
+  /* Vancine brand color tokens for the hero light field.
+   *
+   * These carry the canonical brand palette used by the WebGL
+   * uniforms in `brand-light-tunnel.tsx`, the CSS fallback, and
+   * the scene-transition washes. Each light/dark entry exposes a
+   * `--vancine-light-tunnel-{name}-rgb` triplet (0–1, space-
+   * separated, read by the shader via getComputedStyle) plus a
+   * derived `--vancine-light-tunnel-{name}` color. The derived
+   * color is `color(srgb …)` so a space-separated 0–1 triplet
+   * is a legal CSS color; `rgb()` would treat those three numbers
+   * as 0–255 channel values and wash the brand palette out.
+   * WebGL, the CSS fallback, and the scene-transition all read
+   * this same source of truth. */
+  --vancine-light-tunnel-cool-rgb: 0.12 0.42 0.74;
+  --vancine-light-tunnel-violet-rgb: 0.52 0.25 0.88;
+  --vancine-light-tunnel-warm-rgb: 0.83 0.19 0.58;
+  --vancine-light-tunnel-pulse-rgb: 0.94 0.73 1;
+  --vancine-light-tunnel-cool: color(srgb var(--vancine-light-tunnel-cool-rgb));
+  --vancine-light-tunnel-violet: color(
+    srgb var(--vancine-light-tunnel-violet-rgb)
+  );
+  --vancine-light-tunnel-warm: color(srgb var(--vancine-light-tunnel-warm-rgb));
+  --vancine-light-tunnel-pulse: color(
+    srgb var(--vancine-light-tunnel-pulse-rgb)
+  );
+  --vancine-light-tunnel-opacity: 0.72;
+  --vancine-light-tunnel-brightness: 0.82;
 }
 
 .dark {
@@ -244,4 +272,25 @@ For commercial licensing, please contact support@quantumnous.com
     var(--foreground) 24%,
     var(--background)
   );
+
+  /* Vancine brand color tokens (dark mode) — see the :root block
+   * for the rationale. The numeric RGB triplets below match the
+   * brand-light-tunnel dark palette exactly. The derived colors
+   * use `color(srgb …)` so the 0–1 triplet is a legal CSS color;
+   * WebGL, the CSS fallback, and the scene-transition all read
+   * this same source of truth. */
+  --vancine-light-tunnel-cool-rgb: 0.29 0.68 1;
+  --vancine-light-tunnel-violet-rgb: 0.69 0.39 1;
+  --vancine-light-tunnel-warm-rgb: 1 0.35 0.68;
+  --vancine-light-tunnel-pulse-rgb: 0.91 0.83 1;
+  --vancine-light-tunnel-cool: color(srgb var(--vancine-light-tunnel-cool-rgb));
+  --vancine-light-tunnel-violet: color(
+    srgb var(--vancine-light-tunnel-violet-rgb)
+  );
+  --vancine-light-tunnel-warm: color(srgb var(--vancine-light-tunnel-warm-rgb));
+  --vancine-light-tunnel-pulse: color(
+    srgb var(--vancine-light-tunnel-pulse-rgb)
+  );
+  --vancine-light-tunnel-opacity: 0.88;
+  --vancine-light-tunnel-brightness: 1.12;
 }

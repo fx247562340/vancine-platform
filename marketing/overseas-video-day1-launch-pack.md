@@ -59,12 +59,12 @@ YouTube video watermark：
 output/imagegen/vancine-youtube-watermark-150x150.png
 ```
 
-### 任务 2：确认试用额度口径
+### 任务 2：确认公开付费口径
 
 公开文案使用：
 
 ```text
-Start with free trial credits.
+Start with prepaid API credit.
 ```
 
 不要公开写：
@@ -73,13 +73,11 @@ Start with free trial credits.
 Get $1 free credits.
 ```
 
-建议后台策略：
+当前公开策略：
 
-- 普通自然流量注册送 `0.10-0.30 USD` 等值额度
-- 每日请求次数限制
-- 单次 token / 图片 / 视频时长限制
-- 邮箱验证后领取
-- 高质量用户人工提高额度
+- 当前不提供公开自动注册赠送。
+- 如果以后重新开展推广额度，只能采用邀请码、定向活动或人工审批方式。
+- 未经再次确认，不在公开页面承诺固定赠送金额。
 
 ### 任务 3：制作 3 条短视频
 

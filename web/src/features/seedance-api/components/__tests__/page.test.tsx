@@ -238,7 +238,7 @@ describe('CTA destinations and UTM safety', () => {
       '/seedance-api/?utm_source=launch&utm_campaign=seedance&email=a@b.com&api_key=sk-secret&redirect=%2Fevil'
     )
 
-    const heroCta = await screen.findByRole('button', { name: /Start free/ })
+    const heroCta = await screen.findByRole('button', { name: /Create account/ })
     expect(heroCta).toHaveAttribute(
       'href',
       '/sign-up?utm_source=launch&utm_campaign=seedance'
@@ -278,7 +278,7 @@ describe('real navigation after click', () => {
     await renderPage('/seedance-api/?utm_source=launch')
     await screen.findByRole('heading', { level: 1 })
 
-    await user.click(screen.getByRole('button', { name: /Start free/ }))
+    await user.click(screen.getByRole('button', { name: /Create account/ }))
     expect(await screen.findByTestId('sign-up-page')).toBeInTheDocument()
   })
 
@@ -454,7 +454,7 @@ describe('anonymous analytics emissions', () => {
 
     await renderPage('/seedance-api/?utm_source=launch&email=a@b.com')
     await screen.findByRole('heading', { level: 1 })
-    await user.click(screen.getByRole('button', { name: /Start free/ }))
+    await user.click(screen.getByRole('button', { name: /Create account/ }))
 
     expect(trackEventMock.mock.calls.length).toBeGreaterThanOrEqual(2)
     const allowedEvents = new Set([
@@ -486,6 +486,46 @@ describe('FAQ keyboard accessibility', () => {
     await waitFor(() => {
       expect(screen.getByText(/submit a generation request/i)).toBeVisible()
     })
+  })
+})
+
+describe('VANCINE-PREPAID-COPY: prepaid CTA labels and inactive-promo prohibition', () => {
+  it('guest CTAs use Create account and never Start free', async () => {
+    await renderPage()
+    await screen.findByRole('heading', { level: 1 })
+    const pageText = document.body.textContent ?? ''
+    expect(pageText).not.toContain('Start free')
+    const guestCtas = await screen.findAllByRole('button', {
+      name: /^Create account$/,
+    })
+    expect(guestCtas.length).toBeGreaterThanOrEqual(1)
+    for (const cta of guestCtas) {
+      expect(cta).toHaveAttribute('href', '/sign-up')
+    }
+  })
+
+  it('authenticated CTAs use Go to Playground', async () => {
+    setAuthenticated(true)
+    await renderPage()
+    await screen.findByRole('heading', { level: 1 })
+    const ctas = await screen.findAllByRole('button', {
+      name: /^Go to Playground$/,
+    })
+    expect(ctas.length).toBeGreaterThanOrEqual(1)
+    for (const cta of ctas) {
+      expect(cta).toHaveAttribute('href', '/playground')
+    }
+    const pageText = document.body.textContent ?? ''
+    expect(pageText).not.toContain('Start free')
+  })
+
+  it('does not mention $1, promotional API credit, or signup bonus', async () => {
+    await renderPage()
+    await screen.findByRole('heading', { level: 1 })
+    const pageText = document.body.textContent ?? ''
+    expect(pageText).not.toContain('$1')
+    expect(pageText).not.toContain('signup bonus')
+    expect(pageText).not.toContain('promotional API credit')
   })
 })
 

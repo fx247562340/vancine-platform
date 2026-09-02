@@ -28,24 +28,33 @@ import { isLikelyHtml } from '@/lib/content-format'
 import { useAuthStore } from '@/stores/auth-store'
 
 import {
+  ApiCodeSection,
   AvailableNow,
   CTA,
   Evidence,
   FastModels,
   Hero,
+  ToolsAndAccess,
   Why,
 } from './components'
-import { useHomePageContent, useHomepagePricing } from './hooks'
+import {
+  useHomePageContent,
+  useHomepagePricing,
+  useHomepageStats,
+} from './hooks'
 import { getHomePageMetadata } from './lib/seo'
 
-// v1.2.0 default built-in homepage section order (frozen).
-//   1. Hero
-//   2. Available now (flagship models — data-driven from /api/pricing "featured" tag)
-//   3. Fast models (data-driven from /api/pricing "fast" tag, deduped vs flagship)
-//   4. Why Vancine
-//   5. Verified evidence
-//   6. Final CTA
-//   7. Footer
+// v1.12.0 default built-in homepage section order (frozen).
+//   1. Hero — brand ribbons + headline + 3 live stats + dual CTAs.
+//   2. Available now (flagship models — data-driven from /api/pricing "featured" tag).
+//   3. Fast models (data-driven from /api/pricing "fast" tag, deduped vs flagship).
+//   4. Tools and access — universal SDK chips + OpenCode / Pi Agent + active-vendor count.
+//   5. API code demo — live OpenAI-compatible request samples.
+//   6. Why Vancine — three pillars.
+//   7. Verified evidence — Kimi K3 OpenCode agent run summary.
+//   8. Final CTA.
+//   9. Footer.
+//
 // The Stack / DeveloperSolutions / Marketplace sections are kept in the
 // codebase for the docs sidebar and shared registry consumers, but the
 // built-in homepage no longer renders them as standalone blocks. When an
@@ -59,6 +68,12 @@ export function Home() {
   const isAuthenticated = !!auth.user
   const { content, isUrl } = useHomePageContent()
   const pricing = useHomepagePricing(!content)
+  // The stats hook MUST be disabled when an admin-configured custom
+  // home page is in effect. The custom page owns the render surface
+  // (URL iframe, HTML, or Markdown) and the in-built stats tile is
+  // never mounted, so issuing the request would burn a /api call,
+  // a Redis hit, and a SQL aggregate for a number no one will see.
+  const stats = useHomepageStats({ enabled: !content })
 
   // Public marketing route: the metadata is owned by this page even when
   // an admin-configured custom home content (URL / HTML / Markdown) replaces
@@ -151,9 +166,16 @@ export function Home() {
 
   return (
     <PublicLayout showMainContainer={false}>
-      <Hero isAuthenticated={isAuthenticated} pricing={pricing} />
+      <Hero
+        isAuthenticated={isAuthenticated}
+        pricing={pricing}
+        stats={stats}
+        theme={resolvedTheme === 'dark' ? 'dark' : 'light'}
+      />
       <AvailableNow pricing={pricing} />
       <FastModels pricing={pricing} />
+      <ToolsAndAccess stats={stats} />
+      <ApiCodeSection />
       <Why />
       <Evidence />
       <CTA isAuthenticated={isAuthenticated} />
