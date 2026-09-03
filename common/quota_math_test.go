@@ -124,3 +124,27 @@ func TestQuotaFromDecimalChecked(t *testing.T) {
 		assert.Equal(t, QuotaClampOverflow, clamp.Kind)
 	}
 }
+
+// TestQuotaFromDecimalStrictReturnsTypedClampError covers the strict decimal
+// entry point used by real top-up settlement, which must fail closed instead of
+// crediting a saturated quota.
+func TestQuotaFromDecimalStrictReturnsTypedClampError(t *testing.T) {
+	quota, err := QuotaFromDecimalStrict(decimal.NewFromInt(5).Mul(decimal.NewFromFloat(500000)))
+	require.NoError(t, err)
+	assert.Equal(t, 2500000, quota)
+
+	quota, err = QuotaFromDecimalStrict(decimal.NewFromInt(1 << 62).Mul(decimal.NewFromFloat(500000)))
+	assert.Zero(t, quota)
+	var clamp *QuotaClamp
+	require.ErrorAs(t, err, &clamp)
+	assert.Equal(t, QuotaClampOverflow, clamp.Kind)
+	assert.Equal(t, "QuotaFromDecimal", clamp.Op)
+
+	// A value below the representable range reports an underflow clamp. A plain
+	// negative number is still in range, so callers that must not credit a
+	// negative quota have to reject the sign themselves.
+	quota, err = QuotaFromDecimalStrict(decimal.NewFromInt(-1).Mul(decimal.NewFromFloat(1.8446744073686647e19)))
+	assert.Zero(t, quota)
+	require.ErrorAs(t, err, &clamp)
+	assert.Equal(t, QuotaClampUnderflow, clamp.Kind)
+}

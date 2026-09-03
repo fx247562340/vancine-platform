@@ -1128,7 +1128,7 @@ func handlePayPalRefund(ctx context.Context, event *PayPalWebhookEvent, rawPaylo
 		Currency:         event.Resource.Amount.CurrencyCode,
 		ExpectedCurrency: setting.PayPalCurrency,
 	}
-	if err := model.ApplyPayPalSettlement(in); err != nil {
+	if _, err := model.ApplyPayPalSettlement(in); err != nil {
 		return fmt.Errorf("refund settlement failed trade_no=%s event_id=%s: %w", topUp.TradeNo, event.Id, err)
 	}
 	if ctx != nil {
@@ -1192,7 +1192,7 @@ func handlePayPalReversal(ctx context.Context, event *PayPalWebhookEvent, rawPay
 		Currency:         event.Resource.Amount.CurrencyCode,
 		ExpectedCurrency: setting.PayPalCurrency,
 	}
-	if err := model.ApplyPayPalSettlement(in); err != nil {
+	if _, err := model.ApplyPayPalSettlement(in); err != nil {
 		return fmt.Errorf("reversal settlement failed trade_no=%s event_id=%s: %w", topUp.TradeNo, event.Id, err)
 	}
 	if ctx != nil {

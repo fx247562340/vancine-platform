@@ -50,25 +50,53 @@ import { SettingsSection } from '../components/settings-section'
 import { useSettingsForm } from '../hooks/use-settings-form'
 import { useUpdateOption } from '../hooks/use-update-option'
 
-const quotaSchema = z.object({
-  QuotaForNewUser: z.coerce.number().min(0),
-  PreConsumedQuota: z.coerce.number().min(0),
-  QuotaForInviter: z.coerce.number().min(0),
-  QuotaForInvitee: z.coerce.number().min(0),
-  TopUpLink: z.string(),
-  general_setting: z.object({
-    docs_link: z.string(),
-  }),
-  quota_setting: z.object({
-    enable_free_model_pre_consume: z.boolean(),
-  }),
-})
+// Quota columns are signed 32-bit integers in the database. The frontend
+// validation matches the backend parseQuotaForFirstTopUp so the same set of
+// values is rejected on both sides.
+const QUOTA_MAX = 2147483647
 
-type QuotaFormValues = z.infer<typeof quotaSchema>
+// Literal i18n keys for the first top-up bonus field. The keys are the
+// English source strings already present in every locale file (added via
+// web/scripts/add-missing-keys.mjs), so the validator does not need to
+// compose key names at runtime.
+const FIRST_TOP_UP_BONUS_KEYS = {
+  mustBeNumber: 'First Top-Up Bonus must be a number',
+  mustBeInteger: 'First Top-Up Bonus must be an integer',
+  mustBeNonNegativeInteger: 'First Top-Up Bonus must be a non-negative integer',
+  mustBeNoGreaterThan: 'First Top-Up Bonus must be no greater than 2147483647',
+} as const
+
+type QuotaFormValues = z.infer<ReturnType<typeof buildQuotaSchema>>
 type QuotaInputValue = number | ''
 
 function formatQuotaInputValue(value: QuotaInputValue): string {
   return formatQuota(value === '' ? 0 : value)
+}
+
+// buildQuotaSchema produces the zod schema for the quota section. The four
+// pre-existing fields keep the simple zod min(0) validation contract that
+// was already in place; only QuotaForFirstTopUp is upgraded to the stricter
+// non-negative integer + 32-bit bound + i18n error messages, because that
+// field is the one that backs the first top-up bonus feature.
+function buildQuotaSchema() {
+  return z.object({
+    QuotaForNewUser: z.coerce.number().min(0),
+    QuotaForFirstTopUp: z.coerce
+      .number({ message: FIRST_TOP_UP_BONUS_KEYS.mustBeNumber })
+      .int({ message: FIRST_TOP_UP_BONUS_KEYS.mustBeInteger })
+      .min(0, { message: FIRST_TOP_UP_BONUS_KEYS.mustBeNonNegativeInteger })
+      .max(QUOTA_MAX, { message: FIRST_TOP_UP_BONUS_KEYS.mustBeNoGreaterThan }),
+    PreConsumedQuota: z.coerce.number().min(0),
+    QuotaForInviter: z.coerce.number().min(0),
+    QuotaForInvitee: z.coerce.number().min(0),
+    TopUpLink: z.string(),
+    general_setting: z.object({
+      docs_link: z.string(),
+    }),
+    quota_setting: z.object({
+      enable_free_model_pre_consume: z.boolean(),
+    }),
+  })
 }
 
 type QuotaSettingsSectionProps = {
@@ -91,7 +119,7 @@ export function QuotaSettingsSection({
 
   const { form, handleSubmit, isDirty, isSubmitting } =
     useSettingsForm<QuotaFormValues>({
-      resolver: zodResolver(quotaSchema) as Resolver<
+      resolver: zodResolver(buildQuotaSchema()) as Resolver<
         QuotaFormValues,
         unknown,
         QuotaFormValues
@@ -152,6 +180,42 @@ export function QuotaSettingsSection({
                         formattedQuota: formatQuotaInputValue(field.value),
                       }
                     )}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='QuotaForFirstTopUp'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('First Top-Up Bonus')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='number'
+                      min={0}
+                      max={2147483647}
+                      step={1}
+                      inputMode='numeric'
+                      value={field.value ?? ''}
+                      onChange={handleNumberChange(field.onChange)}
+                      name={field.name}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {t(
+                      'Bonus quota granted after the first successful real top-up ({{formattedQuota}})',
+                      {
+                        formattedQuota: formatQuotaInputValue(field.value),
+                      }
+                    )}
+                  </FormDescription>
+                  <FormDescription>
+                    {t('Set to 0 to disable the first top-up bonus.')}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

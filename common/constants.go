@@ -126,6 +126,10 @@ var TelegramBotToken = ""
 var TelegramBotName = ""
 
 var QuotaForNewUser = 0
+
+// QuotaForFirstTopUp 是首次充值赠送额度，单位为配额，与 QuotaForNewUser 完全一致。
+// 0 表示关闭首次充值赠送活动；它只是配置项，默认不得启用任何赠送金额。
+var QuotaForFirstTopUp = 0
 var QuotaForInviter = 0
 var QuotaForInvitee = 0
 var ChannelDisableThreshold = 5.0

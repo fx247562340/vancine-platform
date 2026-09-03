@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -148,6 +149,7 @@ func InitOptionMap() {
 	common.OptionMap["TurnstileSiteKey"] = ""
 	common.OptionMap["TurnstileSecretKey"] = ""
 	common.OptionMap["QuotaForNewUser"] = strconv.Itoa(common.QuotaForNewUser)
+	common.OptionMap["QuotaForFirstTopUp"] = strconv.Itoa(common.QuotaForFirstTopUp)
 	common.OptionMap["QuotaForInviter"] = strconv.Itoa(common.QuotaForInviter)
 	common.OptionMap["QuotaForInvitee"] = strconv.Itoa(common.QuotaForInvitee)
 	common.OptionMap["QuotaRemindThreshold"] = strconv.Itoa(common.QuotaRemindThreshold)
@@ -228,7 +230,28 @@ func validateOptionValue(key string, value string) error {
 	if key == "MaxTokenAutoGroups" {
 		return setting.ValidateMaxTokenAutoGroups(value)
 	}
+	if key == "QuotaForFirstTopUp" {
+		_, err := parseQuotaForFirstTopUp(value)
+		return err
+	}
 	return nil
+}
+
+// parseQuotaForFirstTopUp 解析并校验首次充值赠送配额。赠送发生在真实支付
+// 已经成功之后，所以只接受非负、并且仍在配额列可存储范围内的整数；其他写法
+// 一律拒绝，而不是四舍五入或饱和到边界，避免误发额度。
+func parseQuotaForFirstTopUp(value string) (int, error) {
+	bonus, err := strconv.ParseInt(strings.TrimSpace(value), 10, 32)
+	if err != nil {
+		return 0, fmt.Errorf("QuotaForFirstTopUp 必须是 0 到 %d 之间的整数配额值: %s", common.MaxQuota, value)
+	}
+	if bonus < 0 {
+		return 0, fmt.Errorf("QuotaForFirstTopUp 不能为负数: %d", bonus)
+	}
+	if bonus > int64(common.MaxQuota) {
+		return 0, fmt.Errorf("QuotaForFirstTopUp 不能超出额度上限 %d: %d", common.MaxQuota, bonus)
+	}
+	return int(bonus), nil
 }
 
 func UpdateOption(key string, value string) error {
@@ -577,6 +600,17 @@ func updateOptionMap(key string, value string) (err error) {
 		common.TurnstileSecretKey = value
 	case "QuotaForNewUser":
 		common.QuotaForNewUser, _ = strconv.Atoi(value)
+	case "QuotaForFirstTopUp":
+		// A stored value outside the supported range must never mint quota, so the
+		// bonus stays off and the error surfaces through the option loader (or the
+		// validating write path) instead of being applied as parsed.
+		bonus, parseErr := parseQuotaForFirstTopUp(value)
+		if parseErr != nil {
+			common.QuotaForFirstTopUp = 0
+			err = parseErr
+			break
+		}
+		common.QuotaForFirstTopUp = bonus
 	case "QuotaForInviter":
 		common.QuotaForInviter, _ = strconv.Atoi(value)
 	case "QuotaForInvitee":

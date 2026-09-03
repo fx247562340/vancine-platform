@@ -207,12 +207,14 @@ func TestRefundPayPalTopUp_FullRefundIsAtomicAndIdempotent(t *testing.T) {
 	require.Equal(t, common.TopUpStatusSuccess, getPayPalTopUpStatusForTest(t, "trade-refund-001"))
 
 	// Full refund deducts the credited quota and flips status atomically.
-	require.NoError(t, RefundPayPalTopUp("trade-refund-001", 4995000))
+	_, err := RefundPayPalTopUp("trade-refund-001", 4995000)
+	require.NoError(t, err)
 	assert.Equal(t, 0, getPayPalUserQuotaForTest(t, 33))
 	assert.Equal(t, common.TopUpStatusRefunded, getPayPalTopUpStatusForTest(t, "trade-refund-001"))
 
 	// A duplicate full refund is a successful no-op: quota and status unchanged.
-	require.NoError(t, RefundPayPalTopUp("trade-refund-001", 4995000))
+	_, err = RefundPayPalTopUp("trade-refund-001", 4995000)
+	require.NoError(t, err)
 	assert.Equal(t, 0, getPayPalUserQuotaForTest(t, 33))
 	assert.Equal(t, common.TopUpStatusRefunded, getPayPalTopUpStatusForTest(t, "trade-refund-001"))
 }

@@ -146,3 +146,11 @@ func QuotaFromDecimalChecked(d decimal.Decimal) (int, *QuotaClamp) {
 	f, _ := d.Round(0).Float64()
 	return saturateQuota(f, "QuotaFromDecimal")
 }
+
+// QuotaFromDecimalStrict converts an in-range decimal and returns a typed
+// *QuotaClamp error instead of allowing a saturated result to reach billing.
+// Use it where a clamped value would mean minting or destroying quota rather
+// than merely rounding an anomaly — for example real-money top-up settlement.
+func QuotaFromDecimalStrict(d decimal.Decimal) (int, error) {
+	return strictQuota(QuotaFromDecimalChecked(d))
+}

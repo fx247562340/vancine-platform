@@ -166,19 +166,43 @@ func ledgerContentMatches(row *PayPalSettlementEvent, in PayPalSettlementInput, 
 // Resource Keys), but the quota is deducted only once: the first settlement
 // flips the order to refunded; the second records its ledger row without
 // deducting. Any failure rolls back the entire transaction.
-func ApplyPayPalSettlement(in PayPalSettlementInput) error {
+//
+// The deduction uses the order's persisted BaseQuota + BonusQuota when
+// BaseQuota is non-zero, so a refund matches the actual credit the settlement
+// granted even after QuotaPerUnit is changed. For orders settled before
+// BaseQuota was persisted, the deduction is recomputed from Money at the
+// locked order's value (a best-effort fallback that the changelog documents as
+// a known historical boundary). The user row is locked and the deduction
+// checks int32 underflow before touching quota, so a refund never mints quota
+// or races against a concurrent settlement.
+//
+// Returns the actual quota deducted by this call: 0 for a no-op replay or
+// when the sibling event already settled, or quota > 0 when this call was the
+// one that flipped the order. The caller mirrors it to the user quota cache
+// only after a successful commit so a rolled-back transaction never leaves
+// the cache ahead of the database.
+func ApplyPayPalSettlement(in PayPalSettlementInput) (int, error) {
 	if err := validateSettlementInput(in); err != nil {
-		return err
+		return 0, err
 	}
 	resourceKey := resourceKeyFor(in.EventType, in.ResourceID)
 
-	return DB.Transaction(func(tx *gorm.DB) error {
+	var deducted int
+	var deductedUserID int
+	err := DB.Transaction(func(tx *gorm.DB) error {
 		// 1. Lock the order row (SELECT ... FOR UPDATE on MySQL/PostgreSQL;
 		//    no-op on SQLite, which serializes via the connection).
 		var topUp TopUp
 		if err := lockForUpdate(tx).Where("trade_no = ?", in.TradeNo).First(&topUp).Error; err != nil {
 			return fmt.Errorf("%w: order not found trade_no=%s", ErrPayPalSettlementNotApplicable, in.TradeNo)
 		}
+
+		// Capture the real user id right after the order is loaded, so the
+		// post-commit HINCRBY/HDECRBY fast path uses the real user no matter
+		// which branch the idempotency check takes next. The replay/no-op
+		// branches intentionally do NOT touch the cache; the user id is
+		// not used there.
+		deductedUserID = topUp.UserId
 
 		// 2. Validate the order against the event, inside the lock.
 		if topUp.PaymentProvider != PaymentProviderPayPal {
@@ -210,6 +234,8 @@ func ApplyPayPalSettlement(in PayPalSettlementInput) error {
 		}
 		if errEvent == nil {
 			// Same Event ID exists. Identical content -> idempotent no-op.
+			// The cache is not touched on this path; see the post-commit
+			// comment for the no-op contract.
 			if ledgerContentMatches(&byEventID, in, resourceKey) && byEventID.TopUpID == topUp.Id {
 				return nil
 			}
@@ -224,6 +250,8 @@ func ApplyPayPalSettlement(in PayPalSettlementInput) error {
 		if errKey == nil {
 			// Same Resource Key under a different Event ID. Identical content
 			// (including the same order) -> idempotent no-op.
+			// The cache is not touched on this path; see the post-commit
+			// comment for the no-op contract.
 			if ledgerContentMatches(&byKey, in, resourceKey) && byKey.TopUpID == topUp.Id {
 				return nil
 			}
@@ -254,17 +282,40 @@ func ApplyPayPalSettlement(in PayPalSettlementInput) error {
 		//    order already refunded and records its event without deducting.
 		switch topUp.Status {
 		case common.TopUpStatusRefunded:
-			// Already settled by the sibling event; this event is recorded above.
+			// Already settled by the sibling event; this event is recorded
+			// above. The cache is not touched on this path; see the
+			// post-commit comment for the no-op contract.
 			return nil
 		case common.TopUpStatusSuccess:
-			quota := int64(topUp.Money * common.QuotaPerUnit)
+			// The order was credited with its paid quota plus the first top-up bonus
+			// it granted, so the settlement claws both back. Reusing the persisted
+			// BaseQuota keeps the refund and the credit byte-identical instead of
+			// re-deriving the product here.
+			baseQuota, err := settlementBaseQuota(&topUp)
+			if err != nil {
+				return fmt.Errorf("%w: cannot compute refund quota: %v", ErrPayPalSettlementNotApplicable, err)
+			}
+			quota, err := refundQuotaWithBonus(&topUp, baseQuota)
+			if err != nil {
+				return fmt.Errorf("%w: %v", ErrPayPalSettlementNotApplicable, err)
+			}
 			if quota <= 0 {
 				return fmt.Errorf("%w: non-positive settlement quota: %d", ErrPayPalSettlementNotApplicable, quota)
 			}
-			// Deduct quota and require exactly one row to change. A missing user
-			// (deleted, or never existed) matches zero rows; treating that as
-			// success would commit the ledger and flip the order without deducting.
-			// RowsAffected != 1 fails the whole transaction closed.
+
+			// Lock the user row before deducting so a concurrent settlement that
+			// is still granting this user quota cannot be raced into minting.
+			var user User
+			if err := lockForUpdate(tx).Where("id = ?", topUp.UserId).First(&user).Error; err != nil {
+				return ErrTopUpUserMissing
+			}
+			// Allow the balance to go negative; only fail when the post-refund
+			// value would underflow the int32 quota column. The check runs in
+			// int64 so the subtraction itself cannot wrap.
+			if _, err := safeRefundPostBalance(user.Quota, quota); err != nil {
+				return fmt.Errorf("%w: %v", ErrPayPalSettlementNotApplicable, err)
+			}
+
 			res := tx.Model(&User{}).Where("id = ?", topUp.UserId).Update("quota", gorm.Expr("quota - ?", quota))
 			if res.Error != nil {
 				return fmt.Errorf("deduct quota failed: %w", res.Error)
@@ -283,11 +334,46 @@ func ApplyPayPalSettlement(in PayPalSettlementInput) error {
 			if res.RowsAffected != 1 {
 				return fmt.Errorf("%w: order status update affected %d rows for order %d", ErrPayPalSettlementNotApplicable, res.RowsAffected, topUp.Id)
 			}
+			deducted = quota
 			return nil
 		default:
 			return fmt.Errorf("%w: order status not success trade_no=%s status=%s", ErrPayPalSettlementNotApplicable, topUp.TradeNo, topUp.Status)
 		}
 	})
+	if err != nil {
+		return 0, err
+	}
+	if deducted > 0 {
+		// Fast path: mirror the actual deduction to the user quota hash
+		// via applyUserQuotaHashDelta. The shared helper owns the
+		// safe-failure policy: in batch-update mode a HINCRBY failure
+		// pins the cache Quota to MinQuota (a "do-not-consume"
+		// sentinel) instead of deleting the row, so a pending batch
+		// delta is never clobbered by a rebuild; in the non-batch path
+		// a HINCRBY failure invalidates the cache so the next
+		// GetUserCache rebuilds from the database row.
+		applyUserQuotaHashDelta(deductedUserID, -int64(deducted))
+	}
+	// A replay (deducted == 0) is a true no-op for the cache: the order was
+	// already settled, no quota was deducted this call, and the cache hash
+	// may already carry values that are NOT in the database yet (pending
+	// batch consumption, manual operator edits, etc.). Deleting the cache
+	// on replay would clobber those pending values and force a DB rebuild
+	// that loses the pending deltas. So the replay branch is intentionally
+	// empty.
+	return deducted, nil
+}
+
+// settlementBaseQuota returns the BaseQuota the settlement's refund will
+// deduct. The order's persisted value is preferred so the refund matches the
+// actual credit the settlement granted; legacy orders that were settled
+// before BaseQuota was persisted fall back to the locked Money x QuotaPerUnit
+// product, which is the only record of how much quota the payment bought.
+func settlementBaseQuota(topUp *TopUp) (int, error) {
+	if topUp.BaseQuota > 0 {
+		return topUp.BaseQuota, nil
+	}
+	return common.QuotaFromFloatStrict(topUp.Money * common.QuotaPerUnit)
 }
 
 // CountPayPalSettlementEventsForOrder returns the number of ledger rows bound to

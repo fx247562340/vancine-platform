@@ -49,7 +49,8 @@ func TestApplyPayPalSettlement_FirstRefundDeductsOnceAndMarksRefunded(t *testing
 	require.Equal(t, int(expectedQuota), getPayPalUserQuotaForTest(t, 70))
 
 	in := baseSettlementInput(topUp, "EVT-001", "REFUND-001")
-	require.NoError(t, ApplyPayPalSettlement(in))
+	_, err := ApplyPayPalSettlement(in)
+	require.NoError(t, err)
 
 	assert.Equal(t, 0, getPayPalUserQuotaForTest(t, 70))
 	assert.Equal(t, common.TopUpStatusRefunded, getPayPalTopUpStatusForTest(t, "trade-set-001"))
@@ -65,7 +66,8 @@ func TestApplyPayPalSettlement_FirstReversalDeductsOnceAndMarksRefunded(t *testi
 
 	in := baseSettlementInput(topUp, "EVT-002", "CAP-002")
 	in.EventType = PayPalSettlementReversed
-	require.NoError(t, ApplyPayPalSettlement(in))
+	_, err := ApplyPayPalSettlement(in)
+	require.NoError(t, err)
 
 	assert.Equal(t, 0, getPayPalUserQuotaForTest(t, 71))
 	assert.Equal(t, common.TopUpStatusRefunded, getPayPalTopUpStatusForTest(t, "trade-set-002"))
@@ -76,10 +78,13 @@ func TestApplyPayPalSettlement_EventIDReplayIsIdempotent(t *testing.T) {
 	topUp := newSettlementTestOrder(t, "trade-set-003", "CAP-003", 9.99, 72)
 	in := baseSettlementInput(topUp, "EVT-003", "REFUND-003")
 
-	require.NoError(t, ApplyPayPalSettlement(in))
+	_, err := ApplyPayPalSettlement(in)
+	require.NoError(t, err)
 	// Replaying the same Event ID with identical content is a no-op.
-	require.NoError(t, ApplyPayPalSettlement(in))
-	require.NoError(t, ApplyPayPalSettlement(in))
+	_, err = ApplyPayPalSettlement(in)
+	require.NoError(t, err)
+	_, err = ApplyPayPalSettlement(in)
+	require.NoError(t, err)
 
 	assert.Equal(t, 0, getPayPalUserQuotaForTest(t, 72))
 	assert.Equal(t, common.TopUpStatusRefunded, getPayPalTopUpStatusForTest(t, "trade-set-003"))
@@ -93,11 +98,13 @@ func TestApplyPayPalSettlement_ResourceKeyReplayDifferentEventIDIsIdempotent(t *
 	topUp := newSettlementTestOrder(t, "trade-set-004", "CAP-004", 9.99, 73)
 
 	first := baseSettlementInput(topUp, "EVT-004A", "REFUND-004")
-	require.NoError(t, ApplyPayPalSettlement(first))
+	_, err := ApplyPayPalSettlement(first)
+	require.NoError(t, err)
 
 	// Same Resource Key (same refund id), different Event ID, identical content.
 	second := baseSettlementInput(topUp, "EVT-004B", "REFUND-004")
-	require.NoError(t, ApplyPayPalSettlement(second))
+	_, err = ApplyPayPalSettlement(second)
+	require.NoError(t, err)
 
 	assert.Equal(t, 0, getPayPalUserQuotaForTest(t, 73))
 	count, err := CountPayPalSettlementEventsForOrder(topUp.Id)
@@ -110,7 +117,8 @@ func TestApplyPayPalSettlement_ResourceIDReusedWithDifferentContentHardFails(t *
 	topUp := newSettlementTestOrder(t, "trade-set-005", "CAP-005", 9.99, 74)
 
 	first := baseSettlementInput(topUp, "EVT-005A", "REFUND-005")
-	require.NoError(t, ApplyPayPalSettlement(first))
+	_, err := ApplyPayPalSettlement(first)
+	require.NoError(t, err)
 
 	// Same Resource Key, different Event ID, but a different amount. The order
 	// validation rejects the mismatched amount fail-closed before the ledger
@@ -118,7 +126,8 @@ func TestApplyPayPalSettlement_ResourceIDReusedWithDifferentContentHardFails(t *
 	// Either way the replay must NOT silently succeed or duplicate the ledger.
 	second := baseSettlementInput(topUp, "EVT-005B", "REFUND-005")
 	second.Amount = "5.00"
-	require.Error(t, ApplyPayPalSettlement(second))
+	_, err = ApplyPayPalSettlement(second)
+	require.Error(t, err)
 
 	// Quota and ledger unchanged by the rejected second event.
 	assert.Equal(t, 0, getPayPalUserQuotaForTest(t, 74))
@@ -133,11 +142,13 @@ func TestApplyPayPalSettlement_EventIDReusedAcrossOrdersHardFails(t *testing.T) 
 	topUpB := newSettlementTestOrder(t, "trade-set-006b", "CAP-006B", 9.99, 76)
 
 	inA := baseSettlementInput(topUpA, "EVT-REUSED", "REFUND-006A")
-	require.NoError(t, ApplyPayPalSettlement(inA))
+	_, err := ApplyPayPalSettlement(inA)
+	require.NoError(t, err)
 
 	// The same Event ID pointing at a different order/content must hard fail.
 	inB := baseSettlementInput(topUpB, "EVT-REUSED", "REFUND-006B")
-	err := ApplyPayPalSettlement(inB)
+	_, err = ApplyPayPalSettlement(inB)
+
 	require.ErrorIs(t, err, ErrPayPalSettlementConflict)
 
 	// Order B is untouched.
@@ -152,11 +163,13 @@ func TestApplyPayPalSettlement_CrossOrderResourceIDConflictHardFails(t *testing.
 
 	// Refund REFUND-007 settled against order A.
 	inA := baseSettlementInput(topUpA, "EVT-007A", "REFUND-007")
-	require.NoError(t, ApplyPayPalSettlement(inA))
+	_, err := ApplyPayPalSettlement(inA)
+	require.NoError(t, err)
 
 	// The same refund Resource Key pointed at order B (different order) must fail.
 	inB := baseSettlementInput(topUpB, "EVT-007B", "REFUND-007")
-	err := ApplyPayPalSettlement(inB)
+	_, err = ApplyPayPalSettlement(inB)
+
 	require.ErrorIs(t, err, ErrPayPalSettlementConflict)
 	assert.Equal(t, common.TopUpStatusSuccess, getPayPalTopUpStatusForTest(t, "trade-set-007b"))
 }
@@ -169,7 +182,8 @@ func TestApplyPayPalSettlement_CaptureAmountCurrencyProviderMismatchesFail(t *te
 		topUp := newSettlementTestOrder(t, "trade-set-008c", "CAP-008C", 9.99, 80)
 		in := baseSettlementInput(topUp, "EVT-008C", "REFUND-008C")
 		in.CaptureID = "CAP-OTHER"
-		require.ErrorIs(t, ApplyPayPalSettlement(in), ErrPayPalSettlementNotApplicable)
+		_, err := ApplyPayPalSettlement(in)
+		require.ErrorIs(t, err, ErrPayPalSettlementNotApplicable)
 		assert.Equal(t, int64(9.99*common.QuotaPerUnit), int64(getPayPalUserQuotaForTest(t, 80)))
 	})
 
@@ -178,7 +192,8 @@ func TestApplyPayPalSettlement_CaptureAmountCurrencyProviderMismatchesFail(t *te
 		topUp := newSettlementTestOrder(t, "trade-set-008a", "CAP-008A", 9.99, 81)
 		in := baseSettlementInput(topUp, "EVT-008A", "REFUND-008A")
 		in.Amount = "5.00"
-		require.ErrorIs(t, ApplyPayPalSettlement(in), ErrPayPalSettlementNotApplicable)
+		_, err := ApplyPayPalSettlement(in)
+		require.ErrorIs(t, err, ErrPayPalSettlementNotApplicable)
 	})
 
 	t.Run("currency mismatch", func(t *testing.T) {
@@ -186,7 +201,8 @@ func TestApplyPayPalSettlement_CaptureAmountCurrencyProviderMismatchesFail(t *te
 		topUp := newSettlementTestOrder(t, "trade-set-008u", "CAP-008U", 9.99, 82)
 		in := baseSettlementInput(topUp, "EVT-008U", "REFUND-008U")
 		in.Currency = "EUR"
-		require.ErrorIs(t, ApplyPayPalSettlement(in), ErrPayPalSettlementNotApplicable)
+		_, err := ApplyPayPalSettlement(in)
+		require.ErrorIs(t, err, ErrPayPalSettlementNotApplicable)
 	})
 
 	t.Run("non-paypal provider", func(t *testing.T) {
@@ -208,7 +224,8 @@ func TestApplyPayPalSettlement_CaptureAmountCurrencyProviderMismatchesFail(t *te
 			TradeNo: "trade-set-008p", CaptureID: "CAP-008P", Amount: "9.99",
 			Currency: "USD", ExpectedCurrency: "USD",
 		}
-		require.ErrorIs(t, ApplyPayPalSettlement(in), ErrPayPalSettlementNotApplicable)
+		_, err := ApplyPayPalSettlement(in)
+		require.ErrorIs(t, err, ErrPayPalSettlementNotApplicable)
 	})
 }
 
@@ -237,7 +254,8 @@ func TestApplyPayPalSettlement_InvalidInputFails(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			in := tc.mut(baseSettlementInput(topUp, "EVT-009", "REFUND-009"))
-			err := ApplyPayPalSettlement(in)
+			_, err := ApplyPayPalSettlement(in)
+
 			require.ErrorIs(t, err, ErrPayPalSettlementInvalid, "input %s", tc.name)
 		})
 	}
@@ -258,7 +276,8 @@ func TestApplyPayPalSettlement_IllegalStatusFails(t *testing.T) {
 		TradeNo: "trade-set-010", CaptureID: "CAP-010", Amount: "9.99",
 		Currency: "USD", ExpectedCurrency: "USD",
 	}
-	err := ApplyPayPalSettlement(in)
+	_, err := ApplyPayPalSettlement(in)
+
 	require.ErrorIs(t, err, ErrPayPalSettlementNotApplicable)
 	assert.Equal(t, common.TopUpStatusPending, getPayPalTopUpStatusForTest(t, "trade-set-010"))
 }
@@ -270,7 +289,8 @@ func TestApplyPayPalSettlement_OrderNotFoundFails(t *testing.T) {
 		TradeNo: "trade-does-not-exist", CaptureID: "CAP-011", Amount: "9.99",
 		Currency: "USD", ExpectedCurrency: "USD",
 	}
-	require.ErrorIs(t, ApplyPayPalSettlement(in), ErrPayPalSettlementNotApplicable)
+	_, err := ApplyPayPalSettlement(in)
+	require.ErrorIs(t, err, ErrPayPalSettlementNotApplicable)
 }
 
 func TestApplyPayPalSettlement_RefundThenReversalRecordsBothDeductsOnce(t *testing.T) {
@@ -280,11 +300,13 @@ func TestApplyPayPalSettlement_RefundThenReversalRecordsBothDeductsOnce(t *testi
 	require.Equal(t, int(expectedQuota), getPayPalUserQuotaForTest(t, 86))
 
 	refund := baseSettlementInput(topUp, "EVT-012R", "REFUND-012")
-	require.NoError(t, ApplyPayPalSettlement(refund))
+	_, err := ApplyPayPalSettlement(refund)
+	require.NoError(t, err)
 
 	reversal := baseSettlementInput(topUp, "EVT-012V", "CAP-012")
 	reversal.EventType = PayPalSettlementReversed
-	require.NoError(t, ApplyPayPalSettlement(reversal))
+	_, err = ApplyPayPalSettlement(reversal)
+	require.NoError(t, err)
 
 	// Quota deducted exactly once; order refunded.
 	assert.Equal(t, 0, getPayPalUserQuotaForTest(t, 86))
@@ -301,10 +323,12 @@ func TestApplyPayPalSettlement_ReversalThenRefundRecordsBothDeductsOnce(t *testi
 
 	reversal := baseSettlementInput(topUp, "EVT-013V", "CAP-013")
 	reversal.EventType = PayPalSettlementReversed
-	require.NoError(t, ApplyPayPalSettlement(reversal))
+	_, err := ApplyPayPalSettlement(reversal)
+	require.NoError(t, err)
 
 	refund := baseSettlementInput(topUp, "EVT-013R", "REFUND-013")
-	require.NoError(t, ApplyPayPalSettlement(refund))
+	_, err = ApplyPayPalSettlement(refund)
+	require.NoError(t, err)
 
 	assert.Equal(t, 0, getPayPalUserQuotaForTest(t, 87))
 	count, err := CountPayPalSettlementEventsForOrder(topUp.Id)
@@ -324,7 +348,8 @@ func TestApplyPayPalSettlement_ConcurrentSameEventDeductsOnce(t *testing.T) {
 		go func(idx int) {
 			defer wg.Done()
 			in := baseSettlementInput(topUp, "EVT-014", "REFUND-014")
-			errs[idx] = ApplyPayPalSettlement(in)
+			_, errs[idx] = ApplyPayPalSettlement(in)
+
 		}(i)
 	}
 	wg.Wait()
@@ -398,7 +423,8 @@ func TestApplyPayPalSettlement_MissingUserRollsBackFully(t *testing.T) {
 	require.NoError(t, DB.Unscoped().Where("id = ?", 89).Delete(&User{}).Error)
 
 	in := baseSettlementInput(topUp, "EVT-015", "REFUND-015")
-	err := ApplyPayPalSettlement(in)
+	_, err := ApplyPayPalSettlement(in)
+
 	require.Error(t, err, "settlement must fail when the user row is missing")
 
 	// Order must remain success and the ledger must be empty: the whole
@@ -421,7 +447,8 @@ func TestApplyPayPalSettlement_NonSuccessStatusWithValidCaptureRollsBack(t *test
 	require.Equal(t, common.TopUpStatusExpired, getPayPalTopUpStatusForTest(t, "trade-set-016"))
 
 	in := baseSettlementInput(topUp, "EVT-016", "REFUND-016")
-	err := ApplyPayPalSettlement(in)
+	_, err := ApplyPayPalSettlement(in)
+
 	require.ErrorIs(t, err, ErrPayPalSettlementNotApplicable)
 
 	assert.Equal(t, common.TopUpStatusExpired, getPayPalTopUpStatusForTest(t, "trade-set-016"))
