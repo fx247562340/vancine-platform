@@ -101,8 +101,7 @@ import path from 'node:path'
 
 const APP_LOCALES = ['en', 'zh', 'zh-TW', 'fr', 'ru', 'ja', 'vi']
 const DOCS_LOCALES = ['en', 'zhCN', 'zhTW', 'fr', 'ru', 'ja', 'vi']
-const DOCS_KEY_PATTERN =
-  /^[A-Za-z][A-Za-z0-9]*(?:\.[A-Za-z][A-Za-z0-9]*)+$/
+const DOCS_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9]*(?:\.[A-Za-z][A-Za-z0-9]*)+$/
 
 function resolveLocalesDir(docs) {
   if (process.env.ADD_MISSING_KEYS_LOCALES_DIR) {

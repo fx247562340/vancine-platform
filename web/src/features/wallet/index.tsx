@@ -21,6 +21,10 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { SectionPageLayout } from '@/components/layout'
+import {
+  formatFirstTopUpBonus,
+  type FirstTopUpBonusDisplay,
+} from '@/features/first-topup-bonus'
 import { useStatus } from '@/hooks/use-status'
 import { useSystemConfig } from '@/hooks/use-system-config'
 import { getSelf } from '@/lib/api'
@@ -99,6 +103,30 @@ export function Wallet(props: WalletProps) {
       ? 1
       : currency?.usdExchangeRate || 1
   }, [currency?.quotaDisplayType, currency?.usdExchangeRate])
+
+  // First top-up bonus: the amount comes from the AUTHENTICATED
+  // /api/user/topup/info response (topupInfo.first_topup_bonus_quota),
+  // and the eligible flag is the same endpoint's
+  // first_topup_bonus_eligible. The public /api/status contributes only
+  // quota_per_unit for the USD conversion, so the cached public quota
+  // can never impersonate a per-user bonus. The shared formatter
+  // collapses an ineligible user, a disabled promotion, or invalid
+  // server data to null — the same single source of truth as the
+  // marketing pages.
+  const { i18n } = useTranslation()
+  const firstTopUpBonus = useMemo<FirstTopUpBonusDisplay | null>(() => {
+    if (!topupInfo?.first_topup_bonus_eligible) return null
+    return formatFirstTopUpBonus(
+      topupInfo.first_topup_bonus_quota,
+      status?.quota_per_unit,
+      i18n.language
+    )
+  }, [
+    topupInfo?.first_topup_bonus_eligible,
+    topupInfo?.first_topup_bonus_quota,
+    status?.quota_per_unit,
+    i18n.language,
+  ])
   const {
     amount: paymentAmount,
     calculating,
@@ -400,6 +428,7 @@ export function Wallet(props: WalletProps) {
                   enableWaffoPancakeTopup={
                     topupInfo?.enable_waffo_pancake_topup
                   }
+                  firstTopUpBonus={firstTopUpBonus}
                 />
               </div>
 
@@ -435,6 +464,7 @@ export function Wallet(props: WalletProps) {
         processing={processing || waffoProcessing || pancakeProcessing}
         discountRate={getDiscountRate()}
         usdExchangeRate={effectiveUsdExchangeRate}
+        firstTopUpBonus={firstTopUpBonus}
       />
 
       <TransferDialog

@@ -163,7 +163,11 @@ function renderPage(i18n: I18n, options?: { innerWidth?: number }) {
       // the next test sees the pristine window.innerWidth definition.
       window.matchMedia = originalMatchMedia
       if (originalInnerWidthDescriptor) {
-        Object.defineProperty(window, 'innerWidth', originalInnerWidthDescriptor)
+        Object.defineProperty(
+          window,
+          'innerWidth',
+          originalInnerWidthDescriptor
+        )
       } else {
         delete (window as unknown as { innerWidth?: number }).innerWidth
       }
@@ -225,7 +229,9 @@ describe('ImagePlayground Advanced settings host', () => {
       // this test; all interactions below use role queries.
       await waitFor(() => {
         expect(
-          document.querySelector('button[aria-label="Advanced settings"][data-slot="sheet-trigger"]')
+          document.querySelector(
+            'button[aria-label="Advanced settings"][data-slot="sheet-trigger"]'
+          )
         ).toBeTruthy()
       })
       const trigger = screen.getByRole('button', {

@@ -187,9 +187,7 @@ describe('Agent Integration hub cards', () => {
       await screen.findByRole('heading', { name: 'Pi Coding Agent' })
     ).toBeInTheDocument()
     expect(document.querySelector('#agents-pi')).not.toBeNull()
-    expect(
-      screen.getByText(PI_PROVIDER_INSTALL_COMMAND)
-    ).toBeInTheDocument()
+    expect(screen.getByText(PI_PROVIDER_INSTALL_COMMAND)).toBeInTheDocument()
     expect(screen.getByText(PI_LOGIN_COMMAND)).toBeInTheDocument()
     expect(screen.getByText(PI_MODEL_COMMAND)).toBeInTheDocument()
     expect(container.textContent).not.toContain('0.1.1')

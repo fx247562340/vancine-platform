@@ -812,7 +812,9 @@ describe('VANCINE-BRAND-REDESIGN-FINAL-REMEDIATION: stats disclaimer and dt/dd o
       name: 'One API for Chinese frontier and high-performance AI models',
     })
     const disclaimer = await screen.findByTestId('hero-stats-disclaimer')
-    expect(disclaimer.textContent ?? '').toContain('Aggregated operation metrics may be delayed')
+    expect(disclaimer.textContent ?? '').toContain(
+      'Aggregated operation metrics may be delayed'
+    )
     // The former "Live operation metrics" copy is gone.
     expect(disclaimer.textContent ?? '').not.toContain('Live operation metrics')
   })

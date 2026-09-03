@@ -21,6 +21,10 @@ import { ArrowRight, BookOpen } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
+import {
+  FirstTopUpBonusCallout,
+  useFirstTopUpBonus,
+} from '@/features/first-topup-bonus'
 import { useStatus } from '@/hooks/use-status'
 import { trackEvent } from '@/lib/analytics'
 
@@ -67,6 +71,7 @@ function formatInteger(n: number | null): string {
 export function Hero(props: HeroProps) {
   const { t } = useTranslation()
   const { status } = useStatus()
+  const firstTopUpBonus = useFirstTopUpBonus()
   const docsUrl = (status?.docs_link as string | undefined)?.trim() || ''
 
   const statsState: HomepageStatsState = props.stats ?? {
@@ -242,6 +247,36 @@ export function Hero(props: HeroProps) {
             {renderDocsButton()}
           </div>
 
+          {/* First top-up bonus: a compact callout near the main CTA plus a
+              promo link. Guests are sent to sign-up; signed-in users to
+              the wallet where they can top up. The whole block
+              disappears when the promotion is disabled, so the rest
+              of the hero layout is unchanged. The callout itself
+              returns null on inactive / invalid / out-of-range server
+              data (the shared useFirstTopUpBonus + formatFirstTopUpBonus
+              handles every “off” path). */}
+          {firstTopUpBonus && (
+            <div
+              className='landing-animate-fade-up mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 opacity-0'
+              style={{ animationDelay: '195ms' }}
+            >
+              <FirstTopUpBonusCallout />
+              <Link
+                to={props.isAuthenticated ? '/wallet' : '/sign-up'}
+                className='text-primary hover:text-primary/80 text-sm font-semibold underline underline-offset-4'
+                onClick={() =>
+                  trackEvent('first_topup_bonus_clicked', {
+                    location: 'hero',
+                  })
+                }
+              >
+                {t('Unlock {{credits}} Bonus Credits', {
+                  credits: firstTopUpBonus.credits,
+                })}
+              </Link>
+            </div>
+          )}
+
           <div
             className='landing-animate-fade-up mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 opacity-0'
             style={{ animationDelay: '210ms' }}
@@ -328,7 +363,7 @@ function StatTile(props: { value: string; label: string; testId: string }) {
       <dt className='text-muted-foreground/80 order-2 text-center text-xs leading-snug'>
         {props.label}
       </dt>
-      <dd className='text-2xl font-bold tracking-tight tabular-nums order-1 md:text-3xl'>
+      <dd className='order-1 text-2xl font-bold tracking-tight tabular-nums md:text-3xl'>
         {props.value}
       </dd>
     </div>

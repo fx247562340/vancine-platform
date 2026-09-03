@@ -102,7 +102,10 @@ export function Quickstart(props: QuickstartProps): ReactElement {
               'Switch to any of the other fast models by changing only the model field:'
             )}
           </p>
-          <ul className='mt-2 flex flex-wrap gap-2' data-testid='fast-coding-models-alternate-list'>
+          <ul
+            className='mt-2 flex flex-wrap gap-2'
+            data-testid='fast-coding-models-alternate-list'
+          >
             {alternates.map((model) => (
               <li key={model.model_name}>
                 <code className='bg-muted/60 rounded-md px-2 py-1 font-mono text-sm'>

@@ -227,7 +227,9 @@ describe('CTA destinations and UTM safety', () => {
       '/kimi-k3-api/?utm_source=launch&utm_campaign=kimi&email=a@b.com&api_key=sk-secret&redirect=%2Fevil'
     )
 
-    const heroCta = await screen.findByRole('button', { name: /Create account/ })
+    const heroCta = await screen.findByRole('button', {
+      name: /Create account/,
+    })
     expect(heroCta).toHaveAttribute(
       'href',
       '/sign-up?utm_source=launch&utm_campaign=kimi'
@@ -475,7 +477,9 @@ describe('VANCINE-FINAL-GATE-REMEDIATION: no inactive-promo copy on the Kimi K3 
 
   it('guest primary CTA is Create account and points to /sign-up', async () => {
     renderPage()
-    const heroCta = await screen.findByRole('button', { name: /Create account/ })
+    const heroCta = await screen.findByRole('button', {
+      name: /Create account/,
+    })
     expect(heroCta).toHaveAttribute('href', '/sign-up')
   })
 
@@ -492,7 +496,9 @@ describe('VANCINE-FINAL-GATE-REMEDIATION: no inactive-promo copy on the Kimi K3 
     renderPage(
       '/kimi-k3-api/?utm_source=launch&utm_campaign=kimi&email=a@b.com&api_key=sk-secret&redirect=%2Fevil&token=t-1'
     )
-    const heroCta = await screen.findByRole('button', { name: /Create account/ })
+    const heroCta = await screen.findByRole('button', {
+      name: /Create account/,
+    })
     const href = String(heroCta.getAttribute('href'))
     expect(href).toContain('utm_source=launch')
     expect(href).toContain('utm_campaign=kimi')

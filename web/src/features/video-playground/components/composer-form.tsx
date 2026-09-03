@@ -40,6 +40,7 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { CanvasComposerShell } from '@/features/media-playground/components/canvas-composer-shell'
+import { QuickParameterPill } from '@/features/media-playground/components/quick-parameter-pill'
 
 import { submitVideoGenerationWithApiKey } from '../api'
 import { useSubmitVideoRequest } from '../hooks/use-submit-video-request'
@@ -58,7 +59,6 @@ import { countActiveParameters } from '../lib/parameter-state'
 import type { ResourceStore as UseResourceStore } from '../lib/use-resource-store'
 import { BatchCountControl } from './batch-count-control'
 import { VideoParametersPopover } from './parameters-popover'
-import { QuickParameterPill } from '@/features/media-playground/components/quick-parameter-pill'
 import { ReferenceAssetsRow } from './reference-assets-row'
 import { TaskGallery } from './task-gallery'
 

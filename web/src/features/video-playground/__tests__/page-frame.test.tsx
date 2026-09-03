@@ -145,8 +145,6 @@ describe('VideoPlayground page frame', () => {
     expect(
       within(toolbar).getByRole('combobox', { name: 'Video model' })
     ).toBeTruthy()
-    expect(
-      within(toolbar).getByLabelText('Connection settings')
-    ).toBeTruthy()
+    expect(within(toolbar).getByLabelText('Connection settings')).toBeTruthy()
   })
 })

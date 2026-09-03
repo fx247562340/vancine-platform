@@ -16,7 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-
 /**
  * Tab-scoped "now" and session id. Both values are deterministic in tests
  * (see __setTestClock / __setTestSessionId). Production code reads the

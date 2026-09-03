@@ -127,33 +127,37 @@ export function ModelCards(): ReactElement {
           </div>
         )}
 
-        {!pricing.isLoading && !pricing.error && pricing.models.length === 0 && (
-          <div
-            data-testid='fast-coding-models-cards-empty'
-            className='bg-muted/40 border-border rounded-xl border p-6 text-center'
-          >
-            <p className='text-muted-foreground text-sm'>
-              {t('No fast models are listed in the public catalog right now.')}
-            </p>
-            <Link
-              to='/pricing'
-              className='text-primary mt-3 inline-flex items-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline'
-              onClick={() =>
-                trackEvent(FAST_CODING_MODELS_RESOURCE_EVENT, {
-                  resource: 'pricing',
-                  location: 'fast_coding_models_cards_empty',
-                })
-              }
+        {!pricing.isLoading &&
+          !pricing.error &&
+          pricing.models.length === 0 && (
+            <div
+              data-testid='fast-coding-models-cards-empty'
+              className='bg-muted/40 border-border rounded-xl border p-6 text-center'
             >
-              {t('View live pricing')}
-              <HugeiconsIcon
-                icon={ArrowRight01Icon}
-                className='size-3.5'
-                aria-hidden='true'
-              />
-            </Link>
-          </div>
-        )}
+              <p className='text-muted-foreground text-sm'>
+                {t(
+                  'No fast models are listed in the public catalog right now.'
+                )}
+              </p>
+              <Link
+                to='/pricing'
+                className='text-primary mt-3 inline-flex items-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline'
+                onClick={() =>
+                  trackEvent(FAST_CODING_MODELS_RESOURCE_EVENT, {
+                    resource: 'pricing',
+                    location: 'fast_coding_models_cards_empty',
+                  })
+                }
+              >
+                {t('View live pricing')}
+                <HugeiconsIcon
+                  icon={ArrowRight01Icon}
+                  className='size-3.5'
+                  aria-hidden='true'
+                />
+              </Link>
+            </div>
+          )}
 
         {!pricing.isLoading && !pricing.error && pricing.models.length > 0 && (
           <div

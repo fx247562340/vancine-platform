@@ -663,7 +663,11 @@ describe('add-missing-keys --docs nested locale contract', () => {
         const json = JSON.parse(
           readFileSync(join(dir, `${locale}.json`), 'utf8')
         ) as {
-          agents: { title: string; hub: { title: string }; pi: { title: string } }
+          agents: {
+            title: string
+            hub: { title: string }
+            pi: { title: string }
+          }
         }
         assert.equal(json.agents.title, `title-${locale}`)
         assert.equal(json.agents.hub.title, `hub-${locale}`)

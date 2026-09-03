@@ -29,9 +29,12 @@ import (
 var ErrTopUpUserMissing = errors.New("充值用户不存在")
 
 // realTopUpProviders are the payment providers whose orders are real, paid
-// top-ups. The list is explicit on purpose: "not balance" is not a safe proxy,
-// because subscription settlement and any future non-payment source also write
-// top_up rows and must neither grant nor consume the first top-up bonus.
+// top-ups. The list is explicit on purpose: "not balance" is not a
+// safe proxy, because subscription settlement and any future non-payment
+// source also write top_up rows and must neither grant nor consume the first
+// top-up bonus. Package-private: both the settlement transaction and the
+// read-only eligibility check live in this package and share one query
+// (hasCompletedRealTopUp) instead of sharing mutable variables.
 var realTopUpProviders = []string{
 	PaymentProviderEpay,
 	PaymentProviderStripe,
@@ -62,6 +65,29 @@ var firstTopUpHistoryPredicate = fmt.Sprintf(
 	"(payment_provider IN ? OR %s)",
 	legacyUnassignedRealTopUpFilter,
 )
+
+// hasCompletedRealTopUp is the single shared query behind the first top-up
+// qualification: "does this user already have a settled (success or refunded)
+// real top-up?". The settlement transaction calls it with excludedTopUpID set
+// to the order being settled (so the order itself never counts against its own
+// bonus), and the read-only topup-info eligibility check calls it with 0.
+// The whitelist, status filter and legacy unassigned rule live only here, so
+// the authoritative grant and the public hint cannot drift apart.
+func hasCompletedRealTopUp(tx *gorm.DB, userID int, excludedTopUpID int) (bool, error) {
+	query := tx.Model(&TopUp{}).
+		Where(
+			"user_id = ? AND status IN ? AND "+firstTopUpHistoryPredicate,
+			userID, firstTopUpHistoryStatuses, realTopUpProviders,
+		)
+	if excludedTopUpID > 0 {
+		query = query.Where("id <> ?", excludedTopUpID)
+	}
+	var count int64
+	if err := query.Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
 
 // topUpReplayMode says what a settlement call against an already successful
 // order means for the calling gateway. Every mode credits nothing, grants no
@@ -343,6 +369,26 @@ func settleRealTopUpTx(tx *gorm.DB, spec topUpSettleSpec) (*TopUpSettlement, err
 	return result, nil
 }
 
+// ValidFirstTopUpBonusQuota returns the configured first top-up bonus when it
+// is in the allowed range, or (0, false) when the promotion is disabled or
+// misconfigured. The settlement transaction and the read-only eligibility
+// check both use this helper, so a saturated or negative value fails the
+// display the same way it fails the settlement.
+//
+//   - 0: promotion disabled; nothing to advertise, nothing to grant.
+//   - < 0 or > common.MaxQuota: configuration error; the helper refuses to
+//     invent a value the database cannot store, and callers must fail closed.
+func ValidFirstTopUpBonusQuota() (int, bool) {
+	bonus := common.QuotaForFirstTopUp
+	if bonus == 0 {
+		return 0, false
+	}
+	if bonus < 0 || bonus > common.MaxQuota {
+		return 0, false
+	}
+	return bonus, true
+}
+
 // firstTopUpBonusQuotaTx returns the first top-up bonus to grant for the order
 // being settled, or 0.
 //
@@ -353,17 +399,18 @@ func settleRealTopUpTx(tx *gorm.DB, spec topUpSettleSpec) (*TopUpSettlement, err
 // redemption codes, invitation rewards, check-ins and admin quota edits can
 // neither grant nor consume the bonus.
 func firstTopUpBonusQuotaTx(tx *gorm.DB, topUp *TopUp) (int, error) {
-	bonus := common.QuotaForFirstTopUp
-	if bonus == 0 {
-		// The promotion is off. The order still settles as a real top-up and so
-		// still consumes the user's one first top-up qualification: turning the
-		// promotion on later must not pay out for an earlier payment.
+	bonus, ok := ValidFirstTopUpBonusQuota()
+	if !ok {
+		// Either the promotion is off, or the configured value is out of
+		// range. Out-of-range is a configuration error, not a bonus size:
+		// the order still settles as a real top-up and so still consumes the
+		// user's one first top-up qualification (turning the promotion on
+		// later must not pay out for an earlier payment), but the helper
+		// refuses to mint a value the database cannot store.
+		if common.QuotaForFirstTopUp != 0 {
+			return 0, fmt.Errorf("首次充值赠送配额 %d 超出允许范围 0..%d", common.QuotaForFirstTopUp, common.MaxQuota)
+		}
 		return 0, nil
-	}
-	if bonus < 0 || bonus > common.MaxQuota {
-		// Out of range is a configuration error, not a bonus size. Fail the
-		// settlement so nothing is credited at a saturated value.
-		return 0, fmt.Errorf("首次充值赠送配额 %d 超出允许范围 0..%d", bonus, common.MaxQuota)
 	}
 	if !slices.Contains(realTopUpProviders, topUp.PaymentProvider) {
 		// A row whose provider is not a whitelisted real payment channel is
@@ -375,16 +422,11 @@ func firstTopUpBonusQuotaTx(tx *gorm.DB, topUp *TopUp) (int, error) {
 		}
 	}
 
-	var priorCount int64
-	if err := tx.Model(&TopUp{}).
-		Where(
-			"user_id = ? AND id <> ? AND status IN ? AND "+firstTopUpHistoryPredicate,
-			topUp.UserId, topUp.Id, firstTopUpHistoryStatuses, realTopUpProviders,
-		).
-		Count(&priorCount).Error; err != nil {
+	completed, err := hasCompletedRealTopUp(tx, topUp.UserId, topUp.Id)
+	if err != nil {
 		return 0, err
 	}
-	if priorCount > 0 {
+	if completed {
 		return 0, nil
 	}
 	return bonus, nil

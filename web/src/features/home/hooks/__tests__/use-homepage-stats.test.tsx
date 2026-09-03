@@ -21,7 +21,6 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useHomepageStats } from '../use-homepage-stats'
-
 // Real-handler contract regression for the homepage stats hook.
 //
 // The fixtures under ./fixtures are the EXACT JSON bodies the Go
@@ -35,11 +34,10 @@ import { useHomepageStats } from '../use-homepage-stats'
 // Critically: the handler serves the BARE payload. There is no
 // {success, data} envelope on this endpoint, and these tests never
 // fabricate one.
-
-import statsFixture from './fixtures/homepage-stats.json'
-import zeroFixture from './fixtures/homepage-stats-zero.json'
-import partialFixture from './fixtures/homepage-stats-partial.json'
 import allUnavailableFixture from './fixtures/homepage-stats-all-unavailable.json'
+import partialFixture from './fixtures/homepage-stats-partial.json'
+import zeroFixture from './fixtures/homepage-stats-zero.json'
+import statsFixture from './fixtures/homepage-stats.json'
 
 const getMock = vi.fn()
 vi.mock('@/lib/api', () => ({
@@ -106,9 +104,9 @@ describe('useHomepageStats — real handler JSON contract', () => {
     getMock.mockResolvedValue({ data: allUnavailableFixture })
     const { result } = renderHook(() => useHomepageStats(), { wrapper })
     await waitFor(() => expect(result.current.status).toBe('ready'))
-    expect(
-      result.current.stats?.successful_requests.availability
-    ).toBe('unavailable')
+    expect(result.current.stats?.successful_requests.availability).toBe(
+      'unavailable'
+    )
     expect(result.current.stats?.processed_tokens.availability).toBe(
       'unavailable'
     )
@@ -160,7 +158,9 @@ describe('useHomepageStats — real handler JSON contract', () => {
   it('never calls the endpoint with ?live=1 (the public bypass was removed)', async () => {
     getMock.mockImplementation((url: string) => {
       if (typeof url === 'string' && url.includes('live=1')) {
-        throw new Error('homepage stats: ?live=1 public bypass must not be used')
+        throw new Error(
+          'homepage stats: ?live=1 public bypass must not be used'
+        )
       }
       return Promise.resolve({ data: statsFixture })
     })
@@ -204,7 +204,10 @@ describe('useHomepageStats — real handler JSON contract', () => {
         successful_requests: { value: -1, availability: 'ok' },
         processed_tokens: { value: 1.5, availability: 'ok' },
         active_vendor_count: { value: Number.NaN, availability: 'ok' },
-        available_model_count: { value: Number.POSITIVE_INFINITY, availability: 'ok' },
+        available_model_count: {
+          value: Number.POSITIVE_INFINITY,
+          availability: 'ok',
+        },
       },
     })
     const { result } = renderHook(() => useHomepageStats(), { wrapper })

@@ -25,12 +25,10 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import enLocale from '@/i18n/locales/en.json'
 
-import {
-  ToolsAndAccess,
-} from '../tools-and-access'
 // ToolsAndAccess no longer takes a pricing prop; the renderSection
 // helper no longer needs the LOADING_STATE / ERROR_STATE constants.
 import type { HomepageStatsState } from '../../../hooks/use-homepage-stats'
+import { ToolsAndAccess } from '../tools-and-access'
 
 // Stub the React Router Link so the assertions can rely on the
 // chip's href without bringing the entire router stack into the
@@ -92,9 +90,7 @@ async function initTestI18n() {
   await i18n.changeLanguage('en')
 }
 
-function renderSection(props: {
-  stats?: HomepageStatsState
-}) {
+function renderSection(props: { stats?: HomepageStatsState }) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   })
@@ -138,7 +134,9 @@ describe('ToolsAndAccess', () => {
     expect(
       within(universal).getByText('OpenAI-compatible clients and agents')
     ).toBeInTheDocument()
-    expect(within(universal).queryByText('Cherry Studio')).not.toBeInTheDocument()
+    expect(
+      within(universal).queryByText('Cherry Studio')
+    ).not.toBeInTheDocument()
     expect(within(universal).queryByText('CC Switch')).not.toBeInTheDocument()
 
     // Setup guides column.
@@ -203,7 +201,9 @@ describe('ToolsAndAccess', () => {
     // ToolsAndAccess no longer takes a pricing prop; the section
     // is always rendered, independent of the pricing state.
     const { container } = renderSection({})
-    expect(container.querySelector('[data-testid="homepage-tools-access-section"]')).not.toBeNull()
+    expect(
+      container.querySelector('[data-testid="homepage-tools-access-section"]')
+    ).not.toBeNull()
   })
 
   it('renders the new OpenCode/Pi Agent intro copy and never the old one', () => {
@@ -214,11 +214,17 @@ describe('ToolsAndAccess', () => {
 
     // New copy: tools link to Vancine setup guidance, SDK links to
     // their official references.
-    expect(pageText).toContain('OpenCode and Pi Agent link to Vancine setup guidance')
-    expect(guides.textContent).toContain('Coding agents and CLI tools with Vancine setup guidance')
+    expect(pageText).toContain(
+      'OpenCode and Pi Agent link to Vancine setup guidance'
+    )
+    expect(guides.textContent).toContain(
+      'Coding agents and CLI tools with Vancine setup guidance'
+    )
 
     // Old copy is gone.
-    expect(pageText).not.toContain('Each tool links to a Vancine setup guide that records what is live-verified versus configuration-ready')
+    expect(pageText).not.toContain(
+      'Each tool links to a Vancine setup guide that records what is live-verified versus configuration-ready'
+    )
     expect(guides.textContent).not.toContain('dedicated Vancine setup guide')
   })
 

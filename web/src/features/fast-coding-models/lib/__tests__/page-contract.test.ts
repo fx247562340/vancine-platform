@@ -55,13 +55,15 @@ import {
 // asserted below; keep this in sync with the Go entry only via the
 // shared contract, never by loosening an assertion.
 const GO_EN_METADATA = {
-  title: 'Fast Chinese AI Models for Coding and High-Throughput Workloads | Vancine',
+  title:
+    'Fast Chinese AI Models for Coding and High-Throughput Workloads | Vancine',
   description:
     'Explore fast-inference Chinese AI models available through Vancine’s OpenAI-compatible API, with live pricing and model capabilities from the current catalog.',
   ogTitle: 'Fast Chinese AI Models for Coding and High-Throughput Workloads',
   ogDescription:
     'Explore fast-inference Chinese AI models available through Vancine’s OpenAI-compatible API, with live pricing and model capabilities from the current catalog.',
-  twitterTitle: 'Fast Chinese AI Models for Coding and High-Throughput Workloads',
+  twitterTitle:
+    'Fast Chinese AI Models for Coding and High-Throughput Workloads',
   twitterDescription:
     'Explore fast-inference Chinese AI models available through Vancine’s OpenAI-compatible API, with live pricing and model capabilities from the current catalog.',
 }
@@ -134,7 +136,10 @@ describe('tag-driven selection (no allowlist)', () => {
     const before = selectFastCodingModelsPricing([
       fixtureModel({ model_name: 'a', tags: 'fast' }),
     ])
-    assert.deepEqual(before.map((m) => m.model_name), ['a'])
+    assert.deepEqual(
+      before.map((m) => m.model_name),
+      ['a']
+    )
 
     const after = selectFastCodingModelsPricing([
       fixtureModel({ model_name: 'a', tags: 'text' }),

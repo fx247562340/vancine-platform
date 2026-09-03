@@ -78,7 +78,9 @@ export function Hero(props: HeroProps): ReactElement {
               trackEvent(KIMI_K3_CTA_EVENT, { location: 'kimi_k3_hero' })
             }
           >
-            {props.isAuthenticated ? t('Go to Playground') : t('Create account')}
+            {props.isAuthenticated
+              ? t('Go to Playground')
+              : t('Create account')}
             <HugeiconsIcon
               icon={ArrowRight01Icon}
               data-icon='inline-end'

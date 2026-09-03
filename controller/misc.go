@@ -51,6 +51,15 @@ func GetStatus(c *gin.Context) {
 	passkeySetting := system_setting.GetPasskeySettings()
 	legalSetting := system_setting.GetLegalSettings()
 
+	// First-top-up bonus is a non-sensitive paid-campaign configuration the
+	// operator enables explicitly. first_topup_bonus_quota keeps the RAW
+	// configured value (even when it is out of range, so misconfiguration
+	// stays observable); first_topup_bonus_active is derived from the same
+	// shared validity helper the settlement uses: true only when the quota is
+	// > 0 and <= common.MaxQuota. The marketing pages combine the quota with
+	// quota_per_unit to display the USD equivalent.
+	_, firstTopUpBonusActive := model.ValidFirstTopUpBonusQuota()
+
 	data := gin.H{
 		"version":                     common.Version,
 		"start_time":                  common.StartTime,
@@ -125,6 +134,8 @@ func GetStatus(c *gin.Context) {
 		"user_agreement_enabled":      legalSetting.UserAgreement.HasContent(),
 		"privacy_policy_enabled":      legalSetting.PrivacyPolicy.HasContent(),
 		"checkin_enabled":             operation_setting.GetCheckinSetting().Enabled,
+		"first_topup_bonus_quota":     common.QuotaForFirstTopUp,
+		"first_topup_bonus_active":    firstTopUpBonusActive,
 	}
 
 	// 根据启用状态注入可选内容

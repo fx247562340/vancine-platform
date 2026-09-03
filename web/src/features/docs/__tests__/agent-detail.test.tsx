@@ -213,11 +213,17 @@ describe('OpenCode /connect primary path', () => {
 
     await waitForHeading(/OpenCode setup guide/)
     expect(
-      screen.getByText('Basic setup does not require creating or editing opencode.json.')
+      screen.getByText(
+        'Basic setup does not require creating or editing opencode.json.'
+      )
     ).toBeInTheDocument()
     expect(screen.getByText('In OpenCode, run /connect.')).toBeInTheDocument()
-    expect(screen.getByText('Search for and select Vancine.')).toBeInTheDocument()
-    expect(screen.getByText('Paste your own Vancine API Key.')).toBeInTheDocument()
+    expect(
+      screen.getByText('Search for and select Vancine.')
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('Paste your own Vancine API Key.')
+    ).toBeInTheDocument()
     expect(screen.getByText('Run /models.')).toBeInTheDocument()
     expect(
       screen.getByText(

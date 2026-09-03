@@ -28,13 +28,14 @@ For commercial licensing, please contact support@quantumnous.com.
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import i18next, { type i18n as I18n } from 'i18next'
-import { I18nextProvider, initReactI18next } from 'react-i18next'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { I18nextProvider, initReactI18next } from 'react-i18next'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { Form } from '@/components/ui/form'
 import { routerLinkMock } from '@/test/router-link-mock'
+
 import { ImageReferenceTray } from '../components/image-reference-tray'
 import type { ImageModelProfile, ReferenceImage } from '../types'
 

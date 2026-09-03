@@ -1,4 +1,3 @@
-import type { GeneratedImage, ParsedImage } from '../types'
 /*
 Copyright (C) 2023-2026 QuantumNous
 
@@ -17,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import type { GeneratedImage, ParsedImage } from '../types'
 import { decodeRenderableBase64, imageSrc, isUsableHttpUrl } from './results'
 
 export type DownloadImageResult =

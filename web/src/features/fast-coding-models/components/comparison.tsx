@@ -45,9 +45,7 @@ export function Comparison(): ReactElement {
   const pricing = useFastCodingModelsPricing()
   const models = pricing.models
 
-  const hasContext = models.some(
-    (model) => model.context_length !== undefined
-  )
+  const hasContext = models.some((model) => model.context_length !== undefined)
   const hasMaxOutput = models.some(
     (model) => model.max_output_tokens !== undefined
   )
@@ -120,8 +118,11 @@ export function Comparison(): ReactElement {
               aria-label={t('Comparison')}
               className='hidden overflow-x-auto md:block'
             >
-              <table className='w-full min-w-[180px] border-separate border-spacing-0 text-sm'
-                style={{ minWidth: `${Math.max(models.length, 1) * 180 + 200}px` }}
+              <table
+                className='w-full min-w-[180px] border-separate border-spacing-0 text-sm'
+                style={{
+                  minWidth: `${Math.max(models.length, 1) * 180 + 200}px`,
+                }}
               >
                 <caption className='sr-only'>{t('Comparison')}</caption>
                 <thead>
@@ -270,10 +271,7 @@ function priceOf(model: PricingModel) {
   return getFastCodingModelsPriceSummary(model)
 }
 
-function modalitiesOf(
-  model: PricingModel,
-  t: (key: string) => string
-): string {
+function modalitiesOf(model: PricingModel, t: (key: string) => string): string {
   const modalities = model.input_modalities
   if (!Array.isArray(modalities) || modalities.length === 0) return '—'
   return modalities
@@ -312,9 +310,7 @@ function ComparisonRow(props: {
   )
 }
 
-function MobileComparisonCard(props: {
-  model: PricingModel
-}): ReactElement {
+function MobileComparisonCard(props: { model: PricingModel }): ReactElement {
   const { t } = useTranslation()
   const model: PricingModel = props.model
   const prices = priceOf(model)

@@ -50,7 +50,11 @@ const ACCESS_ENTRIES: readonly AccessEntry[] = [
     external: true,
   },
   { key: 'Python', href: 'https://pypi.org/project/openai/', external: true },
-  { key: 'JavaScript', href: 'https://www.npmjs.com/package/openai', external: true },
+  {
+    key: 'JavaScript',
+    href: 'https://www.npmjs.com/package/openai',
+    external: true,
+  },
   { key: 'cURL', href: 'https://curl.se/', external: true },
   {
     key: 'OpenAI-compatible clients and agents',
@@ -159,11 +163,7 @@ function GuideRow({ entry }: { entry: GuideEntry }) {
   )
 }
 
-function VendorCountStat({
-  stats,
-}: {
-  stats: HomepageStatsState
-}) {
+function VendorCountStat({ stats }: { stats: HomepageStatsState }) {
   const { t } = useTranslation()
   const ready = stats.status === 'ready' && stats.stats
   const triple = ready && stats.stats ? stats.stats.active_vendor_count : null
@@ -172,13 +172,9 @@ function VendorCountStat({
   // a quiet deploy; only "unavailable" (or a not-ready state)
   // renders the em-dash so the tile can never claim "0 vendors"
   // while the backend is unreachable.
-  const display =
-    triple && triple.availability === 'ok' ? triple.value : '—'
+  const display = triple && triple.availability === 'ok' ? triple.value : '—'
   return (
-    <div
-      className='flex flex-col gap-1'
-      data-testid='tools-vendor-stat'
-    >
+    <div className='flex flex-col gap-1' data-testid='tools-vendor-stat'>
       <span
         className='text-2xl font-bold tracking-tight tabular-nums'
         aria-live='polite'
@@ -247,7 +243,7 @@ export function ToolsAndAccess(props: ToolsAndAccessProps) {
             {/* Divider for tablet/desktop */}
             <div
               aria-hidden
-              className='bg-border/40 hidden md:col-span-1 md:block md:self-stretch md:w-px'
+              className='bg-border/40 hidden md:col-span-1 md:block md:w-px md:self-stretch'
             />
 
             {/* Setup guides — OpenCode / Pi Agent */}
@@ -259,9 +255,7 @@ export function ToolsAndAccess(props: ToolsAndAccessProps) {
                 {t('Setup guides')}
               </span>
               <p className='text-muted-foreground/65 text-xs leading-relaxed'>
-                {t(
-                  'Coding agents and CLI tools with Vancine setup guidance.'
-                )}
+                {t('Coding agents and CLI tools with Vancine setup guidance.')}
               </p>
               <div className='flex flex-col gap-2 pt-1'>
                 {GUIDE_ENTRIES.map((entry) => (
@@ -278,7 +272,10 @@ export function ToolsAndAccess(props: ToolsAndAccessProps) {
                   }
                 >
                   {t('More tools')}{' '}
-                  <span aria-hidden className='transition-transform group-hover:translate-x-0.5'>
+                  <span
+                    aria-hidden
+                    className='transition-transform group-hover:translate-x-0.5'
+                  >
                     →
                   </span>
                 </Link>
@@ -289,7 +286,7 @@ export function ToolsAndAccess(props: ToolsAndAccessProps) {
                 payload that drives the model tiles; never a hard-coded
                 vendor-table count. */}
             <div
-              className='border-border/40 flex flex-col gap-2 border-t pt-6 md:col-span-2 md:border-l md:border-t-0 md:pt-0 md:pl-6'
+              className='border-border/40 flex flex-col gap-2 border-t pt-6 md:col-span-2 md:border-t-0 md:border-l md:pt-0 md:pl-6'
               data-testid='tools-vendor-block'
             >
               <span className='text-muted-foreground/50 text-[10px] font-bold tracking-[0.15em] uppercase'>
@@ -299,10 +296,7 @@ export function ToolsAndAccess(props: ToolsAndAccessProps) {
             </div>
           </div>
 
-          <div
-            aria-hidden
-            className='border-border/30 mt-7 border-t pt-4'
-          />
+          <div aria-hidden className='border-border/30 mt-7 border-t pt-4' />
           <p
             className='text-muted-foreground/60 text-center text-xs'
             data-testid='tools-disclosure'

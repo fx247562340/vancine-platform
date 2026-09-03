@@ -564,12 +564,14 @@ For commercial licensing, please contact support@quantumnous.com
   background:
     radial-gradient(
       ellipse 66% 92% at -3% 56%,
-      color-mix(in oklab, var(--vancine-light-tunnel-violet) 23%, transparent) 0 18%,
+      color-mix(in oklab, var(--vancine-light-tunnel-violet) 23%, transparent) 0
+        18%,
       transparent 42%
     ),
     radial-gradient(
       ellipse 66% 92% at 103% 54%,
-      color-mix(in oklab, var(--vancine-light-tunnel-warm) 21%, transparent) 0 18%,
+      color-mix(in oklab, var(--vancine-light-tunnel-warm) 21%, transparent) 0
+        18%,
       transparent 42%
     ),
     radial-gradient(
@@ -593,8 +595,7 @@ For commercial licensing, please contact support@quantumnous.com
   filter: saturate(1.2) brightness(1.08);
 }
 
-.vancine-light-tunnel[data-renderer='ready']
-  .vancine-light-tunnel-fallback {
+.vancine-light-tunnel[data-renderer='ready'] .vancine-light-tunnel-fallback {
   opacity: 0.2;
 }
 

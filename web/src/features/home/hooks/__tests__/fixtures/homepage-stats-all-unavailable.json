@@ -1,1 +1,8 @@
-{"window_days":30,"successful_requests":{"value":0,"availability":"unavailable"},"processed_tokens":{"value":0,"availability":"unavailable"},"active_vendor_count":{"value":0,"availability":"unavailable"},"available_model_count":{"value":0,"availability":"unavailable"},"as_of":1788200000}
+{
+  "window_days": 30,
+  "successful_requests": { "value": 0, "availability": "unavailable" },
+  "processed_tokens": { "value": 0, "availability": "unavailable" },
+  "active_vendor_count": { "value": 0, "availability": "unavailable" },
+  "available_model_count": { "value": 0, "availability": "unavailable" },
+  "as_of": 1788200000
+}

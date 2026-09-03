@@ -23,6 +23,7 @@ import type { ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
+import { FirstTopUpBonusCallout } from '@/features/first-topup-bonus'
 import { trackEvent } from '@/lib/analytics'
 
 import {
@@ -74,6 +75,7 @@ export function FinalCta(props: FinalCtaProps): ReactElement {
             'Create an API key in under a minute, then point your existing OpenAI-compatible client at https://vancine.com/v1.'
           )}
         </p>
+        <FirstTopUpBonusCallout className='w-full max-w-xl' />
         <div className='flex flex-wrap items-center justify-center gap-3'>
           <Button
             size='lg'

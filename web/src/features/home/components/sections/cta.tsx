@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next'
 
 import { AnimateInView } from '@/components/animate-in-view'
 import { Button } from '@/components/ui/button'
+import { FirstTopUpBonusCallout } from '@/features/first-topup-bonus'
 import { trackEvent } from '@/lib/analytics'
 
 interface CTAProps {
@@ -60,6 +61,12 @@ export function CTA(props: CTAProps) {
             'Create an account, add credit, and start using the API with transparent usage-based pricing.'
           )}
         </p>
+        {/* Full first top-up bonus disclosure. Renders nothing when the
+            promotion is disabled, so the non-promo layout is preserved. */}
+        <FirstTopUpBonusCallout
+          variant='full'
+          className='mx-auto mt-6 max-w-md text-center'
+        />
         <div className='mt-8 flex items-center justify-center gap-3'>
           <Button
             className='group rounded-lg'

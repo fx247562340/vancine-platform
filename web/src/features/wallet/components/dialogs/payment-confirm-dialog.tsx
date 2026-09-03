@@ -16,6 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { GiftIcon } from '@hugeicons/core-free-icons'
+import { HugeiconsIcon } from '@hugeicons/react'
 import { Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -30,6 +32,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Skeleton } from '@/components/ui/skeleton'
+import type { FirstTopUpBonusDisplay } from '@/features/first-topup-bonus/lib/first-topup-bonus'
 import { formatLocalCurrencyAmount } from '@/lib/currency'
 
 import { DEFAULT_DISCOUNT_RATE } from '../../constants'
@@ -47,6 +50,14 @@ interface PaymentConfirmDialogProps {
   processing: boolean
   discountRate?: number
   usdExchangeRate?: number
+  /**
+   * Display payload for the current user's first top-up bonus. When
+   * non-null, an independent informational row is rendered at the top
+   * of the dialog stating the bonus amount and the settlement note.
+   * The bonus is purely informational: it never modifies You Pay and
+   * is never added to the third-party payment amount.
+   */
+  firstTopUpBonus?: FirstTopUpBonusDisplay | null
 }
 
 export function PaymentConfirmDialog({
@@ -60,6 +71,7 @@ export function PaymentConfirmDialog({
   processing,
   discountRate = DEFAULT_DISCOUNT_RATE,
   usdExchangeRate = 1,
+  firstTopUpBonus = null,
 }: PaymentConfirmDialogProps) {
   const { t } = useTranslation()
   const hasDiscount = discountRate > 0 && discountRate < 1 && paymentAmount > 0
@@ -79,6 +91,31 @@ export function PaymentConfirmDialog({
         </AlertDialogHeader>
 
         <div className='space-y-3 py-3 sm:space-y-4 sm:py-4'>
+          {firstTopUpBonus && (
+            <div
+              className='bg-muted/40 space-y-1 rounded-lg p-3'
+              data-testid='first-topup-bonus-confirm-row'
+            >
+              <div className='flex items-center gap-2 text-sm font-medium'>
+                <HugeiconsIcon
+                  icon={GiftIcon}
+                  className='text-primary h-4 w-4'
+                  aria-hidden='true'
+                />
+                <span>{t('First top-up bonus')}</span>
+                <span className='text-primary font-semibold'>
+                  {t('{{credits}} Credits', {
+                    credits: firstTopUpBonus.credits,
+                  })}
+                </span>
+              </div>
+              <p className='text-muted-foreground text-xs leading-relaxed'>
+                {t(
+                  'Credited on the first successful top-up; the final result is determined at settlement.'
+                )}
+              </p>
+            </div>
+          )}
           <div className='flex items-center justify-between'>
             <span className='text-muted-foreground text-sm'>
               {t('Topup Amount')}

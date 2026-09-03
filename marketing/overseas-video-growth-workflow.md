@@ -26,14 +26,14 @@
 - TikTok / Shorts 看完视频
 - 点击 profile link
 - 进入 vancine.com
-- 领取受控试用额度或注册 API key
+- 注册 API key（注册不送额度，首次充值成功后赠 500,000 Bonus Credits）
 - 查看 docs 并完成第一次 API call
 
 建议落地页 CTA：
 
 ```text
 Access the latest Chinese AI models through one unified API.
-Start testing with controlled trial credits.
+First successful top-up unlocks 500,000 Bonus Credits ($1 API balance, one per account).
 ```
 
 ## 2. 每日工作流总览
@@ -456,7 +456,7 @@ https://vancine.com?utm_source=youtube_profile
 
 ## 14. 当前公开付费口径
 
-当前不提供公开自动注册赠送。如果以后重新开展推广额度，只能采用邀请码、定向活动或人工审批方式；未经再次确认，不在公开页面承诺固定赠送金额。
+公开活动口径：注册本身不赠送任何 Credits（signup itself grants no Credits）；首次充值成功后赠送 500,000 Bonus Credits，每个账户限一次（one bonus per account）；500,000 Credits 等值 $1 API 余额（500,000 Credits equals $1 in API balance）。赠送以首次充值成功的结算结果为准。未经再次确认，不把赠送描述成注册赠送、免费试用或充值比例奖励。
 
 前阶段内部试用额度思路（仅作背景参考，不作为当前公开口径）：
 
@@ -471,7 +471,7 @@ https://vancine.com?utm_source=youtube_profile
 更适合海外推广的说法：
 
 ```text
-Start with prepaid API credit.
+Start with prepaid API credit. Complete your first successful top-up to receive 500,000 Bonus Credits.
 Test top Chinese AI models before scaling.
 ```
 
@@ -481,7 +481,7 @@ Test top Chinese AI models before scaling.
 Get $1 free credits.
 ```
 
-原因：真实上游模型有成本，`$1` 对正常开发者不算大，但对批量薅羊毛非常有吸引力。营销上只说预付费按量计费，不承诺固定赠送金额；后台实际额度如果要发放，只能走邀请码、定向活动或人工审批。
+原因：真实上游模型有成本。营销上可以明确说“首次充值成功送 500,000 Bonus Credits（等值 $1 API 余额，每账户限一次）”，但不得说“注册送额度”“免费试用”或“无需充值”；赠送金额与资格最终以首次充值成功结算为准。
 
 前阶段渠道额度建议（仅作背景参考，不作为当前公开口径）：
 
@@ -515,7 +515,7 @@ Get $1 free credits.
 
 需要确认的口径：
 
-- Vancine 试用额度到底给多少，以及如何防止被刷
+- ~~Vancine 试用额度到底给多少，以及如何防止被刷~~（已决策：不做注册赠送，首次充值成功后统一赠送 500,000 Bonus Credits = $1 API 余额，每个账户限一次；赠送以首次充值成功结算结果为准）
 - 要主推哪些国产模型
 - 是否允许公开展示后台和 API key 流程
 - 是否要建立 Discord / Telegram 社群

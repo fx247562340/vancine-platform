@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next'
 
 import { PublicLayout } from '@/components/layout'
 import { PageTransition } from '@/components/page-transition'
+import { FirstTopUpBonusCallout } from '@/features/first-topup-bonus'
 import { usePageMetadata } from '@/hooks/use-page-metadata'
 
 import {
@@ -206,6 +207,10 @@ export function Pricing() {
                 'Discover curated AI models, compare pricing and capabilities, and choose the right model for every scenario.'
               )}
             </p>
+            {/* First top-up bonus: compact callout in the intro area.
+                Renders nothing when the promotion is disabled. Model
+                pricing data is not modified. */}
+            <FirstTopUpBonusCallout className='mx-auto mt-4 max-w-2xl' />
             <SearchBar
               value={searchInput}
               onChange={setSearchInput}

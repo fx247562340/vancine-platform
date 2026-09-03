@@ -238,7 +238,9 @@ describe('CTA destinations and UTM safety', () => {
       '/seedance-api/?utm_source=launch&utm_campaign=seedance&email=a@b.com&api_key=sk-secret&redirect=%2Fevil'
     )
 
-    const heroCta = await screen.findByRole('button', { name: /Create account/ })
+    const heroCta = await screen.findByRole('button', {
+      name: /Create account/,
+    })
     expect(heroCta).toHaveAttribute(
       'href',
       '/sign-up?utm_source=launch&utm_campaign=seedance'

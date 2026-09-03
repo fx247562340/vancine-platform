@@ -45,8 +45,7 @@ export const VANCINE_PI_PROVIDER_NPM_URL =
 export const VANCINE_PI_PROVIDER_GITHUB_URL =
   'https://github.com/fx247562340/vancine-pi-provider'
 
-export const PI_PROVIDER_INSTALL_COMMAND =
-  'pi install npm:pi-provider-vancine'
+export const PI_PROVIDER_INSTALL_COMMAND = 'pi install npm:pi-provider-vancine'
 export const PI_LOGIN_COMMAND = '/login'
 export const PI_MODEL_COMMAND = '/model'
 

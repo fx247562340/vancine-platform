@@ -95,6 +95,31 @@ func GetTopUpInfo(c *gin.Context) {
 		}
 	}
 
+	// First top-up bonus eligibility hint (inlined, best-effort). The
+	// settlement transaction remains the only authority on whether the
+	// bonus is actually credited; this hint is a non-binding preview
+	// for the wallet disclosure. The three guard conditions
+	// (configured quota valid + authenticated user id positive +
+	// history query successful) collapse into a single combined
+	// `if` so the call site is one straight-line block; any
+	// pre-condition failure short-circuits to false so the audit
+	// trail of every "not eligible" case is explicit.
+	firstTopUpBonusEligible := false
+	if _, quotaOK := model.ValidFirstTopUpBonusQuota(); quotaOK {
+		raw, present := c.Get("id")
+		userID, idOK := raw.(int)
+		if present && idOK && userID > 0 {
+			if completed, err := model.UserHasCompletedFirstTopUp(userID); err != nil {
+				// A history-query failure is logged via
+				// logger.LogError so the endpoint still serves
+				// the rest of the data.
+				logger.LogError(c.Request.Context(), fmt.Sprintf("first top-up bonus eligibility check failed for user %d: %s", userID, err.Error()))
+			} else {
+				firstTopUpBonusEligible = !completed
+			}
+		}
+	}
+
 	data := gin.H{
 		"enable_online_topup":              isEpayTopUpEnabled(),
 		"enable_stripe_topup":              isStripeTopUpEnabled(),
@@ -121,6 +146,12 @@ func GetTopUpInfo(c *gin.Context) {
 		"amount_options":          operation_setting.GetPaymentSetting().AmountOptions,
 		"discount":                operation_setting.GetPaymentSetting().AmountDiscount,
 		"topup_link":              common.TopUpLink,
+		// First top-up bonus surface for the wallet. The configuration
+		// value is always returned (so the frontend can decide whether
+		// to render the disclosure); the eligibility flag tells the
+		// wallet whether THIS user is allowed to claim the bonus.
+		"first_topup_bonus_quota":    common.QuotaForFirstTopUp,
+		"first_topup_bonus_eligible": firstTopUpBonusEligible,
 	}
 	common.ApiSuccess(c, data)
 }

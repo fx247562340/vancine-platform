@@ -23,6 +23,7 @@ import type { ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
+import { FirstTopUpBonusCallout } from '@/features/first-topup-bonus'
 import { trackEvent } from '@/lib/analytics'
 
 import {
@@ -61,6 +62,7 @@ export function FinalCta(props: FinalCtaProps): ReactElement {
             'Submit, poll, and retrieve video through one documented async workflow.'
           )}
         </p>
+        <FirstTopUpBonusCallout className='w-full max-w-xl' />
         <div className='flex flex-wrap items-center justify-center gap-3'>
           <Button
             size='lg'

@@ -61,18 +61,12 @@ describe('home page metadata', () => {
       metadata.description,
       'Access flagship and fast-inference Chinese AI models for reasoning, coding, multimodal workflows, AI agents, and high-throughput applications through one OpenAI-compatible API.'
     )
-    assert.equal(
-      metadata.ogTitle,
-      'Chinese Frontier & Fast AI Models API'
-    )
+    assert.equal(metadata.ogTitle, 'Chinese Frontier & Fast AI Models API')
     assert.equal(
       metadata.ogDescription,
       'Access flagship and fast-inference Chinese AI models for reasoning, coding, multimodal workflows, AI agents, and high-throughput applications through one OpenAI-compatible API.'
     )
-    assert.equal(
-      metadata.twitterTitle,
-      'Chinese Frontier & Fast AI Models API'
-    )
+    assert.equal(metadata.twitterTitle, 'Chinese Frontier & Fast AI Models API')
     assert.equal(
       metadata.twitterDescription,
       'Access flagship and fast-inference Chinese AI models for reasoning, coding, multimodal workflows, AI agents, and high-throughput applications through one OpenAI-compatible API.'

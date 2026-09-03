@@ -16,9 +16,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { selectFast } from '@/features/home/lib/homepage-pricing'
 import { QUOTA_TYPE_VALUES } from '@/features/pricing/constants'
 import { formatPrice } from '@/features/pricing/lib/price'
-import { selectFast } from '@/features/home/lib/homepage-pricing'
 import type { ModelCapability, PricingModel } from '@/features/pricing/types'
 import type { PageMetadata } from '@/hooks/use-page-metadata'
 import {
@@ -78,9 +78,9 @@ export const FAST_CODING_MODELS_API_KEY_PLACEHOLDER = '$VANCINE_API_KEY'
  * hardcoded, no fixed count is enforced, and no model is substituted
  * when the fast tag is missing.
  */
-export function selectFastCodingModelsPricing<T extends { model_name: string; tags?: string }>(
-  models: readonly T[]
-): T[] {
+export function selectFastCodingModelsPricing<
+  T extends { model_name: string; tags?: string },
+>(models: readonly T[]): T[] {
   return selectFast(models)
 }
 
@@ -199,13 +199,15 @@ const FAST_CODING_MODELS_METADATA: Record<
   // The English block is pinned byte-for-byte against
   // router/web_metadata.go's /guides/fast-coding-models entry.
   en: {
-    title: 'Fast Chinese AI Models for Coding and High-Throughput Workloads | Vancine',
+    title:
+      'Fast Chinese AI Models for Coding and High-Throughput Workloads | Vancine',
     description:
       'Explore fast-inference Chinese AI models available through Vancine’s OpenAI-compatible API, with live pricing and model capabilities from the current catalog.',
     ogTitle: 'Fast Chinese AI Models for Coding and High-Throughput Workloads',
     ogDescription:
       'Explore fast-inference Chinese AI models available through Vancine’s OpenAI-compatible API, with live pricing and model capabilities from the current catalog.',
-    twitterTitle: 'Fast Chinese AI Models for Coding and High-Throughput Workloads',
+    twitterTitle:
+      'Fast Chinese AI Models for Coding and High-Throughput Workloads',
     twitterDescription:
       'Explore fast-inference Chinese AI models available through Vancine’s OpenAI-compatible API, with live pricing and model capabilities from the current catalog.',
   },
@@ -232,24 +234,28 @@ const FAST_CODING_MODELS_METADATA: Record<
       '透過 Vancine 提供的 OpenAI 相容 API，探索目前目錄中可用的快速推論中國 AI 模型，取得即時價格與能力資訊。',
   },
   fr: {
-    title: 'Modèles d’IA chinois rapides pour code et workloads à haut débit | Vancine',
+    title:
+      'Modèles d’IA chinois rapides pour code et workloads à haut débit | Vancine',
     description:
       'Explorez les modèles d’IA chinois à inférence rapide disponibles via l’API compatible OpenAI de Vancine, avec tarifs en direct et capacités issues du catalogue actuel.',
     ogTitle: 'Modèles d’IA chinois rapides pour code et workloads à haut débit',
     ogDescription:
       'Explorez les modèles d’IA chinois à inférence rapide disponibles via l’API compatible OpenAI de Vancine, avec tarifs en direct et capacités issues du catalogue actuel.',
-    twitterTitle: 'Modèles d’IA chinois rapides pour code et workloads à haut débit',
+    twitterTitle:
+      'Modèles d’IA chinois rapides pour code et workloads à haut débit',
     twitterDescription:
       'Explorez les modèles d’IA chinois à inférence rapide disponibles via l’API compatible OpenAI de Vancine, avec tarifs en direct et capacités issues du catalogue actuel.',
   },
   ru: {
-    title: 'Быстрые китайские ИИ-модели для кода и высоконагруженных задач | Vancine',
+    title:
+      'Быстрые китайские ИИ-модели для кода и высоконагруженных задач | Vancine',
     description:
       'Изучите быстрые китайские ИИ-модели, доступные через OpenAI-совместимый API Vancine, с актуальными ценами и возможностями из текущего каталога.',
     ogTitle: 'Быстрые китайские ИИ-модели для кода и высоконагруженных задач',
     ogDescription:
       'Изучите быстрые китайские ИИ-модели, доступные через OpenAI-совместимый API Vancine, с актуальными ценами и возможностями из текущего каталога.',
-    twitterTitle: 'Быстрые китайские ИИ-модели для кода и высоконагруженных задач',
+    twitterTitle:
+      'Быстрые китайские ИИ-модели для кода и высоконагруженных задач',
     twitterDescription:
       'Изучите быстрые китайские ИИ-модели, доступные через OpenAI-совместимый API Vancine, с актуальными ценами и возможностями из текущего каталога.',
   },
@@ -265,13 +271,16 @@ const FAST_CODING_MODELS_METADATA: Record<
       'Vancine の OpenAI 互換 API で利用できる、中国発の高速推論 AI モデルを現在のカタログから探索。リアルタイム価格と機能を確認できます。',
   },
   vi: {
-    title: 'Mô hình AI Trung Quốc tốc độ cao cho code và workloads thông lượng lớn | Vancine',
+    title:
+      'Mô hình AI Trung Quốc tốc độ cao cho code và workloads thông lượng lớn | Vancine',
     description:
       'Khám phá các mô hình AI Trung Quốc suy luận nhanh có sẵn qua API tương thích OpenAI của Vancine, với giá theo thời gian thực và năng lực từ danh mục hiện hành.',
-    ogTitle: 'Mô hình AI Trung Quốc tốc độ cao cho code và workloads thông lượng lớn',
+    ogTitle:
+      'Mô hình AI Trung Quốc tốc độ cao cho code và workloads thông lượng lớn',
     ogDescription:
       'Khám phá các mô hình AI Trung Quốc suy luận nhanh có sẵn qua API tương thích OpenAI của Vancine, với giá theo thời gian thực và năng lực từ danh mục hiện hành.',
-    twitterTitle: 'Mô hình AI Trung Quốc tốc độ cao cho code và workloads thông lượng lớn',
+    twitterTitle:
+      'Mô hình AI Trung Quốc tốc độ cao cho code và workloads thông lượng lớn',
     twitterDescription:
       'Khám phá các mô hình AI Trung Quốc suy luận nhanh có sẵn qua API tương thích OpenAI của Vancine, với giá theo thời gian thực và năng lực từ danh mục hiện hành.',
   },

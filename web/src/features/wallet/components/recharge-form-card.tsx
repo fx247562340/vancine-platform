@@ -34,6 +34,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import type { FirstTopUpBonusDisplay } from '@/features/first-topup-bonus/lib/first-topup-bonus'
 import { formatNumber } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
@@ -52,6 +53,7 @@ import type {
   WaffoPayMethod,
 } from '../types'
 import { CreemProductsSection } from './creem-products-section'
+import { FirstTopUpBonusEligibility } from './first-topup-bonus-eligibility'
 
 interface RechargeFormCardProps {
   topupInfo: TopupInfo | null
@@ -81,6 +83,12 @@ interface RechargeFormCardProps {
   waffoMinTopup?: number
   onWaffoMethodSelect?: (method: WaffoPayMethod, index: number) => void
   enableWaffoPancakeTopup?: boolean
+  /**
+   * Display payload for the current user's first top-up bonus, already
+   * gated by the wallet page on both eligibility and a valid promotion.
+   * null renders nothing.
+   */
+  firstTopUpBonus?: FirstTopUpBonusDisplay | null
 }
 
 export function RechargeFormCard({
@@ -111,6 +119,7 @@ export function RechargeFormCard({
   waffoMinTopup,
   onWaffoMethodSelect,
   enableWaffoPancakeTopup,
+  firstTopUpBonus = null,
 }: RechargeFormCardProps) {
   const { t } = useTranslation()
   const [localAmount, setLocalAmount] = useState(topupAmount.toString())
@@ -217,6 +226,10 @@ export function RechargeFormCard({
       }
       contentClassName='space-y-4 sm:space-y-6'
     >
+      {/* First top-up bonus disclosure — renders nothing for ineligible,
+          disabled, or invalid configurations. The disclosure is purely
+          informational; the payable amounts below are unchanged. */}
+      <FirstTopUpBonusEligibility display={firstTopUpBonus} />
       {/* Online Topup Section */}
       {hasAnyTopup ? (
         <div className='space-y-4 sm:space-y-6'>

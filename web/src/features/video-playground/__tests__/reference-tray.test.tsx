@@ -127,7 +127,9 @@ describe('VideoPlayground Reference Tray layout', () => {
     renderVideoPlayground(i18n)
     await readyGenerateButton()
 
-    await user.click(screen.getByRole('button', { name: 'Add reference image' }))
+    await user.click(
+      screen.getByRole('button', { name: 'Add reference image' })
+    )
     const input = await screen.findByPlaceholderText(
       'https://cdn.example.com/reference.png'
     )

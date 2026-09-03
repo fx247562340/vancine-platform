@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com.
 */
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 /**
  * Image Playground page frame: heading, Image/Video route navigation
  * with aria-current, Usage logs link, key status visibility, and
@@ -26,9 +27,8 @@ import i18next, { type i18n as I18n } from 'i18next'
 import { I18nextProvider, initReactI18next } from 'react-i18next'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { routerLinkMock } from '@/test/router-link-mock'
 import { useAuthStore } from '@/stores/auth-store'
+import { routerLinkMock } from '@/test/router-link-mock'
 
 import { getImageCapabilities, getImagePlaygroundGroups } from '../api'
 import { ImagePlayground } from '../index'
@@ -156,8 +156,8 @@ describe('ImagePlayground page frame', () => {
     // The ModelGroupSelector trigger is the combobox rendered inside
     // the toolbar — the user-visible contract that the model selector
     // lives in the composer toolbar.
-    expect(within(toolbar).getAllByRole('combobox').length).toBeGreaterThanOrEqual(
-      1
-    )
+    expect(
+      within(toolbar).getAllByRole('combobox').length
+    ).toBeGreaterThanOrEqual(1)
   })
 })

@@ -161,6 +161,10 @@ export interface TopupInfo {
   payment_compliance_confirmed?: boolean
   /** Current compliance terms version */
   payment_compliance_terms_version?: string
+  /** Server-promised first top-up bonus quota for this user, if any. */
+  first_topup_bonus_quota?: number
+  /** Whether the current user is eligible for the first top-up bonus. */
+  first_topup_bonus_eligible?: boolean
 }
 
 /**

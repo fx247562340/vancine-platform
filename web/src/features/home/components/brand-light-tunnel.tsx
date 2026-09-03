@@ -16,7 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-
 /*
 Vancine's light-field renderer is adapted from the React Bits Light Tunnel
 component. Copyright (c) 2026 David Haz. Licensed under the MIT License with
@@ -184,9 +183,14 @@ interface TunnelRuntime {
 // form "r g b" (whitespace-separated, 0-1 floats) into a
 // [r, g, b] array. Returns null when the token is missing or
 // malformed so the caller can fall back to the default palette.
-function parseTokenRgbTriplet(value: string | null): [number, number, number] | null {
+function parseTokenRgbTriplet(
+  value: string | null
+): [number, number, number] | null {
   if (!value) return null
-  const parts = value.trim().split(/\s+/).map((p) => Number(p))
+  const parts = value
+    .trim()
+    .split(/\s+/)
+    .map((p) => Number(p))
   if (parts.length !== 3) return null
   if (parts.some((n) => !Number.isFinite(n))) return null
   const [r, g, b] = parts as [number, number, number]
@@ -217,8 +221,12 @@ function readBrandTokens(host: HTMLElement, appearance: Appearance) {
     parseTokenRgbTriplet(style.getPropertyValue(`--${name}-rgb`))
   )
   const [cool, violet, warm, pulse] = raw
-  const opacity = parseTokenScalar(style.getPropertyValue(`--${BRAND_SCALAR_TOKENS.opacity}`))
-  const brightness = parseTokenScalar(style.getPropertyValue(`--${BRAND_SCALAR_TOKENS.brightness}`))
+  const opacity = parseTokenScalar(
+    style.getPropertyValue(`--${BRAND_SCALAR_TOKENS.opacity}`)
+  )
+  const brightness = parseTokenScalar(
+    style.getPropertyValue(`--${BRAND_SCALAR_TOKENS.brightness}`)
+  )
   return { cool, violet, warm, pulse, opacity, brightness }
 }
 

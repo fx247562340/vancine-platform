@@ -411,9 +411,7 @@ describe('selectFastForHomepage', () => {
   it('caps at 4 results on homepage', () => {
     const models = [
       model('f1', 'featured'),
-      ...Array.from({ length: 6 }, (_, i) =>
-        model(`fl-${i}`, 'fast')
-      ),
+      ...Array.from({ length: 6 }, (_, i) => model(`fl-${i}`, 'fast')),
     ]
     const result = selectFastForHomepage(models)
     expect(result).toHaveLength(4)
@@ -441,10 +439,7 @@ describe('selectFastForHomepage', () => {
   })
 
   it('returns empty when all fast models are also featured', () => {
-    const models = [
-      model('A', 'featured,fast'),
-      model('B', 'featured,fast'),
-    ]
+    const models = [model('A', 'featured,fast'), model('B', 'featured,fast')]
     expect(selectFastForHomepage(models)).toEqual([])
   })
 })

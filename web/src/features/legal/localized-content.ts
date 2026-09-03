@@ -16,7 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-
 /**
  * Deterministic locale fallback chains, mirroring the backend's
  * LocalizedString.ContentFor. Keys are canonical BCP-47 tags produced by

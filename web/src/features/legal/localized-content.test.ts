@@ -56,9 +56,15 @@ describe('selectLocalizedContent', () => {
   })
 
   test('returns non-map content unchanged', () => {
-    assert.equal(selectLocalizedContent('# Markdown body', 'en'), '# Markdown body')
+    assert.equal(
+      selectLocalizedContent('# Markdown body', 'en'),
+      '# Markdown body'
+    )
     assert.equal(selectLocalizedContent('<p>html</p>', 'en'), '<p>html</p>')
-    assert.equal(selectLocalizedContent('https://example.com/tos', 'en'), 'https://example.com/tos')
+    assert.equal(
+      selectLocalizedContent('https://example.com/tos', 'en'),
+      'https://example.com/tos'
+    )
     assert.equal(selectLocalizedContent('', 'en'), '')
     // Invalid JSON that starts with '{' is treated as plain content.
     assert.equal(selectLocalizedContent('{not json', 'en'), '{not json')

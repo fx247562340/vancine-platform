@@ -50,6 +50,7 @@ import {
   saveAffiliateCode,
 } from '@/features/auth/lib/storage'
 import { isRegisterSuccess } from '@/features/auth/types'
+import { FirstTopUpBonusCallout } from '@/features/first-topup-bonus'
 import { useStatus } from '@/hooks/use-status'
 import { reportSignupStarted } from '@/lib/acquisition'
 import { isAuthBundle } from '@/lib/api'
@@ -397,6 +398,13 @@ export function SignUpForm({
           onCheckedChange={setAgreedToLegal}
           className='mt-1'
         />
+
+        {/* First top-up bonus: signup variant. Renders nothing when the
+            promotion is disabled. The signup variant explicitly states
+            that sign-up itself grants 0 Credits and that the bonus is
+            credited only after the first successful top-up — so the
+            page never reads as "register to claim a free bonus". */}
+        <FirstTopUpBonusCallout variant='signup' className='mt-2' />
 
         {/* Submit Button */}
         <Button

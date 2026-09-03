@@ -23,6 +23,7 @@ import type { ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
+import { FirstTopUpBonusCallout } from '@/features/first-topup-bonus'
 import { trackEvent } from '@/lib/analytics'
 
 import { getKimiK3CtaTarget, KIMI_K3_CTA_EVENT } from '../lib/landing'
@@ -57,6 +58,7 @@ export function FinalCta(props: FinalCtaProps): ReactElement {
             'Start with a documented OpenAI-compatible request, then choose the model that fits the work.'
           )}
         </p>
+        <FirstTopUpBonusCallout className='w-full max-w-xl' />
         <Button
           size='lg'
           className='h-11 px-6'

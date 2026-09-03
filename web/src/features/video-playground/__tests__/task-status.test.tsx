@@ -33,6 +33,8 @@ import i18next, { type i18n as I18n } from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { routerLinkMock } from '@/test/router-link-mock'
+
 import {
   getVideoModelsWithApiKey,
   getVideoTask,
@@ -40,7 +42,6 @@ import {
   loadVideoApiSecret,
   submitVideoGenerationWithApiKey,
 } from '../api'
-import { routerLinkMock } from '@/test/router-link-mock'
 import {
   FAKE_SECRET,
   readyGenerateButton,

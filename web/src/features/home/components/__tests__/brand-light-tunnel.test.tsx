@@ -247,14 +247,20 @@ function installHarness(): Harness {
     __rafOriginal: rafOriginal,
     __cafOriginal: cafOriginal,
     __ioOriginal: ioOriginal,
-  } as Harness & { __rafOriginal: unknown; __cafOriginal: unknown; __ioOriginal: unknown }
+  } as Harness & {
+    __rafOriginal: unknown
+    __cafOriginal: unknown
+    __ioOriginal: unknown
+  }
 }
 
-function restoreHarness(harness: ReturnType<typeof installHarness> & {
-  __rafOriginal: unknown
-  __cafOriginal: unknown
-  __ioOriginal: unknown
-}) {
+function restoreHarness(
+  harness: ReturnType<typeof installHarness> & {
+    __rafOriginal: unknown
+    __cafOriginal: unknown
+    __ioOriginal: unknown
+  }
+) {
   vi.restoreAllMocks()
   Object.defineProperty(globalThis, 'requestAnimationFrame', {
     configurable: true,

@@ -18,8 +18,8 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useMemo } from 'react'
 
-import type { PricingModel } from '@/features/pricing/types'
 import { usePricingData } from '@/features/pricing/hooks/use-pricing-data'
+import type { PricingModel } from '@/features/pricing/types'
 
 import { selectFastCodingModelsPricing } from '../lib/fast-coding-models'
 

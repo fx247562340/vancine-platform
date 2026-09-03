@@ -92,10 +92,7 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim() !== ''
 }
 
-function sortByModelName<T extends { model_name: string }>(
-  a: T,
-  b: T
-): number {
+function sortByModelName<T extends { model_name: string }>(a: T, b: T): number {
   return a.model_name.localeCompare(b.model_name, undefined, NAME_COLLATOR)
 }
 
@@ -133,9 +130,9 @@ export function selectMarketplace(
  * normalization). Sorted case-insensitive by `model_name`, capped at
  * 4. No hardcoded allowlist.
  */
-export function selectFeatured<
-  T extends { model_name: string; tags?: string },
->(models: readonly T[]): T[] {
+export function selectFeatured<T extends { model_name: string; tags?: string }>(
+  models: readonly T[]
+): T[] {
   if (!Array.isArray(models)) return []
   const featured: T[] = []
   for (const item of models) {
@@ -190,9 +187,7 @@ export function selectFastForHomepage<
   T extends { model_name: string; tags?: string },
 >(models: readonly T[]): T[] {
   if (!Array.isArray(models)) return []
-  const featuredNames = new Set(
-    selectFeatured(models).map((m) => m.model_name)
-  )
+  const featuredNames = new Set(selectFeatured(models).map((m) => m.model_name))
   return selectFast(models)
     .filter((m) => !featuredNames.has(m.model_name))
     .slice(0, 4)
@@ -202,9 +197,7 @@ export function selectFastForHomepage<
  * True iff the model carries the exact "preview" token in its tags.
  * Used to drive the preview badge on model cards.
  */
-export function hasPreviewTag(
-  tags: string | undefined | null
-): boolean {
+export function hasPreviewTag(tags: string | undefined | null): boolean {
   return tagList(tags).includes('preview')
 }
 

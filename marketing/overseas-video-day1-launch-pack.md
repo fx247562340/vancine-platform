@@ -64,7 +64,7 @@ output/imagegen/vancine-youtube-watermark-150x150.png
 公开文案使用：
 
 ```text
-Start with prepaid API credit.
+Start with prepaid API credit. Complete your first successful top-up to receive 500,000 Bonus Credits — one bonus per account. 500,000 Credits equals $1 in API balance.
 ```
 
 不要公开写：
@@ -75,9 +75,11 @@ Get $1 free credits.
 
 当前公开策略：
 
-- 当前不提供公开自动注册赠送。
-- 如果以后重新开展推广额度，只能采用邀请码、定向活动或人工审批方式。
-- 未经再次确认，不在公开页面承诺固定赠送金额。
+- 注册本身不赠送任何 Credits（signup itself grants no Credits）。
+- 首次充值成功后赠送 500,000 Bonus Credits，每个账户限一次（one bonus per account）。
+- 500,000 Credits 等值 $1 API 余额（500,000 Credits equals $1 in API balance）。
+- 赠送以首次充值成功的结算结果为准；pending/失败/退款记录不赠送也不恢复资格。
+- 未经再次确认，不把赠送描述成注册赠送、免费试用或充值比例奖励。
 
 ### 任务 3：制作 3 条短视频
 

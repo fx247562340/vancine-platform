@@ -73,9 +73,7 @@ export default function DocsAgentDetailPage(props: {
 
   const profile = getDocsAgentToolProfile(props.tool)
   const isOpenCode = props.tool === 'opencode'
-  const stepNumbers = isOpenCode
-    ? OPENCODE_STEP_NUMBERS
-    : SHARED_STEP_NUMBERS
+  const stepNumbers = isOpenCode ? OPENCODE_STEP_NUMBERS : SHARED_STEP_NUMBERS
   const configBlocks = useMemo(
     () => getDocsAgentConfigExample(props.tool, props.baseUrl),
     [props.tool, props.baseUrl]
@@ -331,10 +329,7 @@ export default function DocsAgentDetailPage(props: {
             <p className='text-muted-foreground text-sm leading-relaxed'>
               {errorKey === 'model' && isOpenCode
                 ? t('agentGuides.opencode.errors.model.fix')
-                : t(
-                    `agentGuides.common.errors.${errorKey}.fix`,
-                    interpolation
-                  )}
+                : t(`agentGuides.common.errors.${errorKey}.fix`, interpolation)}
             </p>
           </div>
         ))}

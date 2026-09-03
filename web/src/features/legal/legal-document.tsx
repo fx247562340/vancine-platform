@@ -30,7 +30,6 @@ import { toLanguageTag } from '@/i18n/languages'
 import { isHttpUrl, isLikelyHtml } from '@/lib/content-format'
 
 import { selectLocalizedContent } from './localized-content'
-
 import type { LegalDocumentResponse } from './types'
 
 type LegalDocumentProps = {

@@ -192,6 +192,18 @@ export function useTopupInfo() {
         waffo_pay_methods: parseWaffoPayMethods(
           response.data.waffo_pay_methods
         ),
+        // First top-up bonus fields are normalized defensively: a missing /
+        // non-finite / non-positive quota is treated as 0 (no bonus), and
+        // eligibility is only true when the server explicitly returns
+        // exactly true. Anything else (undefined, null, false, a wrong
+        // type) collapses to false, so a stale or partial response never
+        // grants a bonus the server did not promise.
+        first_topup_bonus_quota: (() => {
+          const raw = Number(response.data.first_topup_bonus_quota)
+          return Number.isFinite(raw) && raw > 0 ? raw : 0
+        })(),
+        first_topup_bonus_eligible:
+          response.data.first_topup_bonus_eligible === true,
       }
 
       setTopupInfo(processedData)

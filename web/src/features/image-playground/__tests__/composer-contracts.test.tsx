@@ -199,7 +199,11 @@ function renderPage(i18n: I18n, options?: { innerWidth?: number }) {
       // the next test sees the pristine window.innerWidth definition.
       window.matchMedia = originalMatchMedia
       if (originalInnerWidthDescriptor) {
-        Object.defineProperty(window, 'innerWidth', originalInnerWidthDescriptor)
+        Object.defineProperty(
+          window,
+          'innerWidth',
+          originalInnerWidthDescriptor
+        )
       } else {
         delete (window as unknown as { innerWidth?: number }).innerWidth
       }

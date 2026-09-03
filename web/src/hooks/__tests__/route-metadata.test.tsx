@@ -57,8 +57,7 @@ describe('Home route metadata contract', () => {
       { initialProps: { language: 'en' } }
     )
 
-    const expectedTitle =
-      'Chinese Frontier & Fast AI Models API | Vancine'
+    const expectedTitle = 'Chinese Frontier & Fast AI Models API | Vancine'
     expect(document.title).toBe(expectedTitle)
     expect(
       document.head.querySelector('meta[name="title"]')?.getAttribute('content')

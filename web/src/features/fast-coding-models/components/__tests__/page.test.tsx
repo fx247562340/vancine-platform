@@ -358,17 +358,14 @@ describe('live pricing states', () => {
       const details = within(card).getByRole('link', {
         name: /Model details/,
       })
-      expect(details).toHaveAttribute(
-        'href',
-        `/pricing/${model.model_name}`
-      )
+      expect(details).toHaveAttribute('href', `/pricing/${model.model_name}`)
     }
   })
 
   it('marks the preview-tagged model as Preview and no other model', async () => {
     renderPage()
-    const previewModel = DEFAULT_FAST_MODELS.find(
-      (m) => (m.tags ?? '').includes('preview')
+    const previewModel = DEFAULT_FAST_MODELS.find((m) =>
+      (m.tags ?? '').includes('preview')
     )
     if (!previewModel) throw new Error('fixture missing preview-tagged model')
     const previewCard = await screen.findByTestId(

@@ -49,7 +49,11 @@ import { SpotlightCard } from '../spotlight-card'
  *   - status === 'ready' && fast.length > 0: card grid + footer link
  *     to /guides/fast-coding-models
  */
-export function FastModels({ pricing }: { pricing: HomepagePricingState }): React.ReactElement | null {
+export function FastModels({
+  pricing,
+}: {
+  pricing: HomepagePricingState
+}): React.ReactElement | null {
   const { t } = useTranslation()
   const { status, fast, rawVendors, count } = pricing
 
@@ -151,7 +155,11 @@ function FastGrid({
       data-testid='homepage-fast-models-grid'
     >
       {fast.map((model) => (
-        <FastCard key={model.model_name} model={model} rawVendors={rawVendors} />
+        <FastCard
+          key={model.model_name}
+          model={model}
+          rawVendors={rawVendors}
+        />
       ))}
     </div>
   )

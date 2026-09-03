@@ -16,8 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { routerLinkMock } from '@/test/router-link-mock'
-
 import { render, screen, within } from '@testing-library/react'
 import i18next from 'i18next'
 import { I18nextProvider, initReactI18next } from 'react-i18next'
@@ -43,8 +41,16 @@ const systemConfigFixture = {
 // The footer only uses Link for the brand row (to='/'). Mock the boundary as
 // a plain anchor so the real Footer renders without the router's async mount
 // lifecycle; children/to/className are preserved and the anchor is
-// user-queryable.
-vi.mock('@tanstack/react-router', () => routerLinkMock)
+// user-queryable. The shared `routerLinkMock` shim lives in
+// `@/test/router-link-mock`; we resolve it through a dynamic `import()` so
+// the hoisted mock factory never closes over a module-level binding (which
+// is what produced the `__vi_import_6__` "before initialization" error in
+// earlier attempts). The shim's implementation lives in exactly one place
+// (router-link-mock) and is not duplicated here.
+vi.mock('@tanstack/react-router', async () => {
+  const { routerLinkMock } = await import('@/test/router-link-mock')
+  return routerLinkMock
+})
 
 // Footer collaborators that would otherwise hit the network: controlled
 // boundary mocks; the footer itself (module under test) stays real.
@@ -139,9 +145,7 @@ describe('Footer attribution removal', () => {
   it('does not render the New API attribution in the default branch', () => {
     const { container } = renderFooter()
 
-    expect(
-      screen.queryByText(UPSTREAM_ATTRIBUTION_TEXT)
-    ).toBeNull()
+    expect(screen.queryByText(UPSTREAM_ATTRIBUTION_TEXT)).toBeNull()
     expect(container.textContent).not.toContain('New API contributors')
     // No link to the upstream repo anywhere in the footer.
     expect(
@@ -156,9 +160,7 @@ describe('Footer attribution removal', () => {
     const { container } = renderFooter()
 
     expect(screen.getByText('Custom footer content')).toBeDefined()
-    expect(
-      screen.queryByText(UPSTREAM_ATTRIBUTION_TEXT)
-    ).toBeNull()
+    expect(screen.queryByText(UPSTREAM_ATTRIBUTION_TEXT)).toBeNull()
     expect(container.textContent).not.toContain('New API contributors')
     expect(
       container.querySelector(
