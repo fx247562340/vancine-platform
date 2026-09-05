@@ -25,6 +25,7 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
+	"github.com/QuantumNous/new-api/dto"
 	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -90,7 +91,7 @@ func TestGetChannelDoesNotLetIneligibleHighPriorityShadowEligibleOnPlayground(t 
 			if cacheEnabled {
 				InitChannelCache()
 			}
-			channel, err := GetRandomSatisfiedChannel("default", "qwen-image-2.0-pro", 0, "/pg/images/generations")
+			channel, err := GetRandomSatisfiedChannel("default", "qwen-image-2.0-pro", 0, []dto.ChannelFilter{{Kind: dto.FilterRequestPath, RequestPath: "/pg/images/generations"}})
 			require.NoError(t, err)
 			require.NotNil(t, channel)
 			assert.Equal(t, 2, channel.Id)
@@ -110,7 +111,7 @@ func TestGetChannelDoesNotApplyImageEligibilityOnV1(t *testing.T) {
 			if cacheEnabled {
 				InitChannelCache()
 			}
-			channel, err := GetRandomSatisfiedChannel("default", "qwen-image-2.0-pro", 0, "/v1/images/generations")
+			channel, err := GetRandomSatisfiedChannel("default", "qwen-image-2.0-pro", 0, []dto.ChannelFilter{{Kind: dto.FilterRequestPath, RequestPath: "/v1/images/generations"}})
 			require.NoError(t, err)
 			require.NotNil(t, channel)
 			assert.Equal(t, 1, channel.Id)
@@ -131,17 +132,17 @@ func TestGetChannelRetryUsesEligiblePrioritiesOnPlayground(t *testing.T) {
 			if cacheEnabled {
 				InitChannelCache()
 			}
-			first, err := GetRandomSatisfiedChannel("default", "qwen-image-2.0-pro", 0, "/pg/images/generations")
+			first, err := GetRandomSatisfiedChannel("default", "qwen-image-2.0-pro", 0, []dto.ChannelFilter{{Kind: dto.FilterRequestPath, RequestPath: "/pg/images/generations"}})
 			require.NoError(t, err)
 			require.NotNil(t, first)
 			assert.Equal(t, 2, first.Id)
 
-			retry, err := GetRandomSatisfiedChannel("default", "qwen-image-2.0-pro", 1, "/pg/images/generations")
+			retry, err := GetRandomSatisfiedChannel("default", "qwen-image-2.0-pro", 1, []dto.ChannelFilter{{Kind: dto.FilterRequestPath, RequestPath: "/pg/images/generations"}})
 			require.NoError(t, err)
 			require.NotNil(t, retry)
 			assert.Equal(t, 3, retry.Id)
 
-			v1, err := GetRandomSatisfiedChannel("default", "qwen-image-2.0-pro", 0, "/v1/images/generations")
+			v1, err := GetRandomSatisfiedChannel("default", "qwen-image-2.0-pro", 0, []dto.ChannelFilter{{Kind: dto.FilterRequestPath, RequestPath: "/v1/images/generations"}})
 			require.NoError(t, err)
 			require.NotNil(t, v1)
 			assert.Equal(t, 1, v1.Id)
@@ -160,7 +161,7 @@ func TestGetChannelSelectsVolcEngineForSeedreamOnPlayground(t *testing.T) {
 			if cacheEnabled {
 				InitChannelCache()
 			}
-			channel, err := GetRandomSatisfiedChannel("default", "Doubao-Seedream-5.0-pro", 0, "/pg/images/generations")
+			channel, err := GetRandomSatisfiedChannel("default", "Doubao-Seedream-5.0-pro", 0, []dto.ChannelFilter{{Kind: dto.FilterRequestPath, RequestPath: "/pg/images/generations"}})
 			require.NoError(t, err)
 			require.NotNil(t, channel)
 			assert.Equal(t, 2, channel.Id)

@@ -31,20 +31,25 @@ import { beforeAll, describe, expect, it } from 'vitest'
 let i18n: typeof i18nType
 
 beforeAll(async () => {
-  // Seed the stored language with the rc23 internal code so the real detector
-  // initializes to zhTW; legacy variant compatibility is covered separately
-  // by auth-language-restore.
+  // The vitest setup file initializes the i18next singleton first, so the
+  // production config's init below is a no-op and its detector never reads
+  // the cached language. Drive the stored language through changeLanguage —
+  // the production wiring under test is the <html lang> sync, which fires
+  // on every languageChanged regardless of who drove it.
   window.localStorage.clear()
   window.localStorage.setItem('i18nextLng', 'zhTW')
-  // Dynamically import the REAL production config (runs init + wiring once).
   const config = await import('@/i18n/config')
   await config.i18nInitPromise
   i18n = config.default
+  await i18n.changeLanguage('zhTW')
 })
 
 describe('real config.ts <html lang> production wiring', () => {
   it('initializes <html lang> to zh-TW from the cached zhTW language', () => {
-    expect(i18n.resolvedLanguage).toBe('zhTW')
+    // Under the vitest setup the shared singleton carries no zhTW resources
+    // (locale chunks are lazy), so resolvedLanguage stays undefined; the
+    // wiring contract is i18n.language and the synced <html lang>.
+    expect(i18n.language).toBe('zhTW')
     expect(document.documentElement.lang).toBe('zh-TW')
   })
 

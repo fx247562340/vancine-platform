@@ -78,12 +78,14 @@ describe('useVideoTask', () => {
       .mockResolvedValueOnce({
         task_id: 'task-1',
         status: 'SUCCESS',
-        result_url: 'https://cdn.example.com/a.mp4',
+        content_url:
+          'https://vancine.test/v1/tasks/task-1/artifacts/video/content',
       })
       .mockResolvedValue({
         task_id: 'task-1',
         status: 'SUCCESS',
-        result_url: 'https://cdn.example.com/a.mp4',
+        content_url:
+          'https://vancine.test/v1/tasks/task-1/artifacts/video/content',
       })
 
     const { result } = renderHook(() => useVideoTask('task-1'), {
@@ -120,6 +122,68 @@ describe('useVideoTask', () => {
       await vi.advanceTimersByTimeAsync(10000)
     })
     expect(getVideoTask).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not auto-refetch a terminal SUCCESS on window focus or remount', async () => {
+    vi.mocked(getVideoTask).mockResolvedValue({
+      task_id: 'task-1',
+      status: 'SUCCESS',
+      content_url:
+        'https://vancine.test/v1/tasks/task-1/artifacts/video/content',
+    })
+    const client = new QueryClient({
+      defaultOptions: { queries: { gcTime: Infinity } },
+    })
+    function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      )
+    }
+    const { unmount } = renderHook(() => useVideoTask('task-1'), {
+      wrapper: Wrapper,
+    })
+    await flushQuery()
+    const settledCalls = vi.mocked(getVideoTask).mock.calls.length
+    expect(settledCalls).toBe(1)
+
+    await act(async () => {
+      window.dispatchEvent(new Event('focus'))
+      document.dispatchEvent(new Event('visibilitychange'))
+      await vi.advanceTimersByTimeAsync(30000)
+    })
+    expect(vi.mocked(getVideoTask).mock.calls.length).toBe(settledCalls)
+
+    unmount()
+    renderHook(() => useVideoTask('task-1'), { wrapper: Wrapper })
+    await flushQuery()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30000)
+    })
+    expect(vi.mocked(getVideoTask).mock.calls.length).toBe(settledCalls)
+  })
+
+  it('retries a retryable transport failure up to the retry limit', async () => {
+    vi.mocked(getVideoTask).mockRejectedValue(
+      new VideoPlaygroundError({
+        kind: 'system',
+        errorKey: 'Failed to load video status',
+        httpStatus: 503,
+      })
+    )
+    const { result } = renderHook(() => useVideoTask('task-1'), {
+      wrapper: createWrapper(),
+    })
+    await flushQuery()
+    for (let attempt = 0; attempt < VIDEO_TASK_STATUS_RETRY_COUNT; attempt++) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(VIDEO_TASK_STATUS_RETRY_DELAY_MS)
+      })
+      await flushQuery()
+    }
+    expect(result.current.isError).toBe(true)
+    expect(vi.mocked(getVideoTask).mock.calls.length).toBe(
+      VIDEO_TASK_STATUS_RETRY_COUNT + 1
+    )
   })
 
   it('stops polling after unmount', async () => {
@@ -162,6 +226,27 @@ describe('useVideoTask', () => {
     await flushQuery()
     expect(result.current.isSuccess).toBe(true)
     expect(result.current.data?.status).toBe('IN_PROGRESS')
+  })
+
+  it('does not retry or keep polling on a 401 (fatal client error)', async () => {
+    vi.mocked(getVideoTask).mockRejectedValue(
+      new VideoPlaygroundError({
+        kind: 'upstream',
+        rawMessage: 'Token is invalid',
+        httpStatus: 401,
+      })
+    )
+    const { result } = renderHook(() => useVideoTask('task-1'), {
+      wrapper: createWrapper(),
+    })
+    await flushQuery()
+    expect(result.current.isError).toBe(true)
+    expect(vi.mocked(getVideoTask).mock.calls.length).toBe(1)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15000)
+    })
+    await flushQuery()
+    expect(vi.mocked(getVideoTask).mock.calls.length).toBe(1)
   })
 
   it('surfaces an error after status retries are exhausted', async () => {

@@ -21,7 +21,8 @@ For commercial licensing, please contact support@quantumnous.com
 // consumer (browser detection, saved preference restore, <html lang>, Intl,
 // Accept-Language) depends on.
 import assert from 'node:assert/strict'
-import { describe, test } from 'node:test'
+
+import { describe, test } from 'vitest'
 
 import {
   normalizeInterfaceLanguage,

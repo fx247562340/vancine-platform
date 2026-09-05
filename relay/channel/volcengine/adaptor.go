@@ -2,7 +2,6 @@ package volcengine
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -52,40 +51,50 @@ func (a *Adaptor) ConvertAudioRequest(c *gin.Context, info *relaycommon.RelayInf
 		return nil, errors.New("unsupported audio relay mode")
 	}
 
-	voiceType := mapVoiceType(request.Voice, info.UpstreamModelName)
-	encoding := mapEncoding(request.ResponseFormat)
+	appID, token, err := parseVolcengineAuth(info.ApiKey)
+	if err != nil {
+		return nil, err
+	}
+
+	voiceType := mapVoiceType(request.Voice)
 	speedRatio := lo.FromPtrOr(request.Speed, 0.0)
+	encoding := mapEncoding(request.ResponseFormat)
 
 	c.Set(contextKeyResponseFormat, encoding)
 
-	// New v3 request format for HTTP Chunked endpoint
-	volcRequest := map[string]interface{}{
-		"user": map[string]string{
-			"uid": "openai_relay_user",
+	volcRequest := VolcengineTTSRequest{
+		App: VolcengineTTSApp{
+			AppID:   appID,
+			Token:   token,
+			Cluster: "volcano_tts",
 		},
-		"req_params": map[string]interface{}{
-			"text":    request.Input,
-			"speaker": voiceType,
-			"audio_params": map[string]interface{}{
-				"format":      encoding,
-				"sample_rate": 24000,
-			},
+		User: VolcengineTTSUser{
+			UID: "openai_relay_user",
+		},
+		Audio: VolcengineTTSAudio{
+			VoiceType:  voiceType,
+			Encoding:   encoding,
+			SpeedRatio: speedRatio,
+			Rate:       24000,
+		},
+		Request: VolcengineTTSReqInfo{
+			ReqID:     generateRequestID(),
+			Text:      request.Input,
+			Operation: "submit",
+			Model:     info.OriginModelName,
 		},
 	}
 
-	// Add speed if specified
-	if speedRatio > 0 {
-		reqParams := volcRequest["req_params"].(map[string]interface{})
-		audioParams := reqParams["audio_params"].(map[string]interface{})
-		// Convert speed ratio to speech_rate: 1.0 = 0, 2.0 = 100, 0.5 = -50
-		speechRate := int((speedRatio - 1.0) * 100)
-		if speechRate < -50 {
-			speechRate = -50
+	if len(request.Metadata) > 0 {
+		if err = json.Unmarshal(request.Metadata, &volcRequest); err != nil {
+			return nil, fmt.Errorf("error unmarshalling metadata to volcengine request: %w", err)
 		}
-		if speechRate > 100 {
-			speechRate = 100
-		}
-		audioParams["speech_rate"] = speechRate
+	}
+
+	c.Set(contextKeyTTSRequest, volcRequest)
+
+	if volcRequest.Request.Operation == "submit" {
+		info.IsStream = true
 	}
 
 	jsonData, err := json.Marshal(volcRequest)
@@ -102,11 +111,109 @@ func (a *Adaptor) ConvertImageRequest(c *gin.Context, info *relaycommon.RelayInf
 		if isSeedream5(info.OriginModelName) {
 			return convertSeedream5ImageRequest(request)
 		}
-		if strings.Contains(strings.ToLower(info.OriginModelName), "seedream") && request.Watermark == nil {
-			watermark := false
-			request.Watermark = &watermark
-		}
 		return request, nil
+	// 根据官方文档,并没有发现豆包生图支持表单请求:https://www.volcengine.com/docs/82379/1824121
+	//case constant.RelayModeImagesEdits:
+	//
+	//	var requestBody bytes.Buffer
+	//	writer := multipart.NewWriter(&requestBody)
+	//
+	//	writer.WriteField("model", request.Model)
+	//
+	//	formData := c.Request.PostForm
+	//	for key, values := range formData {
+	//		if key == "model" {
+	//			continue
+	//		}
+	//		for _, value := range values {
+	//			writer.WriteField(key, value)
+	//		}
+	//	}
+	//
+	//	if err := c.Request.ParseMultipartForm(32 << 20); err != nil {
+	//		return nil, errors.New("failed to parse multipart form")
+	//	}
+	//
+	//	if c.Request.MultipartForm != nil && c.Request.MultipartForm.File != nil {
+	//		var imageFiles []*multipart.FileHeader
+	//		var exists bool
+	//
+	//		if imageFiles, exists = c.Request.MultipartForm.File["image"]; !exists || len(imageFiles) == 0 {
+	//			if imageFiles, exists = c.Request.MultipartForm.File["image[]"]; !exists || len(imageFiles) == 0 {
+	//				foundArrayImages := false
+	//				for fieldName, files := range c.Request.MultipartForm.File {
+	//					if strings.HasPrefix(fieldName, "image[") && len(files) > 0 {
+	//						foundArrayImages = true
+	//						for _, file := range files {
+	//							imageFiles = append(imageFiles, file)
+	//						}
+	//					}
+	//				}
+	//
+	//				if !foundArrayImages && (len(imageFiles) == 0) {
+	//					return nil, errors.New("image is required")
+	//				}
+	//			}
+	//		}
+	//
+	//		for i, fileHeader := range imageFiles {
+	//			file, err := fileHeader.Open()
+	//			if err != nil {
+	//				return nil, fmt.Errorf("failed to open image file %d: %w", i, err)
+	//			}
+	//			defer file.Close()
+	//
+	//			fieldName := "image"
+	//			if len(imageFiles) > 1 {
+	//				fieldName = "image[]"
+	//			}
+	//
+	//			mimeType := detectImageMimeType(fileHeader.Filename)
+	//
+	//			h := make(textproto.MIMEHeader)
+	//			h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="%s"; filename="%s"`, fieldName, fileHeader.Filename))
+	//			h.Set("Content-Type", mimeType)
+	//
+	//			part, err := writer.CreatePart(h)
+	//			if err != nil {
+	//				return nil, fmt.Errorf("create form part failed for image %d: %w", i, err)
+	//			}
+	//
+	//			if _, err := io.Copy(part, file); err != nil {
+	//				return nil, fmt.Errorf("copy file failed for image %d: %w", i, err)
+	//			}
+	//		}
+	//
+	//		if maskFiles, exists := c.Request.MultipartForm.File["mask"]; exists && len(maskFiles) > 0 {
+	//			maskFile, err := maskFiles[0].Open()
+	//			if err != nil {
+	//				return nil, errors.New("failed to open mask file")
+	//			}
+	//			defer maskFile.Close()
+	//
+	//			mimeType := detectImageMimeType(maskFiles[0].Filename)
+	//
+	//			h := make(textproto.MIMEHeader)
+	//			h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="mask"; filename="%s"`, maskFiles[0].Filename))
+	//			h.Set("Content-Type", mimeType)
+	//
+	//			maskPart, err := writer.CreatePart(h)
+	//			if err != nil {
+	//				return nil, errors.New("create form file failed for mask")
+	//			}
+	//
+	//			if _, err := io.Copy(maskPart, maskFile); err != nil {
+	//				return nil, errors.New("copy mask file failed")
+	//			}
+	//		}
+	//	} else {
+	//		return nil, errors.New("no multipart form data found")
+	//	}
+	//
+	//	writer.Close()
+	//	c.Request.Header.Set("Content-Type", writer.FormDataContentType())
+	//	return bytes.NewReader(requestBody.Bytes()), nil
+
 	default:
 		return request, nil
 	}
@@ -135,7 +242,7 @@ func (a *Adaptor) Init(info *relaycommon.RelayInfo) {
 func (a *Adaptor) GetRequestURL(info *relaycommon.RelayInfo) (string, error) {
 	baseUrl := info.ChannelBaseUrl
 	if baseUrl == "" {
-		baseUrl = channelconstant.ChannelBaseURLs[channelconstant.ChannelTypeVolcEngine]
+		baseUrl = channelconstant.GetChannelBaseURL(channelconstant.ChannelTypeVolcEngine)
 	}
 	specialPlan, hasSpecialPlan := channelconstant.ChannelSpecialBases[baseUrl]
 
@@ -160,15 +267,20 @@ func (a *Adaptor) GetRequestURL(info *relaycommon.RelayInfo) (string, error) {
 			return fmt.Sprintf("%s/api/v3/chat/completions", baseUrl), nil
 		case constant.RelayModeEmbeddings:
 			return fmt.Sprintf("%s/api/v3/embeddings", baseUrl), nil
+		//豆包的图生图也走generations接口: https://www.volcengine.com/docs/82379/1824121
 		case constant.RelayModeImagesGenerations, constant.RelayModeImagesEdits:
 			return fmt.Sprintf("%s/api/v3/images/generations", baseUrl), nil
+		//case constant.RelayModeImagesEdits:
+		//	return fmt.Sprintf("%s/api/v3/images/edits", baseUrl), nil
 		case constant.RelayModeRerank:
 			return fmt.Sprintf("%s/api/v3/rerank", baseUrl), nil
 		case constant.RelayModeResponses:
 			return fmt.Sprintf("%s/api/v3/responses", baseUrl), nil
 		case constant.RelayModeAudioSpeech:
-			// Use Volcengine's HTTP Chunked TTS API
-			return "https://openspeech.bytedance.com/api/v3/tts/unidirectional", nil
+			if baseUrl == channelconstant.GetChannelBaseURL(channelconstant.ChannelTypeVolcEngine) {
+				return "wss://openspeech.bytedance.com/api/v1/tts/ws_binary", nil
+			}
+			return fmt.Sprintf("%s/v1/audio/speech", baseUrl), nil
 		default:
 		}
 	}
@@ -179,18 +291,10 @@ func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Header, info *rel
 	channel.SetupApiRequestHeader(info, c, req)
 
 	if info.RelayMode == constant.RelayModeAudioSpeech {
-		// Support both new (X-Api-Key) and old (appid|access_token) auth formats
 		parts := strings.Split(info.ApiKey, "|")
 		if len(parts) == 2 {
-			// Old format: appid|access_token
-			req.Set("X-Api-App-Id", parts[0])
-			req.Set("X-Api-Access-Key", parts[1])
-		} else {
-			// New format: single API key
-			req.Set("X-Api-Key", info.ApiKey)
+			req.Set("Authorization", "Bearer;"+parts[1])
 		}
-		// Use upstream model name as resource ID (e.g. seed-tts-1.0, seed-tts-2.0)
-		req.Set("X-Api-Resource-Id", info.UpstreamModelName)
 		req.Set("Content-Type", "application/json")
 		return nil
 	} else if info.RelayMode == constant.RelayModeImagesEdits {
@@ -229,6 +333,18 @@ func (a *Adaptor) ConvertOpenAIResponsesRequest(c *gin.Context, info *relaycommo
 }
 
 func (a *Adaptor) DoRequest(c *gin.Context, info *relaycommon.RelayInfo, requestBody io.Reader) (any, error) {
+	if info.RelayMode == constant.RelayModeAudioSpeech {
+		baseUrl := info.ChannelBaseUrl
+		if baseUrl == "" {
+			baseUrl = channelconstant.GetChannelBaseURL(channelconstant.ChannelTypeVolcEngine)
+		}
+
+		if baseUrl == channelconstant.GetChannelBaseURL(channelconstant.ChannelTypeVolcEngine) {
+			if info.IsStream {
+				return nil, nil
+			}
+		}
+	}
 	return channel.DoApiRequest(a, c, info, requestBody)
 }
 
@@ -241,90 +357,38 @@ func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, info *relaycom
 	}
 
 	if info.RelayMode == constant.RelayModeAudioSpeech {
-		// Volcengine returns multiple JSON objects with base64-encoded audio chunks
-		// Format: {"code":0,"data":"base64..."}{"code":0,"data":"base64..."}...{"code":20000000,"message":"OK","data":null}
-		body, readErr := io.ReadAll(resp.Body)
-		if readErr != nil {
-			return nil, types.NewErrorWithStatusCode(
-				fmt.Errorf("failed to read response: %w", readErr),
-				types.ErrorCodeReadResponseBodyFailed,
-				http.StatusInternalServerError,
-			)
-		}
-		defer resp.Body.Close()
-
-		bodyStr := string(body)
-		var allAudioData []byte
-
-		// Parse all JSON objects in the response
-		pos := 0
-		for pos < len(bodyStr) {
-			// Find next "data":"
-			dataPrefix := `"data":"`
-			dataIdx := -1
-			for i := pos; i < len(bodyStr)-len(dataPrefix); i++ {
-				if bodyStr[i:i+len(dataPrefix)] == dataPrefix {
-					dataIdx = i + len(dataPrefix)
-					break
-				}
-			}
-
-			if dataIdx == -1 {
-				break
-			}
-
-			// Find the closing quote (handle escaped quotes)
-			endIdx := -1
-			for i := dataIdx; i < len(bodyStr); i++ {
-				if bodyStr[i] == '"' && (i == 0 || bodyStr[i-1] != '\\') {
-					endIdx = i
-					break
-				}
-			}
-
-			if endIdx == -1 {
-				break
-			}
-
-			base64Chunk := bodyStr[dataIdx:endIdx]
-
-			// Skip null data (completion marker)
-			if base64Chunk == "null" {
-				pos = endIdx + 1
-				continue
-			}
-
-			// Decode base64 chunk
-			chunkData, decodeErr := base64.StdEncoding.DecodeString(base64Chunk)
-			if decodeErr != nil {
-				pos = endIdx + 1
-				continue
-			}
-
-			allAudioData = append(allAudioData, chunkData...)
-			pos = endIdx + 1
-		}
-
-		if len(allAudioData) == 0 {
-			return nil, types.NewErrorWithStatusCode(
-				fmt.Errorf("no audio data in response"),
-				types.ErrorCodeBadResponseBody,
-				http.StatusInternalServerError,
-			)
-		}
-
-		// Return raw audio
 		encoding := mapEncoding(c.GetString(contextKeyResponseFormat))
-		contentType := getContentTypeByEncoding(encoding)
-		c.Header("Content-Type", contentType)
-		c.Data(http.StatusOK, contentType, allAudioData)
+		if info.IsStream {
+			volcRequestInterface, exists := c.Get(contextKeyTTSRequest)
+			if !exists {
+				return nil, types.NewErrorWithStatusCode(
+					errors.New("volcengine TTS request not found in context"),
+					types.ErrorCodeBadRequestBody,
+					http.StatusInternalServerError,
+				)
+			}
 
-		usage = &dto.Usage{
-			PromptTokens:     info.GetEstimatePromptTokens(),
-			CompletionTokens: 0,
-			TotalTokens:      info.GetEstimatePromptTokens(),
+			volcRequest, ok := volcRequestInterface.(VolcengineTTSRequest)
+			if !ok {
+				return nil, types.NewErrorWithStatusCode(
+					errors.New("invalid volcengine TTS request type"),
+					types.ErrorCodeBadRequestBody,
+					http.StatusInternalServerError,
+				)
+			}
+
+			// Get the WebSocket URL
+			requestURL, urlErr := a.GetRequestURL(info)
+			if urlErr != nil {
+				return nil, types.NewErrorWithStatusCode(
+					urlErr,
+					types.ErrorCodeBadRequestBody,
+					http.StatusInternalServerError,
+				)
+			}
+			return handleTTSWebSocketResponse(c, requestURL, volcRequest, info, encoding)
 		}
-		return usage, nil
+		return handleTTSResponse(c, resp, info, encoding)
 	}
 
 	adaptor := openai.Adaptor{}

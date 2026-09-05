@@ -96,7 +96,7 @@ type sitemapTestDoc struct {
 func newWebRouterFixture(t *testing.T) *gin.Engine {
 	t.Helper()
 	engine := gin.New()
-	SetWebRouter(engine, WebAssets{BuildFS: embed.FS{}, IndexPage: []byte(testSPAIndexPage)})
+	SetWebRouter(engine, WebAssets{BuildFS: embed.FS{}, IndexPage: []byte(testSPAIndexPage)}, func(c *gin.Context) { c.Next() })
 	return engine
 }
 

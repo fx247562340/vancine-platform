@@ -131,21 +131,25 @@ describe('ImageReferenceTray — preview, fallback, and remove', () => {
       writable: true,
       value: 1024,
     })
-    window.matchMedia = ((query: string) => {
-      const m = /max-width:\s*(\d+)px/.exec(query)
-      return {
-        matches: m ? 1024 <= Number(m[1]) : false,
-        media: query,
-        onchange: null,
-        addListener() {},
-        removeListener() {},
-        addEventListener() {},
-        removeEventListener() {},
-        dispatchEvent() {
-          return false
-        },
-      }
-    }) as typeof window.matchMedia
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: (query: string): MediaQueryList => {
+        const m = /max-width:\s*(\d+)px/.exec(query)
+        return {
+          matches: m ? 1024 <= Number(m[1]) : false,
+          media: query,
+          onchange: null,
+          addListener() {},
+          removeListener() {},
+          addEventListener() {},
+          removeEventListener() {},
+          dispatchEvent() {
+            return false
+          },
+        }
+      },
+    })
   })
   afterEach(() => {
     if (originalInnerWidth) {
@@ -153,7 +157,11 @@ describe('ImageReferenceTray — preview, fallback, and remove', () => {
     } else {
       delete (window as unknown as { innerWidth?: number }).innerWidth
     }
-    window.matchMedia = originalMatchMedia
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: originalMatchMedia,
+    })
   })
 
   it('falls back to the file-name block for non-previewable MIME types and keeps the <img> for previewable ones', async () => {

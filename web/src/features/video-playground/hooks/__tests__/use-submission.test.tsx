@@ -18,7 +18,8 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, renderHook } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ReactElement, ReactNode } from 'react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { VideoPlaygroundError } from '../../lib/errors'
 import { useSubmission } from '../use-submission'
@@ -36,7 +37,7 @@ const FAKE_BODY = {
   },
 }
 
-function wrapper({ children }: { children: React.ReactNode }) {
+function wrapper({ children }: { children: ReactNode }): ReactElement {
   const client = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -47,9 +48,6 @@ function wrapper({ children }: { children: React.ReactNode }) {
 }
 
 describe('useSubmission lifecycle (AbortController + epoch)', () => {
-  beforeEach(() => {
-    vi.useFakeTimers()
-  })
   afterEach(() => {
     vi.useRealTimers()
     vi.restoreAllMocks()
@@ -281,26 +279,31 @@ describe('useSubmission lifecycle (AbortController + epoch)', () => {
   })
 
   it('freezes modelId, promptPreview, and submittedAt at enqueue time', async () => {
+    vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-08-17T00:00:00.000Z'))
-    const submit = vi.fn().mockResolvedValue({ id: 'task-snap' })
-    const { result } = renderHook(
-      () => useSubmission({ submit, batchSize: 1 }),
-      { wrapper }
-    )
+    try {
+      const submit = vi.fn().mockResolvedValue({ id: 'task-snap' })
+      const { result } = renderHook(
+        () => useSubmission({ submit, batchSize: 1 }),
+        { wrapper }
+      )
 
-    await act(async () => {
-      result.current.start({
-        body: FAKE_BODY,
-        modelId: 'Doubao-Seedance-2.0',
-        promptPreview: 'original prompt',
+      await act(async () => {
+        result.current.start({
+          body: FAKE_BODY,
+          modelId: 'Doubao-Seedance-2.0',
+          promptPreview: 'original prompt',
+        })
       })
-    })
 
-    expect(result.current.tasks[0]?.modelId).toBe('Doubao-Seedance-2.0')
-    expect(result.current.tasks[0]?.promptPreview).toBe('original prompt')
-    expect(result.current.tasks[0]?.submittedAt).toBe(
-      new Date('2026-08-17T00:00:00.000Z').getTime()
-    )
+      expect(result.current.tasks[0]?.modelId).toBe('Doubao-Seedance-2.0')
+      expect(result.current.tasks[0]?.promptPreview).toBe('original prompt')
+      expect(result.current.tasks[0]?.submittedAt).toBe(
+        new Date('2026-08-17T00:00:00.000Z').getTime()
+      )
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('does not POST remaining items after an explicit cancel', async () => {
@@ -327,9 +330,9 @@ describe('useSubmission lifecycle (AbortController + epoch)', () => {
     await act(async () => {
       result.current.cancel()
     })
-    await act(async () => {
-      await vi.runAllTimersAsync()
-    })
     expect(submit).toHaveBeenCalledTimes(1)
+    expect(
+      result.current.tasks.filter((task) => task.status === 'cancelled')
+    ).toHaveLength(4)
   })
 })

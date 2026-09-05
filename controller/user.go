@@ -22,7 +22,6 @@ import (
 	"github.com/QuantumNous/new-api/service/authz"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
-	"github.com/QuantumNous/new-api/setting/playground"
 	"github.com/QuantumNous/new-api/setting/system_setting"
 
 	"github.com/QuantumNous/new-api/constant"
@@ -32,14 +31,33 @@ import (
 )
 
 type LoginRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username          string `json:"username"`
+	Password          string `json:"password"`
+	PasswordEncrypted string `json:"password_encrypted"`
+	EncryptionKeyID   string `json:"encryption_key_id"`
 }
 
 var (
 	errUserPasswordUnset    = errors.New("user password is not set")
 	errOriginalPasswordFail = errors.New("original password is incorrect")
 )
+
+func GetPasswordEncryptionKey(c *gin.Context) {
+	if !common.PasswordLoginEncryptionEnabled {
+		common.ApiSuccess(c, gin.H{"enabled": false})
+		return
+	}
+	keyID, publicKey := common.PasswordEncryptionPublicKey()
+	if keyID == "" || publicKey == "" {
+		common.ApiErrorI18n(c, i18n.MsgDatabaseError)
+		return
+	}
+	common.ApiSuccess(c, gin.H{
+		"enabled":    true,
+		"kid":        keyID,
+		"public_key": publicKey,
+	})
+}
 
 func Login(c *gin.Context) {
 	if !common.PasswordLoginEnabled {
@@ -54,6 +72,17 @@ func Login(c *gin.Context) {
 	}
 	username := loginRequest.Username
 	password := loginRequest.Password
+	if common.PasswordLoginEncryptionEnabled {
+		if loginRequest.PasswordEncrypted == "" || loginRequest.EncryptionKeyID == "" {
+			common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+			return
+		}
+		password, err = common.DecryptPassword(loginRequest.PasswordEncrypted, loginRequest.EncryptionKeyID)
+		if err != nil {
+			common.ApiErrorI18n(c, i18n.MsgUserUsernameOrPasswordError)
+			return
+		}
+	}
 	if username == "" || password == "" {
 		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
 		return
@@ -435,11 +464,6 @@ func GetUser(c *gin.Context) {
 
 func GenerateAccessToken(c *gin.Context) {
 	id := c.GetInt("id")
-	user, err := model.GetUserById(id, true)
-	if err != nil {
-		common.ApiError(c, err)
-		return
-	}
 	// get rand int 28-32
 	randI := common.GetRandomInt(4)
 	key, err := common.GenerateRandomKey(29 + randI)
@@ -448,14 +472,12 @@ func GenerateAccessToken(c *gin.Context) {
 		common.SysLog("failed to generate key: " + err.Error())
 		return
 	}
-	user.SetAccessToken(key)
-
-	if model.DB.Where("access_token = ?", user.AccessToken).First(user).RowsAffected != 0 {
+	if model.DB.Where("access_token = ?", key).First(&model.User{}).RowsAffected != 0 {
 		common.ApiErrorI18n(c, i18n.MsgUuidDuplicate)
 		return
 	}
 
-	if err := user.Update(false); err != nil {
+	if err := model.UpdateUserAccessToken(id, key); err != nil {
 		common.ApiError(c, err)
 		return
 	}
@@ -463,7 +485,7 @@ func GenerateAccessToken(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
-		"data":    user.AccessToken,
+		"data":    key,
 	})
 	return
 }
@@ -699,43 +721,11 @@ func GetUserModels(c *gin.Context) {
 			groupsToQuery = []string{group}
 		}
 	}
-	models := service.GetGroupsEnabledModels(groupsToQuery)
-	if filterByChatEligibility(c.Query("modality")) {
-		models = filterModelsForChatEligibility(models)
-	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
-		"data":    models,
+		"data":    service.GetGroupsEnabledModels(groupsToQuery),
 	})
-}
-
-// filterByChatEligibility reports whether the caller asked for a chat-only
-// view via the optional `modality` query parameter. Unknown or empty
-// values preserve the original interface behavior so existing callers and
-// tests stay unaffected.
-func filterByChatEligibility(modality string) bool {
-	return strings.EqualFold(strings.TrimSpace(modality), "chat")
-}
-
-// filterModelsForChatEligibility removes models that the Chat playground
-// cannot serve. Server-side source of truth: setting/playground chat
-// eligibility. Fail-compatible: unknown models stay visible.
-func filterModelsForChatEligibility(models []string) []string {
-	if len(models) == 0 {
-		return models
-	}
-	filtered := make([]string, 0, len(models))
-	for _, m := range models {
-		if m == "" {
-			continue
-		}
-		if playground.IsNonChatModel(m) {
-			continue
-		}
-		filtered = append(filtered, m)
-	}
-	return filtered
 }
 
 func UpdateUser(c *gin.Context) {
@@ -1297,6 +1287,10 @@ func ManageUser(c *gin.Context) {
 				common.ApiErrorI18n(c, i18n.MsgUserQuotaChangeZero)
 				return
 			}
+			if err := common.ValidateWalletQuota(req.Value); err != nil {
+				common.ApiError(c, err)
+				return
+			}
 			if err := model.IncreaseUserQuota(user.Id, req.Value, true); err != nil {
 				common.ApiError(c, err)
 				return
@@ -1317,6 +1311,10 @@ func ManageUser(c *gin.Context) {
 				"quota": logger.LogQuota(req.Value),
 			})
 		case "override":
+			if err := common.ValidateWalletQuota(req.Value); err != nil {
+				common.ApiError(c, err)
+				return
+			}
 			oldQuota := user.Quota
 			if err := model.DB.Model(&model.User{}).Where("id = ?", user.Id).Update("quota", req.Value).Error; err != nil {
 				common.ApiError(c, err)

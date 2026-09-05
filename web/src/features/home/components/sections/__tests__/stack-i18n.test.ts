@@ -29,7 +29,8 @@ For commercial licensing, please contact support@quantumnous.com
  * production algorithms.
  */
 import assert from 'node:assert/strict'
-import { describe, test } from 'node:test'
+
+import { describe, test } from 'vitest'
 
 import en from '@/i18n/locales/en.json'
 import fr from '@/i18n/locales/fr.json'

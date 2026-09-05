@@ -16,36 +16,19 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { render } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import i18next from 'i18next'
 import type React from 'react'
-import { I18nextProvider, initReactI18next } from 'react-i18next'
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, test } from 'vitest'
 
 import { formatLogQuota } from '@/lib/format'
 
 import { LogCostDisplay } from '../log-cost-display'
 
-const i18n = i18next.createInstance()
-await i18n.use(initReactI18next).init({
-  lng: 'en',
-  resources: {
-    en: {
-      translation: {
-        Subscription: 'Subscription',
-        'Deducted by subscription': 'Deducted by subscription',
-        'Includes tool-call surcharge': 'Includes tool-call surcharge',
-      },
-    },
-  },
-})
-
-function renderCost(props: React.ComponentProps<typeof LogCostDisplay>) {
-  return render(
-    <I18nextProvider i18n={i18n}>
-      <LogCostDisplay {...props} />
-    </I18nextProvider>
-  )
+function renderCost(
+  props: React.ComponentProps<typeof LogCostDisplay>
+): ReturnType<typeof render> {
+  return render(<LogCostDisplay {...props} />)
 }
 
 function normalizedText(value: string | null): string {
@@ -53,8 +36,16 @@ function normalizedText(value: string | null): string {
 }
 
 describe('log cost display', () => {
-  it('keeps the regular cost visible and adds an accessible surcharge marker', () => {
-    const { container } = renderCost({
+  beforeAll(() => {
+    i18next.addResourceBundle('en', 'translation', {
+      Subscription: 'Subscription',
+      'Deducted by subscription': 'Deducted by subscription',
+      'Includes tool-call surcharge': 'Includes tool-call surcharge',
+    })
+  })
+
+  test('keeps the regular cost visible and adds an accessible surcharge marker', () => {
+    const rendered = renderCost({
       quota: 12500,
       other: {
         tool_surcharges: [{ name: 'lookup_customer', count: 1, price: 5 }],
@@ -62,22 +53,19 @@ describe('log cost display', () => {
     })
 
     expect(
-      normalizedText(container.textContent).includes(
+      normalizedText(rendered.container.textContent).includes(
         normalizedText(formatLogQuota(12500))
       )
     ).toBe(true)
-    const marker = container.querySelector(
-      '[data-tool-surcharge-indicator="true"]'
-    )
-    expect(marker).not.toBeNull()
-    expect(marker?.getAttribute('aria-label')).toBe(
-      'Includes tool-call surcharge'
-    )
-    expect(marker?.getAttribute('tabindex')).toBe('0')
+    const marker = screen.getByRole('img', {
+      name: 'Includes tool-call surcharge',
+    })
+    expect(marker).toHaveAttribute('data-tool-surcharge-indicator', 'true')
+    expect(marker).toHaveAttribute('tabindex', '0')
   })
 
-  it('preserves the subscription badge and adds the same legacy surcharge marker', () => {
-    const { container } = renderCost({
+  test('preserves the subscription badge and adds the same legacy surcharge marker', () => {
+    renderCost({
       quota: 5000,
       other: {
         billing_source: 'subscription',
@@ -87,9 +75,9 @@ describe('log cost display', () => {
       },
     })
 
-    expect(container.textContent?.includes('Subscription')).toBe(true)
+    expect(screen.getByText('Subscription')).toBeInTheDocument()
     expect(
-      container.querySelector('[data-tool-surcharge-indicator="true"]')
-    ).not.toBeNull()
+      screen.getByRole('img', { name: 'Includes tool-call surcharge' })
+    ).toHaveAttribute('data-tool-surcharge-indicator', 'true')
   })
 })

@@ -161,13 +161,16 @@ describe('VideoPlayground user flow', () => {
     vi.mocked(getVideoTask).mockResolvedValue({
       task_id: 'task-123',
       status: 'SUCCESS',
-      result_url: 'https://cdn.example.com/result.mp4',
+      content_url:
+        'https://vancine.test/v1/tasks/task-123/artifacts/video/content',
     })
     renderVideoPlayground(i18n)
     await fillAndSubmitPrompt()
 
     const video = await screen.findByLabelText('Generated video')
-    expect(video.getAttribute('src')).toBe('https://cdn.example.com/result.mp4')
+    expect(video.getAttribute('src')).toBe(
+      'https://vancine.test/v1/tasks/task-123/artifacts/video/content'
+    )
     expect(video.hasAttribute('autoplay')).toBe(false)
     expect(screen.getByRole('link', { name: 'Open video' })).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Download' })).toHaveAttribute(

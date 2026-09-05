@@ -167,22 +167,26 @@ function renderPage(i18n: I18n, options?: { innerWidth?: number }) {
     writable: true,
     value: width,
   })
-  window.matchMedia = ((query: string) => {
-    const m = /max-width:\s*(\d+)px/.exec(query)
-    const matches = m ? width <= Number(m[1]) : false
-    return {
-      matches,
-      media: query,
-      onchange: null,
-      addListener() {},
-      removeListener() {},
-      addEventListener() {},
-      removeEventListener() {},
-      dispatchEvent() {
-        return false
-      },
-    }
-  }) as typeof window.matchMedia
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    writable: true,
+    value: (query: string): MediaQueryList => {
+      const m = /max-width:\s*(\d+)px/.exec(query)
+      const matches = m ? width <= Number(m[1]) : false
+      return {
+        matches,
+        media: query,
+        onchange: null,
+        addListener() {},
+        removeListener() {},
+        addEventListener() {},
+        removeEventListener() {},
+        dispatchEvent() {
+          return false
+        },
+      }
+    },
+  })
 
   const view = render(
     <QueryClientProvider client={client}>
@@ -197,7 +201,11 @@ function renderPage(i18n: I18n, options?: { innerWidth?: number }) {
     restore() {
       // Restore the original property descriptor, not just the value, so
       // the next test sees the pristine window.innerWidth definition.
-      window.matchMedia = originalMatchMedia
+      Object.defineProperty(window, 'matchMedia', {
+        configurable: true,
+        writable: true,
+        value: originalMatchMedia,
+      })
       if (originalInnerWidthDescriptor) {
         Object.defineProperty(
           window,

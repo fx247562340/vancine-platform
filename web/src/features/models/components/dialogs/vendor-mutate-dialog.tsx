@@ -60,13 +60,6 @@ export function VendorMutateDialog({
   const isEdit = Boolean(currentVendor?.id)
   const [isSaving, setIsSaving] = useState(false)
 
-  let submitLabel = t('Create')
-  if (isSaving) {
-    submitLabel = t('Saving...')
-  } else if (isEdit) {
-    submitLabel = t('Update')
-  }
-
   const form = useForm({
     resolver: zodResolver(vendorFormSchema),
     defaultValues: {
@@ -99,14 +92,9 @@ export function VendorMutateDialog({
 
   const onSubmit = async (values: Record<string, unknown>) => {
     setIsSaving(true)
-    // The vendor id is the single branch source for update vs create: the
-    // same truthiness that derives isEdit decides the submit path, so the
-    // update branch is narrowed by construction (id=0/null/undefined keep
-    // walking the create branch, matching Boolean(currentVendor?.id)).
-    const vendorId = currentVendor?.id
     try {
-      const response = vendorId
-        ? await updateVendor({ ...values, id: vendorId })
+      const response = isEdit
+        ? await updateVendor({ ...values, id: currentVendor!.id })
         : await createVendor(values)
 
       if (response.success) {
@@ -158,7 +146,7 @@ export function VendorMutateDialog({
             {isSaving ? (
               <Loader2 className='mr-2 h-4 w-4 animate-spin' />
             ) : null}
-            {submitLabel}
+            {isSaving ? t('Saving...') : isEdit ? t('Update') : t('Create')}
           </Button>
         </>
       }

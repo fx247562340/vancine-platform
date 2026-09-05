@@ -16,30 +16,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+// @vitest-environment-options {"url": "https://app.example.com/dashboard"}
 import assert from 'node:assert/strict'
-import { after, describe, test } from 'node:test'
 
-import { Window } from 'happy-dom'
+import { describe, test } from 'vitest'
 
-// Install DOM globals for modules that read window.location, and remember
-// every overwritten globalThis descriptor so the suite restores it.
-const originalDescriptors = new Map<string, PropertyDescriptor | undefined>()
-
-function defineGlobal(key: string, value: unknown): void {
-  if (!originalDescriptors.has(key)) {
-    originalDescriptors.set(
-      key,
-      Object.getOwnPropertyDescriptor(globalThis, key)
-    )
-  }
-  Object.defineProperty(globalThis, key, { configurable: true, value })
-}
-
-const domWindow = new Window({ url: 'https://app.example.com/dashboard' })
-for (const key of ['window', 'document', 'location'] as const) {
-  defineGlobal(key, domWindow[key])
-}
-
+// The suite runs in the project-standard jsdom environment pinned to the
+// app origin below, so window.location matches the values asserted here.
 const {
   buildGitHubOAuthUrl,
   buildDiscordOAuthUrl,
@@ -48,19 +31,6 @@ const {
   buildGoogleOAuthUrl,
   resolveGoogleBindingConfiguration,
 } = await import('../oauth')
-
-// Restore every overwritten globalThis descriptor once this file finishes,
-// regardless of test order.
-after(() => {
-  domWindow.close()
-  for (const [key, descriptor] of originalDescriptors) {
-    if (descriptor) {
-      Object.defineProperty(globalThis, key, descriptor)
-    } else {
-      Reflect.deleteProperty(globalThis, key)
-    }
-  }
-})
 
 const appOrigin = 'https://app.example.com'
 const clientId = 'google-client-id'

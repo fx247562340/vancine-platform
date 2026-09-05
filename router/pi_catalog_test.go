@@ -96,7 +96,7 @@ func TestPiCatalogRouteIsNotSPAFallback(t *testing.T) {
 
 	engine := gin.New()
 	SetApiRouter(engine)
-	SetWebRouter(engine, WebAssets{BuildFS: embed.FS{}, IndexPage: []byte(testSPAIndexPage)})
+	SetWebRouter(engine, WebAssets{BuildFS: embed.FS{}, IndexPage: []byte(testSPAIndexPage)}, func(c *gin.Context) { c.Next() })
 
 	req := httptest.NewRequest(http.MethodGet, "/api/pi/catalog", nil)
 	rec := httptest.NewRecorder()

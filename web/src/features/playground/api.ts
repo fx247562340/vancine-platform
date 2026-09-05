@@ -42,16 +42,10 @@ export async function sendChatCompletion(
 
 /**
  * Get user available models
- *
- * Requests the server-side chat-eligible subset (`modality=chat`) so the
- * dropdown only ever shows models that /pg/chat/completions can actually
- * serve. The server-side filter is the single source of truth shared with
- * the controller's defensive rejection; no client-side marker list is
- * required.
  */
 export async function getUserModels(group: string): Promise<ModelOption[]> {
   const res = await api.get(API_ENDPOINTS.USER_MODELS, {
-    params: { group, modality: 'chat' },
+    params: { group },
   })
   const { data } = res
 

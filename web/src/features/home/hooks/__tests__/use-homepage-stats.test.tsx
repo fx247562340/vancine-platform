@@ -147,10 +147,11 @@ describe('useHomepageStats — real handler JSON contract', () => {
     // the HTTP call while disabled.
     expect(result.current.status).toBe('loading')
     expect(result.current.stats).toBeNull()
-    // Give the runtime a chance to surface any stray fetch — the
+    // The query never enters fetching while disabled; draining the
+    // microtask queue is enough to prove no fetch was dispatched - the
     // contract is "no fetch at all".
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 10))
+      await Promise.resolve()
     })
     expect(getMock).not.toHaveBeenCalled()
   })

@@ -168,13 +168,16 @@ export function useSubmission(
               body: params.body,
               signal: controller.signal,
             })
+            // Late-response guard: re-check the epoch and abort flag BEFORE
+            // accepting the taskId. A submit that resolved after cancellation
+            // or a key switch must stay cancelled and must not start polling.
+            if (generation !== epochRef.current || controller.signal.aborted) {
+              updateTask(entry.id, { status: 'cancelled' })
+              continue
+            }
             const taskId = result.task_id ?? result.id ?? null
             if (taskId) {
               updateTask(entry.id, { status: 'polling', taskId })
-              continue
-            }
-            if (generation !== epochRef.current || controller.signal.aborted) {
-              updateTask(entry.id, { status: 'cancelled' })
               continue
             }
             updateTask(entry.id, {

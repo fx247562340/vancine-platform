@@ -41,7 +41,7 @@ Sitemap: https://vancine.com/sitemap.xml
 func newWebRouterSEOFixture(t *testing.T) *gin.Engine {
 	t.Helper()
 	engine := gin.New()
-	SetWebRouter(engine, WebAssets{BuildFS: embed.FS{}, IndexPage: []byte(testSPAIndexPage)})
+	SetWebRouter(engine, WebAssets{BuildFS: embed.FS{}, IndexPage: []byte(testSPAIndexPage)}, func(c *gin.Context) { c.Next() })
 	return engine
 }
 
@@ -662,7 +662,7 @@ func TestSetWebRouterPanicsWhenIndexPageAnchorMissing(t *testing.T) {
 		r := recover()
 		require.NotNil(t, r, "SetWebRouter must panic at startup when the meta anchor is missing")
 	}()
-	SetWebRouter(gin.New(), WebAssets{BuildFS: embed.FS{}, IndexPage: []byte(indexPageNoAnchor)})
+	SetWebRouter(gin.New(), WebAssets{BuildFS: embed.FS{}, IndexPage: []byte(indexPageNoAnchor)}, func(c *gin.Context) { c.Next() })
 	t.Fatal("SetWebRouter must not return normally when the index page is missing the primary-meta anchor")
 }
 
@@ -682,7 +682,7 @@ func TestSetWebRouterPanicsWhenIndexPageAnchorDuplicated(t *testing.T) {
 		r := recover()
 		require.NotNil(t, r, "SetWebRouter must panic at startup when the meta anchor is duplicated")
 	}()
-	SetWebRouter(gin.New(), WebAssets{BuildFS: embed.FS{}, IndexPage: []byte(duplicated)})
+	SetWebRouter(gin.New(), WebAssets{BuildFS: embed.FS{}, IndexPage: []byte(duplicated)}, func(c *gin.Context) { c.Next() })
 	t.Fatal("SetWebRouter must not return normally when the index page has a duplicated primary-meta anchor")
 }
 
@@ -804,7 +804,7 @@ func TestSetWebRouterPanicsWhenIndexPageAlreadyHasConflictingMetaTags(t *testing
 					"SetWebRouter must panic at startup when the index page carries a conflicting SEO tag injected via %q",
 					c.injection)
 			}()
-			SetWebRouter(gin.New(), WebAssets{BuildFS: embed.FS{}, IndexPage: []byte(conflicting)})
+			SetWebRouter(gin.New(), WebAssets{BuildFS: embed.FS{}, IndexPage: []byte(conflicting)}, func(c *gin.Context) { c.Next() })
 			t.Fatal("SetWebRouter must not return normally when the index page has a conflicting SEO tag")
 		})
 	}

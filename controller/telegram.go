@@ -255,7 +255,7 @@ func TelegramLogin(c *gin.Context) {
 	user := model.User{TelegramId: telegramId}
 	if err := user.FillUserByTelegramId(); err != nil {
 		c.JSON(200, gin.H{
-			"message": "用户已被封禁",
+			"message": err.Error(),
 			"success": false,
 		})
 		return

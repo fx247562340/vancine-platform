@@ -26,13 +26,14 @@ import (
 // The marker key/value are asserted as literals so the tests document the
 // persisted contract independently of the implementation constants.
 const (
-	longcatMigrationMarkerKey   = "migration.longcat_channel_type_58_to_100.v1"
+	longcatMigrationMarkerKey   = "migration.longcat_channel_type_100_to_openai.v1"
 	longcatMigrationMarkerValue = "completed"
 )
 
-// legacyLongcatChannelTypeValue mirrors the production main semantics where
-// channel type 58 meant LongCat; upstream rc23 reuses 58 for Advanced Custom.
-const legacyLongcatChannelTypeValue = 58
+// legacyLongcatChannelTypeValue is the retired Vancine-only LongCat channel
+// type; it was removed together with the LongCat-specific relay and replaced
+// by a one-time migration to the upstream OpenAI-compatible type.
+const legacyLongcatChannelTypeValue = 100
 
 // longcatConcurrencyDeadlockGuard bounds coordination waits in the
 // concurrency scenario. It is a pure deadlock guard: it only turns a hang
@@ -170,7 +171,7 @@ type longcatMigrationScenario struct {
 func longcatMigrationScenarios() []longcatMigrationScenario {
 	return []longcatMigrationScenario{
 		{
-			// Every legacy type=58 row is LongCat regardless of its name or
+			// Every retired type=100 row is a LongCat channel regardless of its name or
 			// BaseURL: standard LongCat naming, arbitrary Chinese names with an
 			// empty BaseURL, and arbitrary English names with a custom BaseURL
 			// must all be migrated.
@@ -187,7 +188,7 @@ func longcatMigrationScenarios() []longcatMigrationScenario {
 
 				require.NoError(t, migrateLongcatChannelType(db))
 
-				requireChannelTypeCount(t, db, constant.ChannelTypeLongcat, 3)
+				requireChannelTypeCount(t, db, constant.ChannelTypeOpenAI, 3)
 				requireChannelTypeCount(t, db, legacyLongcatChannelTypeValue, 0)
 			},
 		},
@@ -201,7 +202,7 @@ func longcatMigrationScenarios() []longcatMigrationScenario {
 					newLongcatTestChannel(Channel{Type: constant.ChannelTypeAzure, Name: "azure-east", Key: "sk-azure", Models: "gpt-4o", Status: common.ChannelStatusEnabled}),
 					newLongcatTestChannel(Channel{Type: constant.ChannelTypeAnthropic, Name: "claude-direct", Key: "sk-anthropic", Models: "claude-3-5-sonnet", Status: common.ChannelStatusManuallyDisabled}),
 					newLongcatTestChannel(Channel{Type: constant.ChannelTypeGemini, Name: "gemini-pro", Key: "sk-gemini", Models: "gemini-2.0-flash", Status: common.ChannelStatusEnabled}),
-					newLongcatTestChannel(Channel{Type: constant.ChannelTypeLongcat, Name: "longcat-already-100", Key: "sk-existing-100", Models: "longcat-large", Status: common.ChannelStatusEnabled}),
+					newLongcatTestChannel(Channel{Type: constant.ChannelTypeTaskPlugin, Name: "task-plugin-channel", Key: "sk-existing-plugin", Models: "hailuo", Status: common.ChannelStatusEnabled}),
 				}
 				require.NoError(t, db.Create(&others).Error)
 				before := requireChannelsByID(t, db)
@@ -227,8 +228,8 @@ func longcatMigrationScenarios() []longcatMigrationScenario {
 		},
 		{
 			// After the marker exists, an Advanced Custom channel (type 58 in
-			// rc23 semantics) created after the upgrade must never be migrated
-			// on a later restart, while previously migrated rows stay at 100.
+			// upstream semantics) created after the upgrade must never be migrated
+			// on a later restart, while previously migrated rows stay OpenAI-compatible.
 			name: "keepsPostUpgradeAdvancedCustomChannelsOnRestart",
 			run: func(t *testing.T, db *gorm.DB, _ common.DatabaseType) {
 				longcatURL := "https://api.longcat.chat/openai"
@@ -243,7 +244,7 @@ func longcatMigrationScenarios() []longcatMigrationScenario {
 
 				var migrated Channel
 				require.NoError(t, db.First(&migrated, legacy.Id).Error)
-				assert.Equal(t, constant.ChannelTypeLongcat, migrated.Type)
+				assert.Equal(t, constant.ChannelTypeOpenAI, migrated.Type)
 				var postUpgrade Channel
 				require.NoError(t, db.First(&postUpgrade, advanced.Id).Error)
 				assert.Equal(t, constant.ChannelTypeAdvancedCustom, postUpgrade.Type)
@@ -357,7 +358,7 @@ func longcatMigrationScenarios() []longcatMigrationScenario {
 				require.NoError(t, db.First(&after, original.Id).Error)
 
 				expected := before
-				expected.Type = constant.ChannelTypeLongcat
+				expected.Type = constant.ChannelTypeOpenAI
 				assert.Equal(t, expected, after, "only the type column may change")
 				assert.NotEqual(t, before.Type, after.Type)
 			},
@@ -393,7 +394,7 @@ func longcatMigrationScenarios() []longcatMigrationScenario {
 				require.Error(t, err)
 
 				requireChannelTypeCount(t, db, legacyLongcatChannelTypeValue, 1)
-				requireChannelTypeCount(t, db, constant.ChannelTypeLongcat, 0)
+				requireChannelTypeCount(t, db, constant.ChannelTypeOpenAI, 0)
 				requireNoLongcatMigrationMarker(t, db)
 			},
 		},
@@ -425,7 +426,7 @@ func longcatMigrationScenarios() []longcatMigrationScenario {
 				require.Error(t, err)
 
 				requireChannelTypeCount(t, db, legacyLongcatChannelTypeValue, 1)
-				requireChannelTypeCount(t, db, constant.ChannelTypeLongcat, 0)
+				requireChannelTypeCount(t, db, constant.ChannelTypeOpenAI, 0)
 				requireNoLongcatMigrationMarker(t, db)
 			},
 		},
@@ -459,7 +460,7 @@ func longcatMigrationScenarios() []longcatMigrationScenario {
 				require.Error(t, err)
 
 				requireChannelTypeCount(t, db, legacyLongcatChannelTypeValue, 1)
-				requireChannelTypeCount(t, db, constant.ChannelTypeLongcat, 0)
+				requireChannelTypeCount(t, db, constant.ChannelTypeOpenAI, 0)
 				requireNoLongcatMigrationMarker(t, db)
 			},
 		},
@@ -475,8 +476,7 @@ func longcatMigrationScenarios() []longcatMigrationScenario {
 
 				for i := 0; i < 3; i++ {
 					require.NoError(t, migrateLongcatChannelType(db))
-					requireChannelTypeCount(t, db, constant.ChannelTypeLongcat, 1)
-					requireChannelTypeCount(t, db, constant.ChannelTypeOpenAI, 1)
+					requireChannelTypeCount(t, db, constant.ChannelTypeOpenAI, 2)
 					requireChannelTypeCount(t, db, legacyLongcatChannelTypeValue, 0)
 					marker := requireLongcatMigrationMarker(t, db)
 					assert.Equal(t, longcatMigrationMarkerValue, marker.Value)
@@ -487,7 +487,7 @@ func longcatMigrationScenarios() []longcatMigrationScenario {
 			// Two concurrent startups must never both migrate: exactly one
 			// invocation owns the migration, a post-upgrade Advanced Custom
 			// type=58 channel created after the owner committed stays at 58,
-			// the legacy channel ends at 100 and the marker is exactly
+			// the legacy channel ends at the OpenAI-compatible type and the marker is exactly
 			// "completed".
 			//
 			// Coordination is fully deterministic via GORM callbacks and Go
@@ -506,7 +506,7 @@ func longcatMigrationScenarios() []longcatMigrationScenario {
 			//   6. only then is the competitor's locked current read of the
 			//      marker allowed to proceed;
 			//   7. the competitor observes "completed" and exits;
-			//   8. the channel UPDATE count is exactly 1, legacy=100,
+			//   8. the channel UPDATE count is exactly 1, legacy=OpenAI,
 			//      post-upgrade=58 and marker=completed.
 			// No sleeps, random collisions, scheduling assumptions or timing
 			// assertions are used: every step is gated, and the asserted
@@ -520,7 +520,7 @@ func longcatMigrationScenarios() []longcatMigrationScenario {
 			// transaction is still open, the owner commits, then the
 			// post-upgrade channel is inserted synchronously and completes
 			// before the competitor's locked current read, and the final
-			// state is exactly one channel UPDATE, legacy=100,
+			// state is exactly one channel UPDATE, legacy=OpenAI-compatible,
 			// post-upgrade=58, marker=completed.
 			// What it does NOT prove: competitorClaimAttempted only shows
 			// that the competitor reached the BeforeCreate path of its marker
@@ -746,7 +746,7 @@ func longcatMigrationScenarios() []longcatMigrationScenario {
 				assert.EqualValues(t, 1, channelUpdateAttempts.Load(), "exactly one instance may execute the channel UPDATE")
 				var migrated Channel
 				require.NoError(t, db.First(&migrated, legacy.Id).Error)
-				assert.Equal(t, constant.ChannelTypeLongcat, migrated.Type)
+				assert.Equal(t, constant.ChannelTypeOpenAI, migrated.Type)
 				var advanced Channel
 				require.NoError(t, db.First(&advanced, postUpgrade.Id).Error)
 				assert.Equal(t, constant.ChannelTypeAdvancedCustom, advanced.Type)
@@ -770,7 +770,7 @@ func longcatMigrationScenarios() []longcatMigrationScenario {
 				DB = db
 				require.NoError(t, MigrateLongcatChannelType())
 
-				requireChannelTypeCount(t, db, constant.ChannelTypeLongcat, 1)
+				requireChannelTypeCount(t, db, constant.ChannelTypeOpenAI, 1)
 				requireLongcatMigrationMarker(t, db)
 			},
 		},

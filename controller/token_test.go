@@ -16,6 +16,7 @@ import (
 	"github.com/QuantumNous/new-api/model"
 	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
+	"github.com/stretchr/testify/require"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -577,4 +578,15 @@ func TestGetTokenKeyRequiresOwnershipAndReturnsFullKey(t *testing.T) {
 	if strings.Contains(unauthorizedRecorder.Body.String(), token.Key) {
 		t.Fatalf("unauthorized key response leaked raw token key: %s", unauthorizedRecorder.Body.String())
 	}
+}
+
+func TestMaxTokenQuotaAllowsMaxQuotaPlusOneAndRejectsWalletOverflow(t *testing.T) {
+	old := common.QuotaPerUnit
+	common.QuotaPerUnit = 500000
+	t.Cleanup(func() { common.QuotaPerUnit = old })
+
+	max := maxTokenQuota()
+	require.Greater(t, max, common.MaxQuota, "maxTokenQuota() must exceed MaxQuota")
+	require.GreaterOrEqual(t, max, common.MaxQuota+1, "MaxQuota+1 must be accepted by maxTokenQuota")
+	require.Less(t, max, common.MaxWalletQuota+1, "MaxWalletQuota+1 must stay outside maxTokenQuota")
 }

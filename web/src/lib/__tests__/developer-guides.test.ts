@@ -19,7 +19,8 @@ For commercial licensing, please contact support@quantumnous.com
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { describe, test } from 'node:test'
+
+import { describe, test } from 'vitest'
 
 import {
   DEVELOPER_GUIDES,

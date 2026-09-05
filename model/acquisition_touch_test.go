@@ -1173,7 +1173,7 @@ func TestAcquisitionFunnelLogSecondBatchFailure(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Migration behavior: migrateDB / migrateDBFast on isolated fresh databases
+// Migration behavior: migrateDB on isolated fresh databases
 // ---------------------------------------------------------------------------
 
 // newMigrationTestDB opens an isolated in-memory SQLite database, publishes
@@ -1245,23 +1245,6 @@ func TestAcquisitionMigrateDBFreshSuccess(t *testing.T) {
 	assert.Greater(t, v, int64(0))
 }
 
-func TestAcquisitionMigrateDBFastFreshSuccess(t *testing.T) {
-	db := newMigrationTestDB(t)
-	logBuf := captureSysLog(t)
-
-	require.NoError(t, migrateDBFast())
-
-	assert.True(t, db.Migrator().HasTable(&AcquisitionTouch{}), "acquisition_touches must exist")
-	assert.True(t, db.Migrator().HasTable(&Option{}), "options must exist")
-	require.Equal(t, int64(1), coverageMarkerCount(t, db))
-	v, err := GetAcquisitionCoverageStartedAt()
-	require.NoError(t, err)
-	assert.Greater(t, v, int64(0))
-	// Positive control: only a fully successful fast migration emits the
-	// externally observable success signal.
-	assert.Contains(t, logBuf.String(), "database migrated")
-}
-
 // An AutoMigrate-stage failure aborts the migration before the coverage
 // marker may be written.
 func TestAcquisitionMigrateDBAutoMigrateFailureSkipsMarker(t *testing.T) {
@@ -1278,22 +1261,6 @@ func TestAcquisitionMigrateDBAutoMigrateFailureSkipsMarker(t *testing.T) {
 	err := migrateDB()
 	require.Error(t, err)
 	assert.Equal(t, int64(0), coverageMarkerCount(t, db), "marker must not exist after AutoMigrate failure")
-}
-
-func TestAcquisitionMigrateDBFastAutoMigrateFailureSkipsMarker(t *testing.T) {
-	db := newMigrationTestDB(t)
-
-	const cbName = "test:fail_create_table_fast"
-	t.Cleanup(func() { unregisterCallback(t, "raw", cbName) })
-	require.NoError(t, DB.Callback().Raw().Before("gorm:raw").Register(cbName, func(tx *gorm.DB) {
-		if strings.Contains(tx.Statement.SQL.String(), "CREATE TABLE") {
-			_ = tx.AddError(errors.New("injected AutoMigrate failure"))
-		}
-	}))
-
-	err := migrateDBFast()
-	require.Error(t, err)
-	assert.Equal(t, int64(0), coverageMarkerCount(t, db), "marker must not exist after a parallel migration failure")
 }
 
 // A post-AutoMigrate stage failure (the LongCat migration) also aborts
@@ -1329,26 +1296,6 @@ func TestAcquisitionMigrateDBCASFailureReturnsError(t *testing.T) {
 	}))
 
 	err := migrateDB()
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "acquisition coverage marker init failed")
-	assert.Equal(t, int64(0), coverageMarkerCount(t, db))
-	assert.NotContains(t, logBuf.String(), "database migrated",
-		"a CAS failure must not emit the success log")
-}
-
-func TestAcquisitionMigrateDBFastCASFailureReturnsError(t *testing.T) {
-	db := newMigrationTestDB(t)
-	logBuf := captureSysLog(t)
-
-	const cbName = "test:fail_coverage_cas_fast"
-	t.Cleanup(func() { unregisterCallback(t, "create", cbName) })
-	require.NoError(t, DB.Callback().Create().Before("gorm:create").Register(cbName, func(tx *gorm.DB) {
-		if opt, ok := tx.Statement.Dest.(*Option); ok && opt.Key == AcquisitionCoverageStartedAtKey {
-			_ = tx.AddError(errors.New("injected coverage CAS failure"))
-		}
-	}))
-
-	err := migrateDBFast()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "acquisition coverage marker init failed")
 	assert.Equal(t, int64(0), coverageMarkerCount(t, db))
@@ -1396,7 +1343,7 @@ func TestAcquisitionMigrateDBFastMarkerOnlyAfterBarrier(t *testing.T) {
 		}
 	}))
 
-	err := migrateDBFast()
+	err := migrateDB()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "AcquisitionTouch")
 	assert.Equal(t, int64(0), atomic.LoadInt64(&casAttempts),
@@ -1534,7 +1481,7 @@ func TestAcquisitionMigrateDBFastPostBarrierFailureSkipsMarkerAndSuccessLog(t *t
 		}
 	}))
 
-	err := migrateDBFast()
+	err := migrateDB()
 	require.Error(t, err)
 	assert.Equal(t, int64(0), coverageMarkerCount(t, db), "no marker after a post-barrier failure")
 	assert.NotContains(t, logBuf.String(), "database migrated",

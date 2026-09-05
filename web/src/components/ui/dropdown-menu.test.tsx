@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { describe, expect, it } from 'vitest'
+import { describe, expect, test } from 'vitest'
 
 import { handleDropdownMenuItemSelect } from './dropdown-menu-events'
 
@@ -43,7 +43,7 @@ function createMenuEvent() {
 }
 
 describe('DropdownMenuItem onSelect compatibility', () => {
-  it('calls the Radix-style onSelect handler on item click', () => {
+  test('calls the Radix-style onSelect handler on item click', () => {
     const event = createMenuEvent()
     let selected = false
 
@@ -55,7 +55,7 @@ describe('DropdownMenuItem onSelect compatibility', () => {
     expect(event.baseUIHandlerPrevented).toBe(false)
   })
 
-  it('keeps the Base UI menu open when onSelect prevents default', () => {
+  test('keeps the Base UI menu open when onSelect prevents default', () => {
     const event = createMenuEvent()
 
     handleDropdownMenuItemSelect(event, undefined, (selectEvent) => {

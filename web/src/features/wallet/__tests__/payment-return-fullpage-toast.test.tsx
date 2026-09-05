@@ -16,12 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-// Production-form integration regression for F-B12/F-B13: a full-page initial
-// load of the wallet route must surface exactly one localized toast through
-// the REAL Sonner Toaster. The wallet page's mount effect must not dispatch
-// before the Toaster has subscribed, or the toast is dropped.
-//
-// This test imports and renders the PRODUCTION root shell (`src/routes/__root.tsx`:
 // the real Route + RootComponent, which mount the real Toaster and the Outlet in
 // the production order). Only the Outlet element is mocked to render the wallet
 // page; the test does NOT copy the <Toaster/>/<Outlet/> sibling order — that order
@@ -42,6 +36,13 @@ import { cleanup, render, waitFor } from '@testing-library/react'
 import i18next from 'i18next'
 import { StrictMode } from 'react'
 import { initReactI18next, I18nextProvider } from 'react-i18next'
+// Production-form integration regression for F-B12/F-B13: a full-page initial
+// load of the wallet route must surface exactly one localized toast through
+// the REAL Sonner Toaster. The wallet page's mount effect must not dispatch
+// before the Toaster has subscribed, or the toast is dropped.
+//
+// This test imports and renders the PRODUCTION root shell (`src/routes/__root.tsx`:
+import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { Route as RootRoute } from '@/routes/__root'
@@ -291,7 +292,9 @@ function setWalletUrl(pathAndQuery: string): void {
 }
 
 function toastElements(): Element[] {
-  return [...document.querySelectorAll('[data-sonner-toast]')]
+  return [
+    ...document.querySelectorAll('[data-sonner-toast][data-removed="false"]'),
+  ]
 }
 
 function toastsByType(type: string): Element[] {
@@ -320,6 +323,10 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
+  // The sonner toast store is a module singleton: without an explicit
+  // dismiss, toasts from a finished test re-mount with the next Toaster and
+  // pollute the "exactly one toast" assertions below.
+  toast.dismiss()
   vi.restoreAllMocks()
 })
 

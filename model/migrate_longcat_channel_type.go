@@ -12,19 +12,20 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-// legacyLongcatChannelType is the channel type that meant LongCat on the
-// production main branch before the rc23 upgrade. Upstream rc23 reuses
-// type 58 for Advanced Custom, and Vancine rc23 moves LongCat to
-// constant.ChannelTypeLongcat. This constant only expresses the legacy
-// pre-upgrade semantics and must never be used for request routing.
-const legacyLongcatChannelType = 58
+// legacyLongcatChannelType is the retired Vancine-only channel type that
+// meant the LongCat provider. The LongCat type was removed when Vancine
+// adopted the upstream channel taxonomy; every surviving type=100 channel is
+// a plain OpenAI-compatible endpoint and is moved to
+// constant.ChannelTypeOpenAI. This constant only expresses the legacy
+// pre-migration semantics and must never be used for request routing.
+const legacyLongcatChannelType = 100
 
 // The one-time migration persists a completion marker into the options table.
 // The committed marker is always exactly this key/value pair; once present, no
-// later startup may touch type=58 channels again, so post-upgrade Advanced
-// Custom channels are never misidentified as LongCat.
+// later startup may touch type=100 channels again, keeping the migration
+// idempotent across restarts and multi-instance deployments.
 const (
-	longcatChannelTypeMigrationOptionKey      = "migration.longcat_channel_type_58_to_100.v1"
+	longcatChannelTypeMigrationOptionKey      = "migration.longcat_channel_type_100_to_openai.v1"
 	longcatChannelTypeMigrationCompletedValue = "completed"
 )
 
@@ -33,11 +34,13 @@ const (
 // "completed" value.
 const longcatChannelTypeMigrationClaimPrefix = "claim-"
 
-// MigrateLongcatChannelType moves every legacy type=58 channel to
-// constant.ChannelTypeLongcat exactly once. It must run after the Channel and
-// Option tables finished AutoMigrate, both in migrateDB and migrateDBFast.
-// Any failure is returned so the startup migration aborts instead of leaving
-// a half-migrated database.
+// MigrateLongcatChannelType moves every retired type=100 LongCat channel to
+// the upstream generic OpenAI-compatible type exactly once. Only the type
+// column changes; key, base_url, models, model_mapping, group, priority,
+// settings, remark and multi-key configuration are preserved untouched. It
+// must run after the Channel and Option tables finished AutoMigrate, both in
+// migrateDB and migrateDBFast. Any failure is returned so the startup
+// migration aborts instead of leaving a half-migrated database.
 func MigrateLongcatChannelType() error {
 	return migrateLongcatChannelType(DB)
 }
@@ -106,7 +109,7 @@ func migrateLongcatChannelType(db *gorm.DB) error {
 	}
 
 	if outcome.owned {
-		common.SysLog(fmt.Sprintf("LongCat legacy channel migration completed: %d channel(s) moved from type %d to type %d, marker completed", outcome.rows, legacyLongcatChannelType, constant.ChannelTypeLongcat))
+		common.SysLog(fmt.Sprintf("LongCat legacy channel migration completed: %d channel(s) moved from type %d to type %d, marker completed", outcome.rows, legacyLongcatChannelType, constant.ChannelTypeOpenAI))
 	}
 	return nil
 }
@@ -149,11 +152,14 @@ func claimAndRunLongcatChannelTypeMigration(tx *gorm.DB, ownerToken string) (lon
 		return longcatMigrationOutcome{}, fmt.Errorf("longcat channel type migration found an unexpected marker value for %s", longcatChannelTypeMigrationOptionKey)
 	}
 
-	// Migrate every legacy channel while the claim row is still uncommitted,
-	// so no other startup can claim or complete the migration in between.
+	// Migrate every retired channel while the claim row is still
+	// uncommitted, so no other startup can claim or complete the migration
+	// in between. Only the type column is updated; every business field
+	// (key, base_url, models, model_mapping, group, priority, setting,
+	// remark, multi-key configuration) is preserved untouched.
 	result := tx.Model(&Channel{}).
 		Where("type = ?", legacyLongcatChannelType).
-		Update("type", constant.ChannelTypeLongcat)
+		Update("type", constant.ChannelTypeOpenAI)
 	if result.Error != nil {
 		return longcatMigrationOutcome{}, result.Error
 	}

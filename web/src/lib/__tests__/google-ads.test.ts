@@ -24,7 +24,8 @@ For commercial licensing, please contact support@quantumnous.com
  * acquisition tests).
  */
 import assert from 'node:assert/strict'
-import { afterEach, describe, test } from 'node:test'
+
+import { vi, afterEach, describe, test } from 'vitest'
 
 type GoogleAdsModule = typeof import('../google-ads')
 type GtagCall = unknown[]
@@ -72,7 +73,8 @@ function removeWindow(): void {
 async function loadGoogleAds(): Promise<GoogleAdsModule> {
   instanceCounter += 1
   gtagCalls = []
-  return await import(`../google-ads.ts?instance=${instanceCounter}`)
+  vi.resetModules()
+  return await import('../google-ads.ts')
 }
 
 afterEach(() => {

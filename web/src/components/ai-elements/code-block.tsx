@@ -19,10 +19,15 @@ For commercial licensing, please contact support@quantumnous.com
 /* eslint-disable react-refresh/only-export-components */
 'use client'
 
+import { javascript } from '@codemirror/lang-javascript'
 import { markdown } from '@codemirror/lang-markdown'
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { EditorState, type Extension } from '@codemirror/state'
-import { EditorView, lineNumbers } from '@codemirror/view'
+import {
+  EditorView,
+  lineNumbers,
+  placeholder as placeholderExtension,
+} from '@codemirror/view'
 import { tags as highlightTags } from '@lezer/highlight'
 import {
   CheckIcon,
@@ -75,9 +80,11 @@ type CodeBlockEditorProps = Omit<
 > & {
   actions?: ReactNode
   ariaLabel: string
+  autoFocus?: boolean
   language: BundledLanguage | string
   onChange: (value: string) => void
   onKeyDown?: (event: globalThis.KeyboardEvent) => void
+  placeholder?: string
   rows?: number
   title?: ReactNode
   value: string
@@ -87,16 +94,16 @@ type CodeMirrorCodeViewProps = {
   ariaLabel: string
   autoFocus?: boolean
   language: BundledLanguage | string
-  /**
-   * Minimum editor height in lines. Read-only views pass `minRows={1}` so a
-   * one-line snippet (e.g. the Vancine Base URL) is exactly one line tall;
-   * the editable CodeBlockEditor keeps the four-line minimum.
-   */
-  minRows?: number
   onChange?: (value: string) => void
   onKeyDown?: (event: globalThis.KeyboardEvent) => void
+  placeholder?: string
   readOnly?: boolean
   rows?: number
+  /**
+   * Minimum editor height in lines. Read-only views pass `minRows={1}` so a
+   * one-line snippet stays one line tall instead of reserving empty space.
+   */
+  minRows?: number
   showLineNumbers?: boolean
   value: string
 }
@@ -229,6 +236,14 @@ function getCodeMirrorLanguageExtension(language: BundledLanguage | string) {
     return markdown()
   }
 
+  if (requestedLanguage === 'javascript' || requestedLanguage === 'jsx') {
+    return javascript({ jsx: requestedLanguage === 'jsx' })
+  }
+
+  if (requestedLanguage === 'typescript' || requestedLanguage === 'tsx') {
+    return javascript({ jsx: requestedLanguage === 'tsx', typescript: true })
+  }
+
   return []
 }
 
@@ -250,9 +265,7 @@ function getDownloadFilename(language: string, filename?: string) {
 }
 
 function getCodeBlockHeight(lines: number) {
-  // One content line is 1.5rem line-height + 2rem vertical padding, so a
-  // single-line block is 3.5rem tall; never pad it up to four lines.
-  return `${Math.max(1, lines) * 1.5 + 2}rem`
+  return `${Math.max(4, lines) * 1.5 + 2}rem`
 }
 
 function getCodeBlockMaxHeight(
@@ -273,7 +286,8 @@ function getCodeBlockMaxHeight(
 
 function getCodeMirrorExtensions(options: {
   language: BundledLanguage | string
-  onKeyDown?: (event: globalThis.KeyboardEvent) => void
+  onKeyDown: (event: globalThis.KeyboardEvent) => void
+  placeholder?: string
   readOnly: boolean
   showLineNumbers: boolean
 }): Extension[] {
@@ -284,21 +298,20 @@ function getCodeMirrorExtensions(options: {
     EditorState.tabSize.of(2),
     EditorState.readOnly.of(options.readOnly),
     EditorView.editable.of(!options.readOnly),
+    EditorView.domEventHandlers({
+      keydown(event) {
+        options.onKeyDown(event)
+        return event.defaultPrevented
+      },
+    }),
   ]
+
+  if (options.placeholder) {
+    extensions.push(placeholderExtension(options.placeholder))
+  }
 
   if (options.showLineNumbers) {
     extensions.unshift(lineNumbers())
-  }
-
-  if (options.onKeyDown) {
-    extensions.push(
-      EditorView.domEventHandlers({
-        keydown(event) {
-          options.onKeyDown?.(event)
-          return event.defaultPrevented
-        },
-      })
-    )
   }
 
   return extensions
@@ -308,11 +321,12 @@ function CodeMirrorCodeView({
   ariaLabel,
   autoFocus = false,
   language,
-  minRows = 4,
   onChange,
   onKeyDown,
+  placeholder,
   readOnly = false,
   rows = 8,
+  minRows = 4,
   showLineNumbers = true,
   value,
 }: CodeMirrorCodeViewProps) {
@@ -320,21 +334,28 @@ function CodeMirrorCodeView({
   const editorViewRef = useRef<EditorView | null>(null)
   const initialValueRef = useRef(value)
   const onChangeRef = useRef(onChange)
+  const onKeyDownRef = useRef(onKeyDown)
   const editorMinHeight = `${Math.max(minRows, rows) * 1.5 + 2}rem`
+  // onKeyDown is delivered through a ref so a new handler identity from the
+  // parent (recreated on every keystroke-driven render) does not invalidate
+  // the extensions and tear down the EditorView, which would reset the cursor
+  // to the document start and make typing appear right-to-left.
   const editorExtensions = useMemo(
     () =>
       getCodeMirrorExtensions({
         language,
-        onKeyDown,
+        onKeyDown: (event) => onKeyDownRef.current?.(event),
+        placeholder,
         readOnly,
         showLineNumbers,
       }),
-    [language, onKeyDown, readOnly, showLineNumbers]
+    [language, placeholder, readOnly, showLineNumbers]
   )
 
   useEffect(() => {
     onChangeRef.current = onChange
-  }, [onChange])
+    onKeyDownRef.current = onKeyDown
+  }, [onChange, onKeyDown])
 
   useEffect(() => {
     const editorHost = editorHostRef.current
@@ -366,6 +387,10 @@ function CodeMirrorCodeView({
   }, [autoFocus, editorExtensions])
 
   useEffect(() => {
+    // Track the latest value so a future editor rebuild (e.g. language change)
+    // starts from the current document instead of the mount-time snapshot.
+    initialValueRef.current = value
+
     const editorView = editorViewRef.current
     if (!editorView) {
       return
@@ -568,7 +593,7 @@ export const CodeBlock = ({
           language={language}
           minRows={1}
           readOnly
-          rows={Math.min(lineCount, maxExpandedLines ?? lineCount)}
+          rows={Math.min(Math.max(lineCount, 1), maxExpandedLines ?? lineCount)}
           showLineNumbers={showLineNumbers}
           value={code}
         />
@@ -580,10 +605,12 @@ export const CodeBlock = ({
 export const CodeBlockEditor = ({
   actions,
   ariaLabel,
+  autoFocus = true,
   className,
   language,
   onChange,
   onKeyDown,
+  placeholder,
   rows = 8,
   title,
   value,
@@ -600,10 +627,11 @@ export const CodeBlockEditor = ({
     >
       <CodeMirrorCodeView
         ariaLabel={ariaLabel}
-        autoFocus
+        autoFocus={autoFocus}
         language={language}
         onChange={onChange}
         onKeyDown={onKeyDown}
+        placeholder={placeholder}
         rows={rows}
         showLineNumbers
         value={value}

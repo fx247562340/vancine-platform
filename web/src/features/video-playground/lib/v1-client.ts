@@ -19,6 +19,26 @@ For commercial licensing, please contact support@quantumnous.com
 import { extractServerErrorFromBody, VideoPlaygroundError } from './errors'
 import { bearerApiKey } from './keys'
 
+// Canonical cancellation error for the API-key request layer. A cancelled
+// request must surface as AbortError (never as a generic system error) so
+// callers can distinguish "the user navigated away / switched key" from a
+// real failure and skip any post-await side effects (e.g. key registration).
+export function isAbortError(error: unknown): boolean {
+  return error instanceof Error && error.name === 'AbortError'
+}
+
+export function abortError(): Error {
+  return Object.assign(new Error('video-request-cancelled'), {
+    name: 'AbortError',
+  })
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) {
+    throw abortError()
+  }
+}
+
 type RequestWithApiKeyOptions = {
   path: string
   method?: 'GET' | 'POST'
@@ -58,21 +78,32 @@ export async function requestWithApiKey(
       signal: options.signal,
     })
   } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw error
+    if (isAbortError(error) || options.signal?.aborted) {
+      throw abortError()
     }
     throw new VideoPlaygroundError({
       kind: 'system',
       errorKey: options.fallbackErrorKey,
     })
   }
+  // A fetch that resolves despite the signal having been aborted (proxy,
+  // test double, or a race just before abort) must not proceed: bail out
+  // before any response handling or post-await side effects.
+  throwIfAborted(options.signal)
 
   let payload: unknown
   try {
     payload = await response.json()
-  } catch {
+  } catch (error) {
+    // A cancellation surfaced by the body stream is NOT a malformed
+    // response: rethrow AbortError instead of degrading to payload=undefined
+    // and later a generic system error.
+    if (isAbortError(error) || options.signal?.aborted) {
+      throw abortError()
+    }
     payload = undefined
   }
+  throwIfAborted(options.signal)
 
   if (!response.ok) {
     const message = extractServerErrorFromBody(payload)
@@ -80,13 +111,18 @@ export async function requestWithApiKey(
       throw new VideoPlaygroundError({
         kind: 'upstream',
         rawMessage: message,
+        httpStatus: response.status,
       })
     }
     throw new VideoPlaygroundError({
       kind: 'system',
       errorKey: options.fallbackErrorKey,
+      httpStatus: response.status,
     })
   }
 
+  // Final gate before returning: an abort that landed while reading the body
+  // means the caller no longer wants this result.
+  throwIfAborted(options.signal)
   return payload
 }

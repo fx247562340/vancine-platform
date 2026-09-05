@@ -67,7 +67,11 @@ beforeEach(() => {
 afterEach(() => {
   globalThis.requestAnimationFrame = savedRaf
   globalThis.cancelAnimationFrame = savedCaf
-  window.matchMedia = savedMatchMedia
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    writable: true,
+    value: savedMatchMedia,
+  })
   vi.restoreAllMocks()
 })
 
@@ -137,7 +141,11 @@ describe('SpotlightCard', () => {
       }
       return { matches: false, media: query }
     })
-    window.matchMedia = matchMediaSpy as typeof window.matchMedia
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: matchMediaSpy,
+    })
 
     const ref = createRef<HTMLDivElement>()
     render(
@@ -196,7 +204,11 @@ describe('SpotlightCard', () => {
       }
       return { matches: false, media: query }
     })
-    window.matchMedia = matchMediaSpy as typeof window.matchMedia
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: matchMediaSpy,
+    })
 
     const ref = createRef<HTMLDivElement>()
     render(
@@ -245,7 +257,11 @@ describe('SpotlightCard', () => {
       }
       return { matches: false, media: query }
     })
-    window.matchMedia = matchMediaSpy as typeof window.matchMedia
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: matchMediaSpy,
+    })
 
     const ref = createRef<HTMLDivElement>()
     render(
@@ -293,7 +309,11 @@ describe('SpotlightCard', () => {
       }
       return { matches: false, media: query }
     })
-    window.matchMedia = matchMediaSpy as typeof window.matchMedia
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: matchMediaSpy,
+    })
 
     const ref = createRef<HTMLDivElement>()
     render(
@@ -345,7 +365,11 @@ describe('SpotlightCard', () => {
       }
       return { matches: false, media: query }
     })
-    window.matchMedia = matchMediaSpy as typeof window.matchMedia
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: matchMediaSpy,
+    })
 
     const ref = createRef<HTMLDivElement>()
     const { unmount } = render(

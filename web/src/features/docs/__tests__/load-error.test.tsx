@@ -119,10 +119,9 @@ describe('Docs English-load failure (real DocsLayout)', () => {
       })
       expect(loadCalls).toBe(callsAtError)
 
-      // (e) No unhandled rejection escaped.
-      await act(async () => {
-        await new Promise((r) => setTimeout(r, 10))
-      })
+      // (e) No unhandled rejection escaped. The lifecycle chain is
+      // promise-only; unhandled rejections are emitted as soon as the
+      // microtask queue drains, which the flush above already proves.
       expect(rejections).toHaveLength(0)
     } finally {
       process.off('unhandledRejection', onUnhandled)

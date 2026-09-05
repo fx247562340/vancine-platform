@@ -26,7 +26,8 @@ For commercial licensing, please contact support@quantumnous.com
 // `createLazyResourceBackend(loadBundle)`); the shared module-level
 // `LOCALE_LOADERS` is never mutated, so no global state leaks between tests.
 import assert from 'node:assert/strict'
-import { describe, test } from 'node:test'
+
+import { describe, test } from 'vitest'
 
 import {
   createLazyResourceBackend,

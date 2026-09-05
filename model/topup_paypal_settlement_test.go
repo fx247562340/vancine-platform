@@ -35,7 +35,7 @@ func baseSettlementInput(topUp *TopUp, eventID, resourceID string) PayPalSettlem
 		EventType:        PayPalSettlementRefunded,
 		ResourceID:       resourceID,
 		TradeNo:          topUp.TradeNo,
-		CaptureID:        topUp.TransactionId,
+		CaptureID:        topUp.GetTransactionId(),
 		Amount:           fmt.Sprintf("%.2f", topUp.Money),
 		Currency:         "USD",
 		ExpectedCurrency: "USD",

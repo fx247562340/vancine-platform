@@ -77,7 +77,6 @@ import {
   PREFILL_GROUP_TYPE_META,
   PREFILL_GROUP_TYPES,
   type PrefillGroupType,
-  normalizePrefillGroupItemsForSubmit,
   parseStringItems,
   serializeEndpointItems,
 } from '../prefill-group-shared'
@@ -144,22 +143,24 @@ export function PrefillGroupFormDrawer({
 
   const handleSubmit = async (values: PrefillGroupFormValues) => {
     setIsSaving(true)
-    // The group id is the single branch source for update vs create: the
-    // same truthiness that derives isEdit decides the submit path, so the
-    // update branch is narrowed by construction (id=0/null/undefined keep
-    // walking the create branch, matching Boolean(currentGroup?.id)).
-    const groupId = currentGroup?.id
     const payload = {
       name: values.name.trim(),
       type: values.type,
       description: values.description?.trim() || '',
-      items: normalizePrefillGroupItemsForSubmit(values.type, values.items),
+      items:
+        values.type === 'endpoint'
+          ? typeof values.items === 'string'
+            ? values.items
+            : ''
+          : Array.isArray(values.items)
+            ? values.items
+            : [],
     }
 
     try {
-      const response = groupId
+      const response = isEdit
         ? await updatePrefillGroup({
-            id: groupId,
+            id: currentGroup!.id,
             ...payload,
           })
         : await createPrefillGroup(payload)
@@ -184,13 +185,6 @@ export function PrefillGroupFormDrawer({
 
   const meta =
     PREFILL_GROUP_TYPE_META[selectedType] || PREFILL_GROUP_TYPE_META.model
-
-  let submitLabel = t('Create')
-  if (isSaving) {
-    submitLabel = t('Saving...')
-  } else if (isEdit) {
-    submitLabel = t('Save changes')
-  }
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
@@ -283,20 +277,22 @@ export function PrefillGroupFormDrawer({
                   <FormItem>
                     <FormLabel>Group Type</FormLabel>
                     <Select
-                      items={PREFILL_GROUP_TYPES.map((type) => ({
-                        value: type.value,
-                        label: (
-                          <div className='flex flex-col text-left'>
-                            <span className='font-medium'>{type.label}</span>
-                            <span
-                              data-prefill-description
-                              className='text-muted-foreground text-xs'
-                            >
-                              {type.description}
-                            </span>
-                          </div>
-                        ),
-                      }))}
+                      items={[
+                        ...PREFILL_GROUP_TYPES.map((type) => ({
+                          value: type.value,
+                          label: (
+                            <div className='flex flex-col text-left'>
+                              <span className='font-medium'>{type.label}</span>
+                              <span
+                                data-prefill-description
+                                className='text-muted-foreground text-xs'
+                              >
+                                {type.description}
+                              </span>
+                            </div>
+                          ),
+                        })),
+                      ]}
                       value={field.value}
                       onValueChange={(value) =>
                         value !== null &&
@@ -403,7 +399,11 @@ export function PrefillGroupFormDrawer({
           </SheetClose>
           <Button type='submit' form='prefill-group-form' disabled={isSaving}>
             {isSaving && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
-            {submitLabel}
+            {isSaving
+              ? t('Saving...')
+              : isEdit
+                ? t('Save changes')
+                : t('Create')}
           </Button>
         </SheetFooter>
       </SheetContent>

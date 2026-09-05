@@ -116,7 +116,7 @@ import { BrandLightTunnel } from '../brand-light-tunnel'
 interface Harness {
   rafCallbacks: Map<number, FrameRequestCallback>
   raf: ReturnType<typeof vi.fn>
-  caf: ReturnType<typeof vi.fn>
+  caf: ReturnType<typeof vi.fn> & ((id: number) => void)
   observedElements: Element[]
   intersectionCallbacks: Array<(entries: IntersectionObserverEntry[]) => void>
   visibilityListeners: Set<() => void>
@@ -302,21 +302,25 @@ let originalMatchMedia: typeof window.matchMedia
 let originalUserAgent: string
 
 function setMatchMedia(opts: { reducedMotion: boolean; finePointer: boolean }) {
-  window.matchMedia = ((query: string) => {
-    const matches =
-      (query.includes('prefers-reduced-motion') && opts.reducedMotion) ||
-      (query.includes('pointer: fine') && opts.finePointer)
-    return {
-      matches,
-      media: query,
-      onchange: null,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      dispatchEvent: () => true,
-    } as unknown as MediaQueryList
-  }) as typeof window.matchMedia
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    writable: true,
+    value: (query: string): MediaQueryList => {
+      const matches =
+        (query.includes('prefers-reduced-motion') && opts.reducedMotion) ||
+        (query.includes('pointer: fine') && opts.finePointer)
+      return {
+        matches,
+        media: query,
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: () => true,
+      } as unknown as MediaQueryList
+    },
+  })
 }
 
 beforeEach(() => {
@@ -338,7 +342,11 @@ beforeEach(() => {
 
 afterEach(() => {
   restoreHarness(harness)
-  window.matchMedia = originalMatchMedia
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    writable: true,
+    value: originalMatchMedia,
+  })
   Object.defineProperty(navigator, 'userAgent', {
     configurable: true,
     writable: true,

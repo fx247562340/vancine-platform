@@ -24,7 +24,6 @@ For commercial licensing, please contact support@quantumnous.com
  * predicate stays real; only the outbound conversion call is spied.
  */
 import {
-  act,
   cleanup,
   fireEvent,
   render,
@@ -161,14 +160,16 @@ afterEach(() => {
 
 async function renderUserAuthForm(): Promise<void> {
   const { UserAuthForm } = await import('../user-auth-form')
-  // Mount inside act() and drain one macrotask boundary: the mount effect
-  // resolves passkey support detection asynchronously (a promise resolved
-  // after the synchronous render), so flushing inside act keeps that state
-  // update - and everything settling after mount - inside act.
-  await act(async () => {
-    render(<UserAuthForm />)
-    await new Promise((resolve) => setTimeout(resolve, 0))
-  })
+  // Mount, then wait for the observable settled state (the WeChat button is
+  // rendered by the same pass that async mount detection re-renders). RTL
+  // wraps fireEvent and waitFor's polling in act(), so post-mount state
+  // updates land inside act without any fixed-duration sleep.
+  render(<UserAuthForm />)
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', { name: /Continue with WeChat/ })
+    ).toBeInTheDocument()
+  )
 }
 
 async function submitWeChatCode(): Promise<void> {
@@ -184,13 +185,10 @@ async function submitWeChatCode(): Promise<void> {
     target: { value: '654321' },
   })
   // The Confirm click starts handleWeChatLogin's async chain (submitting
-  // state, login request, dialog close, submitting reset). Draining the
-  // macrotask queue inside act() lets that whole chain - and every state
-  // update in it - settle inside act, so none lands outside it.
-  await act(async () => {
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
-    await new Promise((resolve) => setTimeout(resolve, 50))
-  })
+  // state, login request, dialog close, submitting reset). waitFor polls
+  // inside RTL's act-wrapped asyncWrapper, so the chain settles inside act
+  // and the observable end state - not a fixed sleep - defines the wait.
+  fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
   await waitFor(() =>
     expect(authRedirectMocks.handleLoginSuccess).toHaveBeenCalledTimes(1)
   )
@@ -245,13 +243,9 @@ describe('UserAuthForm Google Ads conversion on WeChat signup', () => {
     fireEvent.change(screen.getByLabelText('Verification code'), {
       target: { value: '654321' },
     })
-    // Failure path: drain the async chain inside act() so the submitting
-    // reset (Confirm button re-enabled) settles inside act, then assert on
-    // the user-visible final state outside it.
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
-      await new Promise((resolve) => setTimeout(resolve, 50))
-    })
+    // Failure path: the observable toast and the re-enabled Confirm button
+    // are explicit states; waitFor settles the chain inside act().
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
     await waitFor(() =>
       expect(toastSpy.error).toHaveBeenCalledWith('wechat rejected')
     )

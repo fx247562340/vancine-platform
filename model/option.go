@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
+	"github.com/QuantumNous/new-api/pkg/jsplugin"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/config"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
@@ -54,6 +56,13 @@ func InitOptionMap() {
 	common.OptionMap["DisplayTokenStatEnabled"] = strconv.FormatBool(common.DisplayTokenStatEnabled)
 	common.OptionMap["DrawingEnabled"] = strconv.FormatBool(common.DrawingEnabled)
 	common.OptionMap["TaskEnabled"] = strconv.FormatBool(common.TaskEnabled)
+	common.OptionMap["TaskPluginEnabled"] = strconv.FormatBool(constant.TaskPluginEnabled)
+	jsplugin.DefaultRegistry.SetEnabled(constant.TaskPluginEnabled)
+	common.OptionMap["TaskPluginOverrideEnabled"] = strconv.FormatBool(constant.TaskPluginOverrideEnabled)
+	jsplugin.DefaultRegistry.SetOverrideEnabled(constant.TaskPluginOverrideEnabled)
+	common.OptionMap[setting.TaskPluginMarketplaceSourcesKey] = setting.TaskPluginMarketplaceSources2JsonString()
+	common.OptionMap[setting.TaskPluginDisabledFactoryKeysKey] = "[]"
+	jsplugin.DefaultRegistry.SetDisabledFactoryKeys(nil)
 	common.OptionMap["DataExportEnabled"] = strconv.FormatBool(common.DataExportEnabled)
 	common.OptionMap["ChannelDisableThreshold"] = strconv.FormatFloat(common.ChannelDisableThreshold, 'f', -1, 64)
 	common.OptionMap["EmailDomainRestrictionEnabled"] = strconv.FormatBool(common.EmailDomainRestrictionEnabled)
@@ -75,6 +84,7 @@ func InitOptionMap() {
 	common.OptionMap["SystemName"] = common.SystemName
 	common.OptionMap["Logo"] = common.Logo
 	common.OptionMap["ServerAddress"] = ""
+	common.OptionMap["TaskPublicAddress"] = system_setting.TaskPublicAddress
 	common.OptionMap["WorkerUrl"] = system_setting.WorkerUrl
 	common.OptionMap["WorkerValidKey"] = system_setting.WorkerValidKey
 	common.OptionMap["WorkerAllowHttpImageRequestEnabled"] = strconv.FormatBool(system_setting.WorkerAllowHttpImageRequestEnabled)
@@ -227,11 +237,26 @@ func validateOptionValue(key string, value string) error {
 	if key == operation_setting.ToolPriceOptionKey {
 		return operation_setting.ValidateToolPricesJSON(value)
 	}
+	if key == operation_setting.ChannelTestConcurrencyOptionKey {
+		return operation_setting.ValidateChannelTestConcurrency(value)
+	}
 	if key == "MaxTokenAutoGroups" {
 		return setting.ValidateMaxTokenAutoGroups(value)
 	}
 	if key == "QuotaForFirstTopUp" {
 		_, err := parseQuotaForFirstTopUp(value)
+		return err
+	}
+	if key == "QuotaForNewUser" {
+		_, err := parseWalletQuotaOptionValue("QuotaForNewUser", value)
+		return err
+	}
+	if key == "QuotaForInviter" {
+		_, err := parseWalletQuotaOptionValue("QuotaForInviter", value)
+		return err
+	}
+	if key == "QuotaForInvitee" {
+		_, err := parseWalletQuotaOptionValue("QuotaForInvitee", value)
 		return err
 	}
 	return nil
@@ -241,15 +266,32 @@ func validateOptionValue(key string, value string) error {
 // 已经成功之后，所以只接受非负、并且仍在配额列可存储范围内的整数；其他写法
 // 一律拒绝，而不是四舍五入或饱和到边界，避免误发额度。
 func parseQuotaForFirstTopUp(value string) (int, error) {
-	bonus, err := strconv.ParseInt(strings.TrimSpace(value), 10, 32)
+	return parseWalletQuotaOptionValue("QuotaForFirstTopUp", value)
+}
+
+// parseWalletQuotaOptionValue 适用于“新用户 / 邀请人 / 被邀请人 / 首次充值”
+// 四类“累计钱包加额”配置项的严格十进制整数解析。约定：
+//
+//   - 接受可选的空白、十进制整数（可选正负号）。
+//   - 0 合法表示关闭赠送。
+//   - 范围为 [0, common.MaxWalletQuota]，超过上限或为负数一律拒绝。
+//   - 非整数（浮点、指数、空字符串、strconv 报错）一律拒绝；调用方
+//     必须 fail closed，遗留非法配置在加载路径上要把目标字段重置为 0
+//     并记报错。
+//
+// 该函数与 wallet 累计金额的 Go 边界（int + MaxWalletQuota）一致；它不感知
+// 数据库列宽，列宽一致性由 ensureUserQuotaColumns / ensureTopUpQuotaColumns
+// 在启动前承担。
+func parseWalletQuotaOptionValue(key string, value string) (int, error) {
+	bonus, err := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
 	if err != nil {
-		return 0, fmt.Errorf("QuotaForFirstTopUp 必须是 0 到 %d 之间的整数配额值: %s", common.MaxQuota, value)
+		return 0, fmt.Errorf("%s 必须是 0 到 %d 之间的整数配额值: %s", key, common.MaxWalletQuota, value)
 	}
 	if bonus < 0 {
-		return 0, fmt.Errorf("QuotaForFirstTopUp 不能为负数: %d", bonus)
+		return 0, fmt.Errorf("%s 不能为负数: %d", key, bonus)
 	}
-	if bonus > int64(common.MaxQuota) {
-		return 0, fmt.Errorf("QuotaForFirstTopUp 不能超出额度上限 %d: %d", common.MaxQuota, bonus)
+	if bonus > int64(common.MaxWalletQuota) {
+		return 0, fmt.Errorf("%s 不能超出额度上限 %d: %d", key, common.MaxWalletQuota, bonus)
 	}
 	return int(bonus), nil
 }
@@ -390,6 +432,12 @@ func updateOptionMap(key string, value string) (err error) {
 			common.DrawingEnabled = boolValue
 		case "TaskEnabled":
 			common.TaskEnabled = boolValue
+		case "TaskPluginEnabled":
+			constant.TaskPluginEnabled = boolValue
+			jsplugin.DefaultRegistry.SetEnabled(boolValue)
+		case "TaskPluginOverrideEnabled":
+			constant.TaskPluginOverrideEnabled = boolValue
+			jsplugin.DefaultRegistry.SetOverrideEnabled(boolValue)
 		case "DataExportEnabled":
 			common.DataExportEnabled = boolValue
 		case "DefaultCollapseSidebar":
@@ -432,6 +480,9 @@ func updateOptionMap(key string, value string) (err error) {
 			ratio_setting.SetExposeRatioEnabled(boolValue)
 		}
 	}
+	if key == setting.TaskPluginDisabledFactoryKeysKey {
+		jsplugin.DefaultRegistry.SetDisabledFactoryKeys(setting.ParseTaskPluginDisabledFactoryKeys(value))
+	}
 	switch key {
 	case "EmailDomainWhitelist":
 		common.EmailDomainWhitelist = strings.Split(value, ",")
@@ -448,6 +499,8 @@ func updateOptionMap(key string, value string) (err error) {
 		common.SMTPToken = value
 	case "ServerAddress":
 		system_setting.ServerAddress = value
+	case "TaskPublicAddress":
+		system_setting.TaskPublicAddress = value
 	case "WorkerUrl":
 		system_setting.WorkerUrl = value
 	case "WorkerValidKey":
@@ -599,12 +652,20 @@ func updateOptionMap(key string, value string) (err error) {
 	case "TurnstileSecretKey":
 		common.TurnstileSecretKey = value
 	case "QuotaForNewUser":
-		common.QuotaForNewUser, _ = strconv.Atoi(value)
+		// 新用户初始额度属于累计钱包加额，必须与 users 钱包列同范围；
+		// 非法存量配置一律重置为 0，避免在加载路径上继续发放。
+		quota, parseErr := parseWalletQuotaOptionValue("QuotaForNewUser", value)
+		if parseErr != nil {
+			common.QuotaForNewUser = 0
+			err = parseErr
+			break
+		}
+		common.QuotaForNewUser = quota
 	case "QuotaForFirstTopUp":
 		// A stored value outside the supported range must never mint quota, so the
 		// bonus stays off and the error surfaces through the option loader (or the
 		// validating write path) instead of being applied as parsed.
-		bonus, parseErr := parseQuotaForFirstTopUp(value)
+		bonus, parseErr := parseWalletQuotaOptionValue("QuotaForFirstTopUp", value)
 		if parseErr != nil {
 			common.QuotaForFirstTopUp = 0
 			err = parseErr
@@ -612,9 +673,23 @@ func updateOptionMap(key string, value string) (err error) {
 		}
 		common.QuotaForFirstTopUp = bonus
 	case "QuotaForInviter":
-		common.QuotaForInviter, _ = strconv.Atoi(value)
+		// 邀请人加额同样遵循同一十进制整数范围；非法配置重置为 0，
+		// 防止 inviteUser 在加载路径上发出越界额度。
+		quota, parseErr := parseWalletQuotaOptionValue("QuotaForInviter", value)
+		if parseErr != nil {
+			common.QuotaForInviter = 0
+			err = parseErr
+			break
+		}
+		common.QuotaForInviter = quota
 	case "QuotaForInvitee":
-		common.QuotaForInvitee, _ = strconv.Atoi(value)
+		quota, parseErr := parseWalletQuotaOptionValue("QuotaForInvitee", value)
+		if parseErr != nil {
+			common.QuotaForInvitee = 0
+			err = parseErr
+			break
+		}
+		common.QuotaForInvitee = quota
 	case "QuotaRemindThreshold":
 		common.QuotaRemindThreshold, _ = strconv.Atoi(value)
 	case "PreConsumedQuota":

@@ -156,10 +156,6 @@ func PasskeyRegisterFinish(c *gin.Context) {
 		return
 	}
 
-	if !requirePasskeyRegistrationVerification(c, user.Id) {
-		return
-	}
-
 	wa, err := passkeysvc.BuildWebAuthn(c.Request)
 	if err != nil {
 		common.ApiError(c, err)

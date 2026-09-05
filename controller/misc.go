@@ -56,7 +56,7 @@ func GetStatus(c *gin.Context) {
 	// configured value (even when it is out of range, so misconfiguration
 	// stays observable); first_topup_bonus_active is derived from the same
 	// shared validity helper the settlement uses: true only when the quota is
-	// > 0 and <= common.MaxQuota. The marketing pages combine the quota with
+	// > 0 and <= common.MaxWalletQuota. The marketing pages combine the quota with
 	// quota_per_unit to display the USD equivalent.
 	_, firstTopUpBonusActive := model.ValidFirstTopUpBonusQuota()
 
@@ -104,6 +104,8 @@ func GetStatus(c *gin.Context) {
 		"password_login_enabled":        common.PasswordLoginEnabled,
 		"password_register_enabled":     common.PasswordRegisterEnabled,
 		"default_use_auto_group":        setting.DefaultUseAutoGroup,
+
+		"password_login_encryption_enabled": common.PasswordLoginEncryptionEnabled,
 
 		"usd_exchange_rate": operation_setting.USDExchangeRate,
 		"price":             operation_setting.Price,
@@ -233,13 +235,9 @@ func googleBindConfiguration() (clientID string, redirectURI string, ok bool) {
 
 func GetNotice(c *gin.Context) {
 	common.OptionMapRWMutex.RLock()
-	defer common.OptionMapRWMutex.RUnlock()
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "",
-		"data":    common.OptionMap["Notice"],
-	})
-	return
+	notice := common.OptionMap["Notice"]
+	common.OptionMapRWMutex.RUnlock()
+	serveRevalidatedJSON(c, notice)
 }
 
 func GetAbout(c *gin.Context) {
@@ -258,33 +256,17 @@ func GetAbout(c *gin.Context) {
 			content = localized.ContentFor(lang)
 		}
 	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "",
-		"data":    content,
-	})
-	return
+	serveRevalidatedJSON(c, content)
 }
 
 func GetUserAgreement(c *gin.Context) {
 	lang := i18n.GetLangFromContext(c)
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "",
-		"data":    system_setting.GetLegalSettings().UserAgreement.ContentFor(lang),
-	})
-	return
+	serveRevalidatedJSON(c, system_setting.GetLegalSettings().UserAgreement.ContentFor(lang))
 }
 
 func GetPrivacyPolicy(c *gin.Context) {
 	lang := i18n.GetLangFromContext(c)
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "",
-		"data":    system_setting.GetLegalSettings().PrivacyPolicy.ContentFor(lang),
-	})
-	return
+	serveRevalidatedJSON(c, system_setting.GetLegalSettings().PrivacyPolicy.ContentFor(lang))
 }
 
 func GetMidjourney(c *gin.Context) {
@@ -300,13 +282,9 @@ func GetMidjourney(c *gin.Context) {
 
 func GetHomePageContent(c *gin.Context) {
 	common.OptionMapRWMutex.RLock()
-	defer common.OptionMapRWMutex.RUnlock()
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "",
-		"data":    common.OptionMap["HomePageContent"],
-	})
-	return
+	homePageContent := common.OptionMap["HomePageContent"]
+	common.OptionMapRWMutex.RUnlock()
+	serveRevalidatedJSON(c, homePageContent)
 }
 
 func SendEmailVerification(c *gin.Context) {

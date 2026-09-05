@@ -208,11 +208,11 @@ func ApplyPayPalSettlement(in PayPalSettlementInput) (int, error) {
 		if topUp.PaymentProvider != PaymentProviderPayPal {
 			return fmt.Errorf("%w: order is not a PayPal order", ErrPayPalSettlementNotApplicable)
 		}
-		if strings.TrimSpace(topUp.TransactionId) == "" {
+		if strings.TrimSpace(topUp.GetTransactionId()) == "" {
 			return fmt.Errorf("%w: order has no captured transaction id", ErrPayPalSettlementNotApplicable)
 		}
-		if topUp.TransactionId != in.CaptureID {
-			return fmt.Errorf("%w: capture id mismatch local=%s event=%s", ErrPayPalSettlementNotApplicable, topUp.TransactionId, in.CaptureID)
+		if topUp.GetTransactionId() != in.CaptureID {
+			return fmt.Errorf("%w: capture id mismatch local=%s event=%s", ErrPayPalSettlementNotApplicable, topUp.GetTransactionId(), in.CaptureID)
 		}
 		if in.Currency != in.ExpectedCurrency {
 			return fmt.Errorf("%w: currency mismatch configured=%s event=%s", ErrPayPalSettlementNotApplicable, in.ExpectedCurrency, in.Currency)
@@ -344,23 +344,15 @@ func ApplyPayPalSettlement(in PayPalSettlementInput) (int, error) {
 		return 0, err
 	}
 	if deducted > 0 {
-		// Fast path: mirror the actual deduction to the user quota hash
-		// via applyUserQuotaHashDelta. The shared helper owns the
-		// safe-failure policy: in batch-update mode a HINCRBY failure
-		// pins the cache Quota to MinQuota (a "do-not-consume"
-		// sentinel) instead of deleting the row, so a pending batch
-		// delta is never clobbered by a rebuild; in the non-batch path
-		// a HINCRBY failure invalidates the cache so the next
-		// GetUserCache rebuilds from the database row.
-		applyUserQuotaHashDelta(deductedUserID, -int64(deducted))
+		// Mirror the committed deduction to the user quota cache using the
+		// upstream guarded delta helper; failures only log and the next
+		// cache miss rehydrates from the committed database row.
+		if err := cacheDecrUserQuota(deductedUserID, int64(deducted)); err != nil {
+			common.SysLog(fmt.Sprintf("failed to sync paypal settlement deduction to user quota cache: %s", err.Error()))
+		}
 	}
 	// A replay (deducted == 0) is a true no-op for the cache: the order was
-	// already settled, no quota was deducted this call, and the cache hash
-	// may already carry values that are NOT in the database yet (pending
-	// batch consumption, manual operator edits, etc.). Deleting the cache
-	// on replay would clobber those pending values and force a DB rebuild
-	// that loses the pending deltas. So the replay branch is intentionally
-	// empty.
+	// already settled and no quota was deducted this call.
 	return deducted, nil
 }
 
@@ -373,7 +365,7 @@ func settlementBaseQuota(topUp *TopUp) (int, error) {
 	if topUp.BaseQuota > 0 {
 		return topUp.BaseQuota, nil
 	}
-	return common.QuotaFromFloatStrict(topUp.Money * common.QuotaPerUnit)
+	return common.WalletQuotaFromFloatStrict(topUp.Money * common.QuotaPerUnit)
 }
 
 // CountPayPalSettlementEventsForOrder returns the number of ledger rows bound to

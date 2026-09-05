@@ -23,12 +23,6 @@ import { defineConfig } from 'vitest/config'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-// Component/behavior tests run under Vitest + React Testing Library in jsdom
-// and use the `.test.tsx` extension. The include covers every `.test.tsx`
-// under src so no suite is silently skipped. The pure-logic `*.test.ts`
-// suites keep running under `bun test` (node:test semantics; see package.json
-// `test:unit`); the two runners are mutually exclusive by extension, so no
-// file is matched twice.
 export default defineConfig({
   resolve: {
     alias: {
@@ -37,9 +31,9 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
-    globals: true,
-    setupFiles: ['./src/test/setup.ts'],
-    include: ['src/**/*.test.tsx'],
-    css: false,
+    setupFiles: ['./src/test-setup.ts', './src/test/setup.ts'],
+    clearMocks: true,
+    restoreMocks: true,
+    include: ['src/**/*.{test,spec}.{ts,tsx}'],
   },
 })

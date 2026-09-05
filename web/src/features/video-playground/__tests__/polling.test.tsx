@@ -122,30 +122,31 @@ describe('VideoPlayground polling and result URL', () => {
     vi.mocked(getVideoTask).mockResolvedValue({
       task_id: 'task-123',
       status: 'SUCCESS',
-      result_url: 'https://cdn.example.com/done.mp4',
+      content_url:
+        'https://vancine.test/v1/tasks/task-123/artifacts/video/content',
     })
     await userEvent.click(retry)
     expect(await screen.findByLabelText('Generated video')).toBeTruthy()
   })
 
-  it('rejects unsafe result URLs instead of rendering a video', async () => {
+  it('shows a no-result state when the task has no safe artifact URL', async () => {
     vi.mocked(getVideoTask).mockResolvedValue({
       task_id: 'task-123',
       status: 'SUCCESS',
-      result_url: 'https://user:pass@cdn.example.com/v.mp4',
+      content_url: null,
     })
     renderVideoPlayground(i18n)
     await fillAndSubmitPrompt()
     expect(await screen.findByText('No playable video result')).toBeTruthy()
     expect(screen.queryByLabelText('Generated video')).toBeNull()
-    expect(document.body.innerHTML).not.toContain('user:pass')
   })
 
   it('shows a visible media error when the video element fails to load', async () => {
     vi.mocked(getVideoTask).mockResolvedValue({
       task_id: 'task-123',
       status: 'SUCCESS',
-      result_url: 'https://cdn.example.com/result.mp4',
+      content_url:
+        'https://vancine.test/v1/tasks/task-123/artifacts/video/content',
     })
     renderVideoPlayground(i18n)
     await fillAndSubmitPrompt()

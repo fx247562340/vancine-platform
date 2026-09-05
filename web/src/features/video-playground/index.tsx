@@ -49,6 +49,7 @@ import {
 } from './lib/capabilities'
 import { videoPlaygroundErrorText } from './lib/errors'
 import { videoFormSchema, type VideoFormValues } from './lib/form-schema'
+import { clearAllTaskApiKeys } from './lib/task-key-registry'
 import { useResourceStore } from './lib/use-resource-store'
 
 export function VideoPlayground() {
@@ -68,6 +69,13 @@ export function VideoPlayground() {
   } = connection
   const secret = useVideoApiSecret()
   const { load: loadSecret, clear: clearSecret } = secret
+
+  // Leaving the page ends every in-flight task's relevance here: drop all
+  // task-bound in-memory API keys on unmount. Terminal tasks already cleared
+  // their own key; this covers anything still queued/running. Key switching
+  // (clearSecret) deliberately does NOT clear these — tasks that already have
+  // a task id keep polling with their own submit-time key.
+  useEffect(() => () => clearAllTaskApiKeys(), [])
   const modelsQuery = useVideoModels(keyId, loadSecret)
   const resourceStore = useResourceStore()
 

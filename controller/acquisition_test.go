@@ -708,6 +708,8 @@ func (p *stubOAuthProvider) SetProviderUserID(user *model.User, providerUserID s
 }
 func (p *stubOAuthProvider) GetProviderPrefix() string { return "stub_" }
 
+func (p *stubOAuthProvider) ProviderUserIDColumn() string { return "github_id" }
+
 func newAcquisitionOAuthContext(cookies ...*http.Cookie) (*gin.Context, *httptest.ResponseRecorder) {
 	recorder := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(recorder)

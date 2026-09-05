@@ -154,14 +154,21 @@ describe('DocsI18nProvider lifecycle', () => {
       // defaultValue prevents a raw key from reaching the DOM.
       expect(screen.getByTestId('title').textContent).toBe('__FALLBACK__')
 
-      // Settle, then assert the state is stable (no infinite retry/render).
+      // The provider's lifecycle chain (loader rejection -> English fall-
+      // back -> terminal error render) is pure microtasks; flushing the
+      // microtask queue deterministically reaches the fixed point - no
+      // fixed-duration sleep. Then assert the state is stable (no infinite
+      // retry/render).
       const callsAtError = enCalls
-      await new Promise((r) => setTimeout(r, 30))
+      await act(async () => {
+        await Promise.resolve()
+        await Promise.resolve()
+      })
       expect(screen.getByTestId('status').textContent).toBe('error')
       expect(enCalls).toBe(callsAtError)
 
-      // Allow any stray promise rejection a chance to surface, then assert none.
-      await new Promise((r) => setTimeout(r, 20))
+      // Any stray rejection would already have been emitted by the time the
+      // queue drained above; assert none.
       expect(rejections).toHaveLength(0)
     } finally {
       process.off('unhandledRejection', onUnhandled)

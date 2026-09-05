@@ -43,10 +43,7 @@ import {
   videoPlaygroundErrorText,
   type VideoPlaygroundError,
 } from '../lib/errors'
-import {
-  isTerminalVideoTaskStatus,
-  resolvePlaygroundVideoUrl,
-} from '../lib/task'
+import { isTerminalVideoTaskStatus } from '../lib/task'
 
 type TaskQueueItemProps = {
   taskId: string | null
@@ -75,9 +72,7 @@ export function TaskQueueItem({
       ? task?.fail_reason?.trim() || t('Task failed')
       : null
   const videoUrl =
-    status === VIDEO_TASK_SUCCESS && task
-      ? resolvePlaygroundVideoUrl(task)
-      : null
+    status === VIDEO_TASK_SUCCESS && task?.content_url ? task.content_url : null
   const [mediaError, setMediaError] = useState(false)
 
   useEffect(() => {

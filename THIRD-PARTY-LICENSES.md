@@ -34,11 +34,13 @@ Transitive dependencies should be audited before a final external release.
 | backend     | production  | Go        | `github.com/google/uuid`                              | `v1.6.0`                             | BSD-3-Clause                                       |
 | backend     | production  | Go        | `github.com/gorilla/websocket`                        | `v1.5.0`                             | BSD-2-Clause                                       |
 | backend     | production  | Go        | `github.com/grafana/pyroscope-go`                     | `v1.2.7`                             | Apache-2.0                                         |
+| backend     | production  | Go        | `github.com/grafana/sobek`                            | `v0.0.0-20260708062710-267a0e055bb4` | MIT                                                |
 | backend     | production  | Go        | `github.com/jfreymuth/oggvorbis`                      | `v1.0.5`                             | MIT                                                |
 | backend     | production  | Go        | `github.com/jinzhu/copier`                            | `v0.4.0`                             | MIT                                                |
 | backend     | production  | Go        | `github.com/joho/godotenv`                            | `v1.5.1`                             | MIT                                                |
 | backend     | production  | Go        | `github.com/mewkiz/flac`                              | `v1.0.13`                            | Unlicense                                          |
 | backend     | production  | Go        | `github.com/nicksnyder/go-i18n/v2`                    | `v2.6.1`                             | MIT                                                |
+| backend     | test        | Go        | `github.com/openai/openai-go`                         | `v1.12.0`                            | Apache-2.0                                         |
 | backend     | production  | Go        | `github.com/pkg/errors`                               | `v0.9.1`                             | BSD-2-Clause                                       |
 | backend     | production  | Go        | `github.com/pquerna/otp`                              | `v1.5.0`                             | Apache-2.0                                         |
 | backend     | production  | Go        | `github.com/samber/hot`                               | `v0.11.0`                            | MIT                                                |
@@ -61,11 +63,14 @@ Transitive dependencies should be audited before a final external release.
 | backend     | production  | Go        | `golang.org/x/sys`                                    | `v0.38.0`                            | BSD-3-Clause                                       |
 | backend     | production  | Go        | `golang.org/x/text`                                   | `v0.35.0`                            | BSD-3-Clause                                       |
 | backend     | production  | Go        | `gopkg.in/yaml.v3`                                    | `v3.0.1`                             | Apache-2.0 OR MIT                                  |
-| backend     | production  | Go        | `gorm.io/driver/mysql`                                | `v1.4.3`                             | MIT                                                |
-| backend     | production  | Go        | `gorm.io/driver/postgres`                             | `v1.5.2`                             | MIT                                                |
-| backend     | production  | Go        | `gorm.io/gorm`                                        | `v1.25.2`                            | MIT                                                |
+| backend     | production  | Go        | `gorm.io/driver/mysql`                                | `v1.5.7`                             | MIT                                                |
+| backend     | production  | Go        | `github.com/go-sql-driver/mysql`                      | `v1.7.0`                             | MPL-2.0                                            |
+| backend     | production  | Go        | `gorm.io/driver/postgres`                             | `v1.5.9`                             | MIT                                                |
+| backend     | production  | Go        | `github.com/jackc/pgx/v5`                             | `v5.9.2`                             | MIT                                                |
+| backend     | production  | Go        | `gorm.io/gorm`                                        | `v1.25.12`                           | MIT                                                |
 | backend     | production  | Go        | `github.com/expr-lang/expr`                           | `v1.17.8`                            | MIT                                                |
 | web | production | npm | `@base-ui/react` | `1.6.0` | MIT |
+| web | production | npm | `@codemirror/lang-javascript` | `6.2.5` | MIT |
 | web | production | npm | `@codemirror/lang-markdown` | `6.5.1` | MIT |
 | web | production | npm | `@codemirror/language` | `6.12.4` | MIT |
 | web | production | npm | `@codemirror/state` | `6.7.1` | MIT |
@@ -99,6 +104,7 @@ Transitive dependencies should be audited before a final external release.
 | web | production | npm | `marked` | `18.0.6` | MIT |
 | web | production | npm | `motion` | `12.42.2` | MIT |
 | web | production | npm | `nanoid` | `5.1.16` | MIT |
+| web | production | npm | `node-forge` | `1.4.0` | BSD-3-Clause |
 | web | production | npm | `next-themes` | `0.4.6` | MIT |
 | web | production | npm | `ogl` | `1.0.11` | Unlicense |
 | web | production | npm | `qrcode.react` | `4.2.0` | ISC |

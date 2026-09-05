@@ -26,6 +26,7 @@ import {
   __resetTestOverrides,
   __setTestClock,
   __setTestSessionId,
+  LEASE_HEARTBEAT_INTERVAL_MS,
 } from '@/features/image-playground/lib/clock'
 import { useAuthStore } from '@/stores/auth-store'
 import {
@@ -783,11 +784,12 @@ describe('useImageGenerate runs', () => {
     // Retry is fire-and-forget from the UI: its rejection must be caught.
     const failedId = failed ? failed.id : ''
     expect(failedId).not.toBe('')
-    await act(async () => {
+    act(() => {
       result.current.retry(failedId)
-      // Flush microtasks so the rejected promise would have surfaced by now.
-      await new Promise((resolve) => setTimeout(resolve, 0))
     })
+    // The retry observation below is explicit: waitFor settles the
+    // fire-and-forget rejection inside act, so no manual flush is needed
+    // for the rejected promise to have surfaced by the time we assert.
     await waitFor(() => {
       expect(
         result.current.runs.filter((run) => run.status === 'error').length
@@ -1087,6 +1089,20 @@ describe('useImageGenerate runs', () => {
     vi.mocked(generateImages).mockImplementation(
       () => deferred.promise as ReturnType<typeof generateImages>
     )
+    // Capture the heartbeat ticker callback so the lease refresh can be
+    // fired deterministically instead of sleeping toward a real 1s timer.
+    const heartbeatTicks: Array<() => void> = []
+    const realSetInterval = globalThis.setInterval
+    vi.spyOn(globalThis, 'setInterval').mockImplementation(((
+      fn: (...args: unknown[]) => void,
+      ms?: number,
+      ...args: unknown[]
+    ) => {
+      if (ms === LEASE_HEARTBEAT_INTERVAL_MS) {
+        heartbeatTicks.push(fn as () => void)
+      }
+      return realSetInterval(fn as TimerHandler, ms, ...(args as unknown[]))
+    }) as typeof globalThis.setInterval)
     const { result } = renderGenerateHook()
     let generationPromise: Promise<unknown> = Promise.resolve()
     act(() => {
@@ -1109,16 +1125,16 @@ describe('useImageGenerate runs', () => {
       setInputUser(2)
     })
 
-    // Wait past the 30s lease window, with the heartbeat ticker's
-    // real-time interval refreshing A's lease. The run must still be
-    // 'running' in A's bucket, owned by 'session-A'.
-    await act(async () => {
-      __setTestClock(1_045_000) // +45s past start, well past the 30s window
-    })
-    // Yield to the real-time setInterval so the captured-owner
-    // heartbeat has a chance to fire at least once.
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 20))
+    // Walk the clock 45s past start (well beyond the 30s lease window) in
+    // heartbeat-interval steps, invoking the captured ticker callback at
+    // every step — exactly the sequence the real 1s interval produces, but
+    // deterministic and sleep-free. Each tick must refresh A's lease with
+    // the captured ownerUserId even though the current user is now B.
+    act(() => {
+      for (let second = 1; second <= 45; second += 1) {
+        __setTestClock(1_000_000 + second * LEASE_HEARTBEAT_INTERVAL_MS)
+        heartbeatTicks.forEach((tick) => tick())
+      }
     })
     const aRunAfter = useImagePlaygroundStore.getState().getRun(1, runId)
     // A lease stays fresh because the heartbeat uses the captured
@@ -1201,9 +1217,8 @@ describe('useImageGenerate runs', () => {
     act(() => {
       result.current.retry(runId)
     })
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 0))
-    })
+    // retry() guards synchronously on retryBlocked, so the call-count
+    // assertion right after the act() flush is already deterministic.
     expect(vi.mocked(generateImages).mock.calls.length).toBe(callsBefore)
 
     // The original upstream eventually returns a real success. The

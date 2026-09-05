@@ -125,21 +125,25 @@ function renderPage(i18n: I18n) {
     writable: true,
     value: 1024,
   })
-  window.matchMedia = ((query: string) => {
-    const m = /max-width:\s*(\d+)px/.exec(query)
-    return {
-      matches: m ? 1024 <= Number(m[1]) : false,
-      media: query,
-      onchange: null,
-      addListener() {},
-      removeListener() {},
-      addEventListener() {},
-      removeEventListener() {},
-      dispatchEvent() {
-        return false
-      },
-    }
-  }) as typeof window.matchMedia
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    writable: true,
+    value: (query: string): MediaQueryList => {
+      const m = /max-width:\s*(\d+)px/.exec(query)
+      return {
+        matches: m ? 1024 <= Number(m[1]) : false,
+        media: query,
+        onchange: null,
+        addListener() {},
+        removeListener() {},
+        addEventListener() {},
+        removeEventListener() {},
+        dispatchEvent() {
+          return false
+        },
+      }
+    },
+  })
   return render(
     <QueryClientProvider client={client}>
       <I18nextProvider i18n={i18n}>

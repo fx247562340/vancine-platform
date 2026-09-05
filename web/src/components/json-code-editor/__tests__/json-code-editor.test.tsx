@@ -18,115 +18,96 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import i18next from 'i18next'
-import { I18nextProvider, initReactI18next } from 'react-i18next'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, test, vi } from 'vitest'
 
 import { JsonCodeEditor } from '../../json-code-editor'
 
-const i18n = i18next.createInstance()
-await i18n.use(initReactI18next).init({
-  lng: 'en',
-  resources: {
-    en: {
-      translation: {
-        JSON: 'JSON',
-        'Invalid JSON': 'Invalid JSON',
-        'Copied to clipboard': 'Copied to clipboard',
-        'Failed to copy': 'Failed to copy',
-        'Format JSON': 'Format JSON',
-      },
-    },
-  },
-})
-
-function renderEditor(
-  props: React.ComponentProps<typeof JsonCodeEditor>,
-  user = userEvent.setup()
-) {
-  const view = render(
-    <I18nextProvider i18n={i18n}>
-      <JsonCodeEditor {...props} />
-    </I18nextProvider>
-  )
-  return { ...view, user }
-}
-
 describe('JsonCodeEditor component', () => {
-  it('forwards form attributes and lifecycle callbacks to the textarea', async () => {
-    const blurCalls: number[] = []
-    const refValues: Array<HTMLTextAreaElement | null> = []
-    const { container, unmount } = renderEditor({
-      value: '{"model":"gpt"}',
-      onChange: () => undefined,
-      id: 'json-input',
-      name: 'model_config',
-      placeholder: '{"model":"gpt"}',
-      disabled: true,
-      'aria-describedby': 'model-help',
-      'aria-invalid': true,
-      'data-form-root': 'settings-form',
-      onBlur: () => blurCalls.push(1),
-      textareaRef: (element) => refValues.push(element),
-    })
-
-    const textarea = container.querySelector('textarea') as HTMLTextAreaElement
-    expect(textarea).toBeTruthy()
-    expect(textarea.id).toBe('json-input')
-    expect(textarea.name).toBe('model_config')
-    expect(textarea.placeholder).toBe('{"model":"gpt"}')
-    expect(textarea.disabled).toBe(true)
-    expect(textarea.getAttribute('aria-describedby')).toBe('model-help')
-    expect(textarea.getAttribute('aria-invalid')).toBe('true')
-    expect(textarea.getAttribute('data-form-root')).toBe('settings-form')
-
-    fireEvent.blur(textarea)
-    expect(blurCalls).toEqual([1])
-    expect(refValues[0]).toBe(textarea)
-
-    unmount()
-    expect(refValues.at(-1)).toBeNull()
-  })
-
-  it('emits user edits and synchronizes a controlled value', async () => {
-    const changes: string[] = []
-    const { container, rerender } = renderEditor({
-      value: '{"count":1}',
-      onChange: (value) => changes.push(value),
-    })
-    const textarea = container.querySelector('textarea') as HTMLTextAreaElement
-    expect(textarea).toBeTruthy()
-
-    // Set the value through the prototype setter so React's controlled-input
-    // tracker registers the change, then dispatch input to fire onChange.
-    const valueSetter = Object.getOwnPropertyDescriptor(
-      HTMLTextAreaElement.prototype,
-      'value'
-    )?.set
-    expect(valueSetter).toBeDefined()
-    if (valueSetter) valueSetter.call(textarea, '{"count":2}')
-    fireEvent.input(textarea)
-    expect(changes).toContain('{"count":2}')
-
-    rerender(
-      <I18nextProvider i18n={i18n}>
-        <JsonCodeEditor
-          value='{"count":3}'
-          onChange={(value) => changes.push(value)}
-        />
-      </I18nextProvider>
+  test('forwards form attributes and the textarea ref', () => {
+    const textareaRef = vi.fn()
+    const rendered = render(
+      <JsonCodeEditor
+        value='{"model":"gpt"}'
+        onChange={() => undefined}
+        id='json-input'
+        name='model_config'
+        placeholder='{"model":"gpt"}'
+        disabled
+        ariaLabel='Model configuration'
+        aria-describedby='model-help'
+        aria-invalid
+        data-form-root='settings-form'
+        textareaRef={textareaRef}
+      />
     )
-    expect(textarea.value).toBe('{"count":3}')
+    const textarea = screen.getByRole('textbox', {
+      name: 'Model configuration',
+    })
+
+    expect(textarea).toHaveAttribute('id', 'json-input')
+    expect(textarea).toHaveAttribute('name', 'model_config')
+    expect(textarea).toHaveAttribute('placeholder', '{"model":"gpt"}')
+    expect(textarea).toBeDisabled()
+    expect(textarea).toHaveAttribute('aria-describedby', 'model-help')
+    expect(textarea).toHaveAttribute('aria-invalid', 'true')
+    expect(textarea).toHaveAttribute('data-form-root', 'settings-form')
+    expect(textareaRef).toHaveBeenCalledWith(textarea)
+
+    rendered.unmount()
+    expect(textareaRef).toHaveBeenLastCalledWith(null)
   })
 
-  it('formats valid JSON through the public toolbar action', async () => {
-    const changes: string[] = []
-    const { user } = renderEditor({
-      value: '{"model":{"ratio":2}}',
-      onChange: (value) => changes.push(value),
+  test('calls onBlur when focus leaves the editor', () => {
+    const onBlur = vi.fn()
+    render(
+      <JsonCodeEditor
+        value='{}'
+        onChange={() => undefined}
+        onBlur={onBlur}
+        ariaLabel='Model configuration'
+      />
+    )
+
+    fireEvent.blur(screen.getByRole('textbox', { name: 'Model configuration' }))
+
+    expect(onBlur).toHaveBeenCalledOnce()
+  })
+
+  test('emits user edits and synchronizes a controlled value', () => {
+    const onChange = vi.fn()
+    const rendered = render(
+      <JsonCodeEditor
+        value='{"count":1}'
+        onChange={onChange}
+        ariaLabel='Model configuration'
+      />
+    )
+    const textarea = screen.getByRole('textbox', {
+      name: 'Model configuration',
     })
+
+    fireEvent.input(textarea, { target: { value: '{"count":2}' } })
+    expect(onChange).toHaveBeenCalledWith('{"count":2}')
+
+    rendered.rerender(
+      <JsonCodeEditor
+        value='{"count":3}'
+        onChange={onChange}
+        ariaLabel='Model configuration'
+      />
+    )
+    expect(textarea).toHaveValue('{"count":3}')
+  })
+
+  test('formats valid JSON through the public toolbar action', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<JsonCodeEditor value='{"model":{"ratio":2}}' onChange={onChange} />)
 
     await user.click(screen.getByRole('button', { name: 'Format JSON' }))
-    expect(changes).toContain('{\n  "model": {\n    "ratio": 2\n  }\n}')
+
+    expect(onChange).toHaveBeenCalledWith(
+      '{\n  "model": {\n    "ratio": 2\n  }\n}'
+    )
   })
 })

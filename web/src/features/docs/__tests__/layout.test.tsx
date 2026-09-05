@@ -23,7 +23,7 @@ import {
   Outlet,
   RouterProvider,
 } from '@tanstack/react-router'
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -80,12 +80,15 @@ function renderDocsRouter(initialPath: string) {
   return render(<RouterProvider router={router} />)
 }
 
-// Flush pending bundle load + React.lazy Suspense pings inside act so they do
-// not surface as "suspended resource not wrapped in act" warnings.
-async function flushSuspense() {
-  await act(async () => {
-    await new Promise((r) => setTimeout(r, 50))
-  })
+// Wait until the lazily loaded docs content is mounted. waitFor polls
+// inside RTL's act-wrapped asyncWrapper, so the bundle load and the
+// React.lazy Suspense pings settle under act.
+async function suspenseFlushed() {
+  await waitFor(() =>
+    expect(
+      screen.queryByText('Loading docs...') ?? screen.getByRole('navigation')
+    ).toBeTruthy()
+  )
 }
 
 beforeEach(async () => {
@@ -95,7 +98,7 @@ beforeEach(async () => {
 describe('Docs layout structure', () => {
   it('renders a mobile-stacking / lg three-column container with a usable main', async () => {
     renderWithProviders(<DocsLayout slugParam='quickstart' />)
-    await flushSuspense()
+    await suspenseFlushed()
 
     const main = await screen.findByRole('main', {}, { timeout: 3000 })
     await waitFor(
@@ -103,7 +106,7 @@ describe('Docs layout structure', () => {
         expect(screen.getAllByText('Quick Start').length).toBeGreaterThan(0),
       { timeout: 3000 }
     )
-    await flushSuspense()
+    await suspenseFlushed()
 
     expect(main.className).toContain('min-w-0')
     expect(main.className).toContain('flex-1')
@@ -122,7 +125,7 @@ describe('Docs layout structure', () => {
 describe('Docs unknown-slug routing (real router beforeLoad/notFound)', () => {
   it('navigating to /docs/<unknown> hits beforeLoad → notFound → localized not-found page', async () => {
     renderDocsRouter('/docs/not-a-real-slug')
-    await flushSuspense()
+    await suspenseFlushed()
 
     await waitFor(
       () => expect(screen.getByText('Page not found')).toBeInTheDocument(),
@@ -134,7 +137,7 @@ describe('Docs unknown-slug routing (real router beforeLoad/notFound)', () => {
 
   it('navigating to a known slug renders that page', async () => {
     renderDocsRouter('/docs/chat')
-    await flushSuspense()
+    await suspenseFlushed()
     await waitFor(
       () =>
         expect(screen.getAllByText('Chat Completions').length).toBeGreaterThan(
@@ -142,12 +145,12 @@ describe('Docs unknown-slug routing (real router beforeLoad/notFound)', () => {
         ),
       { timeout: 3000 }
     )
-    await flushSuspense()
+    await suspenseFlushed()
   })
 
   it('DocsLayout defensive branch also handles an invalid slug prop', async () => {
     renderWithProviders(<DocsLayout slugParam='definitely-not-a-page' />)
-    await flushSuspense()
+    await suspenseFlushed()
     await waitFor(
       () => expect(screen.getByText('Page not found')).toBeInTheDocument(),
       { timeout: 3000 }

@@ -68,7 +68,9 @@ func Playground(c *gin.Context) {
 	Relay(c, types.RelayFormatOpenAI)
 }
 
-// PlaygroundImage 操练场图片生成入口
+// PlaygroundImage is the entry point of the standalone Vancine image
+// generation page. It validates the request against the narrow image
+// profile, strips unsupported fields, then reuses the upstream relay.
 func PlaygroundImage(c *gin.Context) {
 	var newAPIError *types.NewAPIError
 	defer func() {
@@ -123,29 +125,8 @@ func PlaygroundImage(c *gin.Context) {
 	playgroundRelay(c, types.RelayFormatOpenAIImage)
 }
 
-// PlaygroundVideo 操练场视频生成入口
-func PlaygroundVideo(c *gin.Context) {
-	if err := playgroundSetupAuth(c); err != nil {
-		return
-	}
-	RelayTask(c)
-}
-
-// Playground3D 操练场 3D 生成入口
-func Playground3D(c *gin.Context) {
-	if err := playgroundSetupAuth(c); err != nil {
-		return
-	}
-	RelayTask(c)
-}
-
-// PlaygroundAudio 操练场语音合成入口
-// 走 OpenAI 兼容的 /v1/audio/speech relay 路径（非视频任务），复用 playgroundRelay 认证。
-func PlaygroundAudio(c *gin.Context) {
-	playgroundRelay(c, types.RelayFormatOpenAIAudio)
-}
-
-// playgroundRelay 操练场通用中继：认证 → 创建临时 token → 执行 relay
+// playgroundRelay authenticates a playground request, creates a temporary
+// token for the resolved group and runs the upstream relay for the format.
 func playgroundRelay(c *gin.Context, relayFormat types.RelayFormat) {
 	var newAPIError *types.NewAPIError
 
@@ -185,34 +166,4 @@ func playgroundRelay(c *gin.Context, relayFormat types.RelayFormat) {
 	_ = middleware.SetupContextForToken(c, tempToken)
 
 	Relay(c, relayFormat)
-}
-
-// playgroundSetupAuth 操练场认证设置：拒绝 access token，创建临时 token
-// 返回 nil 表示认证成功，非 nil 表示已处理错误并返回
-func playgroundSetupAuth(c *gin.Context) error {
-	useAccessToken := c.GetBool("use_access_token")
-	if useAccessToken {
-		c.JSON(403, gin.H{"error": "暂不支持使用 access token"})
-		return errors.New("access token not supported")
-	}
-
-	userId := c.GetInt("id")
-	userCache, err := model.GetUserCache(userId)
-	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return err
-	}
-	userCache.WriteContext(c)
-
-	group := c.GetString("group")
-	if group == "" {
-		group = "default"
-	}
-	tempToken := &model.Token{
-		UserId: userId,
-		Name:   fmt.Sprintf("playground-%s", group),
-		Group:  group,
-	}
-	_ = middleware.SetupContextForToken(c, tempToken)
-	return nil
 }

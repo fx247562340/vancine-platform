@@ -58,7 +58,7 @@ export type VideoSubmitPayload = {
 export type VideoTask = {
   task_id: string
   status: string
-  result_url?: string
   fail_reason?: string
-  data?: unknown
+  /** Safe artifact content URL from the upstream Task Artifacts route. */
+  content_url?: string | null
 }

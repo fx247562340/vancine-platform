@@ -243,7 +243,7 @@ beforeEach(async () => {
   getPricingMock.mockResolvedValue(
     fixturePricing({ fast: DEFAULT_FAST_MODELS })
   )
-  vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {})
+  vi.spyOn(HTMLElement.prototype, 'scrollIntoView').mockImplementation(() => {})
 })
 
 afterEach(() => {
@@ -580,7 +580,7 @@ describe('CTA destinations and UTM contract', () => {
   })
 
   it('primary hero CTA scrolls to the comparison section', async () => {
-    const scrollSpy = Element.prototype.scrollIntoView as ReturnType<
+    const scrollSpy = HTMLElement.prototype.scrollIntoView as ReturnType<
       typeof vi.fn
     >
     renderPage()

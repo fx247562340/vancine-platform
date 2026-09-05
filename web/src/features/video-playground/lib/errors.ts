@@ -19,16 +19,36 @@ For commercial licensing, please contact support@quantumnous.com
 import axios from 'axios'
 
 export type VideoPlaygroundErrorSource =
-  | { kind: 'system'; errorKey: string }
-  | { kind: 'upstream'; rawMessage: string }
+  | {
+      kind: 'system'
+      errorKey: string
+      httpStatus?: number
+      /** A definitive contract failure: retrying cannot heal it. */
+      terminal?: boolean
+    }
+  | {
+      kind: 'upstream'
+      rawMessage: string
+      httpStatus?: number
+      terminal?: boolean
+    }
+
+// HTTP statuses that a task status request may retry on. Every other 4xx is
+// a definitive client error: the same request will fail the same way, so the
+// pipeline stops polling and forgets the task's in-memory API key.
+const RECOVERABLE_TASK_STATUS_CODES = new Set([408, 425, 429])
 
 export class VideoPlaygroundError extends Error {
   readonly source: VideoPlaygroundErrorSource
+  readonly httpStatus: number | undefined
+  readonly terminal: boolean
 
   constructor(source: VideoPlaygroundErrorSource) {
     super(source.kind === 'system' ? source.errorKey : source.rawMessage)
     this.name = 'VideoPlaygroundError'
     this.source = source
+    this.httpStatus = source.httpStatus
+    this.terminal = source.terminal === true
   }
 
   get errorKey(): string | undefined {
@@ -38,6 +58,27 @@ export class VideoPlaygroundError extends Error {
   get rawUpstreamMessage(): string | undefined {
     return this.source.kind === 'upstream' ? this.source.rawMessage : undefined
   }
+}
+
+// Whether a failed task-status request may be retried. True keeps the task's
+// in-memory API key alive for the next attempt; false is treated as terminal
+// (stop polling and clear the key).
+export function isRecoverableTaskError(error: unknown): boolean {
+  if (!(error instanceof VideoPlaygroundError)) {
+    return true
+  }
+  if (error.terminal) {
+    return false
+  }
+  const status = error.httpStatus
+  if (status === undefined) {
+    // Transport-level failure (fetch throw, no response) — worth retrying.
+    return true
+  }
+  if (status >= 400 && status < 500) {
+    return RECOVERABLE_TASK_STATUS_CODES.has(status)
+  }
+  return true
 }
 
 export function videoPlaygroundErrorText(

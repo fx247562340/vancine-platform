@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import type { StatusBadgeProps } from '@/components/status-badge'
 
-import type { PrefillGroup, PrefillGroupFormValues } from '../types'
+import { type PrefillGroup, type PrefillGroupFormValues } from '../types'
 
 export type PrefillGroupType = PrefillGroup['type']
 
@@ -98,11 +98,13 @@ export function parseEndpointKeys(items: PrefillGroup['items']): string[] {
       typeof items === 'string' ? JSON.parse(items || '{}') : (items as unknown)
     if (Array.isArray(parsed)) {
       return parsed
-        .map((item) => {
-          if (typeof item === 'string') return item
-          if (typeof item?.name === 'string') return item.name
-          return ''
-        })
+        .map((item) =>
+          typeof item === 'string'
+            ? item
+            : typeof item?.name === 'string'
+              ? item.name
+              : ''
+        )
         .filter(Boolean)
     }
     if (parsed && typeof parsed === 'object') {
@@ -124,21 +126,4 @@ export function serializeEndpointItems(items: PrefillGroup['items']): string {
   } catch {
     return ''
   }
-}
-
-/**
- * Normalize the form's items field into the submit payload shape.
- *
- * Endpoint groups must submit a single JSON string; model/tag groups must
- * submit a string array. If the form state ever holds the other shape, fall
- * back to the type's required shape so the API contract is never violated.
- */
-export function normalizePrefillGroupItemsForSubmit(
-  type: PrefillGroupType,
-  items: string | string[]
-): string | string[] {
-  if (type === 'endpoint') {
-    return typeof items === 'string' ? items : ''
-  }
-  return Array.isArray(items) ? items : []
 }

@@ -60,13 +60,13 @@ func TestGetStatusFirstTopUpBonusActive(t *testing.T) {
 }
 
 func TestGetStatusFirstTopUpBonusOutOfRangeKeepsRawQuotaButInactive(t *testing.T) {
-	withFirstTopUpBonusForTest(t, common.MaxQuota+1)
+	withFirstTopUpBonusForTest(t, common.MaxWalletQuota+1)
 
 	data := callGetStatus(t)
 
 	// The raw value is kept so a misconfiguration stays observable, but the
 	// derived flag must be false so no promotion is rendered.
-	assert.Equal(t, float64(common.MaxQuota+1), data["first_topup_bonus_quota"])
+	assert.Equal(t, float64(common.MaxWalletQuota+1), data["first_topup_bonus_quota"])
 	assert.Equal(t, false, data["first_topup_bonus_active"])
 }
 

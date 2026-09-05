@@ -866,6 +866,13 @@ describe('VideoPlayground — page-level POST body', () => {
   })
 
   it('rejects a local image that cannot be decoded and sends zero POST', async () => {
+    // jsdom never decodes blob: images (Image fires neither load nor error),
+    // so simulate a real decode failure at the probe boundary instead.
+    const decodeError = new Error('Failed to decode image')
+    const dimsSpy = vi
+      .spyOn(await import('../lib/image-dimensions'), 'readImageDimensions')
+      .mockRejectedValue(decodeError)
+    void dimsSpy
     const user = userEvent.setup({ pointerEventsCheck: 0 })
     renderVideoPlayground(i18n)
     await readyGenerateButton()

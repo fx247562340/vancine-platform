@@ -19,77 +19,46 @@ For commercial licensing, please contact support@quantumnous.com
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen } from '@testing-library/react'
 import i18next from 'i18next'
-import { I18nextProvider, initReactI18next } from 'react-i18next'
-import { afterEach, describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, test } from 'vitest'
 
 import { ToolPriceSettings } from '../tool-price-settings'
 
-const i18n = i18next.createInstance()
-await i18n.use(initReactI18next).init({
-  lng: 'en',
-  resources: {
-    en: {
-      translation: {
-        'Price ($/1K calls)': 'Price ($/1K calls)',
-        'Please enter a valid number': 'Please enter a valid number',
-        'Tool identifier': 'Tool identifier',
-      },
-    },
-  },
-})
-
-let queryClient: QueryClient
-
-afterEach(() => {
-  queryClient.clear()
-})
-
-function setNativeValue(input: HTMLInputElement, value: string) {
-  // Set the value through the prototype setter so React's controlled-input
-  // tracker registers the change, then dispatch input to fire onChange.
-  const valueSetter = Object.getOwnPropertyDescriptor(
-    HTMLInputElement.prototype,
-    'value'
-  )?.set
-  expect(valueSetter).toBeDefined()
-  if (valueSetter) valueSetter.call(input, value)
-  fireEvent.input(input)
-}
-
-function renderSettings(props: React.ComponentProps<typeof ToolPriceSettings>) {
-  queryClient = new QueryClient({
-    defaultOptions: { mutations: { retry: false } },
-  })
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <I18nextProvider i18n={i18n}>
-        <ToolPriceSettings {...props} />
-      </I18nextProvider>
-    </QueryClientProvider>
-  )
-}
-
 describe('tool price validation', () => {
-  it('blocks an empty price without converting it to an explicit zero', () => {
-    renderSettings({ defaultValue: '{"web_search":10}' })
+  beforeAll(() => {
+    i18next.addResourceBundle('en', 'translation', {
+      'Price ($/1K calls)': 'Price ($/1K calls)',
+      'Please enter a valid number': 'Please enter a valid number',
+      'Tool identifier': 'Tool identifier',
+    })
+  })
 
-    const priceInput = screen.getByLabelText(
-      'Price ($/1K calls): web_search'
-    ) as HTMLInputElement
+  test('blocks an empty price without converting it to an explicit zero', () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { mutations: { retry: false } },
+    })
 
-    setNativeValue(priceInput, '')
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ToolPriceSettings defaultValue='{"web_search":10}' />
+      </QueryClientProvider>
+    )
 
-    expect(priceInput.getAttribute('aria-invalid')).toBe('true')
-    expect(
-      priceInput.closest('[data-slot="field"]')?.querySelector('[role="alert"]')
-        ?.textContent
-    ).toBe('Please enter a valid number')
+    const priceInput = screen.getByRole('spinbutton', {
+      name: 'Price ($/1K calls): web_search',
+    })
     const saveButton = screen.getByRole('button', { name: 'Save tool prices' })
+
+    fireEvent.change(priceInput, { target: { value: '' } })
+
+    expect(priceInput).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByText('Please enter a valid number')).toBeInTheDocument()
     expect(saveButton).toBeDisabled()
 
-    setNativeValue(priceInput, '0')
+    fireEvent.change(priceInput, { target: { value: '0' } })
 
-    expect(priceInput.getAttribute('aria-invalid')).toBe('false')
+    expect(priceInput).toHaveAttribute('aria-invalid', 'false')
     expect(saveButton).toBeEnabled()
+
+    queryClient.clear()
   })
 })

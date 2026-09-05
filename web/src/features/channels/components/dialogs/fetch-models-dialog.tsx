@@ -41,8 +41,9 @@ import {
 
 import { fetchUpstreamModels, updateChannel } from '../../api'
 import {
-  channelsQueryKeys,
+  categorizeModels,
   categorizeModelsWithRedirect,
+  channelsQueryKeys,
   normalizeModelName,
   parseModelsString,
 } from '../../lib'
@@ -52,16 +53,26 @@ function normalizeModelNameList(models: readonly string[]): string[] {
   return [...new Set(models.map((m) => normalizeModelName(m)).filter(Boolean))]
 }
 
-type FetchModelsDialogProps = {
+type FetchModelsDialogBaseProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onModelsSelected?: (models: string[]) => void
   redirectModels?: string[]
   redirectSourceModels?: string[]
   customFetcher?: () => Promise<string[]>
-  existingModelsOverride?: string[]
   channelName?: string | null
 }
+
+type FetchModelsDialogProps = FetchModelsDialogBaseProps &
+  (
+    | {
+        onModelsSelected: (models: string[]) => void
+        existingModelsOverride: string[]
+      }
+    | {
+        onModelsSelected?: undefined
+        existingModelsOverride?: undefined
+      }
+  )
 
 export function FetchModelsDialog({
   open,
@@ -138,13 +149,8 @@ export function FetchModelsDialog({
         setFetchedModels(list)
         setSelectedModels(existingModels)
         toast.success(t('Fetched {{count}} models', { count: list.length }))
-      } else {
-        // The outer guard already ensures a channel here when no custom
-        // fetcher is present; the local narrows activeChannel so the id is
-        // used without a non-null assertion.
-        const channel = activeChannel
-        if (!channel) return
-        const response = await fetchUpstreamModels(channel.id)
+      } else if (activeChannel) {
+        const response = await fetchUpstreamModels(activeChannel.id)
         if (response.success) {
           const list = Array.isArray(response.data) ? response.data : []
           setFetchedModels(list)
@@ -205,45 +211,6 @@ export function FetchModelsDialog({
     onOpenChange(false)
   }
 
-  // Categorize models by common prefixes
-  const categorizeModels = (models: string[]) => {
-    const categories: Record<string, string[]> = {}
-
-    models.forEach((model) => {
-      let category = 'Other'
-
-      // Determine category based on model name
-      if (
-        model.toLowerCase().includes('gpt') ||
-        model.toLowerCase().includes('o1') ||
-        model.toLowerCase().includes('o3')
-      ) {
-        category = 'OpenAI'
-      } else if (model.toLowerCase().includes('claude')) {
-        category = 'Anthropic'
-      } else if (model.toLowerCase().includes('gemini')) {
-        category = 'Gemini'
-      } else if (model.toLowerCase().includes('qwen')) {
-        category = 'Qwen'
-      } else if (model.toLowerCase().includes('deepseek')) {
-        category = 'DeepSeek'
-      } else if (model.toLowerCase().includes('glm')) {
-        category = 'Zhipu'
-      } else if (model.toLowerCase().includes('llama')) {
-        category = 'Meta'
-      } else if (model.toLowerCase().includes('mistral')) {
-        category = 'Mistral'
-      }
-
-      if (!categories[category]) {
-        categories[category] = []
-      }
-      categories[category].push(model)
-    })
-
-    return categories
-  }
-
   // Filter models by search
   const filteredModels = useMemo(() => {
     if (!searchKeyword) return fetchedModels
@@ -252,18 +219,30 @@ export function FetchModelsDialog({
     )
   }, [fetchedModels, searchKeyword])
 
-  // Helper to check if a model is considered "existing" (in selected or redirect)
-  const isExistingModel = (model: string) =>
-    classificationSet.has(normalizeModelName(model))
+  const {
+    newModels,
+    existingFilteredModels,
+    newModelsByCategory,
+    existingModelsByCategory,
+  } = useMemo(() => {
+    const newModels: string[] = []
+    const existingFilteredModels: string[] = []
 
-  // Separate new and existing models
-  const newModels = filteredModels.filter((m) => !isExistingModel(m))
-  const existingFilteredModels = filteredModels.filter((m) =>
-    isExistingModel(m)
-  )
+    for (const model of filteredModels) {
+      if (classificationSet.has(normalizeModelName(model))) {
+        existingFilteredModels.push(model)
+      } else {
+        newModels.push(model)
+      }
+    }
 
-  const newModelsByCategory = categorizeModels(newModels)
-  const existingModelsByCategory = categorizeModels(existingFilteredModels)
+    return {
+      newModels,
+      existingFilteredModels,
+      newModelsByCategory: categorizeModels(newModels),
+      existingModelsByCategory: categorizeModels(existingFilteredModels),
+    }
+  }, [classificationSet, filteredModels])
 
   // 厂商分类按 a-z 排序，Other 放最后，便于查找
   const getSortedCategoryEntries = (
@@ -348,7 +327,7 @@ export function FetchModelsDialog({
                     <Tooltip>
                       <TooltipTrigger
                         render={<Info className='h-3.5 w-3.5 text-amber-500' />}
-                      ></TooltipTrigger>
+                      />
                       <TooltipContent>
                         {t('From model redirect, not yet added to models list')}
                       </TooltipContent>
@@ -368,14 +347,7 @@ export function FetchModelsDialog({
     !isFetching &&
     (fetchedModels.length > 0 || removedModels.length > 0)
 
-  let defaultTab = 'existing'
-  if (newModels.length > 0) {
-    defaultTab = 'new'
-  } else if (removedModels.length > 0) {
-    defaultTab = 'removed'
-  }
-
-  let dialogDescription: ReactNode
+  let dialogDescription: ReactNode = t('Fetch available models from upstream')
   if (activeChannel) {
     dialogDescription = (
       <>
@@ -388,25 +360,30 @@ export function FetchModelsDialog({
         {t('Channel:')} <strong>{channelName}</strong>
       </>
     )
-  } else {
-    dialogDescription = t('Fetch available models from upstream')
   }
 
-  let bodyContent: ReactNode
+  let defaultTab = 'existing'
+  if (newModels.length > 0) {
+    defaultTab = 'new'
+  } else if (removedModels.length > 0) {
+    defaultTab = 'removed'
+  }
+
+  let dialogBody: ReactNode
   if (!activeChannel && !customFetcher) {
-    bodyContent = (
+    dialogBody = (
       <div className='text-muted-foreground py-8 text-center'>
         {t('No channel selected')}
       </div>
     )
   } else if (isFetching) {
-    bodyContent = (
+    dialogBody = (
       <div className='flex items-center justify-center py-12'>
         <Loader2 className='text-muted-foreground h-8 w-8 animate-spin' />
       </div>
     )
   } else if (fetchedModels.length === 0 && removedModels.length === 0) {
-    bodyContent = (
+    dialogBody = (
       <div className='text-muted-foreground py-8 text-center'>
         <p>{t('No models fetched yet.')}</p>
         <Button
@@ -419,7 +396,7 @@ export function FetchModelsDialog({
       </div>
     )
   } else {
-    bodyContent = (
+    dialogBody = (
       <div className='space-y-4'>
         {/* Search Bar */}
         <div className='relative'>
@@ -492,6 +469,11 @@ export function FetchModelsDialog({
             </TabsContent>
           )}
         </Tabs>
+
+        {/* Selection Summary */}
+        <div className='bg-muted/50 rounded-lg border p-3 text-sm'>
+          {t('{{n}} model(s) selected', { n: selectedModels.length })}
+        </div>
       </div>
     )
   }
@@ -519,7 +501,7 @@ export function FetchModelsDialog({
         ) : null
       }
     >
-      {bodyContent}
+      {dialogBody}
     </Dialog>
   )
 }

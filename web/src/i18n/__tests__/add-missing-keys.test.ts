@@ -27,7 +27,8 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { describe, test } from 'node:test'
+
+import { describe, test } from 'vitest'
 
 /**
  * Fail-closed contract tests for scripts/add-missing-keys.mjs.

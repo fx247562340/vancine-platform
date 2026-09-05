@@ -198,3 +198,9 @@ func (p *GoogleProvider) SetProviderUserID(user *model.User, providerUserID stri
 func (p *GoogleProvider) GetProviderPrefix() string {
 	return "google_"
 }
+
+// ProviderUserIDColumn returns the users-table column storing this provider's
+// user ID. Vancine keeps Google bindings in the users.google_sub column.
+func (p *GoogleProvider) ProviderUserIDColumn() string {
+	return "google_sub"
+}

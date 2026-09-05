@@ -237,7 +237,16 @@ func (*PayPalAdaptor) RequestPay(c *gin.Context, req *PayPalPayRequest) {
 
 	id := c.GetInt("id")
 	user, _ := model.GetUserById(id, false)
+
 	chargedMoney := GetChargedAmount(float64(req.Amount), *user)
+
+	// Pre-payment capacity gate: PayPal settlement credits Money x
+	// QuotaPerUnit (see model.topUpBaseQuota), so the same product bounds the
+	// pre-payment check. Rejecting a full wallet before the buyer pays avoids
+	// a paid-but-unsettling order the settlement would have to refuse.
+	if rejectInvalidCreditedQuota(c, id, decimal.NewFromFloat(chargedMoney).Mul(decimal.NewFromFloat(common.QuotaPerUnit))) {
+		return
+	}
 
 	reference := fmt.Sprintf("paypal-ref-%d-%d-%s", user.Id, time.Now().UnixMilli(), randstr.String(4))
 	referenceId := common.Sha1([]byte(reference))
@@ -1107,7 +1116,7 @@ func handlePayPalRefund(ctx context.Context, event *PayPalWebhookEvent, rawPaylo
 	// The capture id bound to the order is the authoritative transaction id; a
 	// refund event must carry it (directly or via the rel="up" link) so the
 	// ledger can bind the settlement to the exact capture that was credited.
-	captureID := strings.TrimSpace(topUp.TransactionId)
+	captureID := strings.TrimSpace(topUp.GetTransactionId())
 	if captureID == "" {
 		return fmt.Errorf("refund order has no captured transaction id trade_no=%s", topUp.TradeNo)
 	}
@@ -1171,7 +1180,7 @@ func handlePayPalReversal(ctx context.Context, event *PayPalWebhookEvent, rawPay
 
 	// The reversal resource.id is the capture id; it must match the order's
 	// captured transaction id so the ledger binds the settlement correctly.
-	captureID := strings.TrimSpace(topUp.TransactionId)
+	captureID := strings.TrimSpace(topUp.GetTransactionId())
 	if captureID == "" {
 		return fmt.Errorf("reversal order has no captured transaction id trade_no=%s", topUp.TradeNo)
 	}

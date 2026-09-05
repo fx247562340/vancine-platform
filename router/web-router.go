@@ -119,8 +119,10 @@ func robotsHandler() gin.HandlerFunc {
 // SetWebRouter wires the public web router: gzip, the global web rate
 // limit, the static asset middleware, the explicit robots.txt and
 // sitemap.xml routes, and finally the SPA NoRoute fallback that injects
-// per-route SEO metadata for known marketing paths.
-func SetWebRouter(router *gin.Engine, assets WebAssets) {
+// per-route SEO metadata for known marketing paths. pluginDispatcher is the
+// upstream JS task-plugin route dispatcher; it runs first in the NoRoute
+// chain and aborts when a plugin route matched.
+func SetWebRouter(router *gin.Engine, assets WebAssets, pluginDispatcher gin.HandlerFunc) {
 	// Programmer-error guard. A bad entry in publicMarketingPages must fail
 	// at startup, not at request time.
 	assertPublicMetadataInvariant()
@@ -153,35 +155,37 @@ func SetWebRouter(router *gin.Engine, assets WebAssets) {
 	router.GET("/sitemap.xml", sitemapHandler())
 	router.HEAD("/sitemap.xml", sitemapHandler())
 
-	router.NoRoute(func(c *gin.Context) {
-		c.Set(middleware.RouteTagKey, "web")
-		// URL.Path is already percent-decoded and query-stripped by
-		// net/http, so it is the only correct source of "what page did
-		// the client ask for" — reading the raw RequestURI would let
-		// percent-encoded prefixes ("/%61pi/...") or proxy absolute-form
-		// request lines slip past the relay-isolation check.
-		path := c.Request.URL.Path
+	router.NoRoute(
+		pluginDispatcher,
+		func(c *gin.Context) {
+			c.Set(middleware.RouteTagKey, "web")
+			// URL.Path is already percent-decoded and query-stripped by
+			// net/http, so it is the only correct source of "what page did
+			// the client ask for" — reading the raw RequestURI would let
+			// percent-encoded prefixes ("/%61pi/...") or proxy absolute-form
+			// request lines slip past the relay-isolation check.
+			path := c.Request.URL.Path
 
-		// /api/*, /v1/*, and /assets/* must reach the relay NotFound
-		// handler. They are relay/static surfaces, not marketing routes,
-		// and must never be served the marketing HTML.
-		if routeIsRelayPrefix(path) {
-			controller.RelayNotFound(c)
-			return
-		}
+			// /api/*, /v1/*, and /assets/* must reach the relay NotFound
+			// handler. They are relay/static surfaces, not marketing routes,
+			// and must never be served the marketing HTML.
+			if routeIsRelayPrefix(path) {
+				controller.RelayNotFound(c)
+				return
+			}
 
-		// Known public marketing route? Serve the pre-rendered variant
-		// (O(1) map lookup; the bytes were built at startup).
-		if body, ok := publicVariants[path]; ok {
+			// Known public marketing route? Serve the pre-rendered variant
+			// (O(1) map lookup; the bytes were built at startup).
+			if body, ok := publicVariants[path]; ok {
+				c.Header("Cache-Control", "no-cache")
+				c.Data(http.StatusOK, "text/html; charset=utf-8", body)
+				return
+			}
+
+			// Unknown SPA path: serve the original IndexPage with its default
+			// meta. Client-side routing can recover from a missing SPA route
+			// by reading the shell and rendering the 404 view.
 			c.Header("Cache-Control", "no-cache")
-			c.Data(http.StatusOK, "text/html; charset=utf-8", body)
-			return
-		}
-
-		// Unknown SPA path: serve the original IndexPage with its default
-		// meta. Client-side routing can recover from a missing SPA route
-		// by reading the shell and rendering the 404 view.
-		c.Header("Cache-Control", "no-cache")
-		c.Data(http.StatusOK, "text/html; charset=utf-8", originalIndexPage)
-	})
+			c.Data(http.StatusOK, "text/html; charset=utf-8", originalIndexPage)
+		})
 }

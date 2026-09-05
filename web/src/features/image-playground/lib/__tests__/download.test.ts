@@ -17,7 +17,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import assert from 'node:assert/strict'
-import { afterEach, describe, it } from 'node:test'
+
+import { afterEach, describe, it } from 'vitest'
 
 import { downloadGeneratedImage } from '../download'
 

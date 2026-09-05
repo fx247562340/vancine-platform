@@ -92,11 +92,11 @@ describe('Docs cold first load (no raw i18n keys)', () => {
     expect(container.querySelector('nav')).toBeNull()
     expect(screen.queryByText('Quick Start')).toBeNull()
 
-    // Release the bundle load; flush the bundle promise AND the React.lazy
-    // page ping inside act, then translated content and the nav appear.
+    // Release the bundle load; the waitFors below define settling (they
+    // poll inside RTL's act-wrapped asyncWrapper, so the bundle promise and
+    // the React.lazy page ping both settle under act).
     await act(async () => {
       triggerLoad?.()
-      await new Promise((r) => setTimeout(r, 50))
     })
 
     await waitFor(

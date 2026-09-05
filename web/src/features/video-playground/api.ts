@@ -21,10 +21,15 @@ import axios from 'axios'
 import type { ApiKey, GetApiKeysResponse } from '@/features/keys/types'
 import { api } from '@/lib/api'
 
-import { VIDEO_PLAYGROUND_ENDPOINTS } from './constants'
+import {
+  VIDEO_PLAYGROUND_ENDPOINTS,
+  VIDEO_TASK_FAILURE,
+  VIDEO_TASK_SUCCESS,
+  videoTaskArtifactsPath,
+} from './constants'
 import {
   extractServerErrorFromBody,
-  extractUpstreamErrorMessage,
+  isRecoverableTaskError,
   VideoPlaygroundError,
 } from './lib/errors'
 import {
@@ -35,8 +40,13 @@ import {
 } from './lib/keys'
 import { extractModelIds, filterPlaygroundVideoModels } from './lib/models'
 import { parseVideoSubmitTaskId } from './lib/submit-response'
-import { parseVideoTask } from './lib/task'
-import { requestWithApiKey } from './lib/v1-client'
+import { parseVideoTask, pickVideoArtifactContentUrl } from './lib/task'
+import {
+  forgetTaskApiKey,
+  lookupTaskApiKey,
+  rememberTaskApiKey,
+} from './lib/task-key-registry'
+import { requestWithApiKey, abortError } from './lib/v1-client'
 import type { VideoModelOption, VideoSubmitPayload, VideoTask } from './types'
 
 export async function listUsableVideoApiKeys(): Promise<VideoApiKeyOption[]> {
@@ -194,40 +204,102 @@ export async function submitVideoGenerationWithApiKey(
       rawMessage: bodyMessage,
     })
   }
+  let taskId: string
   try {
-    const taskId = parseVideoSubmitTaskId(response)
-    return { task_id: taskId, id: taskId }
+    taskId = parseVideoSubmitTaskId(response)
   } catch {
     throw new VideoPlaygroundError({
       kind: 'system',
       errorKey: 'Video generation failed',
     })
   }
+  // Late-response guard: if this submit was cancelled (page unmount, key
+  // switch, or batch invalidate) while its request was in flight, do NOT
+  // bind the API key to the returned task id. The canonical AbortError is
+  // rethrown untouched so useSubmission can distinguish cancellation from a
+  // real submit failure.
+  if (signal?.aborted) {
+    throw abortError()
+  }
+  // Bind the task to the exact in-memory key used for this submit so status
+  // polling and artifact fetches authenticate with the same token.
+  rememberTaskApiKey(taskId, apiKey)
+  return { task_id: taskId, id: taskId }
 }
 
-export async function getVideoTask(taskId: string): Promise<VideoTask> {
-  let res
+export async function getVideoTask(
+  taskId: string,
+  signal?: AbortSignal
+): Promise<VideoTask> {
+  const apiKey = lookupTaskApiKey(taskId)
+  if (!apiKey) {
+    // The key for this task is gone (already terminal); no retry can help.
+    throw new VideoPlaygroundError({
+      kind: 'system',
+      errorKey: 'Failed to load video status',
+      terminal: true,
+    })
+  }
+  const statusPath = `${VIDEO_PLAYGROUND_ENDPOINTS.V1_GENERATIONS}/${encodeURIComponent(
+    taskId
+  )}`
+  let statusPayload: unknown
   try {
-    res = await api.get(`${VIDEO_PLAYGROUND_ENDPOINTS.TASK}/${taskId}`, {
-      skipErrorHandler: true,
-      skipBusinessError: true,
+    statusPayload = await requestWithApiKey({
+      path: statusPath,
+      method: 'GET',
+      apiKey,
+      signal,
+      fallbackErrorKey: 'Failed to load video status',
     })
   } catch (error) {
-    const message = extractUpstreamErrorMessage(error)
-    if (message) {
-      throw new VideoPlaygroundError({ kind: 'upstream', rawMessage: message })
+    // Unrecoverable 4xx: stop and drop the key. 5xx/network keep it for the
+    // next automatic attempt so the retry reuses the same submit-time key.
+    if (!isRecoverableTaskError(error)) {
+      forgetTaskApiKey(taskId)
     }
-    throw new VideoPlaygroundError({
-      kind: 'system',
-      errorKey: 'Failed to load video status',
-    })
+    throw error
   }
+  let task: VideoTask
   try {
-    return parseVideoTask(res.data)
+    task = parseVideoTask(statusPayload)
   } catch {
+    // Malformed status envelope is terminal: the same reply cannot heal.
+    forgetTaskApiKey(taskId)
     throw new VideoPlaygroundError({
       kind: 'system',
       errorKey: 'Failed to load video status',
+      terminal: true,
     })
   }
+  if (task.status === VIDEO_TASK_FAILURE) {
+    forgetTaskApiKey(taskId)
+    return task
+  }
+  if (task.status !== VIDEO_TASK_SUCCESS) {
+    // Still queued/running: keep the key bound for the next poll.
+    return task
+  }
+  // SUCCESS: fetch and strictly validate the upstream Task Artifacts
+  // projection. content_url (server-built capability URL) is the only
+  // playable source; result_url/fail_reason/raw plugin data are never read.
+  let contentUrl: string | null
+  try {
+    const artifactsPayload = await requestWithApiKey({
+      path: videoTaskArtifactsPath(taskId),
+      method: 'GET',
+      apiKey,
+      signal,
+      fallbackErrorKey: 'Failed to load video status',
+    })
+    contentUrl = pickVideoArtifactContentUrl(artifactsPayload, taskId)
+  } catch (error) {
+    if (!isRecoverableTaskError(error)) {
+      forgetTaskApiKey(taskId)
+    }
+    throw error
+  }
+  // SUCCESS + artifacts fully fetched and parsed: terminal, drop the key.
+  forgetTaskApiKey(taskId)
+  return { ...task, content_url: contentUrl }
 }

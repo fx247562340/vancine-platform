@@ -17,7 +17,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { ChevronDown, Copy, Plus, Trash2 } from 'lucide-react'
-import { nanoid } from 'nanoid'
 import {
   memo,
   useCallback,
@@ -101,109 +100,6 @@ import {
   tryParseVisualConfig,
 } from '@/features/pricing/lib/tier-expr'
 import { cn } from '@/lib/utils'
-
-// ---------------------------------------------------------------------------
-// Editor-only identity types — each condition carries its own uiId
-// ---------------------------------------------------------------------------
-
-type EditorTierCondition = {
-  uiId: string
-  condition: TierConditionInput
-}
-
-/** VisualTier fields without its index signature (so Omit yields concrete props). */
-type VisualTierFields = {
-  [K in keyof VisualTier as string extends K
-    ? never
-    : number extends K
-      ? never
-      : K]: VisualTier[K]
-}
-
-type EditorTier = {
-  uiId: string
-  tier: Omit<VisualTierFields, 'conditions'>
-  conditions: EditorTierCondition[]
-}
-
-type EditorRuleCondition = {
-  uiId: string
-  condition: RequestCondition
-}
-
-type EditorRuleGroup = {
-  uiId: string
-  group: Omit<RequestRuleGroup, 'conditions'>
-  conditions: EditorRuleCondition[]
-}
-
-// ---------------------------------------------------------------------------
-// Hydration — assigns IDs when domain data enters editor state
-// ---------------------------------------------------------------------------
-
-function hydrateTierCondition(
-  condition: TierConditionInput
-): EditorTierCondition {
-  return { uiId: nanoid(), condition }
-}
-
-function hydrateTier(tier: VisualTier): EditorTier {
-  const { conditions, ...tierWithoutConditions } = tier
-  return {
-    uiId: nanoid(),
-    tier: tierWithoutConditions,
-    conditions: conditions.map(hydrateTierCondition),
-  }
-}
-
-function hydrateVisualConfig(config: VisualConfig): EditorTier[] {
-  return normalizeVisualConfig(config).tiers.map(hydrateTier)
-}
-
-function hydrateRuleCondition(
-  condition: RequestCondition
-): EditorRuleCondition {
-  return { uiId: nanoid(), condition }
-}
-
-function hydrateRuleGroup(group: RequestRuleGroup): EditorRuleGroup {
-  const { conditions, ...groupWithoutConditions } = group
-  return {
-    uiId: nanoid(),
-    group: groupWithoutConditions,
-    conditions: conditions.map(hydrateRuleCondition),
-  }
-}
-
-function hydrateRuleGroups(groups: RequestRuleGroup[]): EditorRuleGroup[] {
-  return groups.map(hydrateRuleGroup)
-}
-
-// ---------------------------------------------------------------------------
-// Projection — strips all UI identity before calling domain functions
-// ---------------------------------------------------------------------------
-
-function projectVisualConfig(editorTiers: EditorTier[]): VisualConfig {
-  return normalizeVisualConfig({
-    tiers: editorTiers.map((et) => ({
-      ...et.tier,
-      conditions: et.conditions.map((ec) => ec.condition),
-    })),
-  })
-}
-
-function projectRuleGroups(
-  editorGroups: EditorRuleGroup[]
-): RequestRuleGroup[] {
-  return editorGroups.map((eg) => ({
-    ...eg.group,
-    conditions: eg.conditions.map((ec) => ec.condition),
-  }))
-}
-
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
 
 const PRICE_SUFFIX = '$/1M tokens'
 const CACHE_PRICE_VARS = BILLING_EXTRA_VARS.filter(
@@ -417,10 +313,6 @@ const PRESET_GROUPS: PresetGroup[] = [
   },
 ]
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 function unitCostToPrice(uc: number | string): number {
   return Number(uc) || 0
 }
@@ -440,9 +332,8 @@ function formatTokenHint(n: number | string | null | undefined): string {
 
 function formatNumberDraft(value: number | string): string {
   if (value === '') return ''
-  if (typeof value === 'number') {
+  if (typeof value === 'number')
     return Number.isFinite(value) ? String(value) : '0'
-  }
   return value
 }
 
@@ -455,10 +346,6 @@ function parseNumberDraft(value: string): number {
 function isZeroDraft(value: string): boolean {
   return value.trim() !== '' && parseNumberDraft(value) === 0
 }
-
-// ---------------------------------------------------------------------------
-// DraftNumberInput
-// ---------------------------------------------------------------------------
 
 type DraftNumberInputProps = Omit<
   InputHTMLAttributes<HTMLInputElement>,
@@ -549,10 +436,12 @@ function ConditionRow({ condition, onChange, onRemove }: ConditionRowProps) {
   return (
     <div className='flex items-center gap-2'>
       <Select
-        items={CONDITION_INPUT_OPTIONS.map((option) => ({
-          value: option.value,
-          label: t(option.labelKey),
-        }))}
+        items={[
+          ...CONDITION_INPUT_OPTIONS.map((option) => ({
+            value: option.value,
+            label: t(option.labelKey),
+          })),
+        ]}
         value={condition.var}
         onValueChange={(value) =>
           onChange({ ...condition, var: value as TierConditionInput['var'] })
@@ -650,16 +539,16 @@ function PriceField({ label, hint, value, onChange }: PriceFieldProps) {
 // ---------------------------------------------------------------------------
 
 type VisualTierCardProps = {
-  editorTier: EditorTier
+  tier: VisualTier
   index: number
   total: number
-  onChange: (next: EditorTier) => void
+  onChange: (next: VisualTier) => void
   onRemove: () => void
   onAddCondition: () => void
 }
 
 function VisualTierCard({
-  editorTier,
+  tier,
   index,
   total,
   onChange,
@@ -667,55 +556,41 @@ function VisualTierCard({
   onAddCondition,
 }: VisualTierCardProps) {
   const { t } = useTranslation()
-  const { tier, conditions } = editorTier
   const cacheMode = getTierCacheMode(tier)
 
   const handleConditionChange = (
     conditionIndex: number,
     next: TierConditionInput
   ) => {
-    const newConditions = [...conditions]
-    newConditions[conditionIndex] = {
-      ...newConditions[conditionIndex],
-      condition: next,
-    }
-    onChange({ ...editorTier, conditions: newConditions })
+    const conditions = [...tier.conditions]
+    conditions[conditionIndex] = next
+    onChange({ ...tier, conditions })
   }
 
   const handleConditionRemove = (conditionIndex: number) => {
     onChange({
-      ...editorTier,
-      conditions: conditions.filter((_, i) => i !== conditionIndex),
+      ...tier,
+      conditions: tier.conditions.filter((_, i) => i !== conditionIndex),
     })
   }
 
   const handlePriceChange = (field: keyof VisualTier, value: number) => {
-    onChange({ ...editorTier, tier: { ...tier, [field]: value } })
+    onChange({ ...tier, [field]: value })
   }
 
   const handleCacheModeChange = (mode: CacheMode) => {
     onChange({
-      ...editorTier,
-      tier: {
-        ...tier,
-        cache_mode: mode,
-        cache_create_1h_unit_cost:
-          mode === CACHE_MODE_TIMED ? (tier.cache_create_1h_unit_cost ?? 0) : 0,
-      },
+      ...tier,
+      cache_mode: mode,
+      cache_create_1h_unit_cost:
+        mode === CACHE_MODE_TIMED ? (tier.cache_create_1h_unit_cost ?? 0) : 0,
     })
-  }
-
-  const handleLabelChange = (label: string) => {
-    onChange({ ...editorTier, tier: { ...tier, label } })
   }
 
   const inputUnitPrice = unitCostToPrice(tier.input_unit_cost)
   const outputUnitPrice = unitCostToPrice(tier.output_unit_cost)
   const hasMediaPricing = MEDIA_PRICE_VARS.some((variable) => {
-    const fieldKey = variable.tierField as keyof Omit<
-      VisualTierFields,
-      'conditions'
-    >
+    const fieldKey = variable.tierField as keyof VisualTier
     return unitCostToPrice((tier[fieldKey] as number | undefined) ?? 0) > 0
   })
   const [mediaOpen, setMediaOpen] = useState(hasMediaPricing)
@@ -727,10 +602,7 @@ function VisualTierCard({
   const renderPriceVariable = (
     variable: (typeof BILLING_EXTRA_VARS)[number]
   ) => {
-    const fieldKey = variable.tierField as keyof Omit<
-      VisualTierFields,
-      'conditions'
-    >
+    const fieldKey = variable.tierField as keyof VisualTier
     const value = unitCostToPrice((tier[fieldKey] as number | undefined) ?? 0)
 
     return (
@@ -750,12 +622,14 @@ function VisualTierCard({
           <Badge variant='outline'>
             {t('Tier')} {index + 1} / {total}
           </Badge>
-          {conditions.length === 0 && (
+          {tier.conditions.length === 0 && (
             <Badge variant='secondary'>{t('Fallback tier')}</Badge>
           )}
           <Input
             value={tier.label}
-            onChange={(event) => handleLabelChange(event.target.value)}
+            onChange={(event) =>
+              onChange({ ...tier, label: event.target.value })
+            }
             placeholder={t('Tier name')}
             className='h-7 w-36'
           />
@@ -779,22 +653,22 @@ function VisualTierCard({
             variant='ghost'
             size='sm'
             onClick={onAddCondition}
-            disabled={conditions.length >= 2}
+            disabled={tier.conditions.length >= 2}
             className='h-7 px-2 text-xs'
           >
             <Plus className='mr-1 h-3 w-3' />
             {t('Add condition')}
           </Button>
         </div>
-        {conditions.length === 0 ? (
+        {tier.conditions.length === 0 ? (
           <p className='text-muted-foreground text-xs'>
             {t('Always matches (default tier).')}
           </p>
         ) : (
-          conditions.map((ec, conditionIndex) => (
+          tier.conditions.map((condition, conditionIndex) => (
             <ConditionRow
-              key={ec.uiId}
-              condition={ec.condition}
+              key={conditionIndex}
+              condition={condition}
               onChange={(next) => handleConditionChange(conditionIndex, next)}
               onRemove={() => handleConditionRemove(conditionIndex)}
             />
@@ -896,58 +770,74 @@ function VisualTierCard({
 // ---------------------------------------------------------------------------
 
 type VisualEditorProps = {
-  editorTiers: EditorTier[]
-  onChange: (next: EditorTier[]) => void
+  visualConfig: VisualConfig | null
+  onChange: (next: VisualConfig) => void
 }
 
-function VisualEditor({ editorTiers, onChange }: VisualEditorProps) {
+function VisualEditor({ visualConfig, onChange }: VisualEditorProps) {
   const { t } = useTranslation()
+  const config = useMemo(
+    () => normalizeVisualConfig(visualConfig),
+    [visualConfig]
+  )
 
-  const handleTierChange = (index: number, next: EditorTier) => {
-    const tiers = [...editorTiers]
-    tiers[index] = next
-    onChange(tiers)
+  const handleTierChange = (index: number, next: VisualTier) => {
+    const tiers = [...config.tiers]
+    tiers[index] = normalizeVisualTier(next)
+    onChange({ ...config, tiers })
   }
 
   const handleAddTier = () => {
-    const tiers = [...editorTiers]
+    const tiers = [...config.tiers]
     const lastIndex = tiers.length - 1
+    // When adding a new fallback, give the previous catch-all tier a default
+    // upper-bound condition so the expression compiles into a sane two-tier
+    // shape with an immediately useful fallback.
     if (lastIndex >= 0 && tiers[lastIndex].conditions.length === 0) {
-      const prev = tiers[lastIndex]
-      tiers[lastIndex] = {
-        ...prev,
-        conditions: [
-          hydrateTierCondition({ var: 'len', op: '<', value: 200000 }),
-        ],
-      }
+      tiers[lastIndex] = normalizeVisualTier({
+        ...tiers[lastIndex],
+        conditions: [{ var: 'len', op: '<', value: 200000 }],
+      })
     }
-    const newTier = normalizeVisualTier({
-      label: `tier_${tiers.length + 1}`,
-      conditions: [],
-      input_unit_cost: 0,
-      output_unit_cost: 0,
-    })
-    tiers.push(hydrateTier(newTier))
-    onChange(tiers)
+    tiers.push(
+      normalizeVisualTier({
+        label: `tier_${tiers.length + 1}`,
+        conditions: [],
+        input_unit_cost: 0,
+        output_unit_cost: 0,
+      })
+    )
+    onChange({ ...config, tiers })
   }
 
   const handleRemoveTier = (index: number) => {
-    const tiers = editorTiers.filter((_, i) => i !== index)
-    onChange(tiers.length > 0 ? tiers : editorTiers)
+    const tiers = config.tiers.filter((_, i) => i !== index)
+    onChange({ ...config, tiers: tiers.length > 0 ? tiers : config.tiers })
   }
 
   const handleAddCondition = (index: number) => {
-    const et = editorTiers[index]
-    if (et.conditions.length >= 2) return
-    const usedVars = new Set(et.conditions.map((ec) => ec.condition.var))
+    const tier = config.tiers[index]
+    if (tier.conditions.length >= 2) return
+    // Prefer `len` (input length) over `p`/`c` for tier conditions because
+    // `p` is subject to auto-exclusion when sub-categories like `cr` are
+    // priced separately, which can misroute long-input requests into shorter
+    // tiers when cache-hits reduce the effective `p`.
+    const usedVars = new Set(tier.conditions.map((c) => c.var))
     const nextVar: TierConditionInput['var'] = usedVars.has('len') ? 'c' : 'len'
-    const newCond: TierConditionInput = { var: nextVar, op: '<', value: 200000 }
-    const tiers = [...editorTiers]
-    tiers[index] = {
-      ...et,
-      conditions: [...et.conditions, hydrateTierCondition(newCond)],
-    }
-    onChange(tiers)
+    onChange({
+      ...config,
+      tiers: config.tiers.map((current, i) =>
+        i === index
+          ? {
+              ...current,
+              conditions: [
+                ...tier.conditions,
+                { var: nextVar, op: '<', value: 200000 },
+              ],
+            }
+          : current
+      ),
+    })
   }
 
   return (
@@ -957,12 +847,12 @@ function VisualEditor({ editorTiers, onChange }: VisualEditorProps) {
           'Each tier supports up to 2 conditions. The last tier without conditions is the fallback.'
         )}
       </p>
-      {editorTiers.map((et, index) => (
+      {config.tiers.map((tier, index) => (
         <VisualTierCard
-          key={et.uiId}
-          editorTier={et}
+          key={index}
+          tier={tier}
           index={index}
-          total={editorTiers.length}
+          total={config.tiers.length}
           onChange={(next) => handleTierChange(index, next)}
           onRemove={() => handleRemoveTier(index)}
           onAddCondition={() => handleAddCondition(index)}
@@ -1056,7 +946,7 @@ function RuleConditionRow({
       case MATCH_LTE:
         return t('Less than or equal')
       case MATCH_RANGE:
-        return t('Overnight range')
+        return t('Time range')
       default:
         return mode
     }
@@ -1077,17 +967,12 @@ function RuleConditionRow({
         return timeFunc
     }
   }
-  let sourceLabel: string
-  switch (condition.source) {
-    case SOURCE_PARAM:
-      sourceLabel = t('Body param')
-      break
-    case SOURCE_HEADER:
-      sourceLabel = t('Header')
-      break
-    default:
-      sourceLabel = t('Time')
-  }
+  const sourceLabel =
+    condition.source === SOURCE_PARAM
+      ? t('Body param')
+      : condition.source === SOURCE_HEADER
+        ? t('Header')
+        : t('Time')
 
   const handleSourceChange = (source: string) => {
     if (source === SOURCE_TIME) {
@@ -1107,10 +992,12 @@ function RuleConditionRow({
   const renderTimeCondition = (timeCond: TimeCondition) => (
     <>
       <Select
-        items={TIME_FUNCS.map((fn) => ({
-          value: fn,
-          label: getTimeFuncLabel(fn),
-        }))}
+        items={[
+          ...TIME_FUNCS.map((fn) => ({
+            value: fn,
+            label: getTimeFuncLabel(fn),
+          })),
+        ]}
         value={timeCond.timeFunc}
         onValueChange={(value) =>
           onChange({ ...timeCond, timeFunc: value as TimeFunc })
@@ -1130,10 +1017,12 @@ function RuleConditionRow({
         </SelectContent>
       </Select>
       <Select
-        items={COMMON_TIMEZONES.map((tz) => ({
-          value: tz.value,
-          label: tz.label,
-        }))}
+        items={[
+          ...COMMON_TIMEZONES.map((tz) => ({
+            value: tz.value,
+            label: tz.label,
+          })),
+        ]}
         value={timeCond.timezone}
         onValueChange={(value) =>
           value !== null && onChange({ ...timeCond, timezone: value })
@@ -1156,10 +1045,12 @@ function RuleConditionRow({
         </SelectContent>
       </Select>
       <Select
-        items={matchOptions.map((option) => ({
-          value: option.value,
-          label: getMatchLabel(option.value),
-        }))}
+        items={[
+          ...matchOptions.map((option) => ({
+            value: option.value,
+            label: getMatchLabel(option.value),
+          })),
+        ]}
         value={timeCond.mode}
         onValueChange={(v) => v !== null && handleModeChange(v)}
       >
@@ -1220,10 +1111,12 @@ function RuleConditionRow({
         className='w-44'
       />
       <Select
-        items={matchOptions.map((option) => ({
-          value: option.value,
-          label: getMatchLabel(option.value),
-        }))}
+        items={[
+          ...matchOptions.map((option) => ({
+            value: option.value,
+            label: getMatchLabel(option.value),
+          })),
+        ]}
         value={phCond.mode}
         onValueChange={(v) => v !== null && handleModeChange(v)}
       >
@@ -1287,6 +1180,11 @@ function RuleConditionRow({
       >
         <Trash2 className='text-destructive h-4 w-4' />
       </Button>
+      {condition.source === SOURCE_TIME && condition.mode === MATCH_RANGE && (
+        <p className='text-muted-foreground w-full text-xs'>
+          {t('Start ≤ end: within the day; start > end: across midnight')}
+        </p>
+      )}
     </div>
   )
 }
@@ -1296,40 +1194,36 @@ function RuleConditionRow({
 // ---------------------------------------------------------------------------
 
 type RuleGroupCardProps = {
-  editorGroup: EditorRuleGroup
+  group: RequestRuleGroup
   index: number
-  onChange: (next: EditorRuleGroup) => void
+  onChange: (next: RequestRuleGroup) => void
   onRemove: () => void
 }
 
 function RuleGroupCard({
-  editorGroup,
+  group,
   index,
   onChange,
   onRemove,
 }: RuleGroupCardProps) {
   const { t } = useTranslation()
-  const { group, conditions } = editorGroup
 
   const handleConditionChange = (
     conditionIndex: number,
     next: RequestCondition
   ) => {
-    const newConditions = [...conditions]
-    newConditions[conditionIndex] = {
-      ...newConditions[conditionIndex],
-      condition: next,
-    }
-    onChange({ ...editorGroup, conditions: newConditions })
+    const conditions = [...group.conditions]
+    conditions[conditionIndex] = next
+    onChange({ ...group, conditions })
   }
 
   const handleAddCondition = (timeMode: boolean) => {
-    const newCond = timeMode
-      ? createEmptyTimeCondition()
-      : createEmptyCondition()
     onChange({
-      ...editorGroup,
-      conditions: [...conditions, hydrateRuleCondition(newCond)],
+      ...group,
+      conditions: [
+        ...group.conditions,
+        timeMode ? createEmptyTimeCondition() : createEmptyCondition(),
+      ],
     })
   }
 
@@ -1350,15 +1244,17 @@ function RuleGroupCard({
       </div>
 
       <div className='space-y-2'>
-        {conditions.map((ec, conditionIndex) => (
+        {group.conditions.map((condition, conditionIndex) => (
           <RuleConditionRow
-            key={ec.uiId}
-            condition={ec.condition}
+            key={conditionIndex}
+            condition={condition}
             onChange={(next) => handleConditionChange(conditionIndex, next)}
             onRemove={() =>
               onChange({
-                ...editorGroup,
-                conditions: conditions.filter((_, i) => i !== conditionIndex),
+                ...group,
+                conditions: group.conditions.filter(
+                  (_, i) => i !== conditionIndex
+                ),
               })
             }
           />
@@ -1390,10 +1286,7 @@ function RuleGroupCard({
           step={0.000001}
           value={group.multiplier}
           onValueChange={(value) =>
-            onChange({
-              ...editorGroup,
-              group: { ...group, multiplier: String(value) },
-            })
+            onChange({ ...group, multiplier: String(value) })
           }
           className='w-32'
           placeholder='1.0'
@@ -1526,6 +1419,9 @@ function CostEstimator({ effectiveExpr }: EstimatorProps) {
       {usesExtras && (
         <div className='grid grid-cols-2 gap-3'>
           {BILLING_EXTRA_VARS.map((variable) => {
+            // BILLING_EXTRA_VARS only contains pricing variables; they are
+            // guaranteed to have a non-null `field` (the `len` condition-only
+            // variable is filtered out). Narrow the type here for safety.
             if (!variable.field) return null
             const stateKey = variable.field.replace(
               'Price',
@@ -1749,17 +1645,15 @@ export const TieredPricingEditor = memo(function TieredPricingEditor({
 }: TieredPricingEditorProps) {
   const { t } = useTranslation()
   const [editorMode, setEditorMode] = useState<EditorMode>('visual')
-  const [editorTiers, setEditorTiers] = useState<EditorTier[]>(() =>
-    hydrateVisualConfig(
-      tryParseVisualConfig(currentExpr) || createDefaultVisualConfig()
-    )
+  const [visualConfig, setVisualConfig] = useState<VisualConfig | null>(() =>
+    tryParseVisualConfig(currentExpr)
   )
   const [rawExpr, setRawExpr] = useState(() =>
     combineBillingExpr(currentExpr || '', currentRequestRuleExpr || '')
   )
-  const [editorGroups, setEditorGroups] = useState<EditorRuleGroup[]>(() =>
-    hydrateRuleGroups(tryParseRequestRuleExpr(currentRequestRuleExpr) || [])
-  )
+  const [requestRuleGroups, setRequestRuleGroups] = useState<
+    RequestRuleGroup[]
+  >(() => tryParseRequestRuleExpr(currentRequestRuleExpr) || [])
   const initRef = useRef(false)
 
   useEffect(() => {
@@ -1767,20 +1661,19 @@ export const TieredPricingEditor = memo(function TieredPricingEditor({
     initRef.current = true
     const parsedConfig = tryParseVisualConfig(currentExpr)
     if (parsedConfig) {
-      setEditorTiers(hydrateVisualConfig(parsedConfig))
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setVisualConfig(parsedConfig)
       setEditorMode('visual')
     } else if (currentExpr) {
-      setEditorTiers([])
+      setVisualConfig(null)
       setEditorMode('raw')
     } else {
-      setEditorTiers(hydrateVisualConfig(createDefaultVisualConfig()))
+      setVisualConfig(createDefaultVisualConfig())
     }
     setRawExpr(
       combineBillingExpr(currentExpr || '', currentRequestRuleExpr || '')
     )
-    setEditorGroups(
-      hydrateRuleGroups(tryParseRequestRuleExpr(currentRequestRuleExpr) || [])
-    )
+    setRequestRuleGroups(tryParseRequestRuleExpr(currentRequestRuleExpr) || [])
   }, [currentExpr, currentRequestRuleExpr])
 
   useEffect(() => {
@@ -1794,11 +1687,11 @@ export const TieredPricingEditor = memo(function TieredPricingEditor({
 
   const effectiveExpr = useMemo(() => {
     if (editorMode === 'visual') {
-      return generateExprFromVisualConfig(projectVisualConfig(editorTiers))
+      return generateExprFromVisualConfig(visualConfig)
     }
     const { billingExpr } = splitBillingExprAndRequestRules(rawExpr)
     return billingExpr
-  }, [editorMode, editorTiers, rawExpr])
+  }, [editorMode, visualConfig, rawExpr])
 
   useEffect(() => {
     if (effectiveExpr !== currentExpr) {
@@ -1808,19 +1701,19 @@ export const TieredPricingEditor = memo(function TieredPricingEditor({
 
   useEffect(() => {
     if (editorMode !== 'visual') return
-    const ruleExpr = buildRequestRuleExpr(projectRuleGroups(editorGroups))
+    const ruleExpr = buildRequestRuleExpr(requestRuleGroups)
     if (ruleExpr !== currentRequestRuleExpr) {
       onRequestRuleExprChange(ruleExpr)
     }
   }, [
     editorMode,
-    editorGroups,
+    requestRuleGroups,
     currentRequestRuleExpr,
     onRequestRuleExprChange,
   ])
 
-  const handleVisualChange = useCallback((next: EditorTier[]) => {
-    setEditorTiers(next)
+  const handleVisualChange = useCallback((next: VisualConfig) => {
+    setVisualConfig(next)
   }, [])
 
   const handleRawChange = useCallback(
@@ -1839,46 +1732,46 @@ export const TieredPricingEditor = memo(function TieredPricingEditor({
         const { billingExpr, requestRuleExpr: ruleStr } =
           splitBillingExprAndRequestRules(rawExpr)
         const parsed = tryParseVisualConfig(billingExpr)
-        setEditorTiers(
-          hydrateVisualConfig(parsed || createDefaultVisualConfig())
-        )
-        setEditorGroups(
-          hydrateRuleGroups(tryParseRequestRuleExpr(ruleStr) || [])
-        )
+        if (parsed) {
+          setVisualConfig(parsed)
+        } else {
+          setVisualConfig(createDefaultVisualConfig())
+        }
+        const parsedGroups = tryParseRequestRuleExpr(ruleStr)
+        setRequestRuleGroups(parsedGroups || [])
         onRequestRuleExprChange(ruleStr)
       } else {
-        const expr = generateExprFromVisualConfig(
-          projectVisualConfig(editorTiers)
-        )
-        const ruleExpr = buildRequestRuleExpr(projectRuleGroups(editorGroups))
+        const expr = generateExprFromVisualConfig(visualConfig)
+        const ruleExpr = buildRequestRuleExpr(requestRuleGroups)
         setRawExpr(combineBillingExpr(expr, ruleExpr) || expr)
       }
       setEditorMode(next)
     },
-    [rawExpr, editorTiers, editorGroups, onRequestRuleExprChange]
+    [rawExpr, visualConfig, requestRuleGroups, onRequestRuleExprChange]
   )
 
   const applyPreset = useCallback(
     (preset: Preset) => {
-      const ruleExpr = buildRequestRuleExpr(preset.requestRules || [])
+      const presetGroups = preset.requestRules || []
+      const ruleExpr = buildRequestRuleExpr(presetGroups)
       const combined = combineBillingExpr(preset.expr, ruleExpr) || preset.expr
       setRawExpr(combined)
       const parsed = tryParseVisualConfig(preset.expr)
       if (parsed) {
-        setEditorTiers(hydrateVisualConfig(parsed))
+        setVisualConfig(parsed)
         setEditorMode('visual')
       } else {
         setEditorMode('raw')
-        setEditorTiers([])
+        setVisualConfig(null)
       }
-      setEditorGroups(hydrateRuleGroups(preset.requestRules || []))
+      setRequestRuleGroups(presetGroups)
       onRequestRuleExprChange(ruleExpr)
     },
     [onRequestRuleExprChange]
   )
 
-  const handleEditorGroupsChange = useCallback((next: EditorRuleGroup[]) => {
-    setEditorGroups(next)
+  const handleRuleGroupsChange = useCallback((next: RequestRuleGroup[]) => {
+    setRequestRuleGroups(next)
   }, [])
 
   return (
@@ -1917,7 +1810,7 @@ export const TieredPricingEditor = memo(function TieredPricingEditor({
       <div className='bg-muted/30 space-y-3 rounded-md border p-3'>
         {editorMode === 'visual' ? (
           <VisualEditor
-            editorTiers={editorTiers}
+            visualConfig={visualConfig}
             onChange={handleVisualChange}
           />
         ) : (
@@ -1947,19 +1840,19 @@ export const TieredPricingEditor = memo(function TieredPricingEditor({
               </Alert>
             ) : (
               <>
-                {editorGroups.map((eg, groupIndex) => (
+                {requestRuleGroups.map((group, groupIndex) => (
                   <RuleGroupCard
-                    key={eg.uiId}
-                    editorGroup={eg}
+                    key={groupIndex}
+                    group={group}
                     index={groupIndex}
                     onChange={(next) => {
-                      const updated = [...editorGroups]
+                      const updated = [...requestRuleGroups]
                       updated[groupIndex] = next
-                      handleEditorGroupsChange(updated)
+                      handleRuleGroupsChange(updated)
                     }}
                     onRemove={() =>
-                      handleEditorGroupsChange(
-                        editorGroups.filter((_, i) => i !== groupIndex)
+                      handleRuleGroupsChange(
+                        requestRuleGroups.filter((_, i) => i !== groupIndex)
                       )
                     }
                   />
@@ -1969,9 +1862,9 @@ export const TieredPricingEditor = memo(function TieredPricingEditor({
                   size='sm'
                   className='h-9 w-36 justify-center'
                   onClick={() =>
-                    handleEditorGroupsChange([
-                      ...editorGroups,
-                      hydrateRuleGroup(createEmptyRuleGroup()),
+                    handleRuleGroupsChange([
+                      ...requestRuleGroups,
+                      createEmptyRuleGroup(),
                     ])
                   }
                 >

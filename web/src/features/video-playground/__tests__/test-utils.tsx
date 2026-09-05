@@ -219,28 +219,38 @@ export function installMatchMediaMock(innerWidth: number) {
     writable: true,
     value: innerWidth,
   })
-  window.matchMedia = ((query: string) => {
-    const maxWidthMatch = /max-width:\s*(\d+)px/.exec(query)
-    const matches = maxWidthMatch
-      ? innerWidth <= Number(maxWidthMatch[1])
-      : false
-    return {
-      matches,
-      media: query,
-      onchange: null,
-      addListener() {},
-      removeListener() {},
-      addEventListener() {},
-      removeEventListener() {},
-      dispatchEvent() {
-        return false
-      },
-    }
-  }) as typeof window.matchMedia
+  // Vitrast note: window.matchMedia is defined non-writable by src/test-setup.ts
+  // under vitest; redefine via configurable property instead of assignment.
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    value: (query: string): MediaQueryList => {
+      const maxWidthMatch = /max-width:\s*(\d+)px/.exec(query)
+      const matches = maxWidthMatch
+        ? innerWidth <= Number(maxWidthMatch[1])
+        : false
+      return {
+        matches,
+        media: query,
+        onchange: null,
+        addListener() {},
+        removeListener() {},
+        addEventListener() {},
+        removeEventListener() {},
+        dispatchEvent() {
+          return false
+        },
+      }
+    },
+    writable: true,
+  })
   return () => {
     // Restore the original property descriptor, not just the value, so
     // the next test sees the pristine window.innerWidth definition.
-    window.matchMedia = originalMatchMedia
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: originalMatchMedia,
+    })
     if (originalInnerWidthDescriptor) {
       Object.defineProperty(window, 'innerWidth', originalInnerWidthDescriptor)
     } else {

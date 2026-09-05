@@ -113,7 +113,7 @@ func TestCodingAgentBenchmarkJSONWinsOverStaticDistFile(t *testing.T) {
 		},
 	}
 	engine := gin.New()
-	SetWebRouter(engine, WebAssets{BuildFS: polluted, IndexPage: []byte(testSPAIndexPage)})
+	SetWebRouter(engine, WebAssets{BuildFS: polluted, IndexPage: []byte(testSPAIndexPage)}, func(c *gin.Context) { c.Next() })
 
 	rec := serveSEO(engine, httptest.NewRequest(http.MethodGet, codingAgentBenchmarkJSONURL, nil))
 	require.Equal(t, http.StatusOK, rec.Code)
@@ -158,7 +158,7 @@ func TestCodingAgentBenchmarkJSONHEADHasNoBody(t *testing.T) {
 		},
 	}
 	engine := gin.New()
-	SetWebRouter(engine, WebAssets{BuildFS: polluted, IndexPage: []byte(testSPAIndexPage)})
+	SetWebRouter(engine, WebAssets{BuildFS: polluted, IndexPage: []byte(testSPAIndexPage)}, func(c *gin.Context) { c.Next() })
 
 	rec := serveSEO(engine, httptest.NewRequest(http.MethodHead, codingAgentBenchmarkJSONURL, nil))
 	require.Equal(t, http.StatusOK, rec.Code)

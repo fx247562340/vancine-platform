@@ -16,24 +16,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-/**
- * Query parameter serialization shared by the usage-logs API layer.
- *
- * Pure module: imported by api.ts (which must not depend on lib/utils.ts,
- * breaking the api -> utils -> api cycle).
- */
-
-/**
- * Build a URLSearchParams from a record.
- * Keeps 0 as a valid value, only filters out undefined, null, and empty string.
- */
 export function buildQueryParams(
   params: Record<string, unknown>
 ): URLSearchParams {
   const queryParams = new URLSearchParams()
 
   Object.entries(params).forEach(([key, value]) => {
-    // Keep 0 as a valid value, only filter out undefined, null, and empty string
     if (value !== undefined && value !== null && value !== '') {
       queryParams.append(key, String(value))
     }

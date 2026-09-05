@@ -16,9 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-// @ts-expect-error - bun:test ships no types in this project; only its fake
-// timer controls are used here.
-import { jest } from 'bun:test'
 /**
  * Behavior tests for the first-party acquisition capture module.
  *
@@ -29,7 +26,8 @@ import { jest } from 'bun:test'
  * real waiting.
  */
 import assert from 'node:assert/strict'
-import { afterEach, describe, test } from 'node:test'
+
+import { afterEach, describe, test, vi } from 'vitest'
 
 type AcquisitionModule = typeof import('../acquisition')
 
@@ -145,7 +143,7 @@ afterEach(() => {
   globalThis.fetch = originalFetch
   fetchBehavior = async () => new Response(null, { status: 200 })
   delete (globalThis as Record<string, unknown>).window
-  jest.useRealTimers()
+  vi.useRealTimers()
 })
 
 describe('extractUtm', () => {
@@ -270,7 +268,7 @@ describe('captureLandingView', () => {
   })
 
   test('aborts itself after the short landing timeout', async () => {
-    jest.useFakeTimers()
+    vi.useFakeTimers()
     fetchBehavior = fullyHangingBehavior()
     installFetchStub()
     const acquisition = await loadAcquisition()
@@ -280,10 +278,10 @@ describe('captureLandingView', () => {
     await callStarted(0)
     assert.equal(isResolved(), false)
 
-    jest.advanceTimersByTime(1499)
+    vi.advanceTimersByTime(1499)
     assert.equal(isResolved(), false)
 
-    jest.advanceTimersByTime(1)
+    vi.advanceTimersByTime(1)
     await done
 
     assert.equal(calls[0].init?.signal?.aborted, true)
@@ -345,7 +343,7 @@ describe('reportSignupStarted', () => {
   })
 
   test('releases without signup_started when landing stays unresolved at the budget end', async () => {
-    jest.useFakeTimers()
+    vi.useFakeTimers()
     fetchBehavior = fullyHangingBehavior()
     installFetchStub()
     const acquisition = await loadAcquisition()
@@ -354,11 +352,11 @@ describe('reportSignupStarted', () => {
     const isResolved = trackResolution(done)
     await callStarted(0)
 
-    jest.advanceTimersByTime(1499)
+    vi.advanceTimersByTime(1499)
     assert.equal(isResolved(), false)
     assert.equal(signupCalls().length, 0)
 
-    jest.advanceTimersByTime(1)
+    vi.advanceTimersByTime(1)
     await done
 
     // Released inside the budget, never out-of-order:
@@ -368,7 +366,7 @@ describe('reportSignupStarted', () => {
   })
 
   test('gives signup_started only the remaining budget after a slow landing', async () => {
-    jest.useFakeTimers()
+    vi.useFakeTimers()
     fetchBehavior = scriptedBehavior()
     installFetchStub()
     const acquisition = await loadAcquisition()
@@ -379,7 +377,7 @@ describe('reportSignupStarted', () => {
     await callStarted(0)
 
     // t=400ms: landing is still unresolved, so no signup request exists.
-    jest.advanceTimersByTime(400)
+    vi.advanceTimersByTime(400)
     assert.equal(calls.length, 1)
     assert.equal(signupCalls().length, 0)
 
@@ -388,12 +386,12 @@ describe('reportSignupStarted', () => {
     await callStarted(1)
 
     // t=1499ms total: signup consumed 1099ms of the remaining 1100ms.
-    jest.advanceTimersByTime(1099)
+    vi.advanceTimersByTime(1099)
     assert.equal(isResolved(), false)
     assert.equal(calls[1].init?.signal?.aborted, false)
 
     // t=1500ms total: the shared budget ends — not a second 1500ms window.
-    jest.advanceTimersByTime(1)
+    vi.advanceTimersByTime(1)
     await done
 
     assert.equal(isResolved(), true)

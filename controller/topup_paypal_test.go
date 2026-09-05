@@ -1068,7 +1068,7 @@ func TestHandlePayPalReturn(t *testing.T) {
 		assert.Equal(t, 0, getPayPalReturnUserQuota(t, userID))
 		topUp := getPayPalReturnTopUp(t, tradeNo)
 		assert.Equal(t, common.TopUpStatusPending, topUp.Status)
-		assert.Equal(t, "", topUp.TransactionId)
+		assert.Equal(t, "", topUp.GetTransactionId())
 	})
 
 	t.Run("completed order with mismatched reference_id does not credit", func(t *testing.T) {
@@ -1116,7 +1116,7 @@ func TestHandlePayPalReturn(t *testing.T) {
 		assert.Equal(t, int(expectedQuota), getPayPalReturnUserQuota(t, userID))
 		topUp := getPayPalReturnTopUp(t, tradeNo)
 		assert.Equal(t, common.TopUpStatusSuccess, topUp.Status)
-		assert.Equal(t, "CAPTURE001", topUp.TransactionId)
+		assert.Equal(t, "CAPTURE001", topUp.GetTransactionId())
 	})
 
 	t.Run("duplicate return does not double credit", func(t *testing.T) {
@@ -1133,7 +1133,7 @@ func TestHandlePayPalReturn(t *testing.T) {
 		expectedQuota := int64(9.99 * common.QuotaPerUnit)
 		assert.Equal(t, int(expectedQuota), getPayPalReturnUserQuota(t, userID),
 			"quota must increase exactly once across duplicate returns")
-		assert.Equal(t, "CAPTURE001", getPayPalReturnTopUp(t, tradeNo).TransactionId)
+		assert.Equal(t, "CAPTURE001", getPayPalReturnTopUp(t, tradeNo).GetTransactionId())
 	})
 
 	t.Run("RechargePayPal real failure is not reported as success", func(t *testing.T) {
@@ -1163,7 +1163,7 @@ func TestHandlePayPalReturn(t *testing.T) {
 		assert.Contains(t, location, "payment_error=true")
 		assert.NotContains(t, location, "show_history=true")
 		assert.Equal(t, firstQuota, getPayPalReturnUserQuota(t, userID), "swapped capture must not credit")
-		assert.Equal(t, "CAPTURE001", getPayPalReturnTopUp(t, tradeNo).TransactionId, "stored capture id must not change")
+		assert.Equal(t, "CAPTURE001", getPayPalReturnTopUp(t, tradeNo).GetTransactionId(), "stored capture id must not change")
 	})
 
 	t.Run("already-disabled gateway still settles an existing pending order", func(t *testing.T) {
@@ -1313,7 +1313,7 @@ func TestHandlePayPalCapture(t *testing.T) {
 		assert.Equal(t, int(expectedQuota), getPayPalReturnUserQuota(t, userID))
 		topUp := getPayPalReturnTopUp(t, tradeNo)
 		assert.Equal(t, common.TopUpStatusSuccess, topUp.Status)
-		assert.Equal(t, "CAPTURE001", topUp.TransactionId)
+		assert.Equal(t, "CAPTURE001", topUp.GetTransactionId())
 	})
 
 	t.Run("duplicate direct capture is idempotent", func(t *testing.T) {
@@ -1329,7 +1329,7 @@ func TestHandlePayPalCapture(t *testing.T) {
 		expectedQuota := int64(9.99 * common.QuotaPerUnit)
 		assert.Equal(t, int(expectedQuota), getPayPalReturnUserQuota(t, userID),
 			"quota must increase exactly once across duplicate deliveries")
-		assert.Equal(t, "CAPTURE001", getPayPalReturnTopUp(t, tradeNo).TransactionId)
+		assert.Equal(t, "CAPTURE001", getPayPalReturnTopUp(t, tradeNo).GetTransactionId())
 	})
 
 	t.Run("direct capture makes no PayPal network request", func(t *testing.T) {
@@ -1365,7 +1365,7 @@ func TestHandlePayPalCapture(t *testing.T) {
 			assert.Equal(t, 0, getPayPalReturnUserQuota(t, userID))
 			topUp := getPayPalReturnTopUp(t, tradeNo)
 			assert.Equal(t, common.TopUpStatusPending, topUp.Status)
-			assert.Equal(t, "", topUp.TransactionId)
+			assert.Equal(t, "", topUp.GetTransactionId())
 		})
 	}
 
@@ -1399,7 +1399,7 @@ func TestHandlePayPalCapture(t *testing.T) {
 		assert.Equal(t, int(expectedQuota), getPayPalReturnUserQuota(t, userID))
 		topUp := getPayPalReturnTopUp(t, tradeNo)
 		assert.Equal(t, common.TopUpStatusSuccess, topUp.Status)
-		assert.Equal(t, "CAPTURE001", topUp.TransactionId)
+		assert.Equal(t, "CAPTURE001", topUp.GetTransactionId())
 	})
 
 	t.Run("approved order duplicate delivery is idempotent", func(t *testing.T) {
@@ -1522,7 +1522,7 @@ func TestPayPalWebhook(t *testing.T) {
 		assert.Equal(t, 0, getPayPalReturnUserQuota(t, userID))
 		topUp := getPayPalReturnTopUp(t, tradeNo)
 		assert.Equal(t, common.TopUpStatusPending, topUp.Status)
-		assert.Equal(t, "", topUp.TransactionId)
+		assert.Equal(t, "", topUp.GetTransactionId())
 	})
 
 	t.Run("valid refund returns 200", func(t *testing.T) {
@@ -1750,7 +1750,7 @@ func TestHandlePayPalRefund(t *testing.T) {
 			assert.Equal(t, int(expectedQuota), getPayPalReturnUserQuota(t, userID))
 			topUp := getPayPalReturnTopUp(t, tradeNo)
 			assert.Equal(t, common.TopUpStatusSuccess, topUp.Status)
-			assert.Equal(t, captureID, topUp.TransactionId)
+			assert.Equal(t, captureID, topUp.GetTransactionId())
 		})
 	}
 
@@ -2612,7 +2612,7 @@ func b08PaySuccessBody(t *testing.T, dbType common.DatabaseType) {
 	require.Len(t, topUps, 1, "exactly one TopUp row must be created")
 	assert.Equal(t, common.TopUpStatusPending, topUps[0].Status)
 	assert.Equal(t, "ORDER-MIN-001", topUps[0].PaymentId)
-	assert.Empty(t, topUps[0].TransactionId, "creation must not record a capture id")
+	assert.Empty(t, topUps[0].GetTransactionId(), "creation must not record a capture id")
 
 	assert.Equal(t, startQuota, getPayPalReturnUserQuota(t, user.Id),
 		"order creation must not credit the user quota")
@@ -2900,7 +2900,7 @@ func b04CancelBody(t *testing.T, dbType common.DatabaseType) {
 	assert.Equal(t, "ORDER-CANCEL-001", topUps[0].PaymentId)
 	assert.Equal(t, model.PaymentProviderPayPal, topUps[0].PaymentProvider)
 	assert.Equal(t, model.PaymentMethodPayPal, topUps[0].PaymentMethod)
-	assert.Empty(t, topUps[0].TransactionId, "cancel must not record a capture transaction id")
+	assert.Empty(t, topUps[0].GetTransactionId(), "cancel must not record a capture transaction id")
 	assert.Equal(t, startQuota, getPayPalReturnUserQuota(t, user.Id),
 		"cancel path must not credit the user")
 

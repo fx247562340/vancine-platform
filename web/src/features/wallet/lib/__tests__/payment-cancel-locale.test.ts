@@ -27,7 +27,8 @@ For commercial licensing, please contact support@quantumnous.com
 // web/AGENTS.md convention for pure-logic suites.
 
 import assert from 'node:assert/strict'
-import { describe, test } from 'node:test'
+
+import { describe, test } from 'vitest'
 
 import enLocale from '@/i18n/locales/en.json'
 import frLocale from '@/i18n/locales/fr.json'

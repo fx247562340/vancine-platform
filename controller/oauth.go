@@ -15,6 +15,8 @@ import (
 	"github.com/QuantumNous/new-api/oauth"
 	"github.com/QuantumNous/new-api/service/acquisition"
 	"github.com/gin-gonic/gin"
+	"github.com/go-sql-driver/mysql"
+	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/gorm"
 )
 
@@ -50,11 +52,6 @@ func GenerateOAuthCode(c *gin.Context) {
 		len(request.Aff) > 32 ||
 		(request.Intent == model.AuthFlowIntentBind && request.Aff != "") {
 		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
-		return
-	}
-	// Validate the provider is currently usable (DB row + runtime in sync)
-	// so custom providers disabled mid-flight do not generate a state token.
-	if _, ok := resolveValidOAuthProvider(c, request.Provider); !ok {
 		return
 	}
 	userID := 0
@@ -95,49 +92,6 @@ func GenerateOAuthCode(c *gin.Context) {
 			"expires_at": expiresAt.Unix(),
 		},
 	})
-}
-
-// resolveValidOAuthProvider resolves the OAuth provider by name and validates
-// it is currently usable, re-reading the persisted CustomOAuthProvider row
-// for custom providers so a split state (runtime enabled, DB disabled,
-// runtime/persisted ID mismatch, persisted row missing) is rejected before
-// the caller proceeds. The returned bool is false and the response is
-// already written when the caller should stop.
-//
-// Classification is based on both the runtime type and the registry custom
-// marker. Inconsistency (isGeneric != isCustom) always fails closed.
-func resolveValidOAuthProvider(c *gin.Context, providerName string) (oauth.Provider, bool) {
-	provider := oauth.GetProvider(providerName)
-	if provider == nil || !provider.IsEnabled() {
-		common.ApiErrorI18n(c, i18n.MsgOAuthNotEnabled, providerParams(providerName))
-		return nil, false
-	}
-	generic, isGeneric := provider.(*oauth.GenericOAuthProvider)
-	isCustom := oauth.IsCustomProvider(providerName)
-
-	switch {
-	case isGeneric && isCustom:
-		// Custom provider: persisted DB row must exist, be enabled, and
-		// match the runtime registry by ID and slug.
-		persisted, err := model.GetCustomOAuthProviderBySlug(providerName)
-		if err != nil || persisted == nil {
-			common.ApiErrorI18n(c, i18n.MsgOAuthNotEnabled, providerParams(providerName))
-			return nil, false
-		}
-		if !persisted.Enabled || persisted.Id != generic.GetProviderId() || persisted.Slug != providerName {
-			common.ApiErrorI18n(c, i18n.MsgOAuthNotEnabled, providerParams(providerName))
-			return nil, false
-		}
-		return provider, true
-	case !isGeneric && !isCustom:
-		// Built-in provider: runtime registry is the source of truth.
-		return provider, true
-	default:
-		// Inconsistent: registry says custom but runtime is not Generic,
-		// or vice versa. Fail-closed.
-		common.ApiErrorI18n(c, i18n.MsgOAuthNotEnabled, providerParams(providerName))
-		return nil, false
-	}
 }
 
 // HandleOAuth handles OAuth callback for all standard OAuth providers
@@ -189,11 +143,9 @@ func HandleOAuth(c *gin.Context) {
 		return
 	}
 
-	// 3. Pre-wire validate: provider must be usable before any external
-	// call. Uses the returned provider for all subsequent logic so a stale
-	// registry pointer is never used.
-	provider, ok := resolveValidOAuthProvider(c, providerName)
-	if !ok {
+	// 3. Check if provider is enabled
+	if !provider.IsEnabled() {
+		common.ApiErrorI18n(c, i18n.MsgOAuthNotEnabled, providerParams(provider.GetName()))
 		return
 	}
 
@@ -234,16 +186,6 @@ func HandleOAuth(c *gin.Context) {
 		return
 	}
 
-	// 7. Post-wire validate: re-check the provider is still usable after
-	// the external HTTP calls but BEFORE consuming the flow, creating a
-	// user, binding, or session. Uses the returned provider for all
-	// subsequent logic.
-	provider, ok = resolveValidOAuthProvider(c, providerName)
-	if !ok {
-		return
-	}
-
-	// 8. Consume flow, parse payload, find/create user, status check.
 	flow, err := model.ConsumeAuthFlow(state, consumeMatch)
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"success": false, "message": i18n.T(c, i18n.MsgOAuthStateInvalid)})
@@ -305,15 +247,6 @@ func handleOAuthBind(c *gin.Context, provider oauth.Provider, pendingFlow *model
 		return
 	}
 
-	// Post-wire validate: re-check the provider is still usable after the
-	// external HTTP calls but BEFORE IsUserIDTaken, ConsumeAuthFlow, or
-	// any binding/claim/mirror write. Uses the returned provider for all
-	// subsequent logic so a stale registry pointer is never used.
-	provider, ok := resolveValidOAuthProvider(c, c.Param("provider"))
-	if !ok {
-		return
-	}
-
 	// Check if this OAuth account is already bound (check both new ID and
 	// legacy ID). Google is skipped here: its ownership lives in
 	// external_identity_claims and is enforced atomically inside the bind
@@ -343,17 +276,12 @@ func handleOAuthBind(c *gin.Context, provider oauth.Provider, pendingFlow *model
 		return
 	}
 
-	user := model.User{Id: pendingFlow.UserId}
-	err = user.FillUserById()
-	if err != nil {
-		common.ApiError(c, err)
-		return
-	}
+	userId := pendingFlow.UserId
 
 	// Handle binding based on provider type
 	if genericProvider, ok := provider.(*oauth.GenericOAuthProvider); ok {
 		// Custom provider: use user_oauth_bindings table
-		err = model.UpdateUserOAuthBinding(user.Id, genericProvider.GetProviderId(), oauthUser.ProviderUserID)
+		err = model.UpdateUserOAuthBinding(userId, genericProvider.GetProviderId(), oauthUser.ProviderUserID)
 		if err != nil {
 			common.ApiError(c, err)
 			return
@@ -364,7 +292,7 @@ func handleOAuthBind(c *gin.Context, provider oauth.Provider, pendingFlow *model
 		// reject a subject owned by another user and any rebind by an
 		// already-bound user, including concurrent attempts.
 		err = model.DB.Transaction(func(tx *gorm.DB) error {
-			return model.BindGoogleIdentityWithTx(tx, strings.TrimSpace(oauthUser.ProviderUserID), user.Id)
+			return model.BindGoogleIdentityWithTx(tx, strings.TrimSpace(oauthUser.ProviderUserID), userId)
 		})
 		if err != nil {
 			if errors.Is(err, model.ErrExternalIdentityAlreadyClaimed) {
@@ -375,9 +303,9 @@ func handleOAuthBind(c *gin.Context, provider oauth.Provider, pendingFlow *model
 			return
 		}
 	} else {
-		// Built-in provider: update user record directly
-		provider.SetProviderUserID(&user, oauthUser.ProviderUserID)
-		err = user.Update(false)
+		// Built-in provider: 只更新绑定列。完整快照的 user.Update 会把读取时刻的
+		// role/status/group 一并写回，覆盖并发发生的封禁、降权或分组变更。
+		err = model.UpdateUserBindColumn(userId, provider.ProviderUserIDColumn(), oauthUser.ProviderUserID)
 		if err != nil {
 			common.ApiError(c, err)
 			return
@@ -542,80 +470,118 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 // compatibility mirror inside the same transaction as the claim and is never
 // consulted for ownership, so forged or duplicate mirror rows cannot hijack a
 // login.
+// googleRegistrationAttempts bounds the retry loop for the first-login
+// registration transaction. Concurrent first logins of the same Google
+// subject race on the users INSERT and the claim INSERT; on MySQL that
+// contention can surface as a deadlock (error 1213) instead of the
+// duplicate-key conflict the owner fallback expects, and both transactions
+// can be rolled back. Every attempt re-reads the durable owner first, so as
+// soon as any concurrent attempt commits, all later attempts land on the
+// same owner; the bound only limits how long a genuinely deadlocking pair
+// may retry before failing closed.
+const googleRegistrationAttempts = 3
+
 func findOrCreateGoogleUser(c *gin.Context, provider *oauth.GoogleProvider, oauthUser *oauth.OAuthUser, affiliateCode string) (*model.User, error) {
 	subject := strings.TrimSpace(oauthUser.ProviderUserID)
 	if subject == "" {
 		return nil, errors.New("google subject is empty")
 	}
 
-	owner, err := model.FindExternalIdentityOwner(model.ExternalIdentityProviderGoogle, subject)
-	if err == nil {
-		if owner.DeletedAt.Valid {
-			return nil, &OAuthUserDeletedError{}
-		}
-		return owner, nil
-	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, err
-	}
-
-	if !common.RegisterEnabled {
-		return nil, &OAuthRegistrationDisabledError{}
-	}
-
-	user := &model.User{}
-	user.Username = provider.GetProviderPrefix() + strconv.Itoa(model.GetMaxUserId()+1)
-	if oauthUser.DisplayName != "" {
-		user.DisplayName = oauthUser.DisplayName
-	} else {
-		user.DisplayName = provider.GetName() + " User"
-	}
-	if oauthUser.Email != "" {
-		user.Email = model.NormalizeEmail(oauthUser.Email)
-		if err := model.EnsureEmailAvailable(user.Email, 0); err != nil {
-			if errors.Is(err, model.ErrEmailAlreadyTaken) {
-				return nil, &OAuthEmailAlreadyTakenError{}
-			}
-			return nil, err
-		}
-	}
-	user.Role = common.RoleCommonUser
-	user.Status = common.UserStatusEnabled
-	user.GoogleSub = subject
-
 	inviterId := 0
 	if affiliateCode != "" {
 		inviterId, _ = model.GetUserIdByAffCode(affiliateCode)
 	}
 
-	// User creation, durable claim and google_sub mirror commit as one unit;
-	// any failure rolls all three back together.
-	if err := model.DB.Transaction(func(tx *gorm.DB) error {
-		if err := user.InsertWithTx(tx, inviterId); err != nil {
-			return err
+	var lastErr error
+	for attempt := 0; attempt < googleRegistrationAttempts; attempt++ {
+		owner, err := model.FindExternalIdentityOwner(model.ExternalIdentityProviderGoogle, subject)
+		if err == nil {
+			if owner.DeletedAt.Valid {
+				return nil, &OAuthUserDeletedError{}
+			}
+			return owner, nil
 		}
-		return model.ClaimExternalIdentityWithTx(tx, model.ExternalIdentityProviderGoogle, subject, user.Id)
-	}); err != nil {
-		// A concurrent callback may have claimed the subject between the owner
-		// lookup and this transaction. Re-read the durable owner and log into
-		// it instead of turning the unique conflict into a second account.
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
+
+		if !common.RegisterEnabled {
+			return nil, &OAuthRegistrationDisabledError{}
+		}
+
+		user := &model.User{}
+		user.Username = provider.GetProviderPrefix() + strconv.Itoa(model.GetMaxUserId()+1)
+		if oauthUser.DisplayName != "" {
+			user.DisplayName = oauthUser.DisplayName
+		} else {
+			user.DisplayName = provider.GetName() + " User"
+		}
+		if oauthUser.Email != "" {
+			user.Email = model.NormalizeEmail(oauthUser.Email)
+			if err := model.EnsureEmailAvailable(user.Email, 0); err != nil {
+				if errors.Is(err, model.ErrEmailAlreadyTaken) {
+					return nil, &OAuthEmailAlreadyTakenError{}
+				}
+				return nil, err
+			}
+		}
+		user.Role = common.RoleCommonUser
+		user.Status = common.UserStatusEnabled
+		user.GoogleSub = subject
+
+		// User creation, durable claim and google_sub mirror commit as one
+		// unit; any failure rolls all three back together.
+		err = model.DB.Transaction(func(tx *gorm.DB) error {
+			if err := user.InsertWithTx(tx, inviterId); err != nil {
+				return err
+			}
+			return model.ClaimExternalIdentityWithTx(tx, model.ExternalIdentityProviderGoogle, subject, user.Id)
+		})
+		if err == nil {
+			user.FinalizeOAuthUserCreation(inviterId)
+
+			// First-touch acquisition attribution: only brand-new Google
+			// users reach this point; owner logins returned above and never
+			// bind.
+			acquisition.BindTouchToUser(c, user.Id)
+			markSignupCompleted(c)
+
+			return user, nil
+		}
+
+		// A concurrent callback may have claimed the subject between the
+		// owner lookup and this transaction. Re-read the durable owner and
+		// log into it instead of turning the unique conflict into a second
+		// account.
 		if owner, ownerErr := model.FindExternalIdentityOwner(model.ExternalIdentityProviderGoogle, subject); ownerErr == nil {
 			if owner.DeletedAt.Valid {
 				return nil, &OAuthUserDeletedError{}
 			}
 			return owner, nil
 		}
-		return nil, err
+		if !isDatabaseDeadlock(err) {
+			return nil, err
+		}
+		lastErr = err
 	}
+	return nil, lastErr
+}
 
-	user.FinalizeOAuthUserCreation(inviterId)
-
-	// First-touch acquisition attribution: only brand-new Google users reach
-	// this point; owner logins returned above and never bind.
-	acquisition.BindTouchToUser(c, user.Id)
-	markSignupCompleted(c)
-
-	return user, nil
+// isDatabaseDeadlock reports whether the error is a server-detected
+// transaction deadlock: MySQL error 1213 (ER_LOCK_DEADLOCK) or PostgreSQL
+// SQLSTATE 40P01 (deadlock_detected). Deadlocks are the retryable failure
+// class for racing first-login registration transactions; every other error
+// fails closed without retry.
+func isDatabaseDeadlock(err error) bool {
+	var mysqlErr *mysql.MySQLError
+	if errors.As(err, &mysqlErr) {
+		return mysqlErr.Number == 1213
+	}
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return pgErr.Code == "40P01"
+	}
+	return false
 }
 
 // Error types for OAuth

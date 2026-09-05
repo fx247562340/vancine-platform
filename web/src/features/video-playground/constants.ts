@@ -19,8 +19,13 @@ For commercial licensing, please contact support@quantumnous.com
 export const VIDEO_PLAYGROUND_ENDPOINTS = {
   V1_MODELS: '/v1/models',
   V1_GENERATIONS: '/v1/video/generations',
-  TASK: '/api/task',
 } as const
+
+// Upstream generic Task Artifacts route (Bearer API key, same token that
+// submitted the task). The video page reads the safe content_url from it.
+export function videoTaskArtifactsPath(taskId: string): string {
+  return `/v1/tasks/${encodeURIComponent(taskId)}/artifacts`
+}
 
 export const VIDEO_TASK_POLL_INTERVAL_MS = 5000
 

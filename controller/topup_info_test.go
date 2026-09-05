@@ -301,13 +301,13 @@ func TestGetTopUpInfoFirstTopUpBonusEligibilityZeroConfigHides(t *testing.T) {
 
 func TestGetTopUpInfoFirstTopUpBonusEligibilityOutOfRangeHides(t *testing.T) {
 	setupTopupInfoTest(t)
-	withFirstTopUpBonusForTest(t, common.MaxQuota+1)
+	withFirstTopUpBonusForTest(t, common.MaxWalletQuota+1)
 
 	data := callGetTopUpInfoAsUser(t, 8207)
 
 	raw, present := data["first_topup_bonus_quota"]
 	require.True(t, present)
-	assert.Equal(t, float64(common.MaxQuota+1), raw, "the raw value is still reported, so the client can show a clear empty state")
+	assert.Equal(t, float64(common.MaxWalletQuota+1), raw, "the raw value is still reported, so the client can show a clear empty state")
 	assert.Equal(t, false, data["first_topup_bonus_eligible"], "out-of-range config must collapse eligibility to false")
 }
 
