@@ -63,13 +63,7 @@ const IMAGE_MODELS: [model: string, size: string, note: string][] = [
 
 const VIDEO_MODELS: [model: string][] = [['Doubao-Seedance-2.5']]
 
-const THREE_D_MODELS: [model: string, input: string, state: string][] = [
-  ['Hyper3D-Gen2', 'images optional', 'text or image reference'],
-  ['Hitem3D-2.0', 'images optional', 'image reference recommended'],
-  ['Doubao-Seed3D-2.0', 'images required', 'image-to-3D only'],
-]
-
-type ModelType = 'image' | 'video' | '3D' | 'audio'
+type ModelType = 'image' | 'video' | 'audio'
 
 interface MultimodalRow {
   model: string
@@ -80,7 +74,6 @@ interface MultimodalRow {
 const TYPE_BADGE_CLASSES: Record<ModelType, string> = {
   image: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
   video: 'bg-violet-500/15 text-violet-700 dark:text-violet-400',
-  '3D': 'bg-orange-500/15 text-orange-700 dark:text-orange-400',
   audio: 'bg-slate-500/15 text-slate-700 dark:text-slate-300',
 }
 
@@ -126,19 +119,6 @@ export default function ModelsPage(props: { baseUrl: string }) {
           note: t('models.fetchPricing'),
         })
       ),
-      ...THREE_D_MODELS.map(
-        ([model, input, state]): MultimodalRow => ({
-          model,
-          type: '3D',
-          note: `${input}; ${state}`,
-        })
-      ),
-      { model: 'Doubao-tts', type: 'audio', note: t('models.returnsValidMp3') },
-      {
-        model: 'Doubao-tts2.0',
-        type: 'audio',
-        note: t('models.returnsValidMp3'),
-      },
     ],
     [t]
   )

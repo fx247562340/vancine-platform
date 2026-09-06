@@ -25,12 +25,7 @@ import { DocsH2 } from '../components/headings'
 import { useRegisterHeadings } from '../components/register-headings'
 import type { TocHeading } from '../types'
 
-const FAQ_ITEMS = [
-  'verifyKey',
-  'video3dResults',
-  'ttsNotJson',
-  'seedreamSize',
-] as const
+const FAQ_ITEMS = ['verifyKey', 'seedreamSize'] as const
 
 type FaqItemKey = (typeof FAQ_ITEMS)[number]
 

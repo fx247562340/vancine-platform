@@ -377,8 +377,6 @@ export const OPENROUTER_ALTERNATIVE_MODEL_CATALOG_TOKENS = [
   'DeepSeek',
   'Image',
   'Video',
-  'Audio',
-  '3D',
 ] as const
 
 // ---------------------------------------------------------------------------
@@ -492,10 +490,9 @@ export const OPENROUTER_ALTERNATIVE_FAQ: readonly OpenRouterAlternativeFaqEntry[
         'Pricing follows the live /api/pricing endpoint. The page above shows a 20% saving on four flagship paid listings as of the verification date; free variants, promotional routes, and temporary provider discounts are not part of the comparison.',
     },
     {
-      questionKey:
-        'Does Vancine also cover image, video, speech and 3D models?',
+      questionKey: 'Does Vancine also cover image and video models?',
       answerKey:
-        'Yes. In addition to flagship text models, Vancine exposes Chinese providers for Image, Video, Audio, and 3D, all behind the same OpenAI-style API key.',
+        'Yes. In addition to flagship text models, Vancine exposes Chinese providers for Image and Video, all behind the same OpenAI-style API key.',
     },
   ]
 
@@ -539,10 +536,10 @@ export const OPENROUTER_ALTERNATIVE_EVIDENCE_KEYS = [
   'Why a smaller catalog body',
   'OpenRouter optimizes for catalog breadth. Vancine focuses on a curated set of the latest flagship Chinese models and retires superseded versions as new releases arrive.',
   'Current flagship coverage',
-  'Image, Video, Audio, 3D',
+  'Image, Video',
   'GLM spotlight',
   'GLM-5.3 and GLM-5.3 Flash pricing',
-  'Vancine exposes the latest flagship text models from Qwen, Kimi, GLM, MiniMax, and DeepSeek through one OpenAI-compatible API. The same key and balance also reach Chinese providers for Image, Video, Audio, and 3D generation, so a single integration covers your text and media workloads.',
+  'Vancine exposes the latest flagship text models from Qwen, Kimi, GLM, MiniMax, and DeepSeek through one OpenAI-compatible API. The same key and balance also reach Chinese providers for Image and Video generation, so a single integration covers your text and media workloads.',
   'Migrate from OpenRouter today',
   'Migrate from OpenRouter today body',
   'Point your OpenAI SDK, agent, or curl at https://vancine.com/v1, set the VANCINE_API_KEY environment variable, and remap OpenRouter’s provider-prefixed model ids to Vancine ids — for example, replace "qwen/qwen3.8-max" with "qwen3.8-max". Vancine supports the OpenAI-compatible chat completions request, response, and streaming formats. Provider-specific errors may differ.',

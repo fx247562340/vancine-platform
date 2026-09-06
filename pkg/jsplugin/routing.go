@@ -21,6 +21,12 @@ const (
 	RouteTypeDynamic RouteType = "dynamic"
 )
 
+// ProtocolOpenAIVideo names the host protocol a task plugin claims in
+// meta.protocols to serve the OpenAI video task endpoints (/v1/videos).
+// The HTTP-facing endpoint capability spelling is the separate
+// constant.EndpointTypeOpenAIVideo ("openai-video").
+const ProtocolOpenAIVideo = "openai_video"
+
 type Route struct {
 	Method      string    `json:"method"`
 	Path        string    `json:"path"`
@@ -83,7 +89,7 @@ var hostProtocols = []HostProtocolDefinition{
 		{Name: "create", Methods: []string{http.MethodPost}, Path: "/v1/responses", BodyKinds: []BodyKind{BodyJSON}, ModelField: "model", RequiredProtocolMembers: []string{"decodeRequest"}, Modes: []ProtocolMode{{Name: "stream", Hook: "renderEvents"}, {Name: "sync", Hook: "renderFinal"}, {Name: "background", Hook: "renderFinal"}}},
 		{Name: "retrieve", Methods: []string{http.MethodGet}, Path: "/v1/responses/:response_id", BodyKinds: []BodyKind{BodyNone}},
 	}},
-	{Name: "openai_video", Operations: []HostProtocolOperation{
+	{Name: ProtocolOpenAIVideo, Operations: []HostProtocolOperation{
 		{Name: "create", Methods: []string{http.MethodPost}, Path: "/v1/videos", BodyKinds: []BodyKind{BodyJSON, BodyMultipart}, ModelField: "model", RequiredProtocolMembers: []string{"decodeRequest"}},
 		{Name: "retrieve", Methods: []string{http.MethodGet}, Path: "/v1/videos/:task_id", BodyKinds: []BodyKind{BodyNone}, RequiredProtocolMembers: []string{"render"}},
 		{Name: "content", Methods: []string{http.MethodGet, http.MethodHead}, Path: "/v1/videos/:task_id/content", BodyKinds: []BodyKind{BodyNone}, RequiredDriverHooks: []string{"listArtifacts", "buildContentRequest"}},

@@ -16,7 +16,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com.
 */
-import { isKnownBound, type VideoCapability } from './capabilities'
+import {
+  isKnownBound,
+  type GenericVideoCapability,
+  type VideoCapability,
+} from './capabilities'
 import { findModeEntry } from './contract'
 import type { CreationMode } from './mode'
 import type {
@@ -202,6 +206,21 @@ export function safeRemoteUrl(url: string): boolean {
   if (parsed.username || parsed.password) return false
   if (isPrivateOrLoopback(parsed.hostname)) return false
   return true
+}
+
+/**
+ * A public HTTPS media URL, and nothing else.
+ *
+ * `safeRemoteUrl` also accepts a canonical `asset://` id, because the dedicated
+ * Seedance profile can address the upstream LAS asset library. A model without
+ * a dedicated profile has no verified asset-library contract, so the generic
+ * path reuses the same HTTPS / userinfo / private-host rules and additionally
+ * rejects `asset://` and every inlined `data:` payload.
+ */
+export function safeHttpsMediaUrl(url: string): boolean {
+  const trimmed = url.trim()
+  if (trimmed.length === 0 || trimmed.startsWith('asset://')) return false
+  return safeRemoteUrl(trimmed)
 }
 
 /**
@@ -559,6 +578,67 @@ export function preflightResources(
 }
 
 /**
+ * Preflight for a video model without a dedicated capability profile.
+ *
+ * The generic contract is text-to-video plus image-to-video from one public
+ * HTTPS image. Anything else the user attached under a previous model is
+ * reported with a translatable reason instead of being silently dropped, so
+ * the user removes it themselves and no asset disappears without a word.
+ */
+export function preflightGenericResources(
+  capability: GenericVideoCapability,
+  mode: CreationMode,
+  resources: {
+    images: VideoImageResource[]
+    videos: VideoVideoResource[]
+    audios: VideoAudioResource[]
+  }
+): PreflightResult {
+  if (!capability.generationModes.some((allowed) => allowed === mode)) {
+    return fail('videoPlayground.preflight.genericModeUnsupported')
+  }
+  if (resources.videos.length > 0) {
+    return fail('videoPlayground.preflight.genericForbidsReferenceVideo')
+  }
+  if (resources.audios.length > 0) {
+    return fail('videoPlayground.preflight.genericForbidsReferenceAudio')
+  }
+  if (resources.images.length > capability.referenceImage.maxCount) {
+    return fail('videoPlayground.preflight.genericAllowsOneReferenceImage')
+  }
+
+  const modeIllegal = findModeEntry(mode).isCompositionLegal(resources)
+  if (modeIllegal) {
+    return fail(modeIllegal)
+  }
+
+  const image = resources.images[0]
+  if (!image) {
+    return pass()
+  }
+  if (image.source.kind !== 'url') {
+    return fail(
+      'videoPlayground.preflight.genericRequiresHttpsImageUrl',
+      `image#${image.id}`
+    )
+  }
+  if (!safeHttpsMediaUrl(image.source.url)) {
+    return fail('videoPlayground.preflight.unsafeUrl', `image#${image.id}`)
+  }
+  const derivedMime = mediaMimeFromHttpsUrl(image.source.url, 'image')
+  if (
+    !derivedMime ||
+    !capability.referenceImage.supportedFormats.includes(derivedMime)
+  ) {
+    return fail(
+      'videoPlayground.preflight.unsupportedFormat',
+      `image#${image.id}`
+    )
+  }
+  return pass()
+}
+
+/**
  * 64MB body budget.
  *
  * Counts ONLY what the wire actually carries: the final JSON body,
@@ -572,7 +652,7 @@ export function preflightResources(
  */
 export function preflightRequestBodySize(
   body: unknown,
-  capability: VideoCapability
+  capability: { requestBodyLimitBytes: number }
 ): PreflightResult {
   const serialized = JSON.stringify(body)
   const jsonBytes = byteLengthUtf8(serialized)

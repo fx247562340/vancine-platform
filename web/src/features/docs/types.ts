@@ -23,8 +23,6 @@ export type DocsSlug =
   | 'chat'
   | 'image'
   | 'video'
-  | 'td'
-  | 'audio'
   | 'sdks'
   | 'agents'
   | 'auth'

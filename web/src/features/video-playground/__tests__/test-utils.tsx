@@ -57,8 +57,11 @@ export const videoPlaygroundTranslations = {
     'No API keys available': 'No API keys available',
     'Create an API key to generate video.':
       'Create an API key to generate video.',
-    'This API key has no Seedance 2.0 or 2.5 models.':
-      'This API key has no Seedance 2.0 or 2.5 models.',
+    'This API key has no video models.': 'This API key has no video models.',
+    'Generate videos from text or a reference image with the video models available to this API key.':
+      'Generate videos from text or a reference image with the video models available to this API key.',
+    "This model uses the provider's default parameters.":
+      "This model uses the provider's default parameters.",
     'Create API Key': 'Create API Key',
     'API Key': 'API Key',
     'Select an API key': 'Select an API key',
@@ -82,6 +85,7 @@ export const videoPlaygroundTranslations = {
       'Use the task logs to inspect this generation.',
     'mode.textToVideo': 'Text to video',
     'mode.firstFrame': 'First frame',
+    'mode.imageToVideo': 'Image to video',
     'mode.firstAndLastFrame': 'First and last frame',
     'mode.referenceGeneration': 'Reference generation',
     'mode.videoEdit': 'Video edit',
@@ -125,6 +129,10 @@ export const videoPlaygroundTranslations = {
     '@Image{{n}}': '@Image{{n}}',
     '@Video{{n}}': '@Video{{n}}',
     '@Audio{{n}}': '@Audio{{n}}',
+    'Insert {{label}} into prompt': 'Insert {{label}} into prompt',
+    'Remove {{name}}': 'Remove {{name}}',
+    'Describe the video you want to generate.':
+      'Describe the video you want to generate.',
     seconds: 'seconds',
     Cancelled: 'Cancelled',
     'Cancel pending submissions': 'Cancel pending submissions',
@@ -154,6 +162,18 @@ export const videoPlaygroundTranslations = {
       'This URL is not allowed. Use a public https address.',
     'videoPlayground.preflight.editRequiresVideo':
       'Video edit and extend modes require at least one reference video.',
+    'videoPlayground.preflight.genericForbidsReferenceVideo':
+      'This model accepts a single reference image. Remove the attached videos.',
+    'videoPlayground.preflight.genericForbidsReferenceAudio':
+      'This model accepts a single reference image. Remove the attached audio.',
+    'videoPlayground.preflight.genericAllowsOneReferenceImage':
+      'This model accepts at most one reference image.',
+    'videoPlayground.preflight.genericRequiresHttpsImageUrl':
+      'This model accepts a public HTTPS image URL only. Remove the inline image.',
+    'videoPlayground.preflight.genericModeUnsupported':
+      'This model does not support the selected creation mode.',
+    'videoPlayground.error.unknownVideoModel':
+      'Unknown video model. Reload the model list and try again.',
   },
   zh: {
     'Video generation': '视频生成',

@@ -48,12 +48,36 @@ export type VideoSubmitMetadata = {
   duration?: number
 }
 
-export type VideoSubmitPayload = {
+/**
+ * Wire body for a model that has a dedicated, first-party-evidence-backed
+ * capability profile (Seedance 2.x). The official BytePlus content/role and
+ * parameter vocabulary is emitted verbatim.
+ */
+export type DedicatedVideoSubmitPayload = {
   model: string
   prompt: string
   duration?: number
   metadata?: VideoSubmitMetadata
 }
+
+/**
+ * Wire body for a video model without a dedicated capability profile.
+ *
+ * Only the two safe generic fields are expressible here, so an unverified
+ * model can never receive a fabricated duration, ratio, resolution, metadata
+ * object or provider switch. The upstream task plugin applies its own default
+ * duration, resolution and every other parameter.
+ */
+export type GenericVideoSubmitPayload = {
+  model: string
+  prompt: string
+  /** Optional single public HTTPS reference image, for image-to-video. */
+  image?: string
+}
+
+export type VideoSubmitPayload =
+  | DedicatedVideoSubmitPayload
+  | GenericVideoSubmitPayload
 
 export type VideoTask = {
   task_id: string

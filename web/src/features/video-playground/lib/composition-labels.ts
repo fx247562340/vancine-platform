@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import type { CreationMode } from './mode'
+import type { CreationMode, GenericCreationMode } from './mode'
 
 /**
  * Human-readable i18n keys for each explicit creation mode.
@@ -36,3 +36,16 @@ export const CREATION_MODE_LABELS: Record<CreationMode, string> = {
   videoEdit: 'mode.videoEdit',
   videoExtend: 'mode.videoExtend',
 }
+
+/**
+ * Mode labels for a video model without a dedicated capability profile.
+ *
+ * A generic model has no verified first-frame / last-frame contract, so the
+ * single-image mode is labelled by the intent the user can actually rely on —
+ * image to video — instead of borrowing the Seedance first-frame wording.
+ */
+export const GENERIC_CREATION_MODE_LABELS: Record<GenericCreationMode, string> =
+  {
+    textToVideo: 'mode.textToVideo',
+    firstFrame: 'mode.imageToVideo',
+  }

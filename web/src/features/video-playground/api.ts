@@ -38,7 +38,7 @@ import {
   toVideoApiKeyOption,
   type VideoApiKeyOption,
 } from './lib/keys'
-import { extractModelIds, filterPlaygroundVideoModels } from './lib/models'
+import { parseVideoModels } from './lib/models'
 import { parseVideoSubmitTaskId } from './lib/submit-response'
 import { parseVideoTask, pickVideoArtifactContentUrl } from './lib/task'
 import {
@@ -47,7 +47,12 @@ import {
   rememberTaskApiKey,
 } from './lib/task-key-registry'
 import { requestWithApiKey, abortError } from './lib/v1-client'
-import type { VideoModelOption, VideoSubmitPayload, VideoTask } from './types'
+import type {
+  VideoModelOption,
+  VideoSubmitMetadata,
+  VideoSubmitPayload,
+  VideoTask,
+} from './types'
 
 export async function listUsableVideoApiKeys(): Promise<VideoApiKeyOption[]> {
   const pageSize = 100
@@ -169,7 +174,20 @@ export async function getVideoModelsWithApiKey(
     signal,
     fallbackErrorKey: 'Failed to load video models',
   })
-  return filterPlaygroundVideoModels(extractModelIds(payload))
+  return parseVideoModels(payload)
+}
+
+/**
+ * The exact JSON shape POST /v1/video/generations accepts. Every field is
+ * declared here, so neither a dedicated nor a generic body can smuggle an
+ * untyped key onto the wire.
+ */
+type VideoGenerationWireBody = {
+  model: string
+  prompt: string
+  duration?: number
+  image?: string
+  metadata?: VideoSubmitMetadata
 }
 
 export async function submitVideoGenerationWithApiKey(
@@ -178,14 +196,17 @@ export async function submitVideoGenerationWithApiKey(
   language?: string,
   signal?: AbortSignal
 ): Promise<{ id?: string; task_id?: string }> {
-  const body: Record<string, unknown> = {
+  const body: VideoGenerationWireBody = {
     model: payload.model,
     prompt: payload.prompt,
   }
-  if (payload.duration !== undefined) {
+  if ('image' in payload && payload.image !== undefined) {
+    body.image = payload.image
+  }
+  if ('duration' in payload && payload.duration !== undefined) {
     body.duration = payload.duration
   }
-  if (payload.metadata) {
+  if ('metadata' in payload && payload.metadata) {
     body.metadata = payload.metadata
   }
   const response = await requestWithApiKey({

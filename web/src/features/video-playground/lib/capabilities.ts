@@ -21,7 +21,11 @@ import {
   type PlaygroundVideoModel,
 } from '../constants'
 import { findModeEntry } from './contract'
-import type { CreationMode } from './mode'
+import {
+  GENERIC_CREATION_MODES,
+  type CreationMode,
+  type GenericCreationMode,
+} from './mode'
 
 /**
  * Capability matrix for Vancine's video playground models.
@@ -155,6 +159,11 @@ export type ResolutionRule = {
 }
 
 export type VideoCapability = {
+  /**
+   * Marks a first-party-evidence-backed profile. The generic fallback carries
+   * `profile: 'generic'` instead, so no consumer can mistake one for the other.
+   */
+  profile: 'dedicated'
   publicModelId: PlaygroundVideoModel
   officialModelId: string
   officialSources: string[]
@@ -342,6 +351,7 @@ const KNOWN_UNKNOWN_FIELDS = [
 ] as const
 
 const SEEDANCE_2_0: VideoCapability = {
+  profile: 'dedicated',
   publicModelId: 'Doubao-Seedance-2.0',
   officialModelId: 'dreamina-seedance-2-0-260128',
   officialSources: [BYTEPLUS_VIDEO_GEN_ENHANCED],
@@ -516,6 +526,7 @@ const SEEDANCE_2_0: VideoCapability = {
 }
 
 const SEEDANCE_2_5: VideoCapability = {
+  profile: 'dedicated',
   publicModelId: 'Doubao-Seedance-2.5',
   officialModelId: 'dreamina-seedance-2-5-260628',
   // 2.5 video budget numbers are cited from BOTH the BytePlus LAS
@@ -707,6 +718,75 @@ export function getVideoModelCapabilityOrThrow(
     )
   }
   return cap
+}
+
+/**
+ * Capability of a video model the server advertises as `openai-video` but for
+ * which Vancine holds no first-party parameter evidence.
+ *
+ * This is a fallback, NOT a provider profile. It fabricates no official model
+ * id, no sources, no verification date, no resolution / duration / ratio range
+ * and no output FPS, and it exposes no provider switch. The upstream task
+ * plugin owns every default, so the playground sends only `model`, `prompt`
+ * and at most one public HTTPS reference image, and the UI hides each
+ * parameter it cannot substantiate.
+ */
+export type GenericVideoCapability = {
+  profile: 'generic'
+  /** Exact model id as returned by /v1/models; never rewritten. */
+  publicModelId: string
+  /** Text-to-video, plus image-to-video with a single reference image. */
+  generationModes: ReadonlyArray<GenericCreationMode>
+  referenceImage: {
+    /** At most one optional reference image. */
+    maxCount: number
+    /**
+     * Client-side recognizability allowlist, not a vendor capability claim: a
+     * URL whose path does not end in one of these extensions cannot be shown
+     * to the user as an image at all.
+     */
+    supportedFormats: ReadonlyArray<string>
+  }
+  /** The same platform request-body budget a dedicated profile enforces. */
+  requestBodyLimitBytes: number
+}
+
+/**
+ * Every capability the page can render. A dedicated profile keeps its full
+ * verified parameter surface; a generic one keeps only what is substantiated.
+ */
+export type ResolvedVideoModelCapability =
+  | VideoCapability
+  | GenericVideoCapability
+
+/**
+ * Resolve the capability the page renders for one dynamic video model id.
+ *
+ * A model with a dedicated profile gets that profile. Any other non-empty id
+ * gets the generic fallback, so a newly enabled video model always reaches a
+ * submittable composer instead of an empty page. Only a truly empty id is
+ * rejected.
+ */
+export function resolveVideoModelCapability(
+  publicModelId: string
+): ResolvedVideoModelCapability | undefined {
+  if (publicModelId.trim() === '') {
+    return undefined
+  }
+  const dedicated = getVideoModelCapability(publicModelId)
+  if (dedicated) {
+    return dedicated
+  }
+  return {
+    profile: 'generic',
+    publicModelId,
+    generationModes: GENERIC_CREATION_MODES,
+    referenceImage: {
+      maxCount: 1,
+      supportedFormats: [...IMAGE_MIME_TYPES],
+    },
+    requestBodyLimitBytes: REQUEST_BODY_LIMIT_BYTES,
+  }
 }
 
 export function classifyComposition(

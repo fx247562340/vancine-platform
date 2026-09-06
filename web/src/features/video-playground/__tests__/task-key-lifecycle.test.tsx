@@ -290,7 +290,14 @@ describe('late submit responses after unmount or cancel', () => {
     const lateResponse = deferred<Response>()
     installRecorder((url) => {
       if (url === '/v1/models') {
-        return jsonResponse(200, { data: [{ id: 'Doubao-Seedance-2.5' }] })
+        return jsonResponse(200, {
+          data: [
+            {
+              id: 'Doubao-Seedance-2.5',
+              supported_endpoint_types: ['openai-video'],
+            },
+          ],
+        })
       }
       if (url === '/v1/video/generations') {
         return lateResponse.promise
@@ -403,7 +410,14 @@ describe('late submit responses after unmount or cancel', () => {
     const lateResponse = deferred<Response>()
     installRecorder((url) => {
       if (url === '/v1/models') {
-        return jsonResponse(200, { data: [{ id: 'Doubao-Seedance-2.5' }] })
+        return jsonResponse(200, {
+          data: [
+            {
+              id: 'Doubao-Seedance-2.5',
+              supported_endpoint_types: ['openai-video'],
+            },
+          ],
+        })
       }
       if (url === '/v1/video/generations') {
         return lateResponse.promise
@@ -453,7 +467,14 @@ describe('late submit responses after unmount or cancel', () => {
     let submits = 0
     installRecorder((url) => {
       if (url === '/v1/models') {
-        return jsonResponse(200, { data: [{ id: 'Doubao-Seedance-2.5' }] })
+        return jsonResponse(200, {
+          data: [
+            {
+              id: 'Doubao-Seedance-2.5',
+              supported_endpoint_types: ['openai-video'],
+            },
+          ],
+        })
       }
       if (url === '/v1/video/generations') {
         submits += 1
@@ -535,8 +556,7 @@ describe('late submit responses after unmount or cancel', () => {
     }
 
     const { result, rerender } = renderHook(
-      ({ keyId }: { keyId: number | null }) =>
-        useSubmission({ submit, batchSize: 1, keyId }),
+      ({ keyId }: { keyId: number | null }) => useSubmission({ submit, keyId }),
       { initialProps: { keyId: 1 }, wrapper: Wrapper }
     )
 
@@ -545,6 +565,7 @@ describe('late submit responses after unmount or cancel', () => {
         body: { model: 'Doubao-Seedance-2.5' },
         modelId: 'Doubao-Seedance-2.5',
         promptPreview: 'a cat',
+        batchSize: 1,
       })
     })
     await waitFor(() => {
@@ -621,7 +642,14 @@ describe('late submit responses after unmount or cancel', () => {
     })
     installRecorder((url) => {
       if (url === '/v1/models') {
-        return jsonResponse(200, { data: [{ id: 'Doubao-Seedance-2.5' }] })
+        return jsonResponse(200, {
+          data: [
+            {
+              id: 'Doubao-Seedance-2.5',
+              supported_endpoint_types: ['openai-video'],
+            },
+          ],
+        })
       }
       if (url === '/v1/video/generations') {
         return lateResponse.promise

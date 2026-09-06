@@ -33,8 +33,6 @@ export const DOCS_NAV_GROUPS: DocsNavGroup[] = [
       { slug: 'chat', titleKey: 'chat' },
       { slug: 'image', titleKey: 'image' },
       { slug: 'video', titleKey: 'video' },
-      { slug: 'td', titleKey: 'td' },
-      { slug: 'audio', titleKey: 'audio' },
     ],
   },
   {

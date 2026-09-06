@@ -16,12 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import {
-  CubeIcon,
-  Image01Icon,
-  Video01Icon,
-  VolumeHighIcon,
-} from '@hugeicons/core-free-icons'
+import { Image01Icon, Video01Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react'
 import type { ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -31,8 +26,6 @@ import { AI_MEDIA_CAPABILITIES } from '../lib/landing'
 const CAPABILITY_ICONS: Record<string, IconSvgElement> = {
   'Image generation': Image01Icon,
   'Video generation': Video01Icon,
-  'Text to Speech': VolumeHighIcon,
-  '3D generation': CubeIcon,
 }
 
 /** Capability strip: text labels with icons, no provider logos. */
@@ -41,9 +34,7 @@ export function CapabilityStrip(): ReactElement {
 
   return (
     <section
-      aria-label={t(
-        'Image, video, speech, and 3D generation—available with one API key.'
-      )}
+      aria-label={t('Image and video generation—available with one API key.')}
       className='border-border/40 border-y px-4 py-8 md:px-6'
     >
       <ul className='mx-auto flex w-full max-w-5xl flex-wrap items-center justify-center gap-x-8 gap-y-4'>
@@ -61,9 +52,7 @@ export function CapabilityStrip(): ReactElement {
         ))}
       </ul>
       <p className='text-muted-foreground mt-4 text-center text-sm'>
-        {t(
-          'Image, video, speech, and 3D generation—available with one API key.'
-        )}
+        {t('Image and video generation—available with one API key.')}
       </p>
     </section>
   )

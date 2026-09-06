@@ -23,7 +23,7 @@ import type { DocsPageComponent, DocsSlug } from './types.ts'
 type LazyPage = LazyExoticComponent<DocsPageComponent>
 
 /**
- * Page registry — all 14 Docs pages are lazy-loaded.
+ * Page registry — all Docs pages are lazy-loaded.
  * Each entry uses a dynamic import so pages don't inflate the main bundle.
  */
 export const PAGE_REGISTRY: Record<DocsSlug, LazyPage> = {
@@ -33,8 +33,6 @@ export const PAGE_REGISTRY: Record<DocsSlug, LazyPage> = {
   chat: lazy(() => import('./pages/chat')),
   image: lazy(() => import('./pages/image')),
   video: lazy(() => import('./pages/video')),
-  td: lazy(() => import('./pages/td')),
-  audio: lazy(() => import('./pages/audio')),
   sdks: lazy(() => import('./pages/sdks')),
   agents: lazy(() => import('./pages/agents')),
   auth: lazy(() => import('./pages/auth')),

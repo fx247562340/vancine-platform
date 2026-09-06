@@ -237,7 +237,7 @@ describe('Agent guide nested routes', () => {
       .querySelector('meta[name="description"]')
       ?.getAttribute('content')
     expect(description).toBe(
-      'Integrate Vancine text, image, video, audio and 3D models using one OpenAI-compatible API key.'
+      'Integrate Vancine text, image, and video models using one OpenAI-compatible API key.'
     )
 
     // No stale tool metadata survives anywhere in the managed head tags.

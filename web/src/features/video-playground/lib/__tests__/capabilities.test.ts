@@ -25,6 +25,7 @@ import {
   getVideoModelCapability,
   PLAYGROUND_VIDEO_MODEL_IDS,
   resolveVideoCapabilities,
+  resolveVideoModelCapability,
   type FieldEvidence,
   type VideoResolution,
   type VideoCapability,
@@ -416,3 +417,71 @@ function expectVerifiedInputAudio(
   expect(evidence.sourceUrl).toBe(expected.sourceUrl)
   expect(evidence.excerpt).toContain(expected.excerpt)
 }
+
+describe('resolveVideoModelCapability (dynamic model list)', () => {
+  it('returns the unchanged dedicated profile for a model that has one', () => {
+    for (const id of PLAYGROUND_VIDEO_MODEL_IDS) {
+      const resolved = resolveVideoModelCapability(id)
+      expect(resolved?.profile).toBe('dedicated')
+      expect(resolved).toBe(getVideoModelCapability(id))
+    }
+  })
+
+  it('returns a generic profile for both Wan3 video models', () => {
+    for (const id of ['wan3.0-video', 'wan3.0-video-prime']) {
+      const resolved = resolveVideoModelCapability(id)
+      expect(resolved?.profile).toBe('generic')
+      expect(resolved?.publicModelId).toBe(id)
+    }
+  })
+
+  it('returns a generic profile for any future video model id', () => {
+    const resolved = resolveVideoModelCapability('some-vendor-video-9.9')
+    expect(resolved?.profile).toBe('generic')
+    expect(resolved?.publicModelId).toBe('some-vendor-video-9.9')
+  })
+
+  it('preserves the exact server spelling and casing of the model id', () => {
+    expect(
+      resolveVideoModelCapability('Wan3.0-Video-Prime')?.publicModelId
+    ).toBe('Wan3.0-Video-Prime')
+  })
+
+  it('refuses to resolve an empty model id', () => {
+    expect(resolveVideoModelCapability('')).toBeUndefined()
+    expect(resolveVideoModelCapability('   ')).toBeUndefined()
+  })
+
+  it('fabricates no provider evidence and no output parameters for a generic model', () => {
+    const resolved = resolveVideoModelCapability('wan3.0-video')
+    expect(resolved?.profile).toBe('generic')
+    if (resolved?.profile !== 'generic') return
+
+    // A generic profile must not claim verified facts it does not have.
+    for (const fabricated of [
+      'officialModelId',
+      'officialSources',
+      'verifiedAt',
+      'evidence',
+      'outputFormat',
+      'outputFps',
+      'resolutions',
+      'resolutionRestrictions',
+      'duration',
+      'ratios',
+      'generateAudio',
+      'seed',
+      'watermark',
+      'returnLastFrame',
+      'referenceVideo',
+      'referenceAudio',
+    ]) {
+      expect(fabricated in resolved).toBe(false)
+    }
+
+    // What it does state is the honest, minimal generic contract.
+    expect(resolved.generationModes).toEqual(['textToVideo', 'firstFrame'])
+    expect(resolved.referenceImage.maxCount).toBe(1)
+    expect(resolved.requestBodyLimitBytes).toBeGreaterThan(0)
+  })
+})

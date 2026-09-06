@@ -62,7 +62,7 @@ export function AiMediaHero(props: AiMediaHeroProps): ReactElement {
         </h1>
         <p className='text-muted-foreground max-w-2xl text-base md:text-lg'>
           {t(
-            'Generate images, videos, speech, and 3D assets with one API key, one account, and documented endpoints.'
+            'Generate images and videos with one API key, one account, and documented endpoints.'
           )}
         </p>
         <div className='flex flex-wrap items-center justify-center gap-3'>

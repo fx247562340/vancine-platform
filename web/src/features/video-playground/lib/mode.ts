@@ -53,6 +53,24 @@ export const CREATION_MODES: ReadonlyArray<CreationMode> = [
   'videoExtend',
 ]
 
+/**
+ * The modes a video model without a dedicated capability profile may offer.
+ *
+ * A generic model has no first-party evidence for multi-image, reference-video,
+ * reference-audio, edit or extend behaviour, so the only substantiated intents
+ * are plain text-to-video and image-to-video from one reference image. Both are
+ * existing CreationMode values, so the shared label map still applies.
+ */
+export type GenericCreationMode = Extract<
+  CreationMode,
+  'textToVideo' | 'firstFrame'
+>
+
+export const GENERIC_CREATION_MODES: ReadonlyArray<GenericCreationMode> = [
+  'textToVideo',
+  'firstFrame',
+]
+
 export type ModeRequirement = {
   /** I18n key describing the resource requirements (shown in UI). */
   requirementKey: string

@@ -20,9 +20,17 @@ import { describe, expect, it } from 'vitest'
 
 import { getVideoModelCapabilityOrThrow } from '../capabilities'
 import {
+  buildGenericVideoGenerationRequest,
   buildVideoGenerationRequest,
+  VideoRequestError,
+  type GenericVideoRequestInput,
   type VideoRequestInput,
 } from '../request-serializer'
+import type {
+  VideoAudioResource,
+  VideoImageResource,
+  VideoVideoResource,
+} from '../resource-validation'
 
 function input(overrides: Partial<VideoRequestInput> = {}): VideoRequestInput {
   return {
@@ -453,3 +461,244 @@ function image(id: string) {
     byteSize: 1000,
   }
 }
+
+describe('buildGenericVideoGenerationRequest (models without a dedicated profile)', () => {
+  function genericImage(id: string, url: string): VideoImageResource {
+    return {
+      id,
+      kind: 'image',
+      source: { kind: 'url', url },
+      name: `${id}.png`,
+      mimeType: 'image/png',
+    }
+  }
+
+  function genericVideo(id: string): VideoVideoResource {
+    return {
+      id,
+      kind: 'video',
+      source: { kind: 'url', url: `https://cdn.example.com/${id}.mp4` },
+      name: `${id}.mp4`,
+      mimeType: 'video/mp4',
+    }
+  }
+
+  function genericAudio(id: string): VideoAudioResource {
+    return {
+      id,
+      kind: 'audio',
+      source: { kind: 'url', url: `https://cdn.example.com/${id}.wav` },
+      name: `${id}.wav`,
+      mimeType: 'audio/wav',
+    }
+  }
+
+  function genericInput(
+    overrides: Partial<GenericVideoRequestInput> = {}
+  ): GenericVideoRequestInput {
+    return {
+      model: 'wan3.0-video',
+      prompt: 'a cat walks on the moon',
+      mode: 'textToVideo',
+      images: [],
+      videos: [],
+      audios: [],
+      ...overrides,
+    }
+  }
+
+  it('sends exactly model and prompt for text-to-video', () => {
+    expect(buildGenericVideoGenerationRequest(genericInput())).toEqual({
+      model: 'wan3.0-video',
+      prompt: 'a cat walks on the moon',
+    })
+  })
+
+  it('trims the prompt before sending', () => {
+    const body = buildGenericVideoGenerationRequest(
+      genericInput({ prompt: '  a cat walks on the moon \n' })
+    )
+    expect(body.prompt).toBe('a cat walks on the moon')
+  })
+
+  it('adds only image for image-to-video with one HTTPS reference image', () => {
+    const body = buildGenericVideoGenerationRequest(
+      genericInput({
+        mode: 'firstFrame',
+        images: [genericImage('i1', 'https://cdn.example.com/first.png')],
+      })
+    )
+    expect(body).toEqual({
+      model: 'wan3.0-video',
+      prompt: 'a cat walks on the moon',
+      image: 'https://cdn.example.com/first.png',
+    })
+  })
+
+  it('never emits duration, ratio, resolution, size, metadata or a provider switch', () => {
+    const body = buildGenericVideoGenerationRequest(
+      genericInput({
+        mode: 'firstFrame',
+        images: [genericImage('i1', 'https://cdn.example.com/first.png')],
+      })
+    ) as Record<string, unknown>
+    expect(Object.keys(body).sort()).toEqual(['image', 'model', 'prompt'])
+  })
+
+  it('preserves the exact model id of each Wan3 model', () => {
+    expect(
+      buildGenericVideoGenerationRequest(
+        genericInput({ model: 'wan3.0-video-prime' })
+      ).model
+    ).toBe('wan3.0-video-prime')
+    expect(
+      buildGenericVideoGenerationRequest(
+        genericInput({ model: 'Wan3.0-Video' })
+      ).model
+    ).toBe('Wan3.0-Video')
+  })
+
+  it('rejects a second reference image instead of silently dropping it', () => {
+    expect(() =>
+      buildGenericVideoGenerationRequest(
+        genericInput({
+          mode: 'firstFrame',
+          images: [
+            genericImage('i1', 'https://cdn.example.com/a.png'),
+            genericImage('i2', 'https://cdn.example.com/b.png'),
+          ],
+        })
+      )
+    ).toThrow(VideoRequestError)
+    try {
+      buildGenericVideoGenerationRequest(
+        genericInput({
+          mode: 'firstFrame',
+          images: [
+            genericImage('i1', 'https://cdn.example.com/a.png'),
+            genericImage('i2', 'https://cdn.example.com/b.png'),
+          ],
+        })
+      )
+    } catch (error) {
+      expect((error as VideoRequestError).reasonKey).toBe(
+        'videoPlayground.preflight.genericAllowsOneReferenceImage'
+      )
+    }
+  })
+
+  it('rejects an attached reference video with a translatable reason', () => {
+    expect.assertions(2)
+    try {
+      buildGenericVideoGenerationRequest(
+        genericInput({ videos: [genericVideo('v1')] })
+      )
+    } catch (error) {
+      expect(error).toBeInstanceOf(VideoRequestError)
+      expect((error as VideoRequestError).reasonKey).toBe(
+        'videoPlayground.preflight.genericForbidsReferenceVideo'
+      )
+    }
+  })
+
+  it('rejects an attached reference audio with a translatable reason', () => {
+    expect.assertions(2)
+    try {
+      buildGenericVideoGenerationRequest(
+        genericInput({ audios: [genericAudio('a1')] })
+      )
+    } catch (error) {
+      expect(error).toBeInstanceOf(VideoRequestError)
+      expect((error as VideoRequestError).reasonKey).toBe(
+        'videoPlayground.preflight.genericForbidsReferenceAudio'
+      )
+    }
+  })
+
+  it('rejects an inlined base64 image', () => {
+    expect.assertions(2)
+    try {
+      buildGenericVideoGenerationRequest(
+        genericInput({
+          mode: 'firstFrame',
+          images: [
+            {
+              id: 'i1',
+              kind: 'image',
+              source: {
+                kind: 'base64',
+                dataUrl: 'data:image/png;base64,iVBORw0KGgo=',
+              },
+              name: 'inline.png',
+              mimeType: 'image/png',
+            },
+          ],
+        })
+      )
+    } catch (error) {
+      expect(error).toBeInstanceOf(VideoRequestError)
+      expect((error as VideoRequestError).reasonKey).toBe(
+        'videoPlayground.preflight.genericRequiresHttpsImageUrl'
+      )
+    }
+  })
+
+  it.each([
+    ['http://cdn.example.com/first.png', 'plain http'],
+    ['https://localhost/first.png', 'localhost'],
+    ['https://127.0.0.1/first.png', 'loopback address'],
+    ['https://192.168.1.20/first.png', 'private address'],
+    ['https://user:pass@cdn.example.com/first.png', 'URL credentials'],
+    ['asset://video-asset-id', 'asset library id'],
+    ['ftp://cdn.example.com/first.png', 'non-https protocol'],
+  ])('rejects the unsafe reference image URL %s (%s)', (url) => {
+    expect.assertions(1)
+    try {
+      buildGenericVideoGenerationRequest(
+        genericInput({ mode: 'firstFrame', images: [genericImage('i1', url)] })
+      )
+    } catch (error) {
+      expect((error as VideoRequestError).reasonKey).toBe(
+        'videoPlayground.preflight.unsafeUrl'
+      )
+    }
+  })
+
+  it('rejects a reference image whose URL does not look like an image', () => {
+    expect.assertions(1)
+    try {
+      buildGenericVideoGenerationRequest(
+        genericInput({
+          mode: 'firstFrame',
+          images: [genericImage('i1', 'https://cdn.example.com/payload.bin')],
+        })
+      )
+    } catch (error) {
+      expect((error as VideoRequestError).reasonKey).toBe(
+        'videoPlayground.preflight.unsupportedFormat'
+      )
+    }
+  })
+
+  it('rejects an empty prompt', () => {
+    expect.assertions(1)
+    try {
+      buildGenericVideoGenerationRequest(genericInput({ prompt: '   ' }))
+    } catch (error) {
+      expect((error as VideoRequestError).reasonKey).toBe('Prompt is required')
+    }
+  })
+
+  it('refuses to build a generic body for a model that has a dedicated profile', () => {
+    expect.assertions(1)
+    try {
+      buildGenericVideoGenerationRequest(
+        genericInput({ model: 'Doubao-Seedance-2.5' })
+      )
+    } catch (error) {
+      expect((error as VideoRequestError).reasonKey).toBe(
+        'videoPlayground.error.unknownVideoModel'
+      )
+    }
+  })
+})

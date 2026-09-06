@@ -143,80 +143,6 @@
       "failure": "失敗。data.fail_reason を確認"
     }
   },
-  "td": {
-    "title": "3D生成",
-    "desc": "3Dモデルは同じ非同期タスクのリクエスト形式を使用します。タスクを送信し、task_idで結果をポーリングします。",
-    "endpointSubmit": "3Dも動画非同期エンドポイントで送信",
-    "endpointPoll": "3Dタスク結果をポーリング",
-    "modelsTitle": "3Dモデル",
-    "paramsTitle": "パラメータ",
-    "examplesTitle": "リクエスト例",
-    "colImagesParam": "images パラメータ",
-    "withoutImage": "画像なし",
-    "withImage": "参照画像あり",
-    "imagesWarning": "Doubao-Seed3D-2.0 は images が必須です。image_data フィールドは使用しないでください。Vancineゲートウェイが images を上游の content[].image_url 形式に変換します。",
-    "params": {
-      "model": "3Dモデル名",
-      "prompt": "3Dアセットのテキスト説明（画像→3Dの場合は省略可能）",
-      "images": "画像→3D用の参照画像URL配列。Doubao-Seed3D-2.0 は最低1枚の画像が必要。公開URLまたはdata:image/...;base64,...に対応"
-    },
-    "asyncCallout": "3D生成は非同期タスクです。送信後、レスポンスからtask_idを保存し、GET /v1/video/generations/{task_id} をポーリングします。成功時、結果の metadata.url から3Dモデルファイルのリンクを取得します。"
-  },
-  "audio": {
-    "title": "オーディオ / TTS",
-    "desc": "TTSエンドポイントはOpenAI互換のリクエストボディを使用しますが、レスポンスはJSONではなくバイナリMP3音声です。",
-    "paramsTitle": "パラメータ",
-    "ttsExamplesTitle": "Doubao-tts 例（1.0音色）",
-    "tts2ExamplesTitle": "Doubao-tts2.0 例（2.0音色）",
-    "voicesTitle": "利用可能な音色",
-    "endpointWarning": "TTSは/v1/chat/completionsを使用しません。間違ったエンドポイントを使用すると、APIキーが存在しないような誤解を招く401が返されることがあります。通常の原因は間違ったパスです。",
-    "voiceSuffixCallout": "音色IDの接尾辞がモデルバージョンを決定します：uranus接尾辞はDoubao-tts2.0用、mars接尾辞はDoubao-tts用。音色とモデルの不一致はresource mismatchエラーを返します。",
-    "colVoiceId": "音色ID",
-    "colName": "名前",
-    "colModel": "モデル",
-    "colUseCase": "言語 / 用途",
-    "params": {
-      "model": "Doubao-tts または Doubao-tts2.0",
-      "input": "合成するテキスト",
-      "voice": "音色ID、下記の音色リストを参照",
-      "response_format": "出力音声フォーマット：mp3（デフォルト）、opus、aac、flac、wav、pcm",
-      "speed": "話速 0.25–4.0、デフォルト 1.0"
-    },
-    "voices": {
-      "vivi": "Vivi",
-      "nadia": "Nadia",
-      "jane": "Jane",
-      "rachel": "Rachel",
-      "david": "David",
-      "alex": "Alex",
-      "kevin": "Kevin",
-      "stokie": "Stokie",
-      "spanishFemale": "スペイン語 女性",
-      "frenchFemale": "フランス語 女性",
-      "germanFemale": "ドイツ語 女性",
-      "arabicFemale": "アラビア語 女性",
-      "cancan": "Cancan",
-      "wenhao": "Wenhao",
-      "amanda": "Amanda",
-      "emily": "Emily",
-      "adam": "Adam",
-      "jackson": "Jackson",
-      "sarah": "Sarah",
-      "smith": "Smith",
-      "anna": "Anna",
-      "dryw": "Dryw",
-      "zhFemaleGentle": "中国語 女性・優しい（多言語）",
-      "enFemale": "英語 女性",
-      "enMale": "英語 男性",
-      "enUkFemale": "英語（英国） 女性",
-      "espanol": "Español",
-      "francais": "Français",
-      "deutsch": "Deutsch",
-      "arabic": "العربية",
-      "zhFemaleBright": "中国語 女性・明るい",
-      "zhMaleSteady": "中国語 男性・落ち着いている"
-    }
-  },
   "auth": {
     "title": "認証",
     "desc": "すべての /v1 リクエストには、Authorization ヘッダーに API キーが必要です。",
@@ -227,15 +153,11 @@
     "desc": "Vancineは、OpenAI互換エンドポイントと非同期タスクエンドポイントを通じて、さまざまな生成機能を提供しています。",
     "rows": {
       "chat": "チャット",
-      "tts": "音声合成",
       "image": "画像生成",
       "video": "動画生成",
-      "td": "3Dアセット生成",
       "chatNote": "OpenAI互換のmessagesリクエストボディ",
-      "ttsNote": "バイナリMP3音声を返す",
       "imageNote": "画像URLを返す",
-      "videoNote": "非同期タスク、task_idでポーリング",
-      "tdNote": "promptとimagesに対応する非同期タスク"
+      "videoNote": "非同期タスク、task_idでポーリング"
     }
   },
   "models": {
@@ -245,8 +167,7 @@
     "textModelsTitle": "テキストモデル（{{count}}）",
     "multimodalTitle": "マルチモーダル生成モデル",
     "colType": "タイプ",
-    "colUsageNotes": "使用上の注意",
-    "returnsValidMp3": "有効なMP3を返す"
+    "colUsageNotes": "使用上の注意"
   },
   "errors": {
     "title": "エラー処理",
@@ -258,7 +179,7 @@
       "badRequest": "不正なリクエスト",
       "badRequestCause": "無効なサイズ、promptの欠落、モデル/エンドポイントの不一致",
       "unauthorized": "認証エラー",
-      "unauthorizedCause": "無効なキー、またはTTSをchatエンドポイントに送信するなどの間違ったエンドポイント",
+      "unauthorizedCause": "無効なキー、または間違ったエンドポイント",
       "notFound": "パスが見つかりません",
       "notFoundCause": "URLパスのスペルを確認してください",
       "noChannel": "利用可能なチャネルなし",
@@ -268,7 +189,7 @@
   "sdks": {
     "title": "SDKとツール",
     "desc": "VancineのテキストエンドポイントはOpenAI SDKと互換性があります。マルチメディアエンドポイントは任意のHTTPクライアントでも呼び出せます。",
-    "requestsDesc": "画像、動画、3D、TTSに適しています",
+    "requestsDesc": "画像と動画に適しています",
     "curlDesc": "組み込み済みまたはパッケージマネージャでインストール"
   },
   "agents": {
@@ -431,14 +352,6 @@
         "q": "APIキーが有効か確認するには？",
         "a": "GET {{baseUrl}}/modelsを呼び出します。HTTP 200でモデルリストが返されれば、キーは有効で現在のグループのアクセス権があります。"
       },
-      "video3dResults": {
-        "q": "動画と3Dの結果はどこで取得しますか？",
-        "a": "GET /v1/video/generations/{task_id}をポーリングします。成功したらdata.result_urlまたはdata.data.content.video_urlを読み取ります。"
-      },
-      "ttsNotJson": {
-        "q": "なぜTTSはJSONを返さないのですか？",
-        "a": "TTS呼び出しが成功すると、Content-Type audio/mpegでバイナリMP3音声が直接返されます。"
-      },
       "seedreamSize": {
         "q": "なぜ Seedream が画像サイズを拒否するのですか？",
         "a": "Doubao-Seedream-5.0-lite は最低 3,686,400 ピクセルが必要です（2048x2048 を推奨）。Doubao-Seedream-5.0-pro にこの制限はなく、最低 921,600 ピクセル（1024x1024 可）。使用するモデルに合わせて size を設定するか、1K/2K などの解像度ティアを渡してモデルに決定させてください。"
@@ -456,8 +369,6 @@
     "chat": "チャット補完",
     "image": "画像生成",
     "video": "動画生成",
-    "td": "3D生成",
-    "audio": "オーディオ / TTS",
     "sdks": "SDKとツール",
     "agents": "エージェント統合",
     "auth": "認証",

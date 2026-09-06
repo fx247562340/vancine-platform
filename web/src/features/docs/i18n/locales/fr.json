@@ -143,80 +143,6 @@
       "failure": "Échoué ; inspecter data.fail_reason"
     }
   },
-  "td": {
-    "title": "Génération d'actifs 3D",
-    "desc": "Les modèles 3D utilisent le même format de tâche asynchrone. Soumettez une tâche, puis interrogez avec task_id pour obtenir le résultat.",
-    "endpointSubmit": "La 3D soumet également via le point de terminaison vidéo asynchrone",
-    "endpointPoll": "Interroger les résultats de tâche 3D",
-    "modelsTitle": "Modèles 3D",
-    "paramsTitle": "Paramètres",
-    "examplesTitle": "Exemples de requêtes",
-    "colImagesParam": "Paramètre images",
-    "withoutImage": "Sans image",
-    "withImage": "Avec image de référence",
-    "imagesWarning": "Doubao-Seed3D-2.0 nécessite images. N'utilisez pas le champ image_data ; la passerelle Vancine convertit images au format content[].image_url requis par l'amont.",
-    "params": {
-      "model": "Nom du modèle 3D",
-      "prompt": "Description textuelle de l'actif 3D (facultatif pour image-à-3D)",
-      "images": "Tableau d'URL d'images de référence pour image-à-3D. Doubao-Seed3D-2.0 nécessite au moins une image. Prend en charge les URL publiques ou data:image/...;base64,..."
-    },
-    "asyncCallout": "La génération 3D est asynchrone. Après soumission, enregistrez le task_id de la réponse, puis interrogez GET /v1/video/generations/{task_id}. En cas de succès, lisez le lien du fichier modèle 3D depuis metadata.url dans le résultat."
-  },
-  "audio": {
-    "title": "Audio / TTS",
-    "desc": "Le point de terminaison TTS utilise un corps de requête compatible OpenAI, mais la réponse est un flux audio MP3 binaire, pas du JSON.",
-    "paramsTitle": "Paramètres",
-    "ttsExamplesTitle": "Exemple Doubao-tts (voix 1.0)",
-    "tts2ExamplesTitle": "Exemple Doubao-tts2.0 (voix 2.0)",
-    "voicesTitle": "Voix disponibles",
-    "endpointWarning": "TTS n'utilise pas /v1/chat/completions. L'utilisation d'un mauvais point de terminaison peut renvoyer un 401 trompeur ressemblant à une clé API manquante ; la cause habituelle est un mauvais chemin.",
-    "voiceSuffixCallout": "Le suffixe de l'ID de voix détermine la version du modèle : le suffixe uranus est pour Doubao-tts2.0, le suffixe mars pour Doubao-tts. Une incompatibilité voix/modèle renvoie une erreur resource mismatch.",
-    "colVoiceId": "ID de voix",
-    "colName": "Nom",
-    "colModel": "Modèle",
-    "colUseCase": "Langue / cas d'usage",
-    "params": {
-      "model": "Doubao-tts ou Doubao-tts2.0",
-      "input": "Texte à synthétiser",
-      "voice": "ID de voix, voir la liste ci-dessous",
-      "response_format": "Format audio de sortie : mp3 (par défaut), opus, aac, flac, wav, pcm",
-      "speed": "Vitesse de parole 0.25–4.0, par défaut 1.0"
-    },
-    "voices": {
-      "vivi": "Vivi",
-      "nadia": "Nadia",
-      "jane": "Jane",
-      "rachel": "Rachel",
-      "david": "David",
-      "alex": "Alex",
-      "kevin": "Kevin",
-      "stokie": "Stokie",
-      "spanishFemale": "Espagnol, féminin",
-      "frenchFemale": "Français, féminin",
-      "germanFemale": "Allemand, féminin",
-      "arabicFemale": "Arabe, féminin",
-      "cancan": "Cancan",
-      "wenhao": "Wenhao",
-      "amanda": "Amanda",
-      "emily": "Emily",
-      "adam": "Adam",
-      "jackson": "Jackson",
-      "sarah": "Sarah",
-      "smith": "Smith",
-      "anna": "Anna",
-      "dryw": "Dryw",
-      "zhFemaleGentle": "Chinois, féminin, doux (multilingue)",
-      "enFemale": "Anglais, féminin",
-      "enMale": "Anglais, masculin",
-      "enUkFemale": "Anglais (Royaume-Uni), féminin",
-      "espanol": "Español",
-      "francais": "Français",
-      "deutsch": "Deutsch",
-      "arabic": "العربية",
-      "zhFemaleBright": "Chinois, féminin, brillant",
-      "zhMaleSteady": "Chinois, masculin, stable"
-    }
-  },
   "auth": {
     "title": "Authentification",
     "desc": "Toutes les requêtes /v1 nécessitent une clé API dans l'en-tête Authorization.",
@@ -227,15 +153,11 @@
     "desc": "Vancine expose différentes capacités de génération via des points de terminaison compatibles OpenAI et des points de terminaison de tâches asynchrones.",
     "rows": {
       "chat": "Chat",
-      "tts": "Synthèse vocale",
       "image": "Génération d'images",
       "video": "Génération de vidéos",
-      "td": "Génération d'actifs 3D",
       "chatNote": "Corps de requête messages compatible OpenAI",
-      "ttsNote": "Renvoie un flux audio MP3 binaire",
       "imageNote": "Renvoie des URL d'images",
-      "videoNote": "Tâche asynchrone, interroger avec task_id",
-      "tdNote": "Tâche asynchrone avec support de prompt et images"
+      "videoNote": "Tâche asynchrone, interroger avec task_id"
     }
   },
   "models": {
@@ -245,8 +167,7 @@
     "textModelsTitle": "Modèles de texte ({{count}})",
     "multimodalTitle": "Modèles de génération multimodaux",
     "colType": "Type",
-    "colUsageNotes": "Notes d'utilisation",
-    "returnsValidMp3": "Renvoie un MP3 valide"
+    "colUsageNotes": "Notes d'utilisation"
   },
   "errors": {
     "title": "Gestion des erreurs",
@@ -258,7 +179,7 @@
       "badRequest": "Requête incorrecte",
       "badRequestCause": "Taille invalide, prompt manquant, ou inadéquation modèle/point de terminaison",
       "unauthorized": "Non autorisé",
-      "unauthorizedCause": "Clé invalide, ou mauvais point de terminaison comme envoyer du TTS au chat",
+      "unauthorizedCause": "Clé invalide, ou mauvais point de terminaison",
       "notFound": "Chemin introuvable",
       "notFoundCause": "Vérifiez que le chemin URL est correctement orthographié",
       "noChannel": "Aucun canal disponible",
@@ -268,7 +189,7 @@
   "sdks": {
     "title": "SDK et outils",
     "desc": "Les points de terminaison texte de Vancine sont compatibles avec le SDK OpenAI. Les points de terminaison multimédia peuvent également être appelés avec n'importe quel client HTTP.",
-    "requestsDesc": "Adapté pour image, vidéo, 3D et TTS",
+    "requestsDesc": "Adapté pour image et vidéo",
     "curlDesc": "Intégré ou installer via le gestionnaire de paquets"
   },
   "agents": {
@@ -431,14 +352,6 @@
         "q": "Comment vérifier une clé API ?",
         "a": "Appelez GET {{baseUrl}}/models. HTTP 200 avec une liste de modèles signifie que la clé est valide et a accès dans le groupe actuel."
       },
-      "video3dResults": {
-        "q": "Où lire les résultats vidéo et 3D ?",
-        "a": "Interrogez GET /v1/video/generations/{task_id}. En cas de succès, lisez data.result_url ou data.data.content.video_url."
-      },
-      "ttsNotJson": {
-        "q": "Pourquoi TTS ne renvoie-t-il pas du JSON ?",
-        "a": "Les appels TTS réussis renvoient directement un flux audio MP3 binaire avec Content-Type audio/mpeg."
-      },
       "seedreamSize": {
         "q": "Pourquoi Seedream rejette-t-il ma taille d’image ?",
         "a": "Doubao-Seedream-5.0-lite exige au moins 3 686 400 pixels (utilisez 2048x2048). Doubao-Seedream-5.0-pro n’a pas cette limite : minimum 921 600 pixels (1024x1024 fonctionne). Définissez size selon le modèle, ou passez un palier 1K/2K et laissez le modèle décider."
@@ -456,8 +369,6 @@
     "chat": "Complétions de chat",
     "image": "Génération d'images",
     "video": "Génération de vidéos",
-    "td": "Génération 3D",
-    "audio": "Audio / TTS",
     "sdks": "SDK et outils",
     "agents": "Intégration d'agents",
     "auth": "Authentification",

@@ -61,16 +61,16 @@ describe('useSubmission lifecycle (AbortController + epoch)', () => {
         })
     )
 
-    const { result, unmount } = renderHook(
-      () => useSubmission({ submit, batchSize: 3 }),
-      { wrapper }
-    )
+    const { result, unmount } = renderHook(() => useSubmission({ submit }), {
+      wrapper,
+    })
 
     await act(async () => {
       result.current.start({
         body: FAKE_BODY,
         modelId: 'Doubao-Seedance-2.0',
         promptPreview: 'a cat',
+        batchSize: 3,
       })
     })
 
@@ -97,8 +97,7 @@ describe('useSubmission lifecycle (AbortController + epoch)', () => {
     )
 
     const { result, rerender } = renderHook(
-      ({ keyId }: { keyId: number | null }) =>
-        useSubmission({ submit, batchSize: 1, keyId }),
+      ({ keyId }: { keyId: number | null }) => useSubmission({ submit, keyId }),
       { initialProps: { keyId: 2 as number | null }, wrapper }
     )
 
@@ -107,6 +106,7 @@ describe('useSubmission lifecycle (AbortController + epoch)', () => {
         body: FAKE_BODY,
         modelId: 'Doubao-Seedance-2.0',
         promptPreview: 'a cat',
+        batchSize: 1,
       })
     })
     expect(submit).toHaveBeenCalledTimes(1)
@@ -137,16 +137,14 @@ describe('useSubmission lifecycle (AbortController + epoch)', () => {
       })
     })
 
-    const { result } = renderHook(
-      () => useSubmission({ submit, batchSize: 4 }),
-      { wrapper }
-    )
+    const { result } = renderHook(() => useSubmission({ submit }), { wrapper })
 
     await act(async () => {
       result.current.start({
         body: FAKE_BODY,
         modelId: 'Doubao-Seedance-2.0',
         promptPreview: 'a cat',
+        batchSize: 4,
       })
     })
     expect(submit).toHaveBeenCalledTimes(1)
@@ -186,16 +184,14 @@ describe('useSubmission lifecycle (AbortController + epoch)', () => {
           })
       )
 
-    const { result } = renderHook(
-      () => useSubmission({ submit, batchSize: 1 }),
-      { wrapper }
-    )
+    const { result } = renderHook(() => useSubmission({ submit }), { wrapper })
 
     await act(async () => {
       result.current.start({
         body: FAKE_BODY,
         modelId: 'Doubao-Seedance-2.0',
         promptPreview: 'first',
+        batchSize: 1,
       })
     })
     expect(result.current.tasks[0]?.status).toBe('failed')
@@ -205,6 +201,7 @@ describe('useSubmission lifecycle (AbortController + epoch)', () => {
         body: FAKE_BODY,
         modelId: 'Doubao-Seedance-2.5',
         promptPreview: 'second',
+        batchSize: 1,
       })
     })
     await act(async () => {
@@ -228,16 +225,14 @@ describe('useSubmission lifecycle (AbortController + epoch)', () => {
       .mockResolvedValueOnce({ id: 'task-3' })
       .mockResolvedValueOnce({ id: 'task-4' })
 
-    const { result } = renderHook(
-      () => useSubmission({ submit, batchSize: 4 }),
-      { wrapper }
-    )
+    const { result } = renderHook(() => useSubmission({ submit }), { wrapper })
 
     await act(async () => {
       result.current.start({
         body: FAKE_BODY,
         modelId: 'Doubao-Seedance-2.0',
         promptPreview: 'a cat',
+        batchSize: 4,
       })
     })
 
@@ -258,16 +253,14 @@ describe('useSubmission lifecycle (AbortController + epoch)', () => {
         rawMessage: 'upstream 503 — service unavailable',
       })
     )
-    const { result } = renderHook(
-      () => useSubmission({ submit, batchSize: 1 }),
-      { wrapper }
-    )
+    const { result } = renderHook(() => useSubmission({ submit }), { wrapper })
 
     await act(async () => {
       result.current.start({
         body: FAKE_BODY,
         modelId: 'Doubao-Seedance-2.0',
         promptPreview: 'a cat',
+        batchSize: 1,
       })
     })
 
@@ -283,16 +276,16 @@ describe('useSubmission lifecycle (AbortController + epoch)', () => {
     vi.setSystemTime(new Date('2026-08-17T00:00:00.000Z'))
     try {
       const submit = vi.fn().mockResolvedValue({ id: 'task-snap' })
-      const { result } = renderHook(
-        () => useSubmission({ submit, batchSize: 1 }),
-        { wrapper }
-      )
+      const { result } = renderHook(() => useSubmission({ submit }), {
+        wrapper,
+      })
 
       await act(async () => {
         result.current.start({
           body: FAKE_BODY,
           modelId: 'Doubao-Seedance-2.0',
           promptPreview: 'original prompt',
+          batchSize: 1,
         })
       })
 
@@ -313,16 +306,14 @@ describe('useSubmission lifecycle (AbortController + epoch)', () => {
           /* hang */
         })
     )
-    const { result } = renderHook(
-      () => useSubmission({ submit, batchSize: 4 }),
-      { wrapper }
-    )
+    const { result } = renderHook(() => useSubmission({ submit }), { wrapper })
 
     await act(async () => {
       result.current.start({
         body: FAKE_BODY,
         modelId: 'Doubao-Seedance-2.0',
         promptPreview: 'a cat',
+        batchSize: 4,
       })
     })
     expect(submit).toHaveBeenCalledTimes(1)

@@ -32,6 +32,22 @@ export const VIDEO_TASK_POLL_INTERVAL_MS = 5000
 export const VIDEO_TASK_SUCCESS = 'SUCCESS'
 export const VIDEO_TASK_FAILURE = 'FAILURE'
 
+/**
+ * The model capability GET /v1/models advertises in `supported_endpoint_types`
+ * for a model that really serves the OpenAI video endpoint. It is the ONLY
+ * signal the video playground uses to decide whether a model belongs on the
+ * page: the server has already applied the API key's group, model restriction
+ * and billing configuration before it emits this list.
+ */
+export const OPENAI_VIDEO_ENDPOINT_TYPE = 'openai-video'
+
+/**
+ * Models with a dedicated, first-party-evidence-backed capability profile.
+ *
+ * This is a profile registry, NOT a page allow-list: the selector is driven by
+ * the `openai-video` capability the server returns, and a video model absent
+ * from this list still appears on the page with the generic fallback profile.
+ */
 export const PLAYGROUND_VIDEO_MODELS = [
   'Doubao-Seedance-2.0',
   'Doubao-Seedance-2.5',

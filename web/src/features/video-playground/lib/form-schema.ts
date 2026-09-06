@@ -19,7 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { z } from 'zod'
 
 import type { VideoRatio, VideoResolution } from './capabilities'
-import type { CreationMode } from './mode'
+import type { CreationMode, GenericCreationMode } from './mode'
 
 /**
  * The single source of truth for the composer form schema.
@@ -89,3 +89,29 @@ export const videoFormSchema = z.object({
 })
 
 export type VideoFormValues = z.infer<typeof videoFormSchema>
+
+/**
+ * The composer form schema for a video model without a dedicated capability
+ * profile.
+ *
+ * It carries only what the generic contract can actually send: the prompt, the
+ * text-to-video / image-to-video intent and the batch size. There is
+ * deliberately no duration, ratio, resolution, seed or provider switch field,
+ * so the form cannot hold a value the serializer would have to suppress.
+ */
+export const GENERIC_CREATION_MODE_VALUES = [
+  'textToVideo',
+  'firstFrame',
+] as const satisfies ReadonlyArray<GenericCreationMode>
+
+export const genericVideoFormSchema = z.object({
+  prompt: z.string().trim().min(1, 'Prompt is required'),
+  mode: z.enum(GENERIC_CREATION_MODE_VALUES),
+  batchCount: z
+    .number()
+    .int()
+    .min(1, 'At least 1 task per batch.')
+    .max(4, 'At most 4 tasks per batch.'),
+})
+
+export type GenericVideoFormValues = z.infer<typeof genericVideoFormSchema>

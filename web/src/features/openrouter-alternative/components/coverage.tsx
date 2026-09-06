@@ -35,10 +35,10 @@ export function Coverage(): ReactElement {
   // Split the catalog tokens into the text and media families; the
   // ordering is intentional and matches the canonical positioning copy.
   const textFamilies = OPENROUTER_ALTERNATIVE_MODEL_CATALOG_TOKENS.filter(
-    (token) => !['Image', 'Video', 'Audio', '3D'].includes(token)
+    (token) => !['Image', 'Video'].includes(token)
   )
   const mediaCapabilities = OPENROUTER_ALTERNATIVE_MODEL_CATALOG_TOKENS.filter(
-    (token) => ['Image', 'Video', 'Audio', '3D'].includes(token)
+    (token) => ['Image', 'Video'].includes(token)
   )
 
   return (
@@ -55,7 +55,7 @@ export function Coverage(): ReactElement {
         </h2>
         <p className='text-muted-foreground text-base leading-relaxed md:text-lg'>
           {t(
-            'Vancine exposes the latest flagship text models from Qwen, Kimi, GLM, MiniMax, and DeepSeek through one OpenAI-compatible API. The same key and balance also reach Chinese providers for Image, Video, Audio, and 3D generation, so a single integration covers your text and media workloads.'
+            'Vancine exposes the latest flagship text models from Qwen, Kimi, GLM, MiniMax, and DeepSeek through one OpenAI-compatible API. The same key and balance also reach Chinese providers for Image and Video generation, so a single integration covers your text and media workloads.'
           )}
         </p>
         <dl className='mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2'>
@@ -69,7 +69,7 @@ export function Coverage(): ReactElement {
           </div>
           <div>
             <dt className='text-muted-foreground text-xs font-semibold tracking-wide uppercase'>
-              {t('Image, Video, Audio, 3D')}
+              {t('Image, Video')}
             </dt>
             <dd className='mt-2 text-sm md:text-base'>
               {mediaCapabilities.join(', ')}

@@ -84,7 +84,7 @@ export const DEVELOPER_SOLUTIONS: readonly DeveloperSolution[] = [
     id: 'ai-media-api',
     route: '/ai-media-api',
     titleKey: 'AI Media API',
-    descriptionKey: 'Image, video, speech, and 3D generation through one API.',
+    descriptionKey: 'Image and video generation through one API.',
     resource: 'ai_media_api',
   },
 ]

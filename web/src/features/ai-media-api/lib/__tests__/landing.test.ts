@@ -120,13 +120,10 @@ describe('page metadata', () => {
 
   test('English Twitter pair is byte-identical to router/web_metadata.go', () => {
     const metadata = getAiMediaPageMetadata('en')
-    assert.equal(
-      metadata.twitterTitle,
-      'AI Media API: Image, Video, Speech & 3D'
-    )
+    assert.equal(metadata.twitterTitle, 'AI Media API: Image & Video')
     assert.equal(
       metadata.twitterDescription,
-      'Access Chinese AI media models through one API. Image, video, speech, and 3D generation with one API key and unified billing.'
+      'Access Chinese AI media models through one API. Image and video generation with one API key and unified billing.'
     )
   })
 
@@ -158,10 +155,10 @@ describe('API example contract', () => {
     AI_MEDIA_API_EXAMPLES.map((example) => [example.id, example])
   )
 
-  test('provides image, video, and speech examples', () => {
+  test('provides image and video examples', () => {
     assert.deepEqual(
       AI_MEDIA_API_EXAMPLES.map((example) => example.id),
-      ['image', 'video', 'speech']
+      ['image', 'video']
     )
   })
 
@@ -169,8 +166,7 @@ describe('API example contract', () => {
     assert.equal(AI_MEDIA_API_BASE_URL, 'https://vancine.com/v1')
     const image = exampleById.get('image')
     const video = exampleById.get('video')
-    const speech = exampleById.get('speech')
-    assert.ok(image && video && speech)
+    assert.ok(image && video)
     assert.ok(
       image.code.includes('POST https://vancine.com/v1/images/generations')
     )
@@ -182,17 +178,14 @@ describe('API example contract', () => {
         'GET https://vancine.com/v1/video/generations/$TASK_ID'
       )
     )
-    assert.ok(speech.code.includes('POST https://vancine.com/v1/audio/speech'))
   })
 
   test('model IDs mirror documented models', () => {
     const image = exampleById.get('image')
     const video = exampleById.get('video')
-    const speech = exampleById.get('speech')
-    assert.ok(image && video && speech)
+    assert.ok(image && video)
     assert.ok(image.code.includes('"qwen-image-2.0"'))
     assert.ok(video.code.includes('"Doubao-Seedance-2.5"'))
-    assert.ok(speech.code.includes('"Doubao-tts2.0"'))
     assert.ok(!video.code.includes('Doubao-Seedance-1.5-pro'))
     assert.ok(!video.code.includes('Doubao-Seedance-2.0-fast'))
     assert.ok(!video.code.includes('Doubao-Seedance-2.0'))
@@ -246,10 +239,10 @@ describe('page content contract', () => {
     }
   })
 
-  test('categories cover the four documented media Docs pages', () => {
+  test('categories cover the two documented media Docs pages', () => {
     assert.deepEqual(
       AI_MEDIA_CATEGORIES.map((category) => category.docsSlug).sort(),
-      ['audio', 'image', 'td', 'video']
+      ['image', 'video']
     )
   })
 

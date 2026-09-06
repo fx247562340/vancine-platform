@@ -392,6 +392,102 @@ func TestListModelsUsesAdvancedCustomEndpointTypesFromPricingCache(t *testing.T)
 	}, payload.Data[0].SupportedEndpointTypes)
 }
 
+// TestListModelsAdvertisesOpenAIVideoForTaskPluginModels proves the contract the
+// video playground depends on: GET /v1/models marks a model with openai-video
+// only when an enabled task plugin actually declares it for the openai_video
+// protocol, a chat model stays free of that capability, and the API key model
+// limit still filters the list.
+func TestListModelsAdvertisesOpenAIVideoForTaskPluginModels(t *testing.T) {
+	withSelfUseModeEnabled(t)
+	db := setupModelListControllerTestDB(t)
+
+	originalMemoryCacheEnabled := common.MemoryCacheEnabled
+	common.MemoryCacheEnabled = true
+	t.Cleanup(func() {
+		common.MemoryCacheEnabled = originalMemoryCacheEnabled
+		model.InvalidatePricingCache()
+	})
+
+	require.NoError(t, db.Create(&model.User{
+		Id:       1004,
+		Username: "video-endpoint-model-list-user",
+		Password: "password",
+		Group:    "default",
+		Status:   common.UserStatusEnabled,
+	}).Error)
+	require.NoError(t, db.Create(&[]model.Channel{
+		{
+			Id:     801,
+			Type:   constant.ChannelTypeAli,
+			Key:    "ali-video-key",
+			Status: common.ChannelStatusEnabled,
+			Name:   "ali-video-channel",
+			Group:  "default",
+			Models: "wan3.0-video,wan3.0-video-prime",
+		},
+		{
+			Id:     802,
+			Type:   constant.ChannelTypeOpenAI,
+			Key:    "openai-chat-key",
+			Status: common.ChannelStatusEnabled,
+			Name:   "openai-chat-channel",
+			Group:  "default",
+			Models: "gpt-4o",
+		},
+	}).Error)
+	require.NoError(t, db.Create(&[]model.Ability{
+		{Group: "default", Model: "wan3.0-video", ChannelId: 801, Enabled: true},
+		{Group: "default", Model: "wan3.0-video-prime", ChannelId: 801, Enabled: true},
+		{Group: "default", Model: "gpt-4o", ChannelId: 802, Enabled: true},
+	}).Error)
+
+	model.InitChannelCache()
+	model.GetPricing()
+
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest(http.MethodGet, "/v1/models", nil)
+	ctx.Set("id", 1004)
+	common.SetContextKey(ctx, constant.ContextKeyUserGroup, "default")
+	common.SetContextKey(ctx, constant.ContextKeyTokenModelLimitEnabled, true)
+	common.SetContextKey(ctx, constant.ContextKeyTokenModelLimit, map[string]bool{
+		"wan3.0-video": true,
+		"gpt-4o":       true,
+	})
+
+	ListModels(ctx, constant.ChannelTypeOpenAI)
+
+	payload := decodeListModelsPayload(t, recorder)
+	endpointsById := make(map[string][]constant.EndpointType, len(payload.Data))
+	for _, item := range payload.Data {
+		endpointsById[item.Id] = item.SupportedEndpointTypes
+	}
+
+	require.Len(t, endpointsById, 2, "the API key model limit still filters the list")
+	require.Contains(t, endpointsById, "wan3.0-video")
+	require.Contains(t, endpointsById, "gpt-4o")
+	require.NotContains(t, endpointsById, "wan3.0-video-prime")
+
+	assert.Equal(t, 1, countListModelsEndpointOccurrences(
+		endpointsById["wan3.0-video"], constant.EndpointTypeOpenAIVideo))
+	assert.Contains(t, endpointsById["wan3.0-video"], constant.EndpointTypeOpenAI)
+	assert.NotContains(t, endpointsById["gpt-4o"], constant.EndpointTypeOpenAIVideo)
+	assert.Equal(t, []constant.EndpointType{constant.EndpointTypeOpenAI}, endpointsById["gpt-4o"])
+}
+
+func countListModelsEndpointOccurrences(
+	endpoints []constant.EndpointType,
+	target constant.EndpointType,
+) int {
+	count := 0
+	for _, endpoint := range endpoints {
+		if endpoint == target {
+			count++
+		}
+	}
+	return count
+}
+
 func TestListModelsTokenLimitIncludesTieredBillingModel(t *testing.T) {
 	withSelfUseModeDisabled(t)
 	withTieredBillingConfig(t, map[string]string{

@@ -143,80 +143,6 @@
       "failure": "失败，查看 data.fail_reason"
     }
   },
-  "td": {
-    "title": "3D 资产生成",
-    "desc": "3D 模型使用统一的异步任务参数。提交任务后用 task_id 轮询结果。",
-    "endpointSubmit": "3D 也使用视频异步端点提交",
-    "endpointPoll": "轮询 3D 任务结果",
-    "modelsTitle": "3D 模型",
-    "paramsTitle": "参数",
-    "examplesTitle": "请求示例",
-    "colImagesParam": "images 参数",
-    "withoutImage": "不传图片",
-    "withImage": "传参考图片",
-    "imagesWarning": "Doubao-Seed3D-2.0 必须传 images。不要使用 image_data 字段；Vancine 网关会把 images 转成上游需要的 content[].image_url 格式。",
-    "params": {
-      "model": "3D 模型名称",
-      "prompt": "3D 资产文本描述（图生 3D 时可省略）",
-      "images": "参考图 URL 数组，用于图生 3D。Doubao-Seed3D-2.0 需至少一张参考图。支持公网 URL 或 data:image/...;base64,..."
-    },
-    "asyncCallout": "3D 生成是异步任务。提交后保存 task_id，轮询 GET /v1/video/generations/{task_id}，成功后从结果的 metadata.url 获取 3D 模型文件链接。"
-  },
-  "audio": {
-    "title": "音频 / TTS",
-    "desc": "TTS 接口使用 OpenAI 兼容请求体，但响应不是 JSON，而是 MP3 二进制音频流。",
-    "paramsTitle": "参数",
-    "ttsExamplesTitle": "Doubao-tts 示例（1.0 音色）",
-    "tts2ExamplesTitle": "Doubao-tts2.0 示例（2.0 音色）",
-    "voicesTitle": "可用音色",
-    "endpointWarning": "TTS 不走 /v1/chat/completions。端点选错时可能返回类似 API key 不存在的 401，这通常不是 key 失效，而是路径用错。",
-    "voiceSuffixCallout": "音色 ID 后缀决定所属模型版本：uranus 后缀用于 Doubao-tts2.0，mars 后缀用于 Doubao-tts。音色与模型版本不匹配会返回 resource mismatch 错误。",
-    "colVoiceId": "音色 ID",
-    "colName": "名称",
-    "colModel": "适用模型",
-    "colUseCase": "语种·场景",
-    "params": {
-      "model": "Doubao-tts 或 Doubao-tts2.0",
-      "input": "待合成文本",
-      "voice": "音色 ID，见下方音色列表",
-      "response_format": "输出音频格式：mp3（默认）、opus、aac、flac、wav、pcm",
-      "speed": "语速 0.25–4.0，默认 1.0"
-    },
-    "voices": {
-      "vivi": "Vivi",
-      "nadia": "Nadia",
-      "jane": "Jane",
-      "rachel": "Rachel",
-      "david": "David",
-      "alex": "Alex",
-      "kevin": "Kevin",
-      "stokie": "Stokie",
-      "spanishFemale": "西语 女",
-      "frenchFemale": "法语 女",
-      "germanFemale": "德语 女",
-      "arabicFemale": "阿语 女",
-      "cancan": "灿灿",
-      "wenhao": "文豪",
-      "amanda": "Amanda",
-      "emily": "Emily",
-      "adam": "Adam",
-      "jackson": "Jackson",
-      "sarah": "Sarah",
-      "smith": "Smith",
-      "anna": "Anna",
-      "dryw": "Dryw",
-      "zhFemaleGentle": "中文 女·温柔（多语种）",
-      "enFemale": "英语 女",
-      "enMale": "英语 男",
-      "enUkFemale": "英式英语 女",
-      "espanol": "Español",
-      "francais": "Français",
-      "deutsch": "Deutsch",
-      "arabic": "العربية",
-      "zhFemaleBright": "中文 女·明亮",
-      "zhMaleSteady": "中文 男·沉稳"
-    }
-  },
   "auth": {
     "title": "认证方式",
     "desc": "所有 /v1 请求都需要在 Authorization 请求头中携带 API Key。",
@@ -227,15 +153,11 @@
     "desc": "Vancine 将不同类型的生成能力整理成统一的 OpenAI 兼容接口和异步任务接口。",
     "rows": {
       "chat": "文本对话",
-      "tts": "语音合成 TTS",
       "image": "图片生成",
       "video": "视频生成",
-      "td": "3D 资产生成",
       "chatNote": "OpenAI 兼容 messages 请求体",
-      "ttsNote": "返回 MP3 二进制音频流",
       "imageNote": "返回图片 URL",
-      "videoNote": "异步任务，轮询 task_id",
-      "tdNote": "异步任务，支持 prompt 和 images"
+      "videoNote": "异步任务，轮询 task_id"
     }
   },
   "models": {
@@ -245,8 +167,7 @@
     "textModelsTitle": "文本模型（{{count}} 个）",
     "multimodalTitle": "多媒体模型",
     "colType": "类型",
-    "colUsageNotes": "调用说明",
-    "returnsValidMp3": "返回有效 MP3"
+    "colUsageNotes": "调用说明"
   },
   "errors": {
     "title": "错误处理",
@@ -258,7 +179,7 @@
       "badRequest": "参数错误",
       "badRequestCause": "size 不合规、缺少 prompt、模型和端点不匹配",
       "unauthorized": "未授权",
-      "unauthorizedCause": "key 失效，或 TTS 等模型误用了 chat 端点",
+      "unauthorizedCause": "key 失效，或用错了端点",
       "notFound": "路径不存在",
       "notFoundCause": "检查 URL 路径是否拼写正确",
       "noChannel": "无可用渠道",
@@ -268,7 +189,7 @@
   "sdks": {
     "title": "SDK 与工具",
     "desc": "Vancine 的文本接口兼容 OpenAI SDK。多媒体端点也可直接用 HTTP 客户端调用。",
-    "requestsDesc": "适合图片、视频、3D、TTS",
+    "requestsDesc": "适合图片与视频",
     "curlDesc": "系统自带或包管理器安装"
   },
   "agents": {
@@ -431,14 +352,6 @@
         "q": "如何确认 API Key 可用？",
         "a": "调用 GET {{baseUrl}}/models。HTTP 200 且返回模型列表，说明 key 有效并具备当前分组权限。"
       },
-      "video3dResults": {
-        "q": "视频和 3D 结果在哪里取？",
-        "a": "轮询 GET /v1/video/generations/{task_id}，成功后读取 data.result_url，或读取 data.data.content.video_url。"
-      },
-      "ttsNotJson": {
-        "q": "TTS 为什么返回的不是 JSON？",
-        "a": "TTS 成功时直接返回 MP3 二进制音频流，Content-Type 为 audio/mpeg。"
-      },
       "seedreamSize": {
         "q": "为什么 Seedream 图片尺寸报错？",
         "a": "Doubao-Seedream-5.0-lite 要求最小 3,686,400 像素（建议 2048x2048）；Doubao-Seedream-5.0-pro 无此限制，最小 921,600 像素（1024x1024 可用）。请按所用模型设置 size，或直接用 1K/2K 等分辨率档位让模型自行决定。"
@@ -456,8 +369,6 @@
     "chat": "对话补全",
     "image": "图片生成",
     "video": "视频生成",
-    "td": "3D 生成",
-    "audio": "音频 / TTS",
     "sdks": "SDK 与工具",
     "agents": "Agent 接入",
     "auth": "认证方式",

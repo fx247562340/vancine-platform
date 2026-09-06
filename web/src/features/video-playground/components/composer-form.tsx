@@ -42,7 +42,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { CanvasComposerShell } from '@/features/media-playground/components/canvas-composer-shell'
 import { QuickParameterPill } from '@/features/media-playground/components/quick-parameter-pill'
 
-import { submitVideoGenerationWithApiKey } from '../api'
+import type { UseSubmissionResult } from '../hooks/use-submission'
 import { useSubmitVideoRequest } from '../hooks/use-submit-video-request'
 import {
   resolveVideoCapabilities,
@@ -52,15 +52,14 @@ import {
 } from '../lib/capabilities'
 import { CREATION_MODE_LABELS } from '../lib/composition-labels'
 import { findModeEntry, supportedModesFor } from '../lib/contract'
-import { VideoPlaygroundError } from '../lib/errors'
 import type { VideoFormValues } from '../lib/form-schema'
 import type { CreationMode } from '../lib/mode'
 import { countActiveParameters } from '../lib/parameter-state'
 import type { ResourceStore as UseResourceStore } from '../lib/use-resource-store'
+import type { VideoSubmitPayload } from '../types'
 import { BatchCountControl } from './batch-count-control'
 import { VideoParametersPopover } from './parameters-popover'
 import { ReferenceAssetsRow } from './reference-assets-row'
-import { TaskGallery } from './task-gallery'
 
 type ComposerFormProps = {
   form: UseFormReturn<VideoFormValues>
@@ -70,12 +69,15 @@ type ComposerFormProps = {
   resourceStore: UseResourceStore
   onPreflightError: (reasonKey: string) => void
   canSubmit: boolean
-  keyId: number | null
   modelId: string
-  language: string
   batchCount: number
   preflightError: string | null
-  loadSecret: (id: number, signal?: AbortSignal) => Promise<string>
+  /**
+   * The page-owned submission pipeline. Holding it here rather than in the page
+   * would drop every queued task the moment the user switches to a model on the
+   * generic profile and this composer unmounts.
+   */
+  submission: UseSubmissionResult<VideoSubmitPayload>
   clearSecret: () => void
   /** Model selector rendered into the composer toolbar (owned by the page). */
   modelSelector: ReactNode
@@ -86,13 +88,15 @@ type ComposerFormProps = {
 /**
  * Canvas Composer for video: toolbar (model / mode / connection), a
  * prompt-first body with the reference tray, and a quick-control
- * footer. The form, resource adders, parameters popover, and the
- * preflight + useSubmission pipeline all live here. The page
- * (index.tsx) only orchestrates connection / model loading.
+ * footer. The form, resource adders, parameters popover and the
+ * preflight + serialization pipeline all live here. The page
+ * (index.tsx) owns the connection, the model loading, the shared
+ * submission queue and the single TaskGallery, so the queue outlives a
+ * switch to the generic composer.
  *
- * The full API key is held in a local closure inside the submit
- * callback of `useSubmitVideoRequest`; it never enters React
- * state, the DOM, storage, React Query, or any error message.
+ * The full API key is held by the page-owned submission pipeline; it
+ * never enters React state, the DOM, storage, React Query, or any
+ * error message.
  */
 export function ComposerForm(props: ComposerFormProps) {
   const { t } = useTranslation()
@@ -104,12 +108,10 @@ export function ComposerForm(props: ComposerFormProps) {
     resourceStore,
     onPreflightError,
     canSubmit,
-    keyId,
     modelId,
-    language,
     batchCount,
     preflightError,
-    loadSecret,
+    submission,
     clearSecret,
   } = props
 
@@ -214,31 +216,8 @@ export function ComposerForm(props: ComposerFormProps) {
   const submitter = useSubmitVideoRequest({
     capability,
     modelId,
-    keyId,
     batchSize: batchCount,
-    submit: async (body, signal) => {
-      if (keyId == null) {
-        throw new VideoPlaygroundError({
-          kind: 'system',
-          errorKey: 'No API key',
-        })
-      }
-      const rawKey = await loadSecret(keyId, signal)
-      const response = await submitVideoGenerationWithApiKey(
-        rawKey,
-        body as never,
-        language,
-        signal
-      )
-      const id = response.task_id ?? response.id ?? null
-      if (!id) {
-        throw new VideoPlaygroundError({
-          kind: 'system',
-          errorKey: 'Video generation failed',
-        })
-      }
-      return { task_id: id, id }
-    },
+    submission,
   })
 
   const handleCancelPending = () => {
@@ -495,8 +474,6 @@ export function ComposerForm(props: ComposerFormProps) {
           </div>
         </CanvasComposerShell>
       </form>
-
-      <TaskGallery tasks={submitter.tasks} />
     </Form>
   )
 }

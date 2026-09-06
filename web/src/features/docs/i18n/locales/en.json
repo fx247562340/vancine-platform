@@ -143,80 +143,6 @@
       "failure": "Failed; inspect data.fail_reason"
     }
   },
-  "td": {
-    "title": "3D Asset Generation",
-    "desc": "3D models use the same async task request shape. Submit a task, then poll with task_id for the result.",
-    "endpointSubmit": "3D also submits through the video async endpoint",
-    "endpointPoll": "Poll 3D task results",
-    "modelsTitle": "3D models",
-    "paramsTitle": "Parameters",
-    "examplesTitle": "Request examples",
-    "colImagesParam": "images parameter",
-    "withoutImage": "Without image",
-    "withImage": "With reference image",
-    "imagesWarning": "Doubao-Seed3D-2.0 requires images. Do not use an image_data field; the Vancine gateway converts images into the upstream content[].image_url format.",
-    "params": {
-      "model": "3D model name",
-      "prompt": "Text description of the 3D asset (optional for image-to-3D)",
-      "images": "Reference image URL array for image-to-3D. Doubao-Seed3D-2.0 requires at least one image. Supports public URLs or data:image/...;base64,..."
-    },
-    "asyncCallout": "3D generation is asynchronous. After submitting, save the task_id from the response, then poll GET /v1/video/generations/{task_id}. On success, read the 3D model file link from metadata.url in the result."
-  },
-  "audio": {
-    "title": "Audio / TTS",
-    "desc": "The TTS endpoint uses an OpenAI-compatible request body, but the response is binary MP3 audio, not JSON.",
-    "paramsTitle": "Parameters",
-    "ttsExamplesTitle": "Doubao-tts example (1.0 voices)",
-    "tts2ExamplesTitle": "Doubao-tts2.0 example (2.0 voices)",
-    "voicesTitle": "Available voices",
-    "endpointWarning": "TTS does not use /v1/chat/completions. Using the wrong endpoint can return a misleading 401 that looks like a missing API key; the usual cause is the wrong path.",
-    "voiceSuffixCallout": "The voice ID suffix determines the model version: uranus suffix is for Doubao-tts2.0, while mars suffix is for Doubao-tts. A voice/model mismatch returns a resource mismatch error.",
-    "colVoiceId": "Voice ID",
-    "colName": "Name",
-    "colModel": "Model",
-    "colUseCase": "Language / use case",
-    "params": {
-      "model": "Doubao-tts or Doubao-tts2.0",
-      "input": "Text to synthesize",
-      "voice": "Voice ID, see voice list below",
-      "response_format": "Output audio format: mp3 (default), opus, aac, flac, wav, pcm",
-      "speed": "Speech speed 0.25–4.0, default 1.0"
-    },
-    "voices": {
-      "vivi": "Vivi",
-      "nadia": "Nadia",
-      "jane": "Jane",
-      "rachel": "Rachel",
-      "david": "David",
-      "alex": "Alex",
-      "kevin": "Kevin",
-      "stokie": "Stokie",
-      "spanishFemale": "Spanish, female",
-      "frenchFemale": "French, female",
-      "germanFemale": "German, female",
-      "arabicFemale": "Arabic, female",
-      "cancan": "Cancan",
-      "wenhao": "Wenhao",
-      "amanda": "Amanda",
-      "emily": "Emily",
-      "adam": "Adam",
-      "jackson": "Jackson",
-      "sarah": "Sarah",
-      "smith": "Smith",
-      "anna": "Anna",
-      "dryw": "Dryw",
-      "zhFemaleGentle": "Chinese, female, gentle (multilingual)",
-      "enFemale": "English, female",
-      "enMale": "English, male",
-      "enUkFemale": "English (UK), female",
-      "espanol": "Español",
-      "francais": "Français",
-      "deutsch": "Deutsch",
-      "arabic": "العربية",
-      "zhFemaleBright": "Chinese, female, bright",
-      "zhMaleSteady": "Chinese, male, steady"
-    }
-  },
   "auth": {
     "title": "Authentication",
     "desc": "All /v1 requests require an API key in the Authorization header.",
@@ -227,15 +153,11 @@
     "desc": "Vancine exposes different generation capabilities through OpenAI-compatible endpoints and async task endpoints.",
     "rows": {
       "chat": "Chat",
-      "tts": "Text to speech",
       "image": "Image generation",
       "video": "Video generation",
-      "td": "3D asset generation",
       "chatNote": "OpenAI-compatible messages request body",
-      "ttsNote": "Returns binary MP3 audio",
       "imageNote": "Returns image URLs",
-      "videoNote": "Async task, poll with task_id",
-      "tdNote": "Async task with prompt and images support"
+      "videoNote": "Async task, poll with task_id"
     }
   },
   "models": {
@@ -245,8 +167,7 @@
     "textModelsTitle": "Text models ({{count}})",
     "multimodalTitle": "Multimodal generation models",
     "colType": "Type",
-    "colUsageNotes": "Usage notes",
-    "returnsValidMp3": "Returns valid MP3"
+    "colUsageNotes": "Usage notes"
   },
   "errors": {
     "title": "Error Handling",
@@ -258,7 +179,7 @@
       "badRequest": "Bad request",
       "badRequestCause": "Invalid size, missing prompt, or model/endpoint mismatch",
       "unauthorized": "Unauthorized",
-      "unauthorizedCause": "Invalid key, or wrong endpoint such as sending TTS to chat",
+      "unauthorizedCause": "Invalid key, or wrong endpoint",
       "notFound": "Path not found",
       "notFoundCause": "Check that the URL path is spelled correctly",
       "noChannel": "No available channel",
@@ -268,7 +189,7 @@
   "sdks": {
     "title": "SDKs & Tools",
     "desc": "Vancine text endpoints are compatible with the OpenAI SDK. Multimedia endpoints can also be called with any HTTP client.",
-    "requestsDesc": "Good for image, video, 3D, and TTS",
+    "requestsDesc": "Good for image and video",
     "curlDesc": "Built in or install with package manager"
   },
   "agents": {
@@ -431,14 +352,6 @@
         "q": "How do I verify an API key?",
         "a": "Call GET {{baseUrl}}/models. HTTP 200 with a model list means the key is valid and has access in the current group."
       },
-      "video3dResults": {
-        "q": "Where do I read video and 3D results?",
-        "a": "Poll GET /v1/video/generations/{task_id}. On success, read data.result_url or data.data.content.video_url."
-      },
-      "ttsNotJson": {
-        "q": "Why does TTS not return JSON?",
-        "a": "Successful TTS calls return binary MP3 audio directly with Content-Type audio/mpeg."
-      },
       "seedreamSize": {
         "q": "Why does Seedream reject my image size?",
         "a": "Doubao-Seedream-5.0-lite requires at least 3,686,400 pixels (use 2048x2048). Doubao-Seedream-5.0-pro has no such limit: minimum 921,600 pixels (1024x1024 works). Set size for the model you use, or pass a 1K/2K tier and let the model decide."
@@ -456,8 +369,6 @@
     "chat": "Chat Completions",
     "image": "Image Generation",
     "video": "Video Generation",
-    "td": "3D Generation",
-    "audio": "Audio / TTS",
     "sdks": "SDKs & Tools",
     "agents": "Agent Integration",
     "auth": "Authentication",

@@ -126,14 +126,14 @@ describe('Agent Integration Center metadata contract', () => {
     assert.deepEqual(getDocsAgentNotFoundPageMetadata(), {
       title: 'Vancine API Documentation | OpenAI-Compatible Chinese Models',
       description:
-        'Integrate Vancine text, image, video, audio and 3D models using one OpenAI-compatible API key.',
+        'Integrate Vancine text, image, and video models using one OpenAI-compatible API key.',
       ogTitle: 'Vancine API Documentation | OpenAI-Compatible Chinese Models',
       ogDescription:
-        'Integrate Vancine text, image, video, audio and 3D models using one OpenAI-compatible API key.',
+        'Integrate Vancine text, image, and video models using one OpenAI-compatible API key.',
       twitterTitle:
         'Vancine API Documentation | OpenAI-Compatible Chinese Models',
       twitterDescription:
-        'Integrate Vancine text, image, video, audio and 3D models using one OpenAI-compatible API key.',
+        'Integrate Vancine text, image, and video models using one OpenAI-compatible API key.',
       ogUrl: 'https://vancine.com/docs',
       canonical: 'https://vancine.com/docs',
     })

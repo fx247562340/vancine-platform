@@ -30,12 +30,28 @@ import { cn } from '@/lib/utils'
 
 import type { VideoResource } from '../lib/resource-validation'
 
+/**
+ * Whether the composer's prompt understands `@Image1`-style reference tokens.
+ *
+ * `prompt-token` is the dedicated Seedance wire format: the prompt cites each
+ * attached asset by token, so a chip's label is a button that inserts one.
+ * `inert` is the generic contract: the reference image travels in the top-level
+ * `image` field and no token syntax exists, so a chip shows no token and offers
+ * no insert action at all — not a disabled button, and not a no-op one.
+ *
+ * The union is required rather than defaulted so every tray states which
+ * contract its composer actually sends.
+ */
+export type ChipReferenceMode =
+  | { kind: 'prompt-token'; onInsertReference: (label: string) => void }
+  | { kind: 'inert' }
+
 type ResourceChipListProps = {
   images: ReadonlyArray<VideoResource>
   videos: ReadonlyArray<VideoResource>
   audios: ReadonlyArray<VideoResource>
   onRemove: (id: string, kind: VideoResource['kind']) => void
-  onInsertReference: (label: string) => void
+  referenceMode: ChipReferenceMode
 }
 
 export function ResourceChipList({
@@ -43,13 +59,23 @@ export function ResourceChipList({
   videos,
   audios,
   onRemove,
-  onInsertReference,
+  referenceMode,
 }: ResourceChipListProps) {
   const { t } = useTranslation()
 
   if (images.length === 0 && videos.length === 0 && audios.length === 0) {
     return null
   }
+
+  // One closure per chip kind keeps the token and its insert action together, so
+  // an inert tray cannot produce a label that looks actionable.
+  const referenceFor = (token: string) =>
+    referenceMode.kind === 'prompt-token'
+      ? {
+          label: token,
+          onInsert: () => referenceMode.onInsertReference(token),
+        }
+      : undefined
 
   let imageIndex = 0
   let videoIndex = 0
@@ -66,14 +92,11 @@ export function ResourceChipList({
           <ResourceChip
             key={resource.id}
             icon={Image01Icon}
-            label={t('@Image{{n}}', { n: imageIndex })}
+            reference={referenceFor(t('@Image{{n}}', { n: imageIndex }))}
             name={resource.name}
             durationUnknown={false}
             sizeUnknown={resource.byteSize === undefined}
             onRemove={() => onRemove(resource.id, 'image')}
-            onInsert={() =>
-              onInsertReference(t('@Image{{n}}', { n: imageIndex }))
-            }
           />
         )
       })}
@@ -83,7 +106,7 @@ export function ResourceChipList({
           <ResourceChip
             key={resource.id}
             icon={Video01Icon}
-            label={t('@Video{{n}}', { n: videoIndex })}
+            reference={referenceFor(t('@Video{{n}}', { n: videoIndex }))}
             name={resource.name}
             durationUnknown={
               resource.kind === 'video' &&
@@ -91,9 +114,6 @@ export function ResourceChipList({
             }
             sizeUnknown={resource.byteSize === undefined}
             onRemove={() => onRemove(resource.id, 'video')}
-            onInsert={() =>
-              onInsertReference(t('@Video{{n}}', { n: videoIndex }))
-            }
           />
         )
       })}
@@ -103,7 +123,7 @@ export function ResourceChipList({
           <ResourceChip
             key={resource.id}
             icon={MusicNote01Icon}
-            label={t('@Audio{{n}}', { n: audioIndex })}
+            reference={referenceFor(t('@Audio{{n}}', { n: audioIndex }))}
             name={resource.name}
             durationUnknown={
               resource.kind === 'audio' &&
@@ -111,9 +131,6 @@ export function ResourceChipList({
             }
             sizeUnknown={resource.byteSize === undefined}
             onRemove={() => onRemove(resource.id, 'audio')}
-            onInsert={() =>
-              onInsertReference(t('@Audio{{n}}', { n: audioIndex }))
-            }
           />
         )
       })}
@@ -123,22 +140,25 @@ export function ResourceChipList({
 
 type ResourceChipProps = {
   icon: typeof Image01Icon
-  label: string
+  /**
+   * The prompt reference token and its insert action, present only when the
+   * composer's prompt supports reference tokens. Absent as a whole: there is no
+   * way to render a token without an action behind it.
+   */
+  reference?: { label: string; onInsert: () => void }
   name: string
   durationUnknown: boolean
   sizeUnknown: boolean
   onRemove: () => void
-  onInsert: () => void
 }
 
 function ResourceChip({
   icon,
-  label,
+  reference,
   name,
   durationUnknown,
   sizeUnknown,
   onRemove,
-  onInsert,
 }: ResourceChipProps) {
   const { t } = useTranslation()
   return (
@@ -148,16 +168,25 @@ function ResourceChip({
       )}
     >
       <HugeiconsIcon icon={icon} aria-hidden data-icon='chip' />
-      <button
-        type='button'
-        className='hover:text-foreground text-foreground font-mono underline-offset-2 hover:underline focus-visible:underline focus-visible:outline-none'
-        onClick={onInsert}
-        aria-label={t('Insert {{label}} into prompt', { label: label })}
-      >
-        {label}
-      </button>
+      {reference ? (
+        <button
+          type='button'
+          className='hover:text-foreground text-foreground font-mono underline-offset-2 hover:underline focus-visible:underline focus-visible:outline-none'
+          onClick={reference.onInsert}
+          aria-label={t('Insert {{label}} into prompt', {
+            label: reference.label,
+          })}
+        >
+          {reference.label}
+        </button>
+      ) : null}
       <span
-        className='text-muted-foreground hidden max-w-[8rem] truncate sm:inline'
+        className={cn(
+          'text-muted-foreground max-w-[8rem] truncate',
+          // With no token to identify it, the name is the chip's only text, so it
+          // stays visible at every breakpoint instead of hiding on mobile.
+          reference ? 'hidden sm:inline' : 'inline'
+        )}
         title={name}
       >
         {name}
@@ -177,7 +206,7 @@ function ResourceChip({
         size='icon-sm'
         variant='ghost'
         onClick={onRemove}
-        aria-label={t('Remove {{name}}', { name: label })}
+        aria-label={t('Remove {{name}}', { name: reference?.label ?? name })}
       >
         <HugeiconsIcon icon={Cancel01Icon} aria-hidden data-icon='inline-end' />
       </Button>

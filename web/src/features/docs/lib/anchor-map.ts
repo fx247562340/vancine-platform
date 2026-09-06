@@ -25,9 +25,7 @@ import type { DocsSlug } from '../types.ts'
 const ANCHOR_TO_SLUG: Record<string, DocsSlug> = {
   image: 'image',
   video: 'video',
-  audio: 'audio',
   chat: 'chat',
-  td: 'td',
   models: 'models',
   quickstart: 'quickstart',
   migrate: 'migrate',

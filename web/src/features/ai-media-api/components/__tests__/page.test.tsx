@@ -254,7 +254,7 @@ describe('CTA destinations and UTM safety', () => {
 })
 
 describe('API example tabs', () => {
-  it('switches between Image, Video, and Speech examples', async () => {
+  it('switches between Image and Video examples', async () => {
     const user = userEvent.setup()
     renderPage()
 
@@ -264,11 +264,7 @@ describe('API example tabs', () => {
     })
 
     const tabs = screen.getAllByRole('tab')
-    expect(tabs.map((tab) => tab.textContent)).toEqual([
-      'Image',
-      'Video',
-      'Speech',
-    ])
+    expect(tabs.map((tab) => tab.textContent)).toEqual(['Image', 'Video'])
     expect(tabs[0]).toHaveAttribute('aria-selected', 'true')
 
     expect(
@@ -283,9 +279,6 @@ describe('API example tabs', () => {
     expect(
       await screen.findByText(/v1\/video\/generations/)
     ).toBeInTheDocument()
-
-    await user.click(screen.getByRole('tab', { name: 'Speech' }))
-    expect(await screen.findByText(/v1\/audio\/speech/)).toBeInTheDocument()
   })
 
   it('moves tab selection with the keyboard and exposes ARIA state', async () => {
@@ -372,9 +365,7 @@ describe('page metadata lifecycle', () => {
     const result = renderPage()
     await screen.findByRole('heading', { level: 1 })
 
-    expect(document.title).toBe(
-      'AI Media API: Image, Video, Speech & 3D | Vancine'
-    )
+    expect(document.title).toBe('AI Media API: Image & Video | Vancine')
     expect(
       document.head.querySelector('link[rel="canonical"]')?.getAttribute('href')
     ).toBe('https://vancine.com/ai-media-api')

@@ -18,10 +18,8 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import {
   ChartLineData01Icon,
-  CubeIcon,
   Image01Icon,
   Video01Icon,
-  VolumeHighIcon,
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react'
 import { Link } from '@tanstack/react-router'
@@ -43,8 +41,6 @@ import { AI_MEDIA_CATEGORIES, AI_MEDIA_RESOURCE_EVENT } from '../lib/landing'
 const CATEGORY_ICONS: Record<string, IconSvgElement> = {
   'Image generation': Image01Icon,
   'Video generation': Video01Icon,
-  'Text to Speech': VolumeHighIcon,
-  '3D generation': CubeIcon,
 }
 
 /** Media category cards; each links to its same-origin Docs page. */

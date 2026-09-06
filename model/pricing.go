@@ -10,6 +10,7 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
+	taskdto "github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/pkg/jsplugin"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/setting/billing_setting"
@@ -239,6 +240,219 @@ func appendPricingEndpoint(endpoints []string, endpoint string) []string {
 	return append(endpoints, endpoint)
 }
 
+// taskPluginVideoRoute is one enabled task plugin that serves models over the
+// openai_video host protocol, paired with the channel-identity filter the task
+// distributor pins when it routes to that plugin.
+//
+// Keeping the plugin key beside the declared models is what makes the video
+// endpoint mean "routable": two plugins may declare the same model name, and a
+// channel that cannot be taken over by the declaring plugin must not confer the
+// capability just because the name matches.
+type taskPluginVideoRoute struct {
+	pluginKey   string
+	videoModels map[string]struct{}
+	// identity is the single FilterTaskPluginIdentity the distributor applies
+	// for this plugin. A task-plugin channel matches only by its bound key;
+	// every other channel matches only when its type is one the plugin declares.
+	identity []taskdto.ChannelFilter
+}
+
+// taskPluginVideoRoutes lists the video routes of the current generation. A
+// protocol claim may narrow itself with its own `models` list; an empty claim
+// binds every model the plugin declares. A disabled plugin system, or a
+// generation that carries no openai_video claim, yields nothing, so no model is
+// advertised as video-capable.
+func taskPluginVideoRoutes(generation *jsplugin.RoutingGeneration) []taskPluginVideoRoute {
+	plugins := generation.Plugins()
+	if len(plugins) == 0 {
+		return nil
+	}
+	routes := make([]taskPluginVideoRoute, 0, len(plugins))
+	for _, plugin := range plugins {
+		if plugin == nil || plugin.Meta.Key == "" {
+			continue
+		}
+		videoModels := make(map[string]struct{})
+		for _, claim := range plugin.Meta.Protocols {
+			if claim.Name != jsplugin.ProtocolOpenAIVideo {
+				continue
+			}
+			declared := claim.Models
+			if len(declared) == 0 {
+				declared = plugin.Meta.Models
+			}
+			for _, name := range declared {
+				if strings.TrimSpace(name) != "" {
+					videoModels[name] = struct{}{}
+				}
+			}
+		}
+		if len(videoModels) == 0 {
+			continue
+		}
+		// The same narrowing pinnedTaskPluginChannelTypes applies: a task-plugin
+		// channel is matched by its bound key, never by channel type.
+		channelTypes := make([]int, 0, len(plugin.Meta.ChannelTypes))
+		for _, channelType := range plugin.Meta.ChannelTypes {
+			if channelType == 0 || channelType == constant.ChannelTypeTaskPlugin {
+				continue
+			}
+			channelTypes = append(channelTypes, channelType)
+		}
+		routes = append(routes, taskPluginVideoRoute{
+			pluginKey:   plugin.Meta.Key,
+			videoModels: videoModels,
+			identity: []taskdto.ChannelFilter{{
+				Kind:                   taskdto.FilterTaskPluginIdentity,
+				TaskPluginKey:          plugin.Meta.Key,
+				TaskPluginChannelTypes: channelTypes,
+			}},
+		})
+	}
+	return routes
+}
+
+// servesVideoModel reports whether a public model name reaches a model THIS
+// plugin declares for openai_video. All three hops keep the plugin identity: an
+// exact declaration, another spelling of one (ASCII-folded), or a channel
+// model_mapping alias whose target is bound to this plugin's key. Resolving to a
+// declared name owned by a different plugin is not enough.
+func (route taskPluginVideoRoute) servesVideoModel(generation *jsplugin.RoutingGeneration, modelName string) bool {
+	if _, served := route.videoModels[modelName]; served {
+		return true
+	}
+	if canonical, ok := generation.CanonicalModel(modelName); ok {
+		if _, served := route.videoModels[canonical]; served {
+			return true
+		}
+	}
+	if target, ok := ResolveTaskModelAlias(generation, modelName); ok {
+		if target.Declared == "" || target.PluginKey != route.pluginKey {
+			return false
+		}
+		_, served := route.videoModels[target.Declared]
+		return served
+	}
+	return false
+}
+
+// routableVideoPluginKeys maps each candidate public model to the plugin keys
+// that can really be routed to for it: at least one enabled ability whose actual
+// channel is enabled and satisfies that plugin's identity filter. Compatibility
+// is decided by the shared ChannelSatisfiesFilters matcher, so pricing cannot
+// drift from the distributor's own task-plugin selection rule.
+//
+// The channel status check is deliberately stricter than the rest of updatePricing.
+// GetAllEnableAbilityWithChannels filters on abilities.enabled alone, so an
+// ability whose channel was disabled afterwards still arrives here as enabled:
+// UpdateChannelStatus persists the channel status first and then defers
+// UpdateAbilityStatus, only logging if that sync fails and never rolling the
+// status back. Such a channel can never be selected by the distributor, so
+// advertising openai-video for it would put an unroutable model on the video
+// page. Only this Vancine-added task-plugin video inference is tightened; the
+// upstream endpoint inference for other endpoint types is left untouched.
+//
+// Only candidate models are looked up, which keeps the channel reads bounded to
+// the models a video plugin declares instead of every priced model.
+func routableVideoPluginKeys(routes []taskPluginVideoRoute, enableAbilities []AbilityWithChannel, candidates map[string]struct{}) map[string]map[string]struct{} {
+	channelIDs := make([]int, 0, len(routes))
+	seenChannel := make(map[int]struct{}, len(routes))
+	for _, ability := range enableAbilities {
+		if _, isCandidate := candidates[ability.Model]; !isCandidate {
+			continue
+		}
+		if _, exists := seenChannel[ability.ChannelId]; exists {
+			continue
+		}
+		seenChannel[ability.ChannelId] = struct{}{}
+		channelIDs = append(channelIDs, ability.ChannelId)
+	}
+	if len(channelIDs) == 0 {
+		return nil
+	}
+
+	channelsByID := make(map[int]*Channel, len(channelIDs))
+	for _, channelID := range channelIDs {
+		channel, err := CacheGetChannel(channelID)
+		if err != nil {
+			common.SysLog(fmt.Sprintf("load task plugin video channel error: channel_id=%d, error=%v", channelID, err))
+			continue
+		}
+		channelsByID[channelID] = channel
+	}
+
+	routable := make(map[string]map[string]struct{})
+	for _, ability := range enableAbilities {
+		if _, isCandidate := candidates[ability.Model]; !isCandidate {
+			continue
+		}
+		channel := channelsByID[ability.ChannelId]
+		if channel == nil || channel.Status != common.ChannelStatusEnabled {
+			continue
+		}
+		for _, route := range routes {
+			ok, _ := ChannelSatisfiesFilters(channel, ability.Model, route.identity)
+			if !ok {
+				continue
+			}
+			pluginKeys := routable[ability.Model]
+			if pluginKeys == nil {
+				pluginKeys = make(map[string]struct{}, len(routes))
+				routable[ability.Model] = pluginKeys
+			}
+			pluginKeys[route.pluginKey] = struct{}{}
+		}
+	}
+	return routable
+}
+
+// appendTaskPluginVideoEndpoints adds the openai-video capability to a priced
+// model only when both halves line up: an enabled task plugin declares that
+// model for openai_video, and the model has at least one enabled ability on a
+// channel that plugin can actually take over. Channel-native and models-table
+// endpoints are kept and openai-video is never duplicated. This is deliberately
+// model- and channel-scoped: it must not widen
+// common.GetEndpointTypesByChannelType, which would mark every model of a
+// channel type as video-capable.
+func appendTaskPluginVideoEndpoints(modelSupportEndpointsStr map[string][]string, generation *jsplugin.RoutingGeneration, enableAbilities []AbilityWithChannel) {
+	routes := taskPluginVideoRoutes(generation)
+	if len(routes) == 0 {
+		return
+	}
+
+	candidates := make(map[string]struct{})
+	for modelName := range modelSupportEndpointsStr {
+		for _, route := range routes {
+			if route.servesVideoModel(generation, modelName) {
+				candidates[modelName] = struct{}{}
+				break
+			}
+		}
+	}
+	if len(candidates) == 0 {
+		return
+	}
+
+	routable := routableVideoPluginKeys(routes, enableAbilities, candidates)
+	if len(routable) == 0 {
+		return
+	}
+
+	videoEndpoint := string(constant.EndpointTypeOpenAIVideo)
+	for modelName, pluginKeys := range routable {
+		for _, route := range routes {
+			if _, ok := pluginKeys[route.pluginKey]; !ok {
+				continue
+			}
+			if !route.servesVideoModel(generation, modelName) {
+				continue
+			}
+			modelSupportEndpointsStr[modelName] = appendPricingEndpoint(modelSupportEndpointsStr[modelName], videoEndpoint)
+			break
+		}
+	}
+}
+
 func updatePricing() {
 	//modelRatios := common.GetModelRatios()
 	enableAbilities, err := GetAllEnableAbilityWithChannels()
@@ -367,6 +581,11 @@ func updatePricing() {
 		}
 	}
 
+	// 最后补充任务插件声明的视频端点：只有当前启用 generation 中确实声明了
+	// openai_video 协议的插件模型（含渠道 model_mapping 别名）才追加 openai-video。
+	pluginGeneration := jsplugin.DefaultRegistry.Generation()
+	appendTaskPluginVideoEndpoints(modelSupportEndpointsStr, pluginGeneration, enableAbilities)
+
 	modelSupportEndpointTypes = make(map[string][]constant.EndpointType)
 	for model, endpoints := range modelSupportEndpointsStr {
 		supportedEndpoints := make([]constant.EndpointType, 0)
@@ -417,7 +636,6 @@ func updatePricing() {
 	}
 
 	pricingMap = make([]Pricing, 0)
-	pluginGeneration := jsplugin.DefaultRegistry.Generation()
 	for model, groups := range modelGroupsMap {
 		pricing := Pricing{
 			ModelName:              model,

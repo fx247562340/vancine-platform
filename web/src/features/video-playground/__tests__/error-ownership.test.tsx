@@ -118,7 +118,12 @@ describe('VideoPlayground single error owner', () => {
           return {
             ok: true,
             json: async () => ({
-              data: [{ id: 'Doubao-Seedance-2.5' }],
+              data: [
+                {
+                  id: 'Doubao-Seedance-2.5',
+                  supported_endpoint_types: ['openai-video'],
+                },
+              ],
             }),
           }
         }

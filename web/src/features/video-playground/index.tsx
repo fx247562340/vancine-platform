@@ -20,7 +20,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Video01Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Link } from '@tanstack/react-router'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
@@ -39,14 +39,14 @@ import { cn } from '@/lib/utils'
 
 import { ComposerForm } from './components/composer-form'
 import { ConnectionSettings } from './components/connection-settings'
+import { GenericComposerForm } from './components/generic-composer-form'
 import { VideoModelSelector } from './components/model-selector'
+import { TaskGallery } from './components/task-gallery'
 import { useVideoConnection } from './hooks/use-video-connection'
 import { useVideoModels } from './hooks/use-video-models'
 import { useVideoApiSecret } from './hooks/use-video-secret'
-import {
-  getVideoModelCapability,
-  type VideoCapability,
-} from './lib/capabilities'
+import { useVideoSubmission } from './hooks/use-video-submission'
+import { resolveVideoModelCapability } from './lib/capabilities'
 import { videoPlaygroundErrorText } from './lib/errors'
 import { videoFormSchema, type VideoFormValues } from './lib/form-schema'
 import { clearAllTaskApiKeys } from './lib/task-key-registry'
@@ -69,6 +69,16 @@ export function VideoPlayground() {
   } = connection
   const secret = useVideoApiSecret()
   const { load: loadSecret, clear: clearSecret } = secret
+
+  // The single submission pipeline for the whole page. Both composers serialize
+  // into it and the one TaskGallery below renders from it, so switching between
+  // the dedicated and the generic profile — which unmounts a composer — cannot
+  // drop an in-flight POST, an accepted task_id or a terminal task.
+  const submission = useVideoSubmission({
+    keyId,
+    language: i18n.language,
+    loadSecret,
+  })
 
   // Leaving the page ends every in-flight task's relevance here: drop all
   // task-bound in-memory API keys on unmount. Terminal tasks already cleared
@@ -105,9 +115,9 @@ export function VideoPlayground() {
   }, [modelsQuery.isFetched, modelsQuery.models, model])
 
   const capability = useMemo(
-    () => (model ? getVideoModelCapability(model) : undefined),
+    () => (model ? resolveVideoModelCapability(model) : undefined),
     [model]
-  ) as VideoCapability | undefined
+  )
 
   // Clear stale preflight errors when the user edits the form so
   // the alert is not sticky. We subscribe once and let the
@@ -174,6 +184,73 @@ export function VideoPlayground() {
     keyStatusLabel = t('Loading...')
   }
 
+  // The toolbar nodes belong to the page, so both composers share one model
+  // selector and one connection control regardless of the resolved profile.
+  const modelSelectorNode = (
+    <VideoModelSelector
+      compact
+      models={modelsQuery.models}
+      selectedModel={model}
+      onChange={setModel}
+      disabled={modelsQuery.isLoading || keyId == null}
+    />
+  )
+  const connectionNode = (
+    <ConnectionSettings
+      keys={keys}
+      selectedId={keyId}
+      onChange={(id) => {
+        clearSecret()
+        setModel('')
+        setKeyId(id)
+        setPreflightError(null)
+      }}
+      isLoading={keysIsLoading}
+      disabled={false}
+    />
+  )
+
+  // A dynamic video model always resolves to a renderable capability: the
+  // dedicated profile when Vancine holds first-party evidence for it, the
+  // generic fallback otherwise. Only a truly empty model id renders nothing.
+  //
+  // The task queue is deliberately NOT part of this branch: it lives on the page
+  // so it is mounted exactly once for the page's lifetime.
+  let composer: ReactNode = null
+  if (capability?.profile === 'generic') {
+    composer = (
+      <GenericComposerForm
+        capability={capability}
+        resourceStore={resourceStore}
+        canSubmit={canSubmit}
+        modelId={model}
+        submission={submission}
+        clearSecret={clearSecret}
+        modelSelector={modelSelectorNode}
+        connection={connectionNode}
+      />
+    )
+  } else if (capability) {
+    composer = (
+      <ComposerForm
+        form={form}
+        capability={capability}
+        mode={currentMode}
+        composition={composition}
+        resourceStore={resourceStore}
+        onPreflightError={handlePreflightError}
+        canSubmit={canSubmit}
+        modelId={model}
+        batchCount={batchCount}
+        preflightError={preflightError}
+        submission={submission}
+        clearSecret={clearSecret}
+        modelSelector={modelSelectorNode}
+        connection={connectionNode}
+      />
+    )
+  }
+
   return (
     <div
       data-testid='video-playground-page'
@@ -183,7 +260,7 @@ export function VideoPlayground() {
         <MediaPlaygroundHeader
           title={t('Video generation')}
           subtitle={t(
-            'Generate videos with Seedance 2.0 / 2.5 and reference assets.'
+            'Generate videos from text or a reference image with the video models available to this API key.'
           )}
           active='video'
           status={
@@ -254,53 +331,15 @@ export function VideoPlayground() {
               </EmptyMedia>
               <EmptyTitle>{t('No video models available')}</EmptyTitle>
               <EmptyDescription>
-                {t('This API key has no Seedance 2.0 or 2.5 models.')}
+                {t('This API key has no video models.')}
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
         ) : null}
 
-        {capability ? (
-          <ComposerForm
-            form={form}
-            capability={capability}
-            mode={currentMode}
-            composition={composition}
-            resourceStore={resourceStore}
-            onPreflightError={handlePreflightError}
-            canSubmit={canSubmit}
-            keyId={keyId}
-            modelId={model}
-            language={i18n.language}
-            batchCount={batchCount}
-            preflightError={preflightError}
-            loadSecret={loadSecret}
-            clearSecret={clearSecret}
-            modelSelector={
-              <VideoModelSelector
-                compact
-                models={modelsQuery.models}
-                selectedModel={model}
-                onChange={setModel}
-                disabled={modelsQuery.isLoading || keyId == null}
-              />
-            }
-            connection={
-              <ConnectionSettings
-                keys={keys}
-                selectedId={keyId}
-                onChange={(id) => {
-                  clearSecret()
-                  setModel('')
-                  setKeyId(id)
-                  setPreflightError(null)
-                }}
-                isLoading={keysIsLoading}
-                disabled={false}
-              />
-            }
-          />
-        ) : null}
+        {composer}
+
+        <TaskGallery tasks={submission.tasks} />
       </div>
     </div>
   )

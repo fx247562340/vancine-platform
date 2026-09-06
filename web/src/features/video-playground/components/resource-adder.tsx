@@ -39,7 +39,6 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 
-import type { VideoCapability } from '../lib/capabilities'
 import {
   isCanonicalAssetUrl,
   mediaMimeFromHttpsUrl,
@@ -50,7 +49,12 @@ import type { VideoResource } from '../lib/resource-validation'
 type ResourceKind = 'image' | 'video' | 'audio'
 
 type ResourceAdderProps = {
-  capability: VideoCapability
+  /**
+   * Formats this adder accepts for its own kind, taken from the active model's
+   * capability. The adder never reads a whole capability, so it works for a
+   * dedicated profile and for the generic fallback alike.
+   */
+  supportedFormats: ReadonlyArray<string>
   disabled?: boolean
   /** Current count of resources for this kind. */
   count: number
@@ -87,7 +91,7 @@ const ACCEPTED_AUDIO_TYPES = ['audio/wav', 'audio/mpeg', 'audio/mp3']
 export function ResourceAdder(props: ResourceAdderProps) {
   const { t } = useTranslation()
   const {
-    capability,
+    supportedFormats,
     disabled,
     count,
     maxCount,
@@ -134,7 +138,7 @@ export function ResourceAdder(props: ResourceAdderProps) {
       setUrlError('Please enter a URL.')
       return
     }
-    const resource = buildUrlResource(kind, trimmed, capability)
+    const resource = buildUrlResource(kind, trimmed, supportedFormats)
     if (!resource) {
       setUrlError('This URL is not supported.')
       return
@@ -319,7 +323,7 @@ function acceptListFor(kind: ResourceKind): string {
 function buildUrlResource(
   kind: ResourceKind,
   url: string,
-  capability: VideoCapability
+  supportedFormats: ReadonlyArray<string>
 ): VideoResource | null {
   if (kind === 'video' && url.startsWith('asset://')) {
     return buildAssetResource(kind, url)
@@ -327,8 +331,8 @@ function buildUrlResource(
   if (!safeRemoteUrl(url)) return null
   const mime = mediaMimeFromHttpsUrl(url, kind)
   if (!mime) return null
+  if (!supportedFormats.includes(mime)) return null
   if (kind === 'image') {
-    if (!capability.referenceImage.supportedFormats.includes(mime)) return null
     return {
       id: makeId('img'),
       kind: 'image',
@@ -338,7 +342,6 @@ function buildUrlResource(
     }
   }
   if (kind === 'video') {
-    if (!capability.referenceVideo.supportedFormats.includes(mime)) return null
     return {
       id: makeId('vid'),
       kind: 'video',
@@ -347,7 +350,6 @@ function buildUrlResource(
       mimeType: mime,
     }
   }
-  if (!capability.referenceAudio.supportedFormats.includes(mime)) return null
   return {
     id: makeId('aud'),
     kind: 'audio',

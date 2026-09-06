@@ -16,12 +16,25 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { PLAYGROUND_VIDEO_MODELS } from '../constants'
+import { OPENAI_VIDEO_ENDPOINT_TYPE } from '../constants'
 import type { VideoModelOption } from '../types'
 
-const allowedModels = new Set<string>(PLAYGROUND_VIDEO_MODELS)
-
-export function extractModelIds(payload: unknown): string[] {
+/**
+ * Parse a GET /v1/models payload into the video models this API key may use.
+ *
+ * Membership is decided ONLY by the server-declared
+ * `supported_endpoint_types`: an entry is a video model when that array
+ * contains the exact capability `openai-video`. Model-name keywords are never
+ * inspected and no client-side model list is maintained, so the key's group,
+ * model restriction and billing configuration — all already applied by the
+ * server — stay the single source of truth for what the page may offer.
+ *
+ * Server order is preserved and a repeated id collapses to its first
+ * occurrence, so the selector does not reshuffle between reloads. Malformed
+ * entries are skipped rather than thrown on: a partial or unexpected payload
+ * degrades to fewer options, never to a broken page.
+ */
+export function parseVideoModels(payload: unknown): VideoModelOption[] {
   if (!payload || typeof payload !== 'object') {
     return []
   }
@@ -29,20 +42,32 @@ export function extractModelIds(payload: unknown): string[] {
   if (!Array.isArray(data)) {
     return []
   }
-  return data.flatMap((item) => {
-    if (typeof item === 'string') {
-      return [item]
-    }
-    if (item && typeof item === 'object' && 'id' in item) {
-      const id = (item as { id?: unknown }).id
-      return typeof id === 'string' ? [id] : []
-    }
-    return []
-  })
-}
 
-export function filterPlaygroundVideoModels(ids: string[]): VideoModelOption[] {
-  return PLAYGROUND_VIDEO_MODELS.filter(
-    (name) => allowedModels.has(name) && ids.includes(name)
-  ).map((name) => ({ label: name, value: name }))
+  const options: VideoModelOption[] = []
+  const seen = new Set<string>()
+  for (const entry of data) {
+    if (!entry || typeof entry !== 'object') {
+      continue
+    }
+    const candidate = entry as {
+      id?: unknown
+      supported_endpoint_types?: unknown
+    }
+    if (typeof candidate.id !== 'string' || candidate.id.trim() === '') {
+      continue
+    }
+    if (!Array.isArray(candidate.supported_endpoint_types)) {
+      continue
+    }
+    const endpoints: ReadonlyArray<unknown> = candidate.supported_endpoint_types
+    if (!endpoints.includes(OPENAI_VIDEO_ENDPOINT_TYPE)) {
+      continue
+    }
+    if (seen.has(candidate.id)) {
+      continue
+    }
+    seen.add(candidate.id)
+    options.push({ label: candidate.id, value: candidate.id })
+  }
+  return options
 }

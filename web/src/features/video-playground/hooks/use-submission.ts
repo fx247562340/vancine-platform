@@ -38,36 +38,46 @@ export type QueuedSubmission = {
   submittedAt: number
 }
 
-export type UseSubmissionOptions = {
+export type UseSubmissionOptions<TBody = unknown> = {
   submit: (
-    body: unknown,
+    body: TBody,
     signal?: AbortSignal
   ) => Promise<{ id?: string; task_id?: string }>
-  batchSize: number
   /** Re-creates the submission pipeline when the active key changes. */
   keyId?: number | null
 }
 
-export type UseSubmissionResult = {
+export type UseSubmissionResult<TBody = unknown> = {
   tasks: QueuedSubmission[]
   /** True while at least one queued task is submitting or pending. */
   isBusy: boolean
   start: (params: {
-    body: unknown
+    body: TBody
     modelId: string
     promptPreview: string
+    /**
+     * Placeholders this one submission creates. It belongs to the call, not to
+     * the queue: a single page-owned queue serves both the dedicated and the
+     * generic composer, and each has its own batch control.
+     */
+    batchSize: number
   }) => void
   /** Cancel pending/submitting items only. Does NOT abort tasks that already have a task_id. */
   cancel: () => void
 }
 
-type MutationVars = {
-  body: unknown
+type MutationVars<TBody> = {
+  body: TBody
   signal?: AbortSignal
 }
 
 /**
  * Phase 5 submission lifecycle.
+ *
+ * One instance is owned by the video PAGE, not by a composer, so the queue
+ * outlives a switch between the dedicated and the generic composer: an accepted
+ * task_id keeps polling, an in-flight POST keeps its late-response guard, and
+ * failed / cancelled / finished tasks stay visible.
  *
  * Each POST /v1/video/generations is driven by TanStack Query
  * useMutation. The mutationFn still uses the playground's independent
@@ -78,16 +88,16 @@ type MutationVars = {
  * failed, and cancelled stay as they are. A single POST failure
  * marks that item failed and continues the rest of the batch.
  */
-export function useSubmission(
-  options: UseSubmissionOptions
-): UseSubmissionResult {
-  const { submit, batchSize, keyId } = options
+export function useSubmission<TBody = unknown>(
+  options: UseSubmissionOptions<TBody>
+): UseSubmissionResult<TBody> {
+  const { submit, keyId } = options
   const [tasks, setTasks] = useState<QueuedSubmission[]>([])
   const epochRef = useRef(0)
   const abortRef = useRef<AbortController | null>(null)
 
   const mutation = useMutation({
-    mutationFn: (vars: MutationVars) => submit(vars.body, vars.signal),
+    mutationFn: (vars: MutationVars<TBody>) => submit(vars.body, vars.signal),
     gcTime: 0,
     onError: () => {
       // Inline owner: TaskQueueItem / preflight alert. Do not toast.
@@ -130,11 +140,16 @@ export function useSubmission(
   )
 
   const start = useCallback(
-    (params: { body: unknown; modelId: string; promptPreview: string }) => {
+    (params: {
+      body: TBody
+      modelId: string
+      promptPreview: string
+      batchSize: number
+    }) => {
       const generation = epochRef.current
       const submittedAt = Date.now()
       const local: QueuedSubmission[] = []
-      for (let index = 0; index < batchSize; index += 1) {
+      for (let index = 0; index < params.batchSize; index += 1) {
         const id = `sub-${submittedAt}-${index}-${Math.random().toString(36).slice(2, 8)}`
         local.push({
           id,
@@ -208,7 +223,7 @@ export function useSubmission(
         }
       })()
     },
-    [batchSize, updateTask]
+    [updateTask]
   )
 
   const cancel = useCallback(() => {

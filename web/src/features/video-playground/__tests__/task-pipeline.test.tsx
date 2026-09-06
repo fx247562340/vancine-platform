@@ -63,7 +63,14 @@ const calls = recorder.calls
 function stubPipeline(options: PipelineStubOptions = {}): void {
   recorder.install((url) => {
     if (url === '/v1/models') {
-      return jsonResponse(200, { data: [{ id: 'Doubao-Seedance-2.5' }] })
+      return jsonResponse(200, {
+        data: [
+          {
+            id: 'Doubao-Seedance-2.5',
+            supported_endpoint_types: ['openai-video'],
+          },
+        ],
+      })
     }
     if (url === '/v1/video/generations') {
       return jsonResponse(200, { task_id: TASK_ID, id: TASK_ID })

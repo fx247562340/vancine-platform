@@ -143,80 +143,6 @@
       "failure": "Thất bại; kiểm tra data.fail_reason"
     }
   },
-  "td": {
-    "title": "Tạo 3D",
-    "desc": "Các mô hình 3D sử dụng cùng định dạng tác vụ bất đồng bộ. Gửi tác vụ, rồi poll với task_id để lấy kết quả.",
-    "endpointSubmit": "3D cũng gửi qua endpoint video bất đồng bộ",
-    "endpointPoll": "Poll kết quả tác vụ 3D",
-    "modelsTitle": "Mô hình 3D",
-    "paramsTitle": "Tham số",
-    "examplesTitle": "Ví dụ yêu cầu",
-    "colImagesParam": "Tham số images",
-    "withoutImage": "Không có hình ảnh",
-    "withImage": "Có hình ảnh tham chiếu",
-    "imagesWarning": "Doubao-Seed3D-2.0 yêu cầu images. Không sử dụng trường image_data; gateway Vancine sẽ chuyển images sang định dạng content[].image_url mà upstream yêu cầu.",
-    "params": {
-      "model": "Tên mô hình 3D",
-      "prompt": "Mô tả văn bản tài sản 3D（tùy chọn cho hình-đến-3D）",
-      "images": "Mảng URL hình ảnh tham chiếu cho hình-đến-3D. Doubao-Seed3D-2.0 yêu cầu ít nhất một hình ảnh. Hỗ trợ URL công khai hoặc data:image/...;base64,..."
-    },
-    "asyncCallout": "Tạo 3D là tác vụ bất đồng bộ. Sau khi gửi, lưu task_id từ phản hồi, rồi poll GET /v1/video/generations/{task_id}. Khi thành công, đọc liên kết tệp mô hình 3D từ metadata.url trong kết quả."
-  },
-  "audio": {
-    "title": "Âm thanh / TTS",
-    "desc": "Endpoint TTS sử dụng thân yêu cầu tương thích OpenAI, nhưng phản hồi là luồng âm thanh MP3 nhị phân, không phải JSON.",
-    "paramsTitle": "Tham số",
-    "ttsExamplesTitle": "Ví dụ Doubao-tts (giọng 1.0)",
-    "tts2ExamplesTitle": "Ví dụ Doubao-tts2.0 (giọng 2.0)",
-    "voicesTitle": "Giọng khả dụng",
-    "endpointWarning": "TTS không sử dụng /v1/chat/completions. Sử dụng sai endpoint có thể trả về 401 gây hiểu lầm giống như thiếu API key; nguyên nhân thường là sai đường dẫn.",
-    "voiceSuffixCallout": "Hậu tố ID giọng quyết định phiên bản mô hình: hậu tố uranus dành cho Doubao-tts2.0, hậu tố mars dành cho Doubao-tts. Không khớp giọng/mô hình sẽ trả về lỗi resource mismatch.",
-    "colVoiceId": "ID giọng",
-    "colName": "Tên",
-    "colModel": "Mô hình",
-    "colUseCase": "Ngôn ngữ / trường hợp sử dụng",
-    "params": {
-      "model": "Doubao-tts hoặc Doubao-tts2.0",
-      "input": "Văn bản cần tổng hợp",
-      "voice": "ID giọng, xem danh sách bên dưới",
-      "response_format": "Định dạng âm thanh đầu ra：mp3（mặc định）、opus、aac、flac、wav、pcm",
-      "speed": "Tốc độ nói 0.25–4.0, mặc định 1.0"
-    },
-    "voices": {
-      "vivi": "Vivi",
-      "nadia": "Nadia",
-      "jane": "Jane",
-      "rachel": "Rachel",
-      "david": "David",
-      "alex": "Alex",
-      "kevin": "Kevin",
-      "stokie": "Stokie",
-      "spanishFemale": "Tây Ban Nha, nữ",
-      "frenchFemale": "Pháp, nữ",
-      "germanFemale": "Đức, nữ",
-      "arabicFemale": "Ả Rập, nữ",
-      "cancan": "Cancan",
-      "wenhao": "Wenhao",
-      "amanda": "Amanda",
-      "emily": "Emily",
-      "adam": "Adam",
-      "jackson": "Jackson",
-      "sarah": "Sarah",
-      "smith": "Smith",
-      "anna": "Anna",
-      "dryw": "Dryw",
-      "zhFemaleGentle": "Trung Quốc, nữ, nhẹ nhàng (đa ngôn ngữ)",
-      "enFemale": "Tiếng Anh, nữ",
-      "enMale": "Tiếng Anh, nam",
-      "enUkFemale": "Tiếng Anh (UK), nữ",
-      "espanol": "Español",
-      "francais": "Français",
-      "deutsch": "Deutsch",
-      "arabic": "العربية",
-      "zhFemaleBright": "Trung Quốc, nữ, tươi sáng",
-      "zhMaleSteady": "Trung Quốc, nam, điềm đạm"
-    }
-  },
   "auth": {
     "title": "Xác thực",
     "desc": "Tất cả yêu cầu /v1 đều yêu cầu API key trong header Authorization.",
@@ -227,15 +153,11 @@
     "desc": "Vancine cung cấp các khả năng tạo khác nhau thông qua các endpoint tương thích OpenAI và endpoint tác vụ bất đồng bộ.",
     "rows": {
       "chat": "Hội thoại",
-      "tts": "Tổng hợp giọng nói",
       "image": "Tạo hình ảnh",
       "video": "Tạo video",
-      "td": "Tạo tài sản 3D",
       "chatNote": "Thân yêu cầu messages tương thích OpenAI",
-      "ttsNote": "Trả về luồng âm thanh MP3 nhị phân",
       "imageNote": "Trả về URL hình ảnh",
-      "videoNote": "Tác vụ bất đồng bộ, poll với task_id",
-      "tdNote": "Tác vụ bất đồng bộ, hỗ trợ prompt và images"
+      "videoNote": "Tác vụ bất đồng bộ, poll với task_id"
     }
   },
   "models": {
@@ -245,8 +167,7 @@
     "textModelsTitle": "Mô hình văn bản ({{count}})",
     "multimodalTitle": "Mô hình tạo đa phương thức",
     "colType": "Loại",
-    "colUsageNotes": "Ghi chú sử dụng",
-    "returnsValidMp3": "Trả về MP3 hợp lệ"
+    "colUsageNotes": "Ghi chú sử dụng"
   },
   "errors": {
     "title": "Xử lý lỗi",
@@ -258,7 +179,7 @@
       "badRequest": "Yêu cầu không hợp lệ",
       "badRequestCause": "Size không hợp lệ, thiếu prompt, hoặc mô hình/endpoint không khớp",
       "unauthorized": "Không được ủy quyền",
-      "unauthorizedCause": "Key không hợp lệ, hoặc sai endpoint như gửi TTS đến chat",
+      "unauthorizedCause": "Key không hợp lệ, hoặc sai endpoint",
       "notFound": "Không tìm thấy đường dẫn",
       "notFoundCause": "Kiểm tra đường dẫn URL có viết đúng không",
       "noChannel": "Không có kênh khả dụng",
@@ -268,7 +189,7 @@
   "sdks": {
     "title": "SDK và công cụ",
     "desc": "Các endpoint văn bản của Vancine tương thích với SDK OpenAI. Các endpoint đa phương thức cũng có thể gọi bằng bất kỳ HTTP client nào.",
-    "requestsDesc": "Phù hợp cho hình ảnh, video, 3D và TTS",
+    "requestsDesc": "Phù hợp cho hình ảnh và video",
     "curlDesc": "Có sẵn hoặc cài qua trình quản lý gói"
   },
   "agents": {
@@ -431,14 +352,6 @@
         "q": "Làm sao xác minh API key?",
         "a": "Gọi GET {{baseUrl}}/models. HTTP 200 với danh sách mô hình nghĩa là key hợp lệ và có quyền truy cập trong nhóm hiện tại."
       },
-      "video3dResults": {
-        "q": "Kết quả video và 3D lấy ở đâu?",
-        "a": "Poll GET /v1/video/generations/{task_id}. Khi thành công, đọc data.result_url hoặc data.data.content.video_url."
-      },
-      "ttsNotJson": {
-        "q": "Tại sao TTS không trả về JSON?",
-        "a": "Gọi TTS thành công trả về trực tiếp luồng âm thanh MP3 nhị phân với Content-Type audio/mpeg."
-      },
       "seedreamSize": {
         "q": "Tại sao Seedream từ chối kích thước hình ảnh?",
         "a": "Doubao-Seedream-5.0-lite yêu cầu tối thiểu 3,686,400 pixel (nên dùng 2048x2048). Doubao-Seedream-5.0-pro không có giới hạn này: tối thiểu 921,600 pixel (1024x1024 dùng được). Hãy đặt size theo mô hình đang dùng, hoặc truyền bậc 1K/2K để mô hình tự quyết định."
@@ -456,8 +369,6 @@
     "chat": "Hoàn thành hội thoại",
     "image": "Tạo hình ảnh",
     "video": "Tạo video",
-    "td": "Tạo 3D",
-    "audio": "Âm thanh / TTS",
     "sdks": "SDK và công cụ",
     "agents": "Tích hợp Agent",
     "auth": "Xác thực",

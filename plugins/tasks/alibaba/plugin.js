@@ -7,10 +7,12 @@ export const meta = {
     en: "Alibaba Cloud Bailian Wanxiang video generation (text-to-video and image-to-video)",
     zh: "阿里云百炼万相视频生成（文生视频、图生视频）",
   },
-  version: "1.0.1",
+  version: "1.1.0",
   author: { name: "QuantumNous" },
   channelTypes: [17],
   models: [
+    "wan3.0-video",
+    "wan3.0-video-prime",
     "wan2.7-i2v",
     "wan2.7-t2v",
     "wan2.5-t2v-preview",

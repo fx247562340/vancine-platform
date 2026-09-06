@@ -19,11 +19,13 @@ For commercial licensing, please contact support@quantumnous.com
 import {
   getVideoModelCapabilityOrThrow,
   resolveVideoCapabilities,
+  resolveVideoModelCapability,
   type VideoRatio,
   type VideoResolution,
 } from './capabilities'
 import { findModeEntry } from './contract'
-import type { CreationMode } from './mode'
+import type { CreationMode, GenericCreationMode } from './mode'
+import { preflightGenericResources } from './preflight'
 import type {
   VideoAudioResource,
   VideoImageResource,
@@ -112,6 +114,36 @@ export type VideoContentItem =
       role: 'reference_audio'
     }
 
+/**
+ * Body for a video model that has no dedicated capability profile.
+ *
+ * Deliberately tiny. A generic model is served by an upstream task plugin that
+ * already owns its default duration, resolution and every other parameter, so
+ * the playground must not invent any of them: no `duration`, no `ratio`, no
+ * `resolution`, no `size`, no `metadata` object and no provider switch. The
+ * only optional field is one public HTTPS `image`, which turns the request into
+ * image-to-video.
+ */
+export type GenericVideoRequestBody = {
+  model: string
+  prompt: string
+  image?: string
+}
+
+export type GenericVideoRequestInput = {
+  model: string
+  prompt: string
+  mode: GenericCreationMode
+  images: ReadonlyArray<VideoImageResource>
+  videos: ReadonlyArray<VideoVideoResource>
+  audios: ReadonlyArray<VideoAudioResource>
+}
+
+/** Either outbound shape POST /v1/video/generations may receive. */
+export type OutboundVideoRequestBody =
+  | VideoRequestBody
+  | GenericVideoRequestBody
+
 export class VideoRequestError extends Error {
   readonly reasonKey: string
   constructor(reasonKey: string, message?: string) {
@@ -126,6 +158,48 @@ function clampInt(value: number, min: number, max: number): number {
   if (value < min) return min
   if (value > max) return max
   return Math.round(value)
+}
+
+/**
+ * Build the minimal body for a generic video model.
+ *
+ * The resource rules are enforced here, on the last stop before the wire, so an
+ * incompatible asset can never be dropped silently nor sent to a model that has
+ * no verified contract for it: more than one image, any video, any audio, an
+ * inlined base64 payload, an `asset://` id or a non-public URL all fail with a
+ * translatable reason the page shows to the user.
+ */
+export function buildGenericVideoGenerationRequest(
+  input: GenericVideoRequestInput
+): GenericVideoRequestBody {
+  const capability = resolveVideoModelCapability(input.model)
+  if (!capability || capability.profile !== 'generic') {
+    throw new VideoRequestError(
+      'videoPlayground.error.unknownVideoModel',
+      `Not a generic video model id: ${input.model}`
+    )
+  }
+
+  const preflight = preflightGenericResources(capability, input.mode, {
+    images: [...input.images],
+    videos: [...input.videos],
+    audios: [...input.audios],
+  })
+  if (!preflight.ok) {
+    throw new VideoRequestError(preflight.illegalReason, preflight.detail)
+  }
+
+  const prompt = input.prompt.trim()
+  if (prompt === '') {
+    throw new VideoRequestError('Prompt is required')
+  }
+
+  const body: GenericVideoRequestBody = { model: input.model, prompt }
+  const image = input.images[0]
+  if (image && image.source.kind === 'url') {
+    body.image = image.source.url
+  }
+  return body
 }
 
 export function buildVideoGenerationRequest(

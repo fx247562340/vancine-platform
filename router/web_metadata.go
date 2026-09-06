@@ -85,12 +85,12 @@ var publicMarketingPages = []publicPageMeta{
 	{
 		path:  "/docs",
 		title: "Vancine API Documentation | OpenAI-Compatible Chinese Models",
-		description: "Integrate Vancine text, image, video, audio and 3D models " +
+		description: "Integrate Vancine text, image, and video models " +
 			"using one OpenAI-compatible API key.",
 		ogTitle:          "Vancine API Documentation | OpenAI-Compatible Chinese Models",
-		ogDescription:    "Integrate Vancine text, image, video, audio and 3D models using one OpenAI-compatible API key.",
+		ogDescription:    "Integrate Vancine text, image, and video models using one OpenAI-compatible API key.",
 		twitterTitle:     "Vancine API Documentation | OpenAI-Compatible Chinese Models",
-		twitterDesc:      "Integrate Vancine text, image, video, audio and 3D models using one OpenAI-compatible API key.",
+		twitterDesc:      "Integrate Vancine text, image, and video models using one OpenAI-compatible API key.",
 		twitterCardValue: "summary",
 	},
 	{
@@ -178,14 +178,14 @@ var publicMarketingPages = []publicPageMeta{
 	},
 	{
 		path:  "/ai-media-api",
-		title: "AI Media API: Image, Video, Speech & 3D | Vancine",
+		title: "AI Media API: Image & Video | Vancine",
 		description: "Access Chinese AI media models through one API. " +
-			"Image, video, speech, and 3D generation with one API key and " +
+			"Image and video generation with one API key and " +
 			"unified billing.",
 		ogTitle:          "Chinese AI Media Models Through One API",
-		ogDescription:    "Generate images, videos, speech, and 3D assets with one API key and documented endpoints.",
-		twitterTitle:     "AI Media API: Image, Video, Speech & 3D",
-		twitterDesc:      "Access Chinese AI media models through one API. Image, video, speech, and 3D generation with one API key and unified billing.",
+		ogDescription:    "Generate images and videos with one API key and documented endpoints.",
+		twitterTitle:     "AI Media API: Image & Video",
+		twitterDesc:      "Access Chinese AI media models through one API. Image and video generation with one API key and unified billing.",
 		twitterCardValue: "summary",
 	},
 	{

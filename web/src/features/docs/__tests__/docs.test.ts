@@ -97,7 +97,7 @@ function clearDocsBundles() {
 // ─── 1. Registry ──────────────────────────────────────────────────────────────
 
 describe('Docs registry', () => {
-  it('has exactly 14 registered slugs in Classic order', async () => {
+  it('has exactly 12 registered slugs in Classic order', async () => {
     const { ALL_DOCS_SLUGS } = await import('../nav.ts')
     assert.deepEqual(
       [...ALL_DOCS_SLUGS],
@@ -108,8 +108,6 @@ describe('Docs registry', () => {
         'chat',
         'image',
         'video',
-        'td',
-        'audio',
         'sdks',
         'agents',
         'auth',
@@ -149,7 +147,7 @@ describe('Docs navigation', () => {
     )
     assert.deepEqual(
       DOCS_NAV_GROUPS[1].items.map((i) => i.slug),
-      ['chat', 'image', 'video', 'td', 'audio']
+      ['chat', 'image', 'video']
     )
     assert.deepEqual(
       DOCS_NAV_GROUPS[2].items.map((i) => i.slug),
@@ -257,8 +255,6 @@ describe('Docs search', () => {
       'chat',
       'image',
       'video',
-      'td',
-      'audio',
       'sdks',
       'agents',
     ]) {
@@ -411,7 +407,6 @@ describe('Docs anchor mapping', () => {
     const { resolveDocsAnchor } = await import('../lib/anchor-map.ts')
     assert.equal(resolveDocsAnchor('#image'), 'image')
     assert.equal(resolveDocsAnchor('#video'), 'video')
-    assert.equal(resolveDocsAnchor('#audio'), 'audio')
     assert.equal(resolveDocsAnchor('#nonexistent'), null)
     assert.equal(resolveDocsAnchor(''), null)
   })
@@ -589,32 +584,10 @@ describe('Docs locale parity', () => {
 
 // ─── 12. Same-English: real zero-violation assertion ──────────────────────────
 
-// The 18 proper voice names that are kept identical across locales.
-const VOICE_KEYS = [
-  'vivi',
-  'nadia',
-  'jane',
-  'rachel',
-  'david',
-  'alex',
-  'kevin',
-  'stokie',
-  'cancan',
-  'wenhao',
-  'amanda',
-  'emily',
-  'adam',
-  'jackson',
-  'sarah',
-  'smith',
-  'anna',
-  'dryw',
-]
-
 /**
  * Narrow, per-key allowlist of values legitimately identical to English:
- * brand/product names, proper voice names, URLs, model identifiers, acronyms,
- * and language-neutral technical labels (including valid French cognates such
+ * brand/product names, URLs, model identifiers, acronyms, and
+ * language-neutral technical labels (including valid French cognates such
  * as "Description", "Navigation", "Type"). Anything same-English that is NOT
  * in this set is treated as an untranslated-copy violation.
  */
@@ -632,8 +605,6 @@ const SAME_ENGLISH_ALLOWLIST = new Set<string>([
   // Language-neutral technical labels / acronyms / valid cognates
   'agentGuides.common.baseUrlTitle',
   'quickstart.infoTable.baseUrl',
-  'audio.title',
-  'nav.audio',
   'faq.title',
   'nav.faq',
   'capabilities.rows.chat',
@@ -644,13 +615,6 @@ const SAME_ENGLISH_ALLOWLIST = new Set<string>([
   'common.navigation',
   'common.notes',
   'common.endpoint',
-  // Proper voice names (do not translate)
-  ...VOICE_KEYS.map((k) => `audio.voices.${k}`),
-  // Voice language/use-case autonyms (language names in their own language)
-  'audio.voices.espanol',
-  'audio.voices.francais',
-  'audio.voices.deutsch',
-  'audio.voices.arabic',
 ])
 
 describe('OpenCode /connect primary path copy', () => {

@@ -136,81 +136,79 @@ const AI_MEDIA_METADATA: Record<
   // The English twitter pair is pinned byte-for-byte against
   // router/web_metadata.go's /ai-media-api entry.
   en: {
-    title: 'AI Media API: Image, Video, Speech & 3D | Vancine',
+    title: 'AI Media API: Image & Video | Vancine',
     description:
-      'Access Chinese AI media models through one API. Image, video, speech, and 3D generation with one API key and unified billing.',
+      'Access Chinese AI media models through one API. Image and video generation with one API key and unified billing.',
     ogTitle: 'Chinese AI Media Models Through One API',
     ogDescription:
-      'Generate images, videos, speech, and 3D assets with one API key and documented endpoints.',
-    twitterTitle: 'AI Media API: Image, Video, Speech & 3D',
+      'Generate images and videos with one API key and documented endpoints.',
+    twitterTitle: 'AI Media API: Image & Video',
     twitterDescription:
-      'Access Chinese AI media models through one API. Image, video, speech, and 3D generation with one API key and unified billing.',
+      'Access Chinese AI media models through one API. Image and video generation with one API key and unified billing.',
   },
   zhCN: {
-    title: 'AI 多媒体 API：图片、视频、语音与 3D | Vancine',
+    title: 'AI 多媒体 API：图片与视频 | Vancine',
     description:
-      '通过一个 API 接入中国 AI 多媒体模型。一个 API 密钥、统一计费，即可使用图片、视频、语音和 3D 生成能力。',
+      '通过一个 API 接入中国 AI 多媒体模型。一个 API 密钥、统一计费，即可使用图片与视频生成能力。',
     ogTitle: '一个 API 接入中国 AI 多媒体模型',
-    ogDescription:
-      '一个 API 密钥，使用文档化的接口生成图片、视频、语音和 3D 资产。',
-    twitterTitle: 'AI 多媒体 API：图片、视频、语音与 3D',
+    ogDescription: '一个 API 密钥，使用文档化的接口生成图片与视频资产。',
+    twitterTitle: 'AI 多媒体 API：图片与视频',
     twitterDescription:
-      '通过一个 API 接入中国 AI 多媒体模型。一个 API 密钥、统一计费，即可使用图片、视频、语音和 3D 生成能力。',
+      '通过一个 API 接入中国 AI 多媒体模型。一个 API 密钥、统一计费，即可使用图片与视频生成能力。',
   },
   zhTW: {
-    title: 'AI 多媒體 API：圖片、影片、語音與 3D | Vancine',
+    title: 'AI 多媒體 API：圖片與影片 | Vancine',
     description:
-      '透過一個 API 接入中國 AI 多媒體模型。一個 API 金鑰、統一計費，即可使用圖片、影片、語音和 3D 生成能力。',
+      '透過一個 API 接入中國 AI 多媒體模型。一個 API 金鑰、統一計費，即可使用圖片與影片生成能力。',
     ogTitle: '一個 API 接入中國 AI 多媒體模型',
-    ogDescription:
-      '一個 API 金鑰，使用文件化的介面生成圖片、影片、語音和 3D 資產。',
-    twitterTitle: 'AI 多媒體 API：圖片、影片、語音與 3D',
+    ogDescription: '一個 API 金鑰，使用文件化的介面生成圖片與影片資產。',
+    twitterTitle: 'AI 多媒體 API：圖片與影片',
     twitterDescription:
-      '透過一個 API 接入中國 AI 多媒體模型。一個 API 金鑰、統一計費，即可使用圖片、影片、語音和 3D 生成能力。',
+      '透過一個 API 接入中國 AI 多媒體模型。一個 API 金鑰、統一計費，即可使用圖片與影片生成能力。',
   },
   fr: {
-    title: 'API IA médias : image, vidéo, voix et 3D | Vancine',
+    title: 'API IA médias : image et vidéo | Vancine',
     description:
-      "Accédez aux modèles multimédias d'IA chinoise via une seule API. Génération d'images, de vidéos, de voix et de 3D avec une clé API et une facturation unifiée.",
+      "Accédez aux modèles multimédias d'IA chinoise via une seule API. Génération d'images et de vidéos avec une clé API et une facturation unifiée.",
     ogTitle: "Les modèles multimédias d'IA chinoise via une seule API",
     ogDescription:
-      'Générez images, vidéos, voix et assets 3D avec une seule clé API et des endpoints documentés.',
-    twitterTitle: 'API IA médias : image, vidéo, voix et 3D',
+      'Générez images et vidéos avec une seule clé API et des endpoints documentés.',
+    twitterTitle: 'API IA médias : image et vidéo',
     twitterDescription:
-      "Accédez aux modèles multimédias d'IA chinoise via une seule API. Génération d'images, de vidéos, de voix et de 3D avec une clé API et une facturation unifiée.",
+      "Accédez aux modèles multimédias d'IA chinoise via une seule API. Génération d'images et de vidéos avec une clé API et une facturation unifiée.",
   },
   ru: {
-    title: 'AI Media API: изображения, видео, речь и 3D | Vancine',
+    title: 'AI Media API: изображения и видео | Vancine',
     description:
-      'Доступ к китайским мультимедийным ИИ-моделям через один API. Генерация изображений, видео, речи и 3D с одним API-ключом и единым биллингом.',
+      'Доступ к китайским мультимедийным ИИ-моделям через один API. Генерация изображений и видео с одним API-ключом и единым биллингом.',
     ogTitle: 'Китайские мультимедийные ИИ-модели через один API',
     ogDescription:
-      'Создавайте изображения, видео, речь и 3D-ассеты с одним API-ключом и документированными эндпоинтами.',
-    twitterTitle: 'AI Media API: изображения, видео, речь и 3D',
+      'Создавайте изображения и видео с одним API-ключом и документированными эндпоинтами.',
+    twitterTitle: 'AI Media API: изображения и видео',
     twitterDescription:
-      'Доступ к китайским мультимедийным ИИ-моделям через один API. Генерация изображений, видео, речи и 3D с одним API-ключом и единым биллингом.',
+      'Доступ к китайским мультимедийным ИИ-моделям через один API. Генерация изображений и видео с одним API-ключом и единым биллингом.',
   },
   ja: {
-    title: 'AI メディア API：画像・動画・音声・3D | Vancine',
+    title: 'AI メディア API：画像・動画 | Vancine',
     description:
-      '中国の AI メディアモデルに単一の API でアクセス。1 つの API キーと統一課金で、画像・動画・音声・3D 生成を利用できます。',
+      '中国の AI メディアモデルに単一の API でアクセス。1 つの API キーと統一課金で、画像・動画生成を利用できます。',
     ogTitle: '中国の AI メディアモデルを単一の API で',
     ogDescription:
-      '1 つの API キーとドキュメント化されたエンドポイントで、画像・動画・音声・3D アセットを生成できます。',
-    twitterTitle: 'AI メディア API：画像・動画・音声・3D',
+      '1 つの API キーとドキュメント化されたエンドポイントで、画像・動画アセットを生成できます。',
+    twitterTitle: 'AI メディア API：画像・動画',
     twitterDescription:
-      '中国の AI メディアモデルに単一の API でアクセス。1 つの API キーと統一課金で、画像・動画・音声・3D 生成を利用できます。',
+      '中国の AI メディアモデルに単一の API でアクセス。1 つの API キーと統一課金で、画像・動画生成を利用できます。',
   },
   vi: {
-    title: 'API AI Media: Ảnh, Video, Giọng nói & 3D | Vancine',
+    title: 'API AI Media: Ảnh & Video | Vancine',
     description:
-      'Truy cập các mô hình AI truyền thông Trung Quốc qua một API. Tạo ảnh, video, giọng nói và 3D với một khóa API và thanh toán thống nhất.',
+      'Truy cập các mô hình AI truyền thông Trung Quốc qua một API. Tạo ảnh và video với một khóa API và thanh toán thống nhất.',
     ogTitle: 'Mô hình AI truyền thông Trung Quốc qua một API',
     ogDescription:
-      'Tạo ảnh, video, giọng nói và tài nguyên 3D với một khóa API và các điểm cuối có tài liệu.',
-    twitterTitle: 'API AI Media: Ảnh, Video, Giọng nói & 3D',
+      'Tạo ảnh và video với một khóa API và các điểm cuối có tài liệu.',
+    twitterTitle: 'API AI Media: Ảnh & Video',
     twitterDescription:
-      'Truy cập các mô hình AI truyền thông Trung Quốc qua một API. Tạo ảnh, video, giọng nói và 3D với một khóa API và thanh toán thống nhất.',
+      'Truy cập các mô hình AI truyền thông Trung Quốc qua một API. Tạo ảnh và video với một khóa API và thanh toán thống nhất.',
   },
 }
 
@@ -243,17 +241,17 @@ export const AI_MEDIA_API_BASE_URL = 'https://vancine.com/v1'
 export const AI_MEDIA_API_KEY_ENV_VAR = 'VANCINE_API_KEY'
 
 export interface AiMediaApiExample {
-  id: 'image' | 'video' | 'speech'
+  id: 'image' | 'video'
   /** i18n key of the tab label. */
   labelKey: string
   /** Docs slug the example links to. */
-  docsSlug: 'image' | 'video' | 'audio'
+  docsSlug: 'image' | 'video'
   code: string
 }
 
 /**
  * Quickstart examples. Endpoints and model IDs mirror the current Docs
- * (image/video/audio pages); the API key is read exclusively from the
+ * (image / video pages); the API key is read exclusively from the
  * VANCINE_API_KEY environment variable — never a hardcoded secret. Video is
  * an async task workflow (submit, then poll by task id).
  */
@@ -289,21 +287,6 @@ curl -X POST https://vancine.com/v1/video/generations \\
 curl -X GET https://vancine.com/v1/video/generations/$TASK_ID \\
   -H "Authorization: Bearer $VANCINE_API_KEY"`,
   },
-  {
-    id: 'speech',
-    labelKey: 'Speech',
-    docsSlug: 'audio',
-    code: `curl -X POST https://vancine.com/v1/audio/speech \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer $VANCINE_API_KEY" \\
-  -d '{
-    "model": "Doubao-tts2.0",
-    "voice": "en_female_nadia_uranus_bigtts",
-    "input": "Welcome to Vancine. One API for AI media.",
-    "response_format": "mp3"
-  }' \\
-  --output speech.mp3`,
-  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -324,14 +307,6 @@ export const AI_MEDIA_CAPABILITIES: readonly AiMediaTitledEntry[] = [
   {
     titleKey: 'Video generation',
     descriptionKey: 'Text-to-video and image-to-video async task workflows.',
-  },
-  {
-    titleKey: 'Text to Speech',
-    descriptionKey: 'Speech synthesis with OpenAI-compatible request shapes.',
-  },
-  {
-    titleKey: '3D generation',
-    descriptionKey: 'Async 3D asset workflows documented in the Docs.',
   },
 ]
 
@@ -356,7 +331,7 @@ export const AI_MEDIA_BENEFITS: readonly AiMediaTitledEntry[] = [
 
 /** Media category cards; each links to its Docs page. */
 export interface AiMediaCategory extends AiMediaTitledEntry {
-  docsSlug: 'image' | 'video' | 'audio' | 'td'
+  docsSlug: 'image' | 'video'
 }
 
 export const AI_MEDIA_CATEGORIES: readonly AiMediaCategory[] = [
@@ -370,16 +345,6 @@ export const AI_MEDIA_CATEGORIES: readonly AiMediaCategory[] = [
     descriptionKey: 'Generation and editing through documented endpoints.',
     docsSlug: 'image',
   },
-  {
-    titleKey: 'Text to Speech',
-    descriptionKey: 'Speech synthesis with OpenAI-compatible request shapes.',
-    docsSlug: 'audio',
-  },
-  {
-    titleKey: '3D generation',
-    descriptionKey: 'Async 3D asset workflows documented in the Docs.',
-    docsSlug: 'td',
-  },
 ]
 
 /** Use case cards — concrete outcomes, no adoption metrics. */
@@ -391,8 +356,7 @@ export const AI_MEDIA_USE_CASES: readonly AiMediaTitledEntry[] = [
   },
   {
     titleKey: 'Creative automation tools',
-    descriptionKey:
-      'Batch image and speech generation inside creative pipelines.',
+    descriptionKey: 'Batch image generation inside creative pipelines.',
   },
   {
     titleKey: 'AI SaaS products',
@@ -418,12 +382,12 @@ export const AI_MEDIA_FAQ: readonly AiMediaFaqEntry[] = [
   {
     questionKey: 'Is Vancine OpenAI compatible?',
     answerKey:
-      'For supported text and speech workflows, Vancine provides OpenAI-compatible request shapes. For video, image, and 3D capabilities, use the documented media endpoints.',
+      'For supported text workflows, Vancine provides OpenAI-compatible request shapes. For video and image capabilities, use the documented media endpoints.',
   },
   {
     questionKey: 'Which media models can I access?',
     answerKey:
-      'You can use the video, image, speech, and 3D models currently listed in the platform. The live Docs and Pricing are authoritative for availability.',
+      'You can use the video and image models currently listed in the platform. The live Docs and Pricing are authoritative for availability.',
   },
   {
     questionKey: 'How does video generation work?',
@@ -454,9 +418,9 @@ export const AI_MEDIA_FAQ: readonly AiMediaFaqEntry[] = [
 export const AI_MEDIA_I18N_KEYS = [
   'Built for AI product developers',
   'Access Chinese AI media models through one API.',
-  'Generate images, videos, speech, and 3D assets with one API key, one account, and documented endpoints.',
+  'Generate images and videos with one API key, one account, and documented endpoints.',
   'Explore the API',
-  'Image, video, speech, and 3D generation—available with one API key.',
+  'Image and video generation—available with one API key.',
   'One integration, one account',
   'One integration across the AI media stack',
   'Make your first request in minutes',

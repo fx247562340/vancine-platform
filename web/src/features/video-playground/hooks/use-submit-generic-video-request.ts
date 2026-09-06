@@ -18,82 +18,65 @@ For commercial licensing, please contact support@quantumnous.com.
 */
 import { useCallback } from 'react'
 
-import type { VideoCapability } from '../lib/capabilities'
-import { preflightRequestBodySize, preflightResources } from '../lib/preflight'
+import type { GenericVideoCapability } from '../lib/capabilities'
+import { preflightRequestBodySize } from '../lib/preflight'
 import {
-  buildVideoGenerationRequest,
+  buildGenericVideoGenerationRequest,
   VideoRequestError,
-  type VideoRequestInput,
+  type GenericVideoRequestInput,
 } from '../lib/request-serializer'
 import type { VideoSubmitPayload } from '../types'
 import type { UseSubmissionResult } from './use-submission'
 
-export type SubmitVideoRequest = {
-  capability: VideoCapability
+export type SubmitGenericVideoRequest = {
+  capability: GenericVideoCapability
   modelId: string
   batchSize: number
   /**
-   * The page-owned queue. This hook holds no lifecycle state of its own, so
-   * unmounting the dedicated composer when the user switches to a generic model
-   * cannot drop an in-flight POST or an accepted task.
+   * The page-owned queue, shared with the dedicated composer. As there, this
+   * hook holds no lifecycle state of its own, so switching profile cannot drop
+   * an in-flight POST or an accepted task.
    */
   submission: UseSubmissionResult<VideoSubmitPayload>
 }
 
-export type SubmitVideoResult =
+export type SubmitGenericVideoResult =
   | { ok: true }
   | { ok: false; reasonKey: string; detail?: string }
 
-export type VideoSubmitter = {
-  start: (input: Omit<VideoRequestInput, 'model'>) => SubmitVideoResult
+export type GenericVideoSubmitter = {
+  start: (
+    input: Omit<GenericVideoRequestInput, 'model'>
+  ) => SubmitGenericVideoResult
   cancel: () => void
   isBusy: boolean
 }
 
 /**
- * Production entry point for submitting a video request on a model that has a
- * dedicated capability profile.
+ * Submission entry point for a video model without a dedicated capability
+ * profile.
  *
- * `start` runs the canonical preflight against the SAME resource
- * collection it later serializes. On preflight or serializer
- * failure, NO POST is sent, NO task placeholders are created, and
- * the page is NOT locked — the user can fix the input and try again.
+ * The generic contract is enforced by the serializer, which rejects any
+ * resource it cannot honestly send (a second image, a video, an audio track, an
+ * inlined base64 payload or a non-public URL) with a translatable reason. On
+ * such a rejection NO POST is sent, NO task placeholder is created and the page
+ * stays unlocked, so the user can remove the offending asset and try again.
  */
-export function useSubmitVideoRequest(
-  params: SubmitVideoRequest
-): VideoSubmitter {
+export function useSubmitGenericVideoRequest(
+  params: SubmitGenericVideoRequest
+): GenericVideoSubmitter {
   const { submission, capability, modelId, batchSize } = params
   const { start: startSubmission, cancel, isBusy } = submission
 
   const start = useCallback(
-    (input: Omit<VideoRequestInput, 'model'>): SubmitVideoResult => {
+    (
+      input: Omit<GenericVideoRequestInput, 'model'>
+    ): SubmitGenericVideoResult => {
       try {
-        const resources = {
-          images: [...input.images],
-          videos: [...input.videos],
-          audios: [...input.audios],
-        }
-        const resourcePre = preflightResources(
-          capability,
-          input.mode,
-          resources
-        )
-        if (!resourcePre.ok) {
-          return {
-            ok: false,
-            reasonKey: resourcePre.illegalReason,
-            detail: resourcePre.detail,
-          }
-        }
-
-        const body = buildVideoGenerationRequest({
+        const body = buildGenericVideoGenerationRequest({
           model: modelId,
           ...input,
-          images: resources.images,
-          videos: resources.videos,
-          audios: resources.audios,
         })
-
         const bodyPre = preflightRequestBodySize(body, capability)
         if (!bodyPre.ok) {
           return {

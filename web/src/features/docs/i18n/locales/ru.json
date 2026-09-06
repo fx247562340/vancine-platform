@@ -143,80 +143,6 @@
       "failure": "Сбой; проверьте data.fail_reason"
     }
   },
-  "td": {
-    "title": "3D-генерация",
-    "desc": "3D-модели используют тот же формат асинхронной задачи. Отправьте задачу, затем опрашивайте с task_id для получения результата.",
-    "endpointSubmit": "3D также отправляет через видео асинхронную конечную точку",
-    "endpointPoll": "Опрашивать результаты 3D-задачи",
-    "modelsTitle": "3D-модели",
-    "paramsTitle": "Параметры",
-    "examplesTitle": "Примеры запросов",
-    "colImagesParam": "Параметр images",
-    "withoutImage": "Без изображения",
-    "withImage": "С эталонным изображением",
-    "imagesWarning": "Doubao-Seed3D-2.0 требует images. Не используйте поле image_data; шлюз Vancine преобразует images в формат content[].image_url, требуемый upstream.",
-    "params": {
-      "model": "Имя 3D-модели",
-      "prompt": "Текстовое описание 3D-актива (необязательно для изображение-к-3D)",
-      "images": "Массив URL эталонных изображений для изображение-к-3D. Doubao-Seed3D-2.0 требует минимум одно изображение. Поддерживает публичные URL или data:image/...;base64,..."
-    },
-    "asyncCallout": "3D-генерация асинхронна. После отправки сохраните task_id из ответа, затем опрашивайте GET /v1/video/generations/{task_id}. При успехе прочитайте ссылку на файл 3D-модели из metadata.url в результате."
-  },
-  "audio": {
-    "title": "Аудио / TTS",
-    "desc": "Конечная точка TTS использует совместимое с OpenAI тело запроса, но ответ — бинарный MP3-аудиопоток, а не JSON.",
-    "paramsTitle": "Параметры",
-    "ttsExamplesTitle": "Пример Doubao-tts (голоса 1.0)",
-    "tts2ExamplesTitle": "Пример Doubao-tts2.0 (голоса 2.0)",
-    "voicesTitle": "Доступные голоса",
-    "endpointWarning": "TTS не использует /v1/chat/completions. Использование неверной конечной точки может вернуть вводящий в заблуждение 401, похожий на отсутствующий API-ключ; обычная причина — неправильный путь.",
-    "voiceSuffixCallout": "Суффикс ID голоса определяет версию модели: суффикс uranus — для Doubao-tts2.0, суффикс mars — для Doubao-tts. Несоответствие голос/модель возвращает ошибку resource mismatch.",
-    "colVoiceId": "ID голоса",
-    "colName": "Имя",
-    "colModel": "Модель",
-    "colUseCase": "Язык / случай использования",
-    "params": {
-      "model": "Doubao-tts или Doubao-tts2.0",
-      "input": "Текст для синтеза",
-      "voice": "ID голоса, см. список ниже",
-      "response_format": "Формат выходного аудио: mp3 (по умолчанию), opus, aac, flac, wav, pcm",
-      "speed": "Скорость речи 0.25–4.0, по умолчанию 1.0"
-    },
-    "voices": {
-      "vivi": "Vivi",
-      "nadia": "Nadia",
-      "jane": "Jane",
-      "rachel": "Rachel",
-      "david": "David",
-      "alex": "Alex",
-      "kevin": "Kevin",
-      "stokie": "Stokie",
-      "spanishFemale": "Испанский, женский",
-      "frenchFemale": "Французский, женский",
-      "germanFemale": "Немецкий, женский",
-      "arabicFemale": "Арабский, женский",
-      "cancan": "Cancan",
-      "wenhao": "Wenhao",
-      "amanda": "Amanda",
-      "emily": "Emily",
-      "adam": "Adam",
-      "jackson": "Jackson",
-      "sarah": "Sarah",
-      "smith": "Smith",
-      "anna": "Anna",
-      "dryw": "Dryw",
-      "zhFemaleGentle": "Китайский, женский, нежный (многоязычный)",
-      "enFemale": "Английский, женский",
-      "enMale": "Английский, мужской",
-      "enUkFemale": "Английский (UK), женский",
-      "espanol": "Español",
-      "francais": "Français",
-      "deutsch": "Deutsch",
-      "arabic": "العربية",
-      "zhFemaleBright": "Китайский, женский, яркий",
-      "zhMaleSteady": "Китайский, мужской, стабильный"
-    }
-  },
   "auth": {
     "title": "Аутентификация",
     "desc": "Все запросы /v1 требуют API-ключа в заголовке Authorization.",
@@ -227,15 +153,11 @@
     "desc": "Vancine предоставляет различные возможности генерации через совместимые с OpenAI конечные точки и конечные точки асинхронных задач.",
     "rows": {
       "chat": "Чат",
-      "tts": "Синтез речи",
       "image": "Генерация изображений",
       "video": "Генерация видео",
-      "td": "Генерация 3D-активов",
       "chatNote": "Совместимое с OpenAI тело запроса messages",
-      "ttsNote": "Возвращает бинарный MP3-аудиопоток",
       "imageNote": "Возвращает URL изображений",
-      "videoNote": "Асинхронная задача, опрос с task_id",
-      "tdNote": "Асинхронная задача с поддержкой prompt и images"
+      "videoNote": "Асинхронная задача, опрос с task_id"
     }
   },
   "models": {
@@ -245,8 +167,7 @@
     "textModelsTitle": "Текстовые модели ({{count}})",
     "multimodalTitle": "Мультимодальные модели генерации",
     "colType": "Тип",
-    "colUsageNotes": "Примечания по использованию",
-    "returnsValidMp3": "Возвращает корректный MP3"
+    "colUsageNotes": "Примечания по использованию"
   },
   "errors": {
     "title": "Обработка ошибок",
@@ -258,7 +179,7 @@
       "badRequest": "Некорректный запрос",
       "badRequestCause": "Неверный размер, отсутствует prompt или несоответствие модели/конечной точки",
       "unauthorized": "Не авторизован",
-      "unauthorizedCause": "Неверный ключ или неправильная конечная точка, например отправка TTS в chat",
+      "unauthorizedCause": "Неверный ключ или неправильная конечная точка",
       "notFound": "Путь не найден",
       "notFoundCause": "Проверьте правильность написания пути URL",
       "noChannel": "Нет доступных каналов",
@@ -268,7 +189,7 @@
   "sdks": {
     "title": "SDK и инструменты",
     "desc": "Текстовые конечные точки Vancine совместимы с SDK OpenAI. Мультимедийные конечные точки также можно вызывать любым HTTP-клиентом.",
-    "requestsDesc": "Подходит для изображений, видео, 3D и TTS",
+    "requestsDesc": "Подходит для изображений и видео",
     "curlDesc": "Встроен или установите через пакетный менеджер"
   },
   "agents": {
@@ -431,14 +352,6 @@
         "q": "Как проверить API-ключ?",
         "a": "Вызовите GET {{baseUrl}}/models. HTTP 200 со списком моделей означает, что ключ действителен и имеет доступ в текущей группе."
       },
-      "video3dResults": {
-        "q": "Где читать результаты видео и 3D?",
-        "a": "Опрашивайте GET /v1/video/generations/{task_id}. При успехе читайте data.result_url или data.data.content.video_url."
-      },
-      "ttsNotJson": {
-        "q": "Почему TTS не возвращает JSON?",
-        "a": "Успешные вызовы TTS возвращают бинарный MP3-аудиопоток напрямую с Content-Type audio/mpeg."
-      },
       "seedreamSize": {
         "q": "Почему Seedream отклоняет размер изображения?",
         "a": "Doubao-Seedream-5.0-lite требует минимум 3 686 400 пикселей (используйте 2048x2048). У Doubao-Seedream-5.0-pro такого ограничения нет: минимум 921 600 пикселей (1024x1024 работает). Задайте size под используемую модель или передайте уровень 1K/2K и позвольте модели решить."
@@ -456,8 +369,6 @@
     "chat": "Чат-дополнения",
     "image": "Генерация изображений",
     "video": "Генерация видео",
-    "td": "3D-генерация",
-    "audio": "Аудио / TTS",
     "sdks": "SDK и инструменты",
     "agents": "Интеграция агентов",
     "auth": "Аутентификация",

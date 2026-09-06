@@ -46,7 +46,7 @@ export function ReferenceAssetsRow(props: ReferenceAssetsRowProps) {
     >
       <div className='flex flex-col gap-1.5'>
         <ResourceAdder
-          capability={capability}
+          supportedFormats={capability.referenceImage.supportedFormats}
           kind='image'
           count={resourceStore.images.length}
           maxCount={capability.referenceImage.multimodalMax}
@@ -82,7 +82,7 @@ export function ReferenceAssetsRow(props: ReferenceAssetsRowProps) {
           triggerClassName='w-full justify-start'
         />
         <ResourceAdder
-          capability={capability}
+          supportedFormats={capability.referenceVideo.supportedFormats}
           kind='video'
           count={resourceStore.videos.length}
           maxCount={capability.referenceVideo.maxCount}
@@ -96,7 +96,7 @@ export function ReferenceAssetsRow(props: ReferenceAssetsRowProps) {
           triggerClassName='w-full justify-start'
         />
         <ResourceAdder
-          capability={capability}
+          supportedFormats={capability.referenceAudio.supportedFormats}
           kind='audio'
           count={resourceStore.audios.length}
           maxCount={capability.referenceAudio.maxCount}
@@ -155,11 +155,14 @@ export function ReferenceAssetsRow(props: ReferenceAssetsRowProps) {
           else if (kind === 'video') resourceStore.removeVideo(id)
           else resourceStore.removeAudio(id)
         }}
-        onInsertReference={(label) => {
-          const current = form.getValues('prompt')
-          const next =
-            current.length === 0 ? `${label} ` : `${current} ${label} `
-          form.setValue('prompt', next, { shouldValidate: true })
+        referenceMode={{
+          kind: 'prompt-token',
+          onInsertReference: (label) => {
+            const current = form.getValues('prompt')
+            const next =
+              current.length === 0 ? `${label} ` : `${current} ${label} `
+            form.setValue('prompt', next, { shouldValidate: true })
+          },
         }}
       />
     </div>

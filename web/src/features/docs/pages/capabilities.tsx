@@ -27,16 +27,14 @@ import { useRegisterHeadings } from '../components/register-headings'
 import type { TocHeading } from '../types'
 
 interface CapabilityRow {
-  key: 'chat' | 'tts' | 'image' | 'video' | 'td'
+  key: 'chat' | 'image' | 'video'
   endpoint: string
 }
 
 const CAPABILITY_ROWS: CapabilityRow[] = [
   { key: 'chat', endpoint: 'POST /v1/chat/completions' },
-  { key: 'tts', endpoint: 'POST /v1/audio/speech' },
   { key: 'image', endpoint: 'POST /v1/images/generations' },
   { key: 'video', endpoint: 'POST /v1/video/generations' },
-  { key: 'td', endpoint: 'POST /v1/video/generations' },
 ]
 
 export default function Capabilities(props: { baseUrl: string }) {

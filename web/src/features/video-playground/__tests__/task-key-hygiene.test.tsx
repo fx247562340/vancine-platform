@@ -94,7 +94,14 @@ describe('query cache, mutation cache, storage, URL, DOM and console hygiene', (
     const lateResponse = deferred<Response>()
     installRecorder((url) => {
       if (url === '/v1/models') {
-        return jsonResponse(200, { data: [{ id: 'Doubao-Seedance-2.5' }] })
+        return jsonResponse(200, {
+          data: [
+            {
+              id: 'Doubao-Seedance-2.5',
+              supported_endpoint_types: ['openai-video'],
+            },
+          ],
+        })
       }
       if (url === '/v1/video/generations') {
         return lateResponse.promise

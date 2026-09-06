@@ -307,7 +307,7 @@ describe('FAQ contract', () => {
       'platform fee',
       'catalog',
       'pricing',
-      'image, video, speech and 3D',
+      'image and video',
     ]) {
       assert.ok(
         joined.toLowerCase().includes(expected.toLowerCase()),
@@ -342,7 +342,7 @@ describe('FAQ contract', () => {
 })
 
 describe('model catalog copy', () => {
-  test('lists the five flagship text families and the four media families', () => {
+  test('lists the five flagship text families and the two media families', () => {
     const expected: ReadonlyArray<string> = [
       'Qwen',
       'Kimi',
@@ -351,8 +351,6 @@ describe('model catalog copy', () => {
       'DeepSeek',
       'Image',
       'Video',
-      'Audio',
-      '3D',
     ]
     const tokens =
       OPENROUTER_ALTERNATIVE_MODEL_CATALOG_TOKENS as ReadonlyArray<string>
