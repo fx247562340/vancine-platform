@@ -31,7 +31,7 @@ import {
 import type { VideoModelOption } from '../types'
 
 type VideoModelSelectorProps = {
-  models: VideoModelOption[]
+  models: ReadonlyArray<VideoModelOption>
   selectedModel: string
   onChange: (model: string) => void
   disabled?: boolean

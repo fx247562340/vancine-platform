@@ -14,32 +14,41 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-For commercial licensing, please contact support@quantumnous.com
+For commercial licensing, please contact support@quantumnous.com.
 */
-import { act, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+
+/**
+ * Video studio accessibility.
+ *
+ * One responsibility: everything an assistive-tech user needs to operate the
+ * rebuilt two-column studio. That is the accessible name of every control, full
+ * keyboard operability (tab order, keyboard submit, keyboard task selection),
+ * the ARIA states that must track the visible state (`aria-expanded`,
+ * `aria-selected`, `aria-checked`, `aria-pressed`, `aria-busy`, `aria-invalid`),
+ * and the rule that failures are announced in the page, never through a
+ * blocking browser `alert`.
+ */
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import userEvent, { type UserEvent } from '@testing-library/user-event'
 import type { i18n as I18n } from 'i18next'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { routerLinkMock } from '@/test/router-link-mock'
 
-import {
-  getVideoModelsWithApiKey,
-  getVideoTask,
-  listUsableVideoApiKeys,
-  loadVideoApiSecret,
-  submitVideoGenerationWithApiKey,
-} from '../api'
+import { getVideoTask, submitVideoGenerationRequest } from '../api'
+import { VideoPlaygroundError } from '../lib/errors'
+import { deferred } from './pipeline-harness'
 import {
   createVideoPlaygroundI18n,
-  FAKE_SECRET,
   readyGenerateButton,
   renderVideoPlayground,
   stubAuthUser,
+  stubVideoApi,
+  submitStudio,
+  typePrompt,
 } from './test-utils'
 
 vi.mock('@tanstack/react-router', () => routerLinkMock)
-
 vi.mock('../api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api')>()
   return {
@@ -47,100 +56,458 @@ vi.mock('../api', async (importOriginal) => {
     listUsableVideoApiKeys: vi.fn(),
     loadVideoApiSecret: vi.fn(),
     getVideoModelsWithApiKey: vi.fn(),
+    submitVideoGenerationRequest: vi.fn(),
     submitVideoGenerationWithApiKey: vi.fn(),
     getVideoTask: vi.fn(),
   }
 })
 
-describe('VideoPlayground keyboard, focus, mobile, and submit lock', () => {
-  let i18n: I18n
+const FINISHED_CLIP_URL =
+  'https://media.test/v1/tasks/task-finished/artifacts/video/content?access=tok'
 
-  beforeEach(async () => {
-    i18n = await createVideoPlaygroundI18n()
-    stubAuthUser()
-    vi.mocked(listUsableVideoApiKeys).mockResolvedValue([
-      {
-        id: 2,
-        name: 'older',
-        maskedKey: 'sk-***1111',
-        status: 1,
-        createdTime: 100,
-      },
-    ])
-    vi.mocked(loadVideoApiSecret).mockResolvedValue(FAKE_SECRET)
-    vi.mocked(getVideoModelsWithApiKey).mockResolvedValue([
-      { label: 'Doubao-Seedance-2.5', value: 'Doubao-Seedance-2.5' },
-      { label: 'Doubao-Seedance-2.0', value: 'Doubao-Seedance-2.0' },
-    ])
-    vi.mocked(submitVideoGenerationWithApiKey).mockReset()
-    vi.mocked(getVideoTask).mockReset()
+let i18n: I18n
+
+beforeEach(async () => {
+  stubAuthUser()
+  await stubVideoApi({})
+  i18n = await createVideoPlaygroundI18n()
+})
+
+/**
+ * Walk the browser tab order from wherever focus currently is and return the
+ * element that received focus at each stop. Stops that land on `document.body`
+ * (the wrap point) are dropped, so the result is the real sequence of keyboard
+ * stops a user reaches.
+ */
+async function walkTabOrder(user: UserEvent, stopCount: number) {
+  const stops: Element[] = []
+  for (let index = 0; index < stopCount; index += 1) {
+    await user.tab()
+    const active = document.activeElement
+    if (active && active !== document.body) {
+      stops.push(active)
+    }
+  }
+  return stops
+}
+
+/** Put one accepted task on the page so the preview column has real content. */
+async function submitAcceptedTask(
+  user: UserEvent,
+  prompt: string,
+  taskId: string
+) {
+  vi.mocked(submitVideoGenerationRequest).mockResolvedValue({ task_id: taskId })
+  vi.mocked(getVideoTask).mockResolvedValue({
+    task_id: taskId,
+    status: 'IN_PROGRESS',
+  })
+  await typePrompt(user, prompt)
+  await submitStudio(user)
+  await waitFor(() => {
+    expect(screen.getByRole('region', { name: 'Recent tasks' })).toBeTruthy()
+  })
+}
+
+describe('Video studio accessible names', () => {
+  it('gives the header key picker, every composer control and the preview region their announced accessible names', async () => {
+    renderVideoPlayground(i18n)
+    await readyGenerateButton()
+
+    expect(
+      screen.getByRole('button', { name: 'API Key' })
+    ).toHaveAccessibleName('API Key')
+    expect(
+      screen.getByRole('combobox', { name: 'Video model' })
+    ).toHaveAccessibleName('Video model')
+    expect(
+      screen.getByRole('group', { name: 'Reference images' })
+    ).toHaveAccessibleName('Reference images')
+    expect(
+      screen.getByRole('button', { name: 'Choose files' })
+    ).toHaveAccessibleName('Choose files')
+    expect(
+      screen.getByRole('textbox', { name: 'Prompt' })
+    ).toHaveAccessibleName('Prompt')
+    expect(
+      screen.getByRole('combobox', { name: 'Seconds' })
+    ).toHaveAccessibleName('Seconds')
+    expect(
+      screen.getByRole('combobox', { name: 'Resolution' })
+    ).toHaveAccessibleName('Resolution')
+    expect(
+      screen.getByRole('button', { name: 'Generate video' })
+    ).toHaveAccessibleName('Generate video')
+    expect(
+      screen.getByRole('region', { name: 'Preview' })
+    ).toHaveAccessibleName('Preview')
   })
 
-  it('exposes labeled controls and submits from the keyboard', async () => {
-    const user = userEvent.setup()
+  it('names the reference-image tray from a visible text label rather than an aria-label', async () => {
     renderVideoPlayground(i18n)
-    const prompt = await screen.findByLabelText('Prompt')
     await readyGenerateButton()
-    expect(screen.getByLabelText('Connection settings')).toBeTruthy()
-    expect(screen.getByLabelText('Video model')).toBeTruthy()
 
-    await user.type(prompt, 'a cat walks on the moon')
-    vi.mocked(submitVideoGenerationWithApiKey).mockResolvedValue({
-      task_id: 'task-1',
+    const tray = screen.getByRole('group', { name: 'Reference images' })
+    const label = screen.getByText('Reference images')
+    expect(tray).not.toHaveAttribute('aria-label')
+    expect(label.id).not.toBe('')
+    expect(tray).toHaveAttribute('aria-labelledby', label.id)
+    expect(tray).toContainElement(label)
+  })
+
+  it('names the finished-task preview controls Generated video, Download and Use these settings again', async () => {
+    const user = userEvent.setup()
+    vi.mocked(submitVideoGenerationRequest).mockResolvedValue({
+      task_id: 'task-finished',
     })
     vi.mocked(getVideoTask).mockResolvedValue({
-      task_id: 'task-1',
+      task_id: 'task-finished',
+      status: 'SUCCESS',
+      content_url: FINISHED_CLIP_URL,
+    })
+    renderVideoPlayground(i18n)
+    await typePrompt(user, 'a finished clip')
+    await submitStudio(user)
+
+    const video = await screen.findByLabelText('Generated video')
+    expect(video.tagName).toBe('VIDEO')
+    expect(video).toHaveAttribute('src', FINISHED_CLIP_URL)
+    expect(
+      screen.getByRole('button', { name: 'Download' })
+    ).toHaveAccessibleName('Download')
+    expect(
+      screen.getByRole('button', { name: 'Use these settings again' })
+    ).toHaveAccessibleName('Use these settings again')
+  })
+
+  it('names the recovery control Reload preview when the rendered video fails to load', async () => {
+    const user = userEvent.setup()
+    vi.mocked(submitVideoGenerationRequest).mockResolvedValue({
+      task_id: 'task-finished',
+    })
+    vi.mocked(getVideoTask).mockResolvedValue({
+      task_id: 'task-finished',
+      status: 'SUCCESS',
+      content_url: FINISHED_CLIP_URL,
+    })
+    renderVideoPlayground(i18n)
+    await typePrompt(user, 'a finished clip')
+    await submitStudio(user)
+    fireEvent.error(await screen.findByLabelText('Generated video'))
+
+    const reload = await screen.findByRole('button', { name: 'Reload preview' })
+    expect(reload).toHaveAccessibleName('Reload preview')
+    expect(screen.queryByLabelText('Generated video')).toBeNull()
+  })
+
+  it('names the recovery control Retry status when the task status request fails', async () => {
+    const user = userEvent.setup()
+    vi.mocked(submitVideoGenerationRequest).mockResolvedValue({
+      task_id: 'task-stalled',
+    })
+    vi.mocked(getVideoTask).mockRejectedValue(
+      new VideoPlaygroundError({
+        kind: 'upstream',
+        rawMessage: 'upstream 503',
+        httpStatus: 503,
+        terminal: true,
+      })
+    )
+    renderVideoPlayground(i18n)
+    await typePrompt(user, 'a stalled clip')
+    await submitStudio(user)
+
+    const retry = await screen.findByRole('button', { name: 'Retry status' })
+    expect(retry).toHaveAccessibleName('Retry status')
+  })
+})
+
+describe('Video studio keyboard operability', () => {
+  it('reaches every composer control in DOM order by Tab and submits with the keyboard', async () => {
+    const user = userEvent.setup()
+    vi.mocked(submitVideoGenerationRequest).mockResolvedValue({
+      task_id: 'task-keyboard',
+    })
+    vi.mocked(getVideoTask).mockResolvedValue({
+      task_id: 'task-keyboard',
       status: 'IN_PROGRESS',
     })
-    await act(async () => {
-      prompt.closest('form')?.requestSubmit()
-      await Promise.resolve()
-    })
+    renderVideoPlayground(i18n)
+    await readyGenerateButton()
+
+    screen.getByRole('combobox', { name: 'Video model' }).focus()
+
+    await user.tab()
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Choose files' })
+    )
+
+    await user.tab()
+    const prompt = screen.getByRole('textbox', { name: 'Prompt' })
+    expect(document.activeElement).toBe(prompt)
+    await user.keyboard('a keyboard-only prompt')
+
+    await user.tab()
+    expect(document.activeElement).toBe(
+      screen.getByRole('combobox', { name: 'Seconds' })
+    )
+
+    await user.tab()
+    expect(document.activeElement).toBe(
+      screen.getByRole('combobox', { name: 'Resolution' })
+    )
+
+    await user.tab()
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Generate video' })
+    )
+    await user.keyboard('{Enter}')
+
     await waitFor(() => {
-      expect(submitVideoGenerationWithApiKey).toHaveBeenCalledTimes(1)
+      expect(vi.mocked(submitVideoGenerationRequest)).toHaveBeenCalledTimes(1)
+    })
+    expect(vi.mocked(submitVideoGenerationRequest).mock.calls[0]?.[1]).toEqual({
+      model: 'wan3.0-video',
+      prompt: 'a keyboard-only prompt',
+      duration: 5,
+      size: '1080P',
     })
   })
 
-  it('disables generate while a submission is in flight', async () => {
-    let resolveSubmit: (value: { task_id: string }) => void = () => {}
-    vi.mocked(submitVideoGenerationWithApiKey).mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          resolveSubmit = resolve
-        })
-    )
-    vi.mocked(getVideoTask).mockResolvedValue({
-      task_id: 'task-1',
-      status: 'IN_PROGRESS',
-    })
+  it('keeps Choose files as the tray keyboard entry point and never focuses the file input while tabbing', async () => {
     const user = userEvent.setup()
     renderVideoPlayground(i18n)
     await readyGenerateButton()
-    await user.type(
-      await screen.findByLabelText('Prompt'),
-      'a cat walks on the moon'
+
+    const fileInput = screen.getByTestId('reference-image-file-input')
+    expect(fileInput).toHaveAttribute('type', 'file')
+    expect(fileInput).toHaveAttribute('aria-hidden', 'true')
+
+    ;(document.activeElement as HTMLElement | null)?.blur()
+    const stops = await walkTabOrder(user, 10)
+
+    expect(stops).toContain(
+      screen.getByRole('button', { name: 'Choose files' })
     )
-    const generate = screen.getByRole('button', { name: 'Generate' })
-    await user.click(generate)
-    await user.click(generate)
+    expect(stops).not.toContain(fileInput)
+  })
+
+  it('selects a recent task with Enter and moves the preview onto it, flipping aria-pressed', async () => {
+    const user = userEvent.setup()
+    vi.mocked(submitVideoGenerationRequest)
+      .mockResolvedValueOnce({ task_id: 'task-first' })
+      .mockResolvedValueOnce({ task_id: 'task-second' })
+    vi.mocked(getVideoTask).mockImplementation(async (taskId: string) => ({
+      task_id: taskId,
+      status: taskId === 'task-first' ? 'SUCCESS' : 'IN_PROGRESS',
+      content_url:
+        taskId === 'task-first'
+          ? 'https://media.test/v1/tasks/task-first/artifacts/video/content?access=tok'
+          : null,
+    }))
+    renderVideoPlayground(i18n)
+    await typePrompt(user, 'first prompt')
+    await submitStudio(user)
+    await screen.findByLabelText('Generated video')
+    await user.clear(screen.getByRole('textbox', { name: 'Prompt' }))
+    await typePrompt(user, 'second prompt')
+    await submitStudio(user)
+
+    const list = await screen.findByRole('region', { name: 'Recent tasks' })
+    await waitFor(() => {
+      expect(within(list).getAllByRole('button')).toHaveLength(2)
+    })
+    const firstRow = within(list).getByRole('button', { name: /first prompt/ })
+    const secondRow = within(list).getByRole('button', {
+      name: /second prompt/,
+    })
+    // Natively keyboard operable: a real button, not a div with a click handler.
+    expect(firstRow.tagName).toBe('BUTTON')
+    expect(firstRow).toHaveAttribute('type', 'button')
+    // The just-submitted task owns the preview.
+    expect(firstRow).toHaveAttribute('aria-pressed', 'false')
+    expect(secondRow).toHaveAttribute('aria-pressed', 'true')
+    const preview = screen.getByRole('region', { name: 'Preview' })
+    expect(within(preview).getByText('second prompt')).toBeTruthy()
+
+    firstRow.focus()
+    await user.keyboard('{Enter}')
+
+    await waitFor(() => {
+      expect(firstRow).toHaveAttribute('aria-pressed', 'true')
+    })
+    expect(secondRow).toHaveAttribute('aria-pressed', 'false')
+    expect(within(preview).getByText('first prompt')).toBeTruthy()
+    expect(within(preview).getByLabelText('Generated video')).toBeTruthy()
+  })
+})
+
+describe('Video studio ARIA state consistency', () => {
+  it('mirrors the API Key menu visibility in aria-expanded and the chosen key in aria-checked', async () => {
+    const user = userEvent.setup()
+    renderVideoPlayground(i18n)
+    await readyGenerateButton()
+
+    const trigger = screen.getByRole('button', { name: 'API Key' })
+    expect(trigger).toHaveAttribute('aria-haspopup', 'menu')
+    expect(trigger).toHaveAttribute('aria-expanded', 'false')
+    expect(trigger).not.toBeDisabled()
+
+    await user.click(trigger)
+    await waitFor(() => {
+      expect(trigger).toHaveAttribute('aria-expanded', 'true')
+    })
+    const entries = screen.getAllByRole('menuitemradio')
+    expect(entries).toHaveLength(2)
+    expect(entries[0]).toHaveAccessibleName(/studio/)
+    expect(entries[0]).toHaveAttribute('aria-checked', 'true')
+    expect(entries[1]).toHaveAccessibleName(/newer/)
+    expect(entries[1]).toHaveAttribute('aria-checked', 'false')
+
+    await user.click(entries[1] as HTMLElement)
+    await waitFor(() => {
+      expect(trigger).toHaveTextContent('newer · sk-***9999')
+    })
+    expect(trigger).toHaveAttribute('aria-expanded', 'false')
+
+    await user.click(trigger)
+    await waitFor(() => {
+      expect(trigger).toHaveAttribute('aria-expanded', 'true')
+    })
+    const reopened = screen.getAllByRole('menuitemradio')
+    expect(reopened[0]).toHaveAttribute('aria-checked', 'false')
+    expect(reopened[1]).toHaveAttribute('aria-checked', 'true')
+  })
+
+  it('marks only the currently chosen Seconds option aria-selected and closes the listbox again', async () => {
+    const user = userEvent.setup()
+    renderVideoPlayground(i18n)
+    await readyGenerateButton()
+
+    const seconds = screen.getByRole('combobox', { name: 'Seconds' })
+    expect(seconds).toHaveAttribute('aria-expanded', 'false')
+
+    await user.click(seconds)
+    await waitFor(() => {
+      expect(seconds).toHaveAttribute('aria-expanded', 'true')
+    })
+    const options = screen.getAllByRole('option')
+    const selected = options.filter(
+      (option) => option.getAttribute('aria-selected') === 'true'
+    )
+    expect(selected).toHaveLength(1)
+    expect(selected[0]).toHaveAccessibleName('5 seconds')
+    expect(seconds).toHaveTextContent('5 seconds')
+
+    await user.keyboard('{Escape}')
+    await waitFor(() => {
+      expect(seconds).toHaveAttribute('aria-expanded', 'false')
+    })
+  })
+
+  it('disables Generate video and sets aria-busy while the POST is in flight, then clears both when the task id arrives', async () => {
+    const user = userEvent.setup()
+    const gate = deferred<{ id?: string; task_id?: string }>()
+    vi.mocked(submitVideoGenerationRequest).mockImplementation(
+      () => gate.promise
+    )
+    vi.mocked(getVideoTask).mockResolvedValue({
+      task_id: 'task-slow',
+      status: 'IN_PROGRESS',
+    })
+    renderVideoPlayground(i18n)
+    const generate = await readyGenerateButton()
+    expect(generate).toBeEnabled()
+    expect(generate).not.toHaveAttribute('aria-busy')
+
+    await typePrompt(user, 'a slow upload')
+    await submitStudio(user)
+
     await waitFor(() => {
       expect(generate).toBeDisabled()
     })
-    expect(submitVideoGenerationWithApiKey).toHaveBeenCalledTimes(1)
-    await act(async () => {
-      resolveSubmit({ task_id: 'task-1' })
-      await Promise.resolve()
+    expect(generate).toHaveAttribute('aria-busy', 'true')
+    expect(generate).toHaveAccessibleName('Submitting...')
+    expect(vi.mocked(submitVideoGenerationRequest)).toHaveBeenCalledTimes(1)
+
+    gate.resolve({ task_id: 'task-slow' })
+
+    await waitFor(() => {
+      expect(generate).toBeEnabled()
     })
+    expect(generate).not.toHaveAttribute('aria-busy')
+    expect(generate).toHaveAccessibleName('Generate video')
   })
 
-  it('keeps the form usable at a 375px mobile width without horizontal overflow', async () => {
-    renderVideoPlayground(i18n, undefined, { innerWidth: 375 })
+  it('sets aria-invalid plus a role=alert message on an empty-prompt submit and clears both once a prompt is typed', async () => {
+    const user = userEvent.setup()
+    renderVideoPlayground(i18n)
     await readyGenerateButton()
-    const page = screen.getByTestId('video-playground-page')
-    expect(screen.getByLabelText('Connection settings')).toBeTruthy()
-    expect(screen.getByLabelText('Video model')).toBeTruthy()
-    expect(screen.getByLabelText('Prompt')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Generate' })).toBeTruthy()
-    expect(page).toHaveClass('overflow-x-hidden')
+    const prompt = screen.getByRole('textbox', { name: 'Prompt' })
+    expect(prompt).not.toHaveAttribute('aria-invalid')
+    expect(screen.queryByRole('alert')).toBeNull()
+
+    await user.type(prompt, '   ')
+    await submitStudio(user)
+
+    await waitFor(() => {
+      expect(prompt).toHaveAttribute('aria-invalid', 'true')
+    })
+    const message = screen.getByRole('alert')
+    expect(message).toHaveTextContent('Prompt is required')
+    expect(prompt).toHaveAttribute('aria-describedby', message.id)
+    expect(vi.mocked(submitVideoGenerationRequest)).not.toHaveBeenCalled()
+
+    await user.type(prompt, 'a real prompt')
+
+    await waitFor(() => {
+      expect(prompt).not.toHaveAttribute('aria-invalid')
+    })
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('reports a rejected submission inline and never calls window.alert', async () => {
+    const user = userEvent.setup()
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
+    vi.mocked(submitVideoGenerationRequest).mockRejectedValue(
+      new Error('upstream refused')
+    )
+    renderVideoPlayground(i18n)
+    await typePrompt(user, 'a rejected clip')
+    await submitStudio(user)
+
+    const messages = await screen.findAllByText('Video generation failed')
+    expect(messages.length).toBeGreaterThan(0)
+    expect(alertSpy).not.toHaveBeenCalled()
+  })
+})
+
+describe('Video studio focus order', () => {
+  it('puts the header API Key control before the composer controls and the composer before the preview', async () => {
+    const user = userEvent.setup()
+    renderVideoPlayground(i18n)
+    await submitAcceptedTask(user, 'a focus-order clip', 'task-focus')
+    await readyGenerateButton()
+
+    ;(document.activeElement as HTMLElement | null)?.blur()
+    const stops = await walkTabOrder(user, 12)
+
+    const keyTrigger = screen.getByRole('button', { name: 'API Key' })
+    const modelSelect = screen.getByRole('combobox', { name: 'Video model' })
+    const generate = screen.getByRole('button', { name: 'Generate video' })
+    const preview = screen.getByRole('region', { name: 'Preview' })
+    const previewLogLink = within(preview).getByRole('link', {
+      name: 'View in usage logs',
+    })
+
+    for (const stop of [keyTrigger, modelSelect, generate, previewLogLink]) {
+      expect(stops).toContain(stop)
+    }
+    expect(stops.indexOf(keyTrigger)).toBeLessThan(stops.indexOf(modelSelect))
+    expect(stops.indexOf(modelSelect)).toBeLessThan(stops.indexOf(generate))
+    expect(stops.indexOf(generate)).toBeLessThan(stops.indexOf(previewLogLink))
+    // The preview landmark wraps the link, so reaching the link last also means
+    // the whole preview column is reached after the composer.
+    expect(preview.contains(previewLogLink)).toBe(true)
   })
 })

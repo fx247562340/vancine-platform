@@ -47,6 +47,7 @@ import {
   rememberTaskApiKey,
 } from './lib/task-key-registry'
 import { requestWithApiKey, abortError } from './lib/v1-client'
+import type { VideoGenerationRequestBody } from './lib/video-request'
 import type {
   VideoModelOption,
   VideoSubmitMetadata,
@@ -190,25 +191,17 @@ type VideoGenerationWireBody = {
   metadata?: VideoSubmitMetadata
 }
 
-export async function submitVideoGenerationWithApiKey(
+/**
+ * Send one already-built body and bind the returned task id to the exact key
+ * that submitted it. Shared by both submit entry points so the late-response
+ * guard and the task key binding cannot drift apart.
+ */
+async function postVideoGeneration(
   apiKey: string,
-  payload: VideoSubmitPayload,
+  body: unknown,
   language?: string,
   signal?: AbortSignal
 ): Promise<{ id?: string; task_id?: string }> {
-  const body: VideoGenerationWireBody = {
-    model: payload.model,
-    prompt: payload.prompt,
-  }
-  if ('image' in payload && payload.image !== undefined) {
-    body.image = payload.image
-  }
-  if ('duration' in payload && payload.duration !== undefined) {
-    body.duration = payload.duration
-  }
-  if ('metadata' in payload && payload.metadata) {
-    body.metadata = payload.metadata
-  }
   const response = await requestWithApiKey({
     path: VIDEO_PLAYGROUND_ENDPOINTS.V1_GENERATIONS,
     method: 'POST',
@@ -246,6 +239,44 @@ export async function submitVideoGenerationWithApiKey(
   // polling and artifact fetches authenticate with the same token.
   rememberTaskApiKey(taskId, apiKey)
   return { task_id: taskId, id: taskId }
+}
+
+/**
+ * Submit one body built by `buildVideoGenerationRequest`.
+ *
+ * The body type is already an exact per-provider union, so this entry point
+ * forwards it verbatim: there is no projection step that could drop a field the
+ * serializer decided to send.
+ */
+export async function submitVideoGenerationRequest(
+  apiKey: string,
+  body: VideoGenerationRequestBody,
+  language?: string,
+  signal?: AbortSignal
+): Promise<{ id?: string; task_id?: string }> {
+  return postVideoGeneration(apiKey, body, language, signal)
+}
+
+export async function submitVideoGenerationWithApiKey(
+  apiKey: string,
+  payload: VideoSubmitPayload,
+  language?: string,
+  signal?: AbortSignal
+): Promise<{ id?: string; task_id?: string }> {
+  const body: VideoGenerationWireBody = {
+    model: payload.model,
+    prompt: payload.prompt,
+  }
+  if ('image' in payload && payload.image !== undefined) {
+    body.image = payload.image
+  }
+  if ('duration' in payload && payload.duration !== undefined) {
+    body.duration = payload.duration
+  }
+  if ('metadata' in payload && payload.metadata) {
+    body.metadata = payload.metadata
+  }
+  return postVideoGeneration(apiKey, body, language, signal)
 }
 
 export async function getVideoTask(

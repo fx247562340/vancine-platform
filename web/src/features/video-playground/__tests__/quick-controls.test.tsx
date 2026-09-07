@@ -16,42 +16,41 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com.
 */
+
 /**
- * Canvas Composer quick controls and toolbar layout tests for the
- * Video Playground. The quick parameter pills show live form values
- * and open the same parameter panel that the Advanced trigger opens.
- * The composer toolbar clusters model, creation mode, and connection
- * controls. The submit chain is not exercised here — page-level
- * tests own the POST body contract.
+ * The video studio retired the whole parameter-heavy composer.
+ *
+ * Hiding a control is not enough: the value it used to own must also be gone
+ * from the request that reaches POST /v1/video/generations. So this file
+ * asserts both halves of the retirement — every removed control is unqueryable
+ * for a dedicated model AND for a model the capability table knows nothing
+ * about, and a fully exercised form still puts none of the retired fields on
+ * the wire, at either the top level or inside `metadata`.
  */
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import i18next, { type i18n as I18n } from 'i18next'
-import { initReactI18next } from 'react-i18next'
+import type { i18n as I18n } from 'i18next'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { routerLinkMock } from '@/test/router-link-mock'
 
+import { submitVideoGenerationRequest } from '../api'
 import {
-  getVideoModelsWithApiKey,
-  getVideoTask,
-  listUsableVideoApiKeys,
-  loadVideoApiSecret,
-  submitVideoGenerationWithApiKey,
-} from '../api'
-import {
-  FAKE_SECRET,
-  readyGenerateButton,
+  capturedSubmitBodies,
+  createVideoPlaygroundI18n,
+  makeImageFile,
+  pickReferenceImages,
+  pickResolution,
+  pickSeconds,
+  pickVideoModel,
   renderVideoPlayground,
   stubAuthUser,
-  videoPlaygroundTranslations,
+  stubVideoApi,
+  submitStudio,
+  typePrompt,
 } from './test-utils'
 
 vi.mock('@tanstack/react-router', () => routerLinkMock)
-
-vi.mock('../lib/media-duration', () => ({
-  readMediaDuration: vi.fn(async () => undefined),
-}))
 
 vi.mock('../api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api')>()
@@ -60,133 +59,207 @@ vi.mock('../api', async (importOriginal) => {
     listUsableVideoApiKeys: vi.fn(),
     loadVideoApiSecret: vi.fn(),
     getVideoModelsWithApiKey: vi.fn(),
+    submitVideoGenerationRequest: vi.fn(),
     submitVideoGenerationWithApiKey: vi.fn(),
     getVideoTask: vi.fn(),
   }
 })
 
-const composerTranslations = {
-  ...videoPlaygroundTranslations.en,
-  Image: 'Image',
-  Video: 'Video',
-  'Usage logs': 'Usage logs',
-  'Media type': 'Media type',
-  'Composer toolbar': 'Composer toolbar',
+/**
+ * Every label the retired controls used to render, spelled exactly as the
+ * locale files spell them, so a control that comes back is caught by name.
+ */
+const RETIRED_LABELS = [
+  // Creation-mode selector and each mode it offered.
+  'Creation mode',
+  'Text to video',
+  'Image to video',
+  'First frame',
+  'First and last frame',
+  'Reference generation',
+  'Video edit',
+  'Video extend',
+  // Aspect ratio.
+  'Aspect ratio',
+  '16:9',
+  '9:16',
+  // Reference video and reference audio intake.
+  'Add reference video',
+  'Add reference audio',
+  'Reference video',
+  'Reference audio',
+  'https://cdn.example.com/reference.mp4',
+  'https://cdn.example.com/reference.wav',
+  // Generate-audio toggle.
+  'Generate audio',
+  'Audio on',
+  'Silent',
+  // Seed.
+  'Random seed (optional)',
+  'Leave empty for random',
+  // Watermark and return-last-frame switches.
+  'Watermark',
+  'Return last frame',
+  // Intelligent duration and batch count.
+  'Intelligent duration',
+  'Fixed duration',
+  'Number of tasks',
+  // The parameters popover and its quick pills.
+  'Parameter settings',
+  'Parameters',
+  // The removed cancel affordance: an accepted task may already be billed.
+  'Cancel pending submissions',
+  // Every image-by-URL intake path.
+  'Public URL',
+  'Asset id (allowlist)',
+  'https://cdn.example.com/reference.png',
+  // Reference-token insertion into the prompt.
+  '@Image1',
+  'Insert @Image1 into prompt',
+  // The connection-settings gear popover; the key moved into the page header.
+  'Connection settings',
+  // The seventh badge state the frozen mapping deliberately does not have.
+  'Pending',
+] as const
+
+/** The controls that replaced them, asserted so an empty page cannot pass. */
+function expectStudioControlsPresent(): void {
+  expect(screen.getByRole('button', { name: 'API Key' })).toBeTruthy()
+  expect(screen.getByLabelText('Video model')).toBeTruthy()
+  expect(screen.getByRole('group', { name: 'Reference images' })).toBeTruthy()
+  expect(screen.getByLabelText('Prompt')).toBeTruthy()
+  expect(screen.getByLabelText('Seconds')).toBeTruthy()
+  expect(screen.getByLabelText('Resolution')).toBeTruthy()
+  expect(screen.getByRole('button', { name: 'Generate video' })).toBeTruthy()
 }
 
-async function createComposerI18n(): Promise<I18n> {
-  const instance = i18next.createInstance()
-  await instance.use(initReactI18next).init({
-    lng: 'en',
-    resources: { en: { translation: composerTranslations } },
-  })
-  return instance
+/**
+ * A retired control must be unqueryable in every way a user could reach it:
+ * as visible text, as an accessible name, as a form label and as a placeholder.
+ */
+function expectRetiredControlsAbsent(): void {
+  for (const label of RETIRED_LABELS) {
+    expect(screen.queryAllByText(label), `text "${label}"`).toHaveLength(0)
+    expect(
+      screen.queryAllByRole('button', { name: label }),
+      `button "${label}"`
+    ).toHaveLength(0)
+    expect(
+      screen.queryAllByLabelText(label),
+      `labelled control "${label}"`
+    ).toHaveLength(0)
+    expect(
+      screen.queryAllByPlaceholderText(label),
+      `placeholder "${label}"`
+    ).toHaveLength(0)
+  }
+  expect(
+    screen.queryAllByRole('toolbar', { name: 'Composer toolbar' })
+  ).toHaveLength(0)
 }
 
-describe('VideoPlayground Canvas Composer quick controls', () => {
-  beforeEach(() => {
-    stubAuthUser()
-    vi.mocked(listUsableVideoApiKeys).mockResolvedValue([
-      {
-        id: 7,
-        name: 'phaseD',
-        maskedKey: 'sk-***7777',
-        status: 1,
-        createdTime: 100,
-      },
-    ])
-    vi.mocked(loadVideoApiSecret).mockResolvedValue(FAKE_SECRET)
-    vi.mocked(getVideoModelsWithApiKey).mockResolvedValue([
-      { label: 'Doubao-Seedance-2.5', value: 'Doubao-Seedance-2.5' },
-    ])
-    vi.mocked(submitVideoGenerationWithApiKey).mockReset()
-    vi.mocked(getVideoTask).mockReset()
-  })
+/**
+ * Fields the retired controls owned. Each one is asserted structurally with
+ * `not.toHaveProperty` at both levels of the body, so a renamed-but-equivalent
+ * value cannot slip through a string search of the serialized JSON.
+ */
+const RETIRED_FIELDS = [
+  'ratio',
+  'generate_audio',
+  'audio',
+  'seed',
+  'watermark',
+  'return_last_frame',
+  'frames',
+  'mode',
+  'n',
+  'batch',
+  'batch_count',
+  'image',
+  'images',
+  'input_reference',
+  'first_frame',
+  'last_frame',
+  'reference_video',
+  'reference_audio',
+] as const
 
-  it('shows quick pills with current form values and opens the parameter panel from a pill', async () => {
-    const i18n = await createComposerI18n()
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
+type CapturedBody = {
+  model: string
+  prompt: string
+  seconds?: string
+  metadata?: Record<string, unknown>
+} & Record<string, unknown>
+
+function expectNoRetiredFields(body: CapturedBody): void {
+  for (const field of RETIRED_FIELDS) {
+    expect(body, `top-level ${field}`).not.toHaveProperty(field)
+    if (body.metadata) {
+      expect(body.metadata, `metadata.${field}`).not.toHaveProperty(field)
+    }
+  }
+}
+
+let i18n: I18n
+
+beforeEach(async () => {
+  stubAuthUser()
+  await stubVideoApi({})
+  i18n = await createVideoPlaygroundI18n()
+})
+
+describe('Video studio retired controls', () => {
+  it('renders no retired control for a dedicated capability model', async () => {
+    const user = userEvent.setup()
     renderVideoPlayground(i18n)
-    await readyGenerateButton()
+    await pickVideoModel(user, 'Doubao-Seedance-2.5')
 
-    const ratioPill = screen.getByRole('button', { name: 'Aspect ratio' })
-    expect(ratioPill.textContent).toContain('16:9')
-    expect(
-      screen.getByRole('button', { name: 'Resolution' }).textContent
-    ).toContain('720p')
-    expect(
-      screen.getByRole('button', { name: 'Duration' }).textContent
-    ).toContain('5s')
-    expect(
-      screen.getByRole('button', { name: 'Generate audio' }).textContent
-    ).toContain('Audio on')
-
-    await user.click(ratioPill)
-    const combobox = await screen.findByRole('combobox', {
-      name: 'Aspect ratio',
-    })
-    await user.click(combobox)
-    await user.click(await screen.findByRole('option', { name: '9:16' }))
-    await user.keyboard('{Escape}')
-    expect(ratioPill.textContent).toContain('9:16')
+    expectStudioControlsPresent()
+    expectRetiredControlsAbsent()
   })
 
-  it('keeps a single Advanced trigger named Parameter settings with an active-count badge', async () => {
-    const i18n = await createComposerI18n()
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
+  it('renders no retired control for a model the capability table does not know', async () => {
+    await stubVideoApi({ models: ['some-future-video-model'] })
     renderVideoPlayground(i18n)
-    await readyGenerateButton()
-
-    const advanced = screen.getByRole('button', {
-      name: /Parameter settings/,
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: 'Generate video' })
+      ).toBeEnabled()
     })
-    await user.click(advanced)
-    expect(
-      await screen.findByRole('combobox', { name: 'Aspect ratio' })
-    ).toBeTruthy()
+
+    expect(screen.getByLabelText('Video model')).toHaveTextContent(
+      'some-future-video-model'
+    )
+    expectStudioControlsPresent()
+    expectRetiredControlsAbsent()
   })
 
-  it('clusters model, creation mode, and connection settings in the composer toolbar', async () => {
-    const i18n = await createComposerI18n()
+  it('sends no retired field after exercising model, reference image, prompt, seconds and resolution', async () => {
+    const user = userEvent.setup()
     renderVideoPlayground(i18n)
-    await readyGenerateButton()
-
-    const toolbar = await screen.findByRole('toolbar', {
-      name: 'Composer toolbar',
+    await pickVideoModel(user, 'Doubao-Seedance-2.5')
+    await typePrompt(user, 'a market street at dusk')
+    await pickReferenceImages(user, [makeImageFile('street.png')])
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: 'Remove street.png' })
+      ).toBeTruthy()
     })
-    expect(
-      within(toolbar).getByRole('combobox', { name: 'Video model' })
-    ).toBeTruthy()
-    expect(
-      within(toolbar).getByRole('combobox', { name: 'Creation mode' })
-    ).toBeTruthy()
-    expect(within(toolbar).getByLabelText('Connection settings')).toBeTruthy()
-  })
+    await pickSeconds(user, '9 seconds')
+    await pickResolution(user, '720p')
 
-  it('opens the parameter sheet from a quick pill at mobile width', async () => {
-    const i18n = await createComposerI18n()
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n, undefined, { innerWidth: 375 })
-    await readyGenerateButton()
+    await submitStudio(user)
+    await waitFor(() => {
+      expect(vi.mocked(submitVideoGenerationRequest)).toHaveBeenCalledTimes(1)
+    })
 
-    await user.click(screen.getByRole('button', { name: 'Aspect ratio' }))
-    const dialog = await screen.findByRole('dialog')
-    expect(within(dialog).getByText('Parameter settings')).toBeTruthy()
-  })
-
-  it('opens the parameter sheet at 320px and groups the composer body in a single column', async () => {
-    const i18n = await createComposerI18n()
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n, undefined, { innerWidth: 320 })
-    await readyGenerateButton()
-    // The page scroller must clip overflow at the outer container
-    // instead of letting content push past the viewport. Real visual and
-    // scrollWidth at 320 / 375 px is verified manually in the
-    // browser, not via the test environment.
-    const page = screen.getByTestId('video-playground-page')
-    expect(page).toHaveClass('overflow-x-hidden')
-    await user.click(screen.getByRole('button', { name: 'Aspect ratio' }))
-    const dialog = await screen.findByRole('dialog')
-    expect(within(dialog).getByText('Parameter settings')).toBeTruthy()
+    const body = (await capturedSubmitBodies())[0] as CapturedBody
+    // The form was genuinely exercised, so the absence below is not vacuous.
+    expect(body.model).toBe('Doubao-Seedance-2.5')
+    expect(body.prompt).toBe('a market street at dusk')
+    expect(body.seconds).toBe('9')
+    expect(body.metadata?.resolution).toBe('720p')
+    expect(body.metadata?.content).toHaveLength(1)
+    expectNoRetiredFields(body)
   })
 })

@@ -14,26 +14,18 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-For commercial licensing, please contact support@quantumnous.com
+For commercial licensing, please contact support@quantumnous.com.
 */
+
 /**
- * The video page owns ONE submission queue, shared by the dedicated (Seedance)
- * and the generic (Wan3) composer.
+ * The page owns exactly ONE submission queue, and every task in it is billed.
  *
- * Before this, each composer created its own pipeline and rendered its own
- * TaskGallery, so switching profile unmounted a composer and took its queued
- * tasks with it: an accepted task_id stopped polling, and a POST whose response
- * was still in flight was aborted and lost. These tests drive the real page and
- * assert, from the user's point of view, that the queue outlives the composer
- * that created each task.
- *
- * Only the two genuinely external boundaries are faked — the relay `fetch` and
- * the dashboard axios client. No test sleeps: an in-flight POST is held open by
- * an explicit deferred and settled at a chosen point, and "still polling" is
- * asserted through the live React Query observer for the task, which is the
- * mechanism that schedules the poll interval.
+ * These tests drive the real page with the real `api.ts`; only the relay
+ * `fetch` and the dashboard axios client are faked. An in-flight POST is held
+ * open by an explicit deferred and released at a chosen point, so nothing here
+ * sleeps or races: "one click, one POST" and "a switch never drops an accepted
+ * task" are both proven against the recorded request log.
  */
-import { QueryClient } from '@tanstack/react-query'
 import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { i18n as I18n } from 'i18next'
@@ -47,22 +39,24 @@ import {
   deferred,
   jsonResponse,
   nextMutationSettled,
+  OTHER_API_KEY,
   statusEnvelope,
   stubKeyEndpoints,
   SUBMIT_API_KEY,
   type Deferred,
-  type VideoRecorder,
+  type RecordedCall,
 } from './pipeline-harness'
 import {
   createVideoPlaygroundI18n,
+  pickVideoModel,
   readyGenerateButton,
   renderVideoPlayground,
   stubAuthUser,
+  switchApiKey,
+  typePrompt,
 } from './test-utils'
 
 vi.mock('@tanstack/react-router', () => routerLinkMock)
-
-const OTHER_API_KEY = 'sk-test-other-key-not-real'
 
 const apiClientMock = vi.hoisted(() => ({
   get: vi.fn(),
@@ -71,54 +65,49 @@ const apiClientMock = vi.hoisted(() => ({
 
 vi.mock('@/lib/api', () => ({ api: apiClientMock }))
 
-const recorder: VideoRecorder = createVideoRecorder()
+const FIRST_MODEL = 'Doubao-Seedance-2.5'
+const SECOND_MODEL = 'wan3.0-video'
+
+const recorder = createVideoRecorder()
 const calls = recorder.calls
 
-/** One Wan3 model (generic profile) and one Seedance model (dedicated profile). */
-const TWO_PROFILE_MODELS = [
-  {
-    id: 'wan3.0-video',
-    object: 'model',
-    owned_by: 'vancine',
-    supported_endpoint_types: ['openai', 'openai-video'],
-  },
-  {
-    id: 'Doubao-Seedance-2.5',
-    object: 'model',
-    owned_by: 'vancine',
-    supported_endpoint_types: ['openai', 'openai-video'],
-  },
-]
+const MODELS_PAYLOAD = {
+  data: [
+    { id: FIRST_MODEL, supported_endpoint_types: ['openai-video'] },
+    { id: SECOND_MODEL, supported_endpoint_types: ['openai-video'] },
+  ],
+}
 
 type RelayControl = {
-  /** Task ids handed out so far, in submission order. */
-  postedIds: string[]
-  /** Resolves the Nth (1-based) held POST with a task id. */
-  releasePost(index: number, taskId: string): void
   /** True once the Nth (1-based) POST has been opened and is still held. */
   isHolding(index: number): boolean
+  /** Resolves the Nth (1-based) held POST with a task id. */
+  releasePost(index: number, taskId: string): void
+  /** Flips the task status route between a retryable 503 and a healthy 200. */
+  setTaskStatusFailing(failing: boolean): void
 }
 
 /**
- * Installs the relay routes. Every POST is handed the next task id, so a test
- * that submits twice can tell the two tasks apart. From `holdPostFrom` onward a
- * POST is kept open until the test resolves it, which is how a response is made
- * to land after a profile or key switch without waiting on a timer.
+ * The relay route table. Each POST is handed the next task id so two
+ * submissions stay distinguishable; the POSTs listed in `holdPosts` are kept
+ * open until the test releases them, which is how a response is made to land
+ * after a key switch without waiting on a timer.
  */
-function stubRelay(options?: { holdPostFrom?: number }): RelayControl {
+function stubRelay(options?: { holdPosts?: number[] }): RelayControl {
   const postedIds: string[] = []
   const held: Array<Deferred<Response> | null> = []
-  const holdFrom = options?.holdPostFrom ?? Number.POSITIVE_INFINITY
+  const holdPosts = new Set(options?.holdPosts ?? [])
+  let statusFailing = false
 
   recorder.install((url) => {
     if (url === '/v1/models') {
-      return jsonResponse(200, { object: 'list', data: TWO_PROFILE_MODELS })
+      return jsonResponse(200, MODELS_PAYLOAD)
     }
     if (url === '/v1/video/generations') {
       const index = postedIds.length + 1
       const taskId = `task-${index}`
       postedIds.push(taskId)
-      if (index >= holdFrom) {
+      if (holdPosts.has(index)) {
         const gate = deferred<Response>()
         held[index - 1] = gate
         return gate.promise
@@ -128,106 +117,116 @@ function stubRelay(options?: { holdPostFrom?: number }): RelayControl {
     }
     if (url.startsWith('/v1/video/generations/')) {
       const taskId = url.slice('/v1/video/generations/'.length)
+      // A retryable 503 keeps the task's key bound and keeps the query alive,
+      // which is what lets a test force one more status GET on demand.
+      if (statusFailing) {
+        return jsonResponse(503, { error: { message: 'upstream unavailable' } })
+      }
       return jsonResponse(200, statusEnvelope(taskId, 'SUBMITTED'))
     }
     throw new Error(`unexpected fetch: ${url}`)
   })
 
   return {
-    postedIds,
-    releasePost(index, taskId) {
-      const gate = held[index - 1]
-      if (!gate) throw new Error(`POST ${index} is not being held`)
-      gate.resolve(jsonResponse(200, { task_id: taskId, id: taskId }))
-    },
     isHolding(index) {
       return held[index - 1] != null
+    },
+    releasePost(index, taskId) {
+      const gate = held[index - 1]
+      if (!gate) {
+        throw new Error(`POST ${index} is not being held`)
+      }
+      gate.resolve(jsonResponse(200, { task_id: taskId, id: taskId }))
+    },
+    setTaskStatusFailing(failing) {
+      statusFailing = failing
     },
   }
 }
 
-function statusRequests(taskId: string) {
-  return calls.filter((call) => call.url === `/v1/video/generations/${taskId}`)
+/** Two usable keys, so a key switch can be exercised without extra fixtures. */
+function stubTwoKeys(): void {
+  apiClientMock.get.mockImplementation(async (url: string) => {
+    if (url.startsWith('/api/token/')) {
+      return {
+        data: {
+          success: true,
+          data: {
+            items: [
+              {
+                id: 2,
+                name: 'key-two',
+                key: 'sk-***2222',
+                status: 1,
+                created_time: 200,
+                expired_time: 0,
+                remain_quota: 0,
+                unlimited_quota: true,
+              },
+              {
+                id: 3,
+                name: 'key-one',
+                key: 'sk-***1111',
+                status: 1,
+                created_time: 100,
+                expired_time: 0,
+                remain_quota: 0,
+                unlimited_quota: true,
+              },
+            ],
+            total: 2,
+          },
+        },
+      }
+    }
+    throw new Error(`unexpected api.get: ${url}`)
+  })
+  apiClientMock.post.mockImplementation(async (url: string) => {
+    if (url === '/api/token/3/key') {
+      return { data: { success: true, data: { key: SUBMIT_API_KEY } } }
+    }
+    if (url === '/api/token/2/key') {
+      return { data: { success: true, data: { key: OTHER_API_KEY } } }
+    }
+    throw new Error(`unexpected api.post: ${url}`)
+  })
 }
 
-function postRequests() {
+function postRequests(): RecordedCall[] {
   return calls.filter((call) => call.url === '/v1/video/generations')
 }
 
-async function selectModel(
-  user: ReturnType<typeof userEvent.setup>,
-  name: string
-) {
-  await user.click(screen.getByLabelText('Video model'))
-  await user.click(await screen.findByRole('option', { name }))
+function statusRequests(taskId: string): RecordedCall[] {
+  return calls.filter((call) => call.url === `/v1/video/generations/${taskId}`)
+}
+
+function modelRequests(): RecordedCall[] {
+  return calls.filter((call) => call.url === '/v1/models')
+}
+
+function recentTaskRows(): HTMLElement[] {
+  return within(
+    screen.getByRole('region', { name: 'Recent tasks' })
+  ).getAllByRole('button')
+}
+
+function generateButton(): HTMLElement {
+  return screen.getByRole('button', { name: 'Generate video' })
 }
 
 async function submitPrompt(
   user: ReturnType<typeof userEvent.setup>,
   prompt: string
-) {
-  await user.type(screen.getByLabelText('Prompt'), prompt)
-  await user.click(screen.getByRole('button', { name: 'Generate' }))
+): Promise<void> {
+  const field = screen.getByLabelText('Prompt')
+  await user.clear(field)
+  await user.type(field, prompt)
+  await user.click(generateButton())
 }
 
-async function selectApiKey(
-  user: ReturnType<typeof userEvent.setup>,
-  namePattern: RegExp
-) {
-  await act(async () => {
-    await user.click(screen.getByLabelText('Connection settings'))
-  })
-  await act(async () => {
-    await user.click(await screen.findByLabelText('API Key'))
-  })
-  await act(async () => {
-    await user.click(await screen.findByRole('option', { name: namePattern }))
-  })
-}
+let i18n: I18n
 
-/**
- * The live observer count for one task's status query. A mounted TaskQueueItem
- * holds exactly one observer, and that observer is what schedules the poll
- * interval — so 1 means "still polling", 0 means the card was unmounted and
- * polling stopped, and 2+ means the queue is rendered more than once.
- */
-function taskObservers(client: QueryClient, taskId: string) {
-  const query = client
-    .getQueryCache()
-    .find({ queryKey: ['video-playground-task', taskId] })
-  return query?.getObserversCount() ?? 0
-}
-
-function taskQueueRegions() {
-  return screen.queryAllByRole('region', { name: 'Task queue' })
-}
-
-/** Waits until the dedicated composer (and only it) is on screen. */
-async function expectDedicatedComposer() {
-  await waitFor(() =>
-    expect(screen.queryByLabelText('Parameter settings')).toBeTruthy()
-  )
-}
-
-/** Waits until the generic composer (and only it) is on screen. */
-async function expectGenericComposer() {
-  await waitFor(() =>
-    expect(screen.queryByLabelText('Parameter settings')).toBeNull()
-  )
-}
-
-function noRetryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  })
-}
-
-describe('VideoPlayground — one shared task queue across profiles', () => {
-  let i18n: I18n
-
+describe('Video studio shared submission queue', () => {
   beforeEach(async () => {
     i18n = await createVideoPlaygroundI18n()
     stubAuthUser()
@@ -243,68 +242,75 @@ describe('VideoPlayground — one shared task queue across profiles', () => {
     vi.restoreAllMocks()
   })
 
-  it('keeps an accepted Wan3 task visible and polling after switching to Seedance', async () => {
+  it('creates exactly one task and one POST for one click on Generate video', async () => {
     stubRelay()
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    const { client } = renderVideoPlayground(i18n)
-    await readyGenerateButton()
+    const user = userEvent.setup()
+    renderVideoPlayground(i18n)
+    await typePrompt(user, 'a cat walks on the moon')
+    await user.click(generateButton())
 
-    await submitPrompt(user, 'a cat walks on the moon')
     expect(await screen.findByText(/Task ID: task-1/)).toBeTruthy()
-    await waitFor(() =>
+    await waitFor(() => {
       expect(statusRequests('task-1').length).toBeGreaterThan(0)
-    )
-    expect(taskObservers(client, 'task-1')).toBe(1)
+    })
 
-    // The generic composer unmounts here and the dedicated one mounts.
-    await selectModel(user, 'Doubao-Seedance-2.5')
-    await expectDedicatedComposer()
-
-    expect(screen.getByText(/Task ID: task-1/)).toBeTruthy()
-    expect(screen.getByText('a cat walks on the moon')).toBeTruthy()
-    expect(taskObservers(client, 'task-1')).toBe(1)
-    expect(taskQueueRegions()).toHaveLength(1)
     expect(postRequests()).toHaveLength(1)
+    expect(recentTaskRows()).toHaveLength(1)
+    expect(recentTaskRows()[0]).toHaveAttribute('aria-pressed', 'true')
+    expect(lookupTaskApiKey('task-1')).toBe(SUBMIT_API_KEY)
   })
 
-  it('keeps an accepted Seedance task visible after switching to Wan3', async () => {
+  it('lists both tasks under Recent tasks when a second submit lands while the first is still polling', async () => {
     stubRelay()
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    const { client } = renderVideoPlayground(i18n)
-    await readyGenerateButton()
-
-    await selectModel(user, 'Doubao-Seedance-2.5')
-    await submitPrompt(user, 'a dog runs on the beach')
+    const user = userEvent.setup()
+    renderVideoPlayground(i18n)
+    await typePrompt(user, 'first clip still running')
+    await user.click(generateButton())
     expect(await screen.findByText(/Task ID: task-1/)).toBeTruthy()
-    expect(taskObservers(client, 'task-1')).toBe(1)
+    await waitFor(() => {
+      expect(statusRequests('task-1').length).toBeGreaterThan(0)
+    })
 
-    // The dedicated composer unmounts here and the generic one mounts.
-    await selectModel(user, 'wan3.0-video')
-    await expectGenericComposer()
+    // The first task is non-terminal, so the form is free to submit again.
+    await submitPrompt(user, 'second clip on top of it')
+    expect(await screen.findByText(/Task ID: task-2/)).toBeTruthy()
 
-    expect(screen.getByText(/Task ID: task-1/)).toBeTruthy()
-    expect(screen.getByText('a dog runs on the beach')).toBeTruthy()
-    expect(taskObservers(client, 'task-1')).toBe(1)
-    expect(taskQueueRegions()).toHaveLength(1)
+    await waitFor(() => {
+      expect(postRequests()).toHaveLength(2)
+    })
+    const rows = recentTaskRows()
+    expect(rows).toHaveLength(2)
+    const list = screen.getByRole('region', { name: 'Recent tasks' })
+    expect(within(list).getByText('first clip still running')).toBeTruthy()
+    expect(within(list).getByText('second clip on top of it')).toBeTruthy()
+    // The newest submission is the one the preview follows.
+    expect(rows[1]).toHaveAttribute('aria-pressed', 'true')
+    expect(rows[0]).toHaveAttribute('aria-pressed', 'false')
+    expect(lookupTaskApiKey('task-1')).toBe(SUBMIT_API_KEY)
+    expect(lookupTaskApiKey('task-2')).toBe(SUBMIT_API_KEY)
   })
 
-  it('accepts a task_id that only resolves after the profile was switched', async () => {
-    const relay = stubRelay({ holdPostFrom: 1 })
+  it('reads Submitting..., blocks a second POST while the first is in flight and re-enables the form once the task id arrives', async () => {
+    const relay = stubRelay({ holdPosts: [1] })
+    // pointer-events:none on a disabled button must not stop the test from
+    // proving that the click is refused.
     const user = userEvent.setup({ pointerEventsCheck: 0 })
-    const client = noRetryClient()
-    renderVideoPlayground(i18n, client)
-    await readyGenerateButton()
+    const client = renderVideoPlayground(i18n).client
+    await typePrompt(user, 'held open in flight')
+    await user.click(screen.getByRole('button', { name: 'Generate video' }))
 
-    await submitPrompt(user, 'held open across a profile switch')
-    await waitFor(() => expect(relay.isHolding(1)).toBe(true))
-    // The placeholder exists but has no id yet.
-    expect(await screen.findByText('Submitting...')).toBeTruthy()
-    expect(screen.queryByText(/Task ID:/)).toBeNull()
+    await waitFor(() => {
+      expect(relay.isHolding(1)).toBe(true)
+    })
+    const inFlight = await screen.findByRole('button', {
+      name: 'Submitting...',
+    })
+    expect(inFlight).toBeDisabled()
+    expect(inFlight).toHaveAttribute('aria-busy', 'true')
 
-    await selectModel(user, 'Doubao-Seedance-2.5')
-    await expectDedicatedComposer()
-    // Still submitting: the queue belongs to the page, not to the composer.
-    expect(screen.getByText('Submitting...')).toBeTruthy()
+    // A second click on the in-flight button must not open a second POST.
+    await user.click(inFlight)
+    expect(postRequests()).toHaveLength(1)
 
     const submitSettled = nextMutationSettled(client)
     await act(async () => {
@@ -313,128 +319,96 @@ describe('VideoPlayground — one shared task queue across profiles', () => {
     })
 
     expect(await screen.findByText(/Task ID: task-1/)).toBeTruthy()
-    expect(screen.queryByText('Submitting...')).toBeNull()
-    expect(screen.queryByText('Cancelled')).toBeNull()
-    await waitFor(() =>
-      expect(statusRequests('task-1').length).toBeGreaterThan(0)
-    )
-    expect(taskObservers(client, 'task-1')).toBe(1)
-    // The late response binds the task to the key it was submitted with, exactly
-    // as an immediate response would.
-    expect(lookupTaskApiKey('task-1')).toBe(SUBMIT_API_KEY)
-  })
-
-  it('renders one task queue holding tasks from both profiles', async () => {
-    stubRelay()
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    const { client } = renderVideoPlayground(i18n)
+    expect(screen.queryByRole('button', { name: 'Submitting...' })).toBeNull()
     await readyGenerateButton()
-
-    await submitPrompt(user, 'generic profile task')
-    expect(await screen.findByText(/Task ID: task-1/)).toBeTruthy()
-
-    await selectModel(user, 'Doubao-Seedance-2.5')
-    await submitPrompt(user, 'dedicated profile task')
+    // The form is usable again: a fresh prompt produces a second, separate task.
+    await submitPrompt(user, 'a second clip after the first landed')
+    await waitFor(() => {
+      expect(postRequests()).toHaveLength(2)
+    })
     expect(await screen.findByText(/Task ID: task-2/)).toBeTruthy()
-
-    // One gallery, both tasks inside it.
-    const regions = taskQueueRegions()
-    expect(regions).toHaveLength(1)
-    const queue = regions[0]
-    if (!queue) throw new Error('the task queue region disappeared')
-    expect(within(queue).getByText('generic profile task')).toBeTruthy()
-    expect(within(queue).getByText('dedicated profile task')).toBeTruthy()
-    expect(within(queue).getAllByText(/Task ID:/)).toHaveLength(2)
-
-    // Neither task is polled twice and no placeholder was submitted twice.
-    expect(taskObservers(client, 'task-1')).toBe(1)
-    expect(taskObservers(client, 'task-2')).toBe(1)
-    expect(postRequests()).toHaveLength(2)
   })
 
-  it('keeps the API key switch semantics: pending cancelled, accepted untouched', async () => {
-    // The first POST is accepted normally; the second is held open so it is
-    // still 'submitting' when the key changes.
-    const relay = stubRelay({ holdPostFrom: 2 })
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    const client = noRetryClient()
+  it('keeps an accepted task polling with its submit-time key across a model switch and an API key switch', async () => {
+    stubTwoKeys()
+    const relay = stubRelay()
+    const user = userEvent.setup()
+    renderVideoPlayground(i18n)
+    relay.setTaskStatusFailing(true)
+    await typePrompt(user, 'accepted before both switches')
+    await user.click(generateButton())
 
-    apiClientMock.get.mockImplementation(async (url: string) => {
-      if (url.startsWith('/api/token/')) {
-        return {
-          data: {
-            success: true,
-            data: {
-              items: [
-                {
-                  id: 2,
-                  name: 'key-two',
-                  key: 'sk-***2222',
-                  status: 1,
-                  created_time: 200,
-                  expired_time: 0,
-                  remain_quota: 0,
-                  unlimited_quota: true,
-                },
-                {
-                  id: 3,
-                  name: 'key-one',
-                  key: 'sk-***1111',
-                  status: 1,
-                  created_time: 100,
-                  expired_time: 0,
-                  remain_quota: 0,
-                  unlimited_quota: true,
-                },
-              ],
-              total: 2,
-            },
-          },
-        }
-      }
-      throw new Error(`unexpected api.get: ${url}`)
-    })
-    apiClientMock.post.mockImplementation(async (url: string) => {
-      if (url === '/api/token/3/key') {
-        return { data: { success: true, data: { key: SUBMIT_API_KEY } } }
-      }
-      if (url === '/api/token/2/key') {
-        return { data: { success: true, data: { key: OTHER_API_KEY } } }
-      }
-      throw new Error(`unexpected api.post: ${url}`)
-    })
-
-    renderVideoPlayground(i18n, client)
-    await readyGenerateButton()
-
-    await submitPrompt(user, 'accepted before the key switch')
     expect(await screen.findByText(/Task ID: task-1/)).toBeTruthy()
+    // The retryable status failure surfaces the retry affordance while the
+    // task's own key stays bound, so a later click forces one more status GET.
+    const retry = await screen.findByRole(
+      'button',
+      { name: 'Retry status' },
+      { timeout: 4000 }
+    )
+    const beforeSwitches = statusRequests('task-1').length
+    expect(beforeSwitches).toBeGreaterThan(0)
+
+    await pickVideoModel(user, SECOND_MODEL)
+    await switchApiKey(user, 'key-two')
+    await waitFor(() => {
+      expect(
+        modelRequests().some(
+          (call) => call.authorization === `Bearer ${OTHER_API_KEY}`
+        )
+      ).toBe(true)
+    })
+
+    // The accepted task survived both switches: still listed, still Running.
+    expect(recentTaskRows()).toHaveLength(1)
+    expect(
+      screen.getByRole('region', { name: 'Recent tasks' })
+    ).toHaveTextContent('accepted before both switches')
+    // The badge keeps the polling semantic even while the status query errors.
+    expect(screen.getAllByText('Running').length).toBeGreaterThan(0)
+    expect(screen.queryAllByText('Cancelled')).toHaveLength(0)
+
+    relay.setTaskStatusFailing(false)
+    await user.click(retry)
+    await waitFor(() => {
+      expect(statusRequests('task-1').length).toBeGreaterThan(beforeSwitches)
+    })
+
+    // Every status GET for this task — including the one issued after the key
+    // switch — authenticates with the key that submitted it.
+    expect(
+      statusRequests('task-1').every(
+        (call) => call.authorization === `Bearer ${SUBMIT_API_KEY}`
+      )
+    ).toBe(true)
     expect(lookupTaskApiKey('task-1')).toBe(SUBMIT_API_KEY)
+  })
 
-    await submitPrompt(user, 'still submitting at the key switch')
-    await waitFor(() => expect(relay.isHolding(2)).toBe(true))
-    expect(screen.getByText('Submitting...')).toBeTruthy()
+  it('leaves a POST that resolves after an API key switch cancelled and never starts polling it', async () => {
+    stubTwoKeys()
+    const relay = stubRelay({ holdPosts: [1] })
+    const user = userEvent.setup({ pointerEventsCheck: 0 })
+    const client = renderVideoPlayground(i18n).client
+    await typePrompt(user, 'still in flight at the key switch')
+    await user.click(screen.getByRole('button', { name: 'Generate video' }))
+    await waitFor(() => {
+      expect(relay.isHolding(1)).toBe(true)
+    })
 
-    await selectApiKey(user, /key-two/)
-
-    // The key switch cancels the pending item and leaves the accepted one alone.
-    // A cancelled card shows the word twice (status badge and status line).
+    await switchApiKey(user, 'key-two')
     expect((await screen.findAllByText('Cancelled')).length).toBeGreaterThan(0)
-    expect(screen.getByText(/Task ID: task-1/)).toBeTruthy()
-    expect(taskObservers(client, 'task-1')).toBe(1)
-    expect(lookupTaskApiKey('task-1')).toBe(SUBMIT_API_KEY)
 
     const submitSettled = nextMutationSettled(client)
     await act(async () => {
-      relay.releasePost(2, 'task-2')
+      relay.releasePost(1, 'task-1')
       await submitSettled
     })
 
-    // A late task_id must not resurrect a submission the key switch cancelled.
+    // A late task id must not resurrect a submission the switch cancelled.
     expect(screen.getAllByText('Cancelled').length).toBeGreaterThan(0)
-    expect(screen.queryByText(/Task ID: task-2/)).toBeNull()
-    expect(taskObservers(client, 'task-2')).toBe(0)
-    expect(lookupTaskApiKey('task-2')).toBeNull()
-    expect(statusRequests('task-2')).toHaveLength(0)
+    expect(screen.queryByText(/Task ID: task-1/)).toBeNull()
+    expect(statusRequests('task-1')).toHaveLength(0)
+    expect(lookupTaskApiKey('task-1')).toBeNull()
+    expect(postRequests()).toHaveLength(1)
   })
 })

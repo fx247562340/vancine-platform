@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { QueryClient } from '@tanstack/react-query'
-import { screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { routerLinkMock } from '@/test/router-link-mock'
@@ -138,7 +138,24 @@ describe('VideoPlayground single error owner', () => {
     renderVideoPlayground(i18n, productionLikeClient())
     await fillAndSubmitPrompt()
 
-    expect(await screen.findByText('insufficient quota')).toBeTruthy()
+    // Exactly one owner: the failed submission's own error. The studio renders
+    // that single error in its two intentional inline surfaces — the submit
+    // error slot above the generate button and the selected task's preview —
+    // and in no toast.
+    const inline = await screen.findAllByText('insufficient quota')
+    expect(inline).toHaveLength(2)
+    // Anchored on the prompt field: the generate button's own accessible name
+    // changes while a submit is in flight.
+    const composerForm = screen.getByLabelText('Prompt').closest('form')
+    expect(composerForm).not.toBeNull()
+    expect(
+      within(composerForm as HTMLElement).getByText('insufficient quota')
+    ).toBeTruthy()
+    expect(
+      within(screen.getByRole('region', { name: 'Preview' })).getByText(
+        'insufficient quota'
+      )
+    ).toBeTruthy()
     expect(toastError).not.toHaveBeenCalled()
     expect(apiGet).toHaveBeenCalledWith(
       expect.stringContaining('/api/token/'),

@@ -17,7 +17,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com.
 */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, renderHook, screen, waitFor } from '@testing-library/react'
+import {
+  act,
+  renderHook,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import type { i18n as I18n } from 'i18next'
 import type { ReactElement, ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -51,6 +57,8 @@ import {
   fillAndSubmitPrompt,
   renderVideoPlayground,
   stubAuthUser,
+  submitStudio,
+  switchApiKey,
 } from './test-utils'
 
 vi.mock('@tanstack/react-router', () => routerLinkMock)
@@ -89,6 +97,74 @@ function stubStatusThenArtifacts(status: Response | Promise<Response>): void {
 
 function statusRequests(): RecordedCall[] {
   return calls.filter((call) => call.url.startsWith('/v1/video/generations/'))
+}
+
+function submitRequests(): RecordedCall[] {
+  return calls.filter((call) => call.url === '/v1/video/generations')
+}
+
+/**
+ * Two usable keys, so the page can change its submit epoch mid-flight:
+ * `key-one` (id 3) is the earliest and therefore the initially selected one,
+ * `key-two` (id 2) is the switch target with a different secret.
+ */
+function stubTwoKeyEndpoints(): void {
+  apiClientMock.get.mockImplementation(async (url: string) => {
+    if (url.startsWith('/api/token/')) {
+      return {
+        data: {
+          success: true,
+          data: {
+            items: [
+              {
+                id: 2,
+                name: 'key-two',
+                key: 'sk-***2222',
+                status: 1,
+                created_time: 200,
+                expired_time: 0,
+                remain_quota: 0,
+                unlimited_quota: true,
+              },
+              {
+                id: 3,
+                name: 'key-one',
+                key: 'sk-***1111',
+                status: 1,
+                created_time: 100,
+                expired_time: 0,
+                remain_quota: 0,
+                unlimited_quota: true,
+              },
+            ],
+            total: 2,
+          },
+        },
+      }
+    }
+    throw new Error(`unexpected api.get: ${url}`)
+  })
+  apiClientMock.post.mockImplementation(async (url: string) => {
+    if (url === '/api/token/3/key') {
+      return { data: { success: true, data: { key: SUBMIT_API_KEY } } }
+    }
+    if (url === '/api/token/2/key') {
+      return { data: { success: true, data: { key: OTHER_API_KEY } } }
+    }
+    throw new Error(`unexpected api.post: ${url}`)
+  })
+}
+
+/** One video model, so a key switch never changes the selected model id. */
+function modelsResponse(): Response {
+  return jsonResponse(200, {
+    data: [
+      {
+        id: 'Doubao-Seedance-2.5',
+        supported_endpoint_types: ['openai-video'],
+      },
+    ],
+  })
 }
 
 describe('video task API key lifecycle', () => {
@@ -405,22 +481,24 @@ describe('late submit responses after unmount or cancel', () => {
     expect(lookupTaskApiKey(TASK_ID)).toBeNull()
   })
 
-  it('does not resume polling when a cancelled submit resolves with a task id', async () => {
-    // Scenario B: cancel while the submit is in flight, then deliver it.
+  it('drops the late submit and every bound task key when the page unmounts mid-submit', async () => {
+    // Leaving the page replaced the retired "Cancel pending submissions"
+    // button: task-a already polls under its own key while the second POST is
+    // held open across the unmount, then resolves late.
     const lateResponse = deferred<Response>()
+    let submits = 0
     installRecorder((url) => {
       if (url === '/v1/models') {
-        return jsonResponse(200, {
-          data: [
-            {
-              id: 'Doubao-Seedance-2.5',
-              supported_endpoint_types: ['openai-video'],
-            },
-          ],
-        })
+        return modelsResponse()
       }
       if (url === '/v1/video/generations') {
-        return lateResponse.promise
+        submits += 1
+        return submits === 1
+          ? jsonResponse(200, { task_id: 'task-a', id: 'task-a' })
+          : lateResponse.promise
+      }
+      if (url === '/v1/video/generations/task-a') {
+        return jsonResponse(200, statusEnvelope('task-a', 'IN_PROGRESS'))
       }
       return jsonResponse(200, statusEnvelope(TASK_ID, 'SUBMITTED'))
     })
@@ -431,50 +509,43 @@ describe('late submit responses after unmount or cancel', () => {
         mutations: { retry: false },
       },
     })
-    renderVideoPlayground(i18n, client)
+    const { unmount } = renderVideoPlayground(i18n, client)
     const user = await fillAndSubmitPrompt()
-    await waitFor(() => {
-      expect(calls.some((call) => call.url === '/v1/video/generations')).toBe(
-        true
-      )
-    })
-
+    await screen.findByText(/Task ID: task-a/)
     await act(async () => {
-      await user.click(
-        await screen.findByRole('button', {
-          name: 'Cancel pending submissions',
-        })
-      )
+      await submitStudio(user)
     })
+    await waitFor(() => {
+      expect(submitRequests()).toHaveLength(2)
+    })
+    expect(lookupTaskApiKey('task-a')).toBe(SUBMIT_API_KEY)
 
     const submitSettled = nextMutationSettled(client)
+    unmount()
     await act(async () => {
       lateResponse.resolve(jsonResponse(200, { task_id: TASK_ID, id: TASK_ID }))
       await submitSettled
     })
 
+    // The late response neither binds a key nor starts polling.
     expect(lookupTaskApiKey(TASK_ID)).toBeNull()
     expect(
-      calls.some((call) => call.url.startsWith('/v1/video/generations/'))
+      calls.some((call) => call.url === `/v1/video/generations/${TASK_ID}`)
     ).toBe(false)
-    expect(screen.queryByText(/Task ID: task-123/)).toBeNull()
+    // Leaving the page also drops the sibling task's in-memory key.
+    expect(lookupTaskApiKey('task-a')).toBeNull()
   })
 
-  it('leaves an already-polling task untouched when a later submit is cancelled', async () => {
-    // Scenario B with a sibling: task-A reaches polling first, then task-B is
-    // cancelled mid-submit. Only B must be dropped.
+  it('leaves an already-polling task untouched when an API key switch drops a later submit', async () => {
+    // A real sibling: task-a reaches polling first, then the second submit is
+    // dropped by a key switch while its POST is still open. Only the second
+    // submission may be lost.
+    stubTwoKeyEndpoints()
     const lateResponse = deferred<Response>()
     let submits = 0
     installRecorder((url) => {
       if (url === '/v1/models') {
-        return jsonResponse(200, {
-          data: [
-            {
-              id: 'Doubao-Seedance-2.5',
-              supported_endpoint_types: ['openai-video'],
-            },
-          ],
-        })
+        return modelsResponse()
       }
       if (url === '/v1/video/generations') {
         submits += 1
@@ -495,44 +566,45 @@ describe('late submit responses after unmount or cancel', () => {
       },
     })
     renderVideoPlayground(i18n, client)
-    const user = await fillAndSubmitPrompt()
+    const user = await fillAndSubmitPrompt('first task keeps polling')
     await screen.findByText(/Task ID: task-a/)
 
+    // A second, distinguishable submission so the two rows can be told apart.
+    await user.clear(screen.getByLabelText('Prompt'))
+    await user.type(screen.getByLabelText('Prompt'), 'second task is dropped')
     await act(async () => {
-      await user.click(screen.getByRole('button', { name: 'Generate' }))
+      await submitStudio(user)
     })
     await waitFor(() => {
-      expect(
-        calls.filter((call) => call.url === '/v1/video/generations')
-      ).toHaveLength(2)
+      expect(submitRequests()).toHaveLength(2)
     })
 
     await act(async () => {
-      await user.click(
-        await screen.findByRole('button', {
-          name: 'Cancel pending submissions',
-        })
-      )
+      await switchApiKey(user, 'key-two')
     })
 
-    // Completion event: the cancelled second submit settles. The first
-    // (task-a) mutation already settled before this watcher was installed.
+    // Completion event: the dropped second submit settles. The first (task-a)
+    // mutation already settled before this watcher was installed.
     const secondSubmitSettled = nextMutationSettled(client)
     await act(async () => {
       lateResponse.resolve(jsonResponse(200, { task_id: TASK_ID, id: TASK_ID }))
       await secondSubmitSettled
     })
 
-    // The cancelled submit never binds a key nor starts a status request.
+    // The dropped submit never binds a key nor starts a status request.
     expect(lookupTaskApiKey(TASK_ID)).toBeNull()
     expect(
       calls.some((call) => call.url === `/v1/video/generations/${TASK_ID}`)
     ).toBe(false)
     expect(screen.queryByText(/Task ID: task-123/)).toBeNull()
 
-    // The already-polling task keeps running with its own key.
+    // The already-polling task keeps running with its own key and stays listed.
     expect(lookupTaskApiKey('task-a')).toBe(SUBMIT_API_KEY)
-    expect(screen.getByText(/Task ID: task-a/)).toBeTruthy()
+    expect(
+      within(screen.getByRole('region', { name: 'Recent tasks' })).getByText(
+        'first task keeps polling'
+      )
+    ).toBeTruthy()
     expect(
       calls.some((call) => call.url === '/v1/video/generations/task-a')
     ).toBe(true)
@@ -596,60 +668,10 @@ describe('late submit responses after unmount or cancel', () => {
         mutations: { retry: false },
       },
     })
-    apiClientMock.get.mockImplementation(async (url: string) => {
-      if (url.startsWith('/api/token/')) {
-        return {
-          data: {
-            success: true,
-            data: {
-              items: [
-                {
-                  id: 2,
-                  name: 'key-two',
-                  key: 'sk-***2222',
-                  status: 1,
-                  created_time: 200,
-                  expired_time: 0,
-                  remain_quota: 0,
-                  unlimited_quota: true,
-                },
-                {
-                  id: 3,
-                  name: 'key-one',
-                  key: 'sk-***1111',
-                  status: 1,
-                  created_time: 100,
-                  expired_time: 0,
-                  remain_quota: 0,
-                  unlimited_quota: true,
-                },
-              ],
-              total: 2,
-            },
-          },
-        }
-      }
-      throw new Error(`unexpected api.get: ${url}`)
-    })
-    apiClientMock.post.mockImplementation(async (url: string) => {
-      if (url === '/api/token/3/key') {
-        return { data: { success: true, data: { key: SUBMIT_API_KEY } } }
-      }
-      if (url === '/api/token/2/key') {
-        return { data: { success: true, data: { key: OTHER_API_KEY } } }
-      }
-      throw new Error(`unexpected api.post: ${url}`)
-    })
+    stubTwoKeyEndpoints()
     installRecorder((url) => {
       if (url === '/v1/models') {
-        return jsonResponse(200, {
-          data: [
-            {
-              id: 'Doubao-Seedance-2.5',
-              supported_endpoint_types: ['openai-video'],
-            },
-          ],
-        })
+        return modelsResponse()
       }
       if (url === '/v1/video/generations') {
         return lateResponse.promise
@@ -669,13 +691,7 @@ describe('late submit responses after unmount or cancel', () => {
     })
 
     await act(async () => {
-      await user.click(screen.getByLabelText('Connection settings'))
-    })
-    await act(async () => {
-      await user.click(await screen.findByLabelText('API Key'))
-    })
-    await act(async () => {
-      await user.click(await screen.findByRole('option', { name: /key-two/ }))
+      await switchApiKey(user, 'key-two')
     })
 
     const submitSettled = nextMutationSettled(client)

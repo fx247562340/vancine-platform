@@ -34,6 +34,13 @@ export type VideoImageResource = {
   byteSize?: number
   width?: number
   height?: number
+  /**
+   * The local bytes a picked, dropped or pasted image came from. Kept only so
+   * the tray can (re)create a preview object URL through the resource store;
+   * it is never serialized into a request, rendered into the DOM, cached by
+   * React Query, or persisted.
+   */
+  blob?: Blob
 }
 
 export type VideoAudioResource = {

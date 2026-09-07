@@ -16,12 +16,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com.
 */
-import { zodResolver } from '@hookform/resolvers/zod'
 import { Video01Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Link } from '@tanstack/react-router'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { useForm, useWatch } from 'react-hook-form'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -35,27 +33,43 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 import { MediaPlaygroundHeader } from '@/features/media-playground/components/media-playground-header'
-import { cn } from '@/lib/utils'
 
-import { ComposerForm } from './components/composer-form'
-import { ConnectionSettings } from './components/connection-settings'
-import { GenericComposerForm } from './components/generic-composer-form'
-import { VideoModelSelector } from './components/model-selector'
-import { TaskGallery } from './components/task-gallery'
+import { ApiKeySelect } from './components/api-key-select'
+import { RecentTaskList } from './components/recent-task-list'
+import {
+  VideoComposer,
+  type VideoComposerSubmitRequest,
+} from './components/video-composer'
+import { VideoPreview } from './components/video-preview'
+import { useSubmissionSettings } from './hooks/use-submission-settings'
 import { useVideoConnection } from './hooks/use-video-connection'
 import { useVideoModels } from './hooks/use-video-models'
 import { useVideoApiSecret } from './hooks/use-video-secret'
 import { useVideoSubmission } from './hooks/use-video-submission'
-import { resolveVideoModelCapability } from './lib/capabilities'
+import { useVisibleTasks } from './hooks/use-visible-tasks'
+import type { VideoComposerValues } from './lib/composer-schema'
 import { videoPlaygroundErrorText } from './lib/errors'
-import { videoFormSchema, type VideoFormValues } from './lib/form-schema'
+import { resolveVideoModelCapability } from './lib/model-capabilities'
 import { clearAllTaskApiKeys } from './lib/task-key-registry'
 import { useResourceStore } from './lib/use-resource-store'
 
+/**
+ * The video studio.
+ *
+ * The page owns everything that must outlive a control: the API key selection,
+ * the model list, the reference-image bytes, the submission queue and which task
+ * the preview is showing. The composer owns only the form. That split is what
+ * lets a model or key switch reset the form while every accepted task keeps
+ * polling with the key it was submitted with.
+ */
 export function VideoPlayground() {
   const { t, i18n } = useTranslation()
   const [model, setModel] = useState('')
-  const [preflightError, setPreflightError] = useState<string | null>(null)
+  const [selectFirstModel, setSelectFirstModel] = useState(true)
+  const [selectedSubmissionId, setSelectedSubmissionId] = useState<
+    string | null
+  >(null)
+  const [restore, setRestore] = useState<VideoComposerValues | null>(null)
 
   const connection = useVideoConnection()
   const {
@@ -70,101 +84,49 @@ export function VideoPlayground() {
   const secret = useVideoApiSecret()
   const { load: loadSecret, clear: clearSecret } = secret
 
-  // The single submission pipeline for the whole page. Both composers serialize
-  // into it and the one TaskGallery below renders from it, so switching between
-  // the dedicated and the generic profile — which unmounts a composer — cannot
-  // drop an in-flight POST, an accepted task_id or a terminal task.
+  // One submission pipeline for the whole page, mounted exactly once, so a model
+  // or key switch can never drop an in-flight POST, an accepted task id or a
+  // terminal task.
   const submission = useVideoSubmission({
     keyId,
     language: i18n.language,
     loadSecret,
   })
+  const resourceStore = useResourceStore()
+  const modelsQuery = useVideoModels(keyId, loadSecret)
 
   // Leaving the page ends every in-flight task's relevance here: drop all
   // task-bound in-memory API keys on unmount. Terminal tasks already cleared
   // their own key; this covers anything still queued/running. Key switching
-  // (clearSecret) deliberately does NOT clear these — tasks that already have
-  // a task id keep polling with their own submit-time key.
+  // (clearSecret) deliberately does NOT clear these — tasks that already have a
+  // task id keep polling with their own submit-time key.
   useEffect(() => () => clearAllTaskApiKeys(), [])
-  const modelsQuery = useVideoModels(keyId, loadSecret)
-  const resourceStore = useResourceStore()
 
-  const form = useForm<VideoFormValues>({
-    resolver: zodResolver(videoFormSchema),
-    defaultValues: {
-      prompt: '',
-      mode: 'textToVideo',
-      durationMode: 'fixed',
-      durationSeconds: 5,
-      ratio: '16:9',
-      resolution: '720p',
-      generateAudio: true,
-      watermark: false,
-      returnLastFrame: false,
-      seed: '',
-      batchCount: 1,
-    },
-  })
-
-  // Auto-select the first model when models load.
+  // Server order is authoritative: on first load and after every key switch the
+  // page takes the first video model the key returns, and never remembers a
+  // previous choice. A refetch for the same key (a language switch) leaves the
+  // user's selection alone.
   useEffect(() => {
-    if (!modelsQuery.isFetched) return
-    const exists = modelsQuery.models.some((item) => item.value === model)
-    if (exists) return
+    if (!selectFirstModel || !modelsQuery.isFetched) {
+      return
+    }
+    setSelectFirstModel(false)
     setModel(modelsQuery.models[0]?.value ?? '')
-  }, [modelsQuery.isFetched, modelsQuery.models, model])
+  }, [selectFirstModel, modelsQuery.isFetched, modelsQuery.models])
 
-  const capability = useMemo(
-    () => (model ? resolveVideoModelCapability(model) : undefined),
-    [model]
-  )
+  const capability = useMemo(() => resolveVideoModelCapability(model), [model])
 
-  // Clear stale preflight errors when the user edits the form so
-  // the alert is not sticky. We subscribe once and let the
-  // subscription run for the lifetime of the page.
-  useEffect(() => {
-    const subscription = form.watch(() => {
-      if (preflightError) setPreflightError(null)
-    })
-    return () => subscription.unsubscribe()
-  }, [form, preflightError])
+  const visibleTasks = useVisibleTasks(submission.tasks)
+  const visibleIds = visibleTasks.map((task) => task.id)
+  const settingsStore = useSubmissionSettings(visibleIds)
 
-  useEffect(() => {
-    setPreflightError(null)
-  }, [
-    resourceStore.images.length,
-    resourceStore.videos.length,
-    resourceStore.audios.length,
-  ])
-
-  const currentMode = useWatch({ control: form.control, name: 'mode' })
-  const batchCount = useWatch({ control: form.control, name: 'batchCount' })
-  const durationSeconds = useWatch({
-    control: form.control,
-    name: 'durationSeconds',
-  })
-  const resolution = useWatch({ control: form.control, name: 'resolution' })
-
-  const composition = useMemo(
-    () => ({
-      images: resourceStore.images.length,
-      videos: resourceStore.videos.length,
-      audios: resourceStore.audios.length,
-      durationSeconds,
-      resolution,
-    }),
-    [
-      durationSeconds,
-      resolution,
-      resourceStore.audios.length,
-      resourceStore.images.length,
-      resourceStore.videos.length,
-    ]
-  )
-
-  const handlePreflightError = (reasonKey: string) => {
-    setPreflightError(reasonKey)
-  }
+  const selectedSubmission =
+    submission.tasks.find((task) => task.id === selectedSubmissionId) ?? null
+  const latestSubmission = submission.tasks.at(-1)
+  const submitErrorText =
+    latestSubmission?.status === 'failed' && latestSubmission.submitError
+      ? videoPlaygroundErrorText(latestSubmission.submitError, t)
+      : null
 
   const canSubmit =
     keysIsFetched &&
@@ -172,91 +134,72 @@ export function VideoPlayground() {
     keyId != null &&
     modelsQuery.isFetched &&
     !modelsQuery.isError &&
-    Boolean(model) &&
-    Boolean(capability) &&
-    modelsQuery.models.length > 0
+    modelsQuery.models.length > 0 &&
+    Boolean(model)
 
-  const selectedKey = keys.find((key) => key.id === keyId)
-  let keyStatusLabel = t('Select an API key')
-  if (selectedKey) {
-    keyStatusLabel = `${selectedKey.name} · ${selectedKey.maskedKey}`
-  } else if (keysIsLoading) {
-    keyStatusLabel = t('Loading...')
+  const handleModelChange = (nextModel: string) => {
+    if (nextModel === model) {
+      return
+    }
+    setModel(nextModel)
+    resourceStore.reset()
   }
 
-  // The toolbar nodes belong to the page, so both composers share one model
-  // selector and one connection control regardless of the resolved profile.
-  const modelSelectorNode = (
-    <VideoModelSelector
-      compact
-      models={modelsQuery.models}
-      selectedModel={model}
-      onChange={setModel}
-      disabled={modelsQuery.isLoading || keyId == null}
-    />
-  )
-  const connectionNode = (
-    <ConnectionSettings
-      keys={keys}
-      selectedId={keyId}
-      onChange={(id) => {
-        clearSecret()
-        setModel('')
-        setKeyId(id)
-        setPreflightError(null)
-      }}
-      isLoading={keysIsLoading}
-      disabled={false}
-    />
-  )
-
-  // A dynamic video model always resolves to a renderable capability: the
-  // dedicated profile when Vancine holds first-party evidence for it, the
-  // generic fallback otherwise. Only a truly empty model id renders nothing.
-  //
-  // The task queue is deliberately NOT part of this branch: it lives on the page
-  // so it is mounted exactly once for the page's lifetime.
-  let composer: ReactNode = null
-  if (capability?.profile === 'generic') {
-    composer = (
-      <GenericComposerForm
-        capability={capability}
-        resourceStore={resourceStore}
-        canSubmit={canSubmit}
-        modelId={model}
-        submission={submission}
-        clearSecret={clearSecret}
-        modelSelector={modelSelectorNode}
-        connection={connectionNode}
-      />
-    )
-  } else if (capability) {
-    composer = (
-      <ComposerForm
-        form={form}
-        capability={capability}
-        mode={currentMode}
-        composition={composition}
-        resourceStore={resourceStore}
-        onPreflightError={handlePreflightError}
-        canSubmit={canSubmit}
-        modelId={model}
-        batchCount={batchCount}
-        preflightError={preflightError}
-        submission={submission}
-        clearSecret={clearSecret}
-        modelSelector={modelSelectorNode}
-        connection={connectionNode}
-      />
-    )
+  const handleKeyIdChange = (nextKeyId: number) => {
+    if (nextKeyId === keyId) {
+      return
+    }
+    clearSecret()
+    setKeyId(nextKeyId)
+    setSelectFirstModel(true)
+    resourceStore.reset()
   }
+
+  const handleSubmit = (request: VideoComposerSubmitRequest) => {
+    const submissionId = submission.start({
+      body: request.body,
+      modelId: request.settings.modelId,
+      promptPreview: request.settings.prompt,
+      batchSize: 1,
+    })
+    settingsStore.retain(submissionId, request.settings)
+    // A freshly submitted task is always the one the user wants to watch.
+    setSelectedSubmissionId(submissionId)
+  }
+
+  const handleRestoreSettings = () => {
+    if (!selectedSubmission) {
+      return
+    }
+    const settings = settingsStore.settings[selectedSubmission.id]
+    if (!settings) {
+      return
+    }
+    resourceStore.reset()
+    for (const image of settings.images) {
+      resourceStore.addImage(image)
+    }
+    setModel(settings.modelId)
+    setRestore({
+      prompt: settings.prompt,
+      duration: settings.duration,
+      resolution: settings.resolution,
+    })
+  }
+
+  const noKeys = keysIsFetched && !keysIsError && keys.length === 0
+  const noModels =
+    !noKeys &&
+    keyId != null &&
+    modelsQuery.isFetched &&
+    modelsQuery.models.length === 0
 
   return (
     <div
       data-testid='video-playground-page'
       className='flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto'
     >
-      <div className='mx-auto flex w-full max-w-6xl flex-col gap-6 p-4 md:p-6'>
+      <div className='mx-auto flex w-full max-w-7xl flex-col gap-6 p-4 md:p-6'>
         <MediaPlaygroundHeader
           title={t('Video generation')}
           subtitle={t(
@@ -264,16 +207,12 @@ export function VideoPlayground() {
           )}
           active='video'
           status={
-            <span className='border-border/60 bg-card text-muted-foreground inline-flex h-8 max-w-full items-center gap-2 rounded-lg border px-2.5 text-xs'>
-              <span
-                aria-hidden
-                className={cn(
-                  'size-1.5 shrink-0 rounded-full',
-                  selectedKey ? 'bg-success' : 'bg-neutral'
-                )}
-              />
-              <span className='truncate'>{keyStatusLabel}</span>
-            </span>
+            <ApiKeySelect
+              keys={keys}
+              selectedId={keyId}
+              onChange={handleKeyIdChange}
+              isLoading={keysIsLoading}
+            />
           }
         />
 
@@ -292,54 +231,85 @@ export function VideoPlayground() {
           </Alert>
         ) : null}
 
-        {keysIsFetched && keys.length === 0 ? (
-          <Empty>
-            <EmptyHeader>
-              <EmptyMedia variant='icon'>
-                <HugeiconsIcon
-                  icon={Video01Icon}
-                  strokeWidth={2}
-                  aria-hidden
-                  data-icon='empty'
-                />
-              </EmptyMedia>
-              <EmptyTitle>{t('No API keys available')}</EmptyTitle>
-              <EmptyDescription>
-                {t('Create an API key to generate video.')}
-              </EmptyDescription>
-            </EmptyHeader>
-            <EmptyContent>
-              <Button render={<Link to='/keys' />}>
-                {t('Create API Key')}
-              </Button>
-            </EmptyContent>
-          </Empty>
-        ) : null}
+        <div className='grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,28rem)_minmax(0,1fr)] xl:items-start'>
+          <div className='flex min-w-0 flex-col gap-4'>
+            {noKeys ? (
+              <Empty>
+                <EmptyHeader>
+                  <EmptyMedia variant='icon'>
+                    <HugeiconsIcon
+                      icon={Video01Icon}
+                      strokeWidth={2}
+                      aria-hidden
+                      data-icon='empty'
+                    />
+                  </EmptyMedia>
+                  <EmptyTitle>{t('No API keys available')}</EmptyTitle>
+                  <EmptyDescription>
+                    {t('Create an API key to generate video.')}
+                  </EmptyDescription>
+                </EmptyHeader>
+                <EmptyContent>
+                  <Button render={<Link to='/keys' />}>
+                    {t('Create API Key')}
+                  </Button>
+                </EmptyContent>
+              </Empty>
+            ) : null}
 
-        {keyId != null &&
-        modelsQuery.isFetched &&
-        modelsQuery.models.length === 0 ? (
-          <Empty>
-            <EmptyHeader>
-              <EmptyMedia variant='icon'>
-                <HugeiconsIcon
-                  icon={Video01Icon}
-                  strokeWidth={2}
-                  aria-hidden
-                  data-icon='empty'
-                />
-              </EmptyMedia>
-              <EmptyTitle>{t('No video models available')}</EmptyTitle>
-              <EmptyDescription>
-                {t('This API key has no video models.')}
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        ) : null}
+            {noModels ? (
+              <Empty>
+                <EmptyHeader>
+                  <EmptyMedia variant='icon'>
+                    <HugeiconsIcon
+                      icon={Video01Icon}
+                      strokeWidth={2}
+                      aria-hidden
+                      data-icon='empty'
+                    />
+                  </EmptyMedia>
+                  <EmptyTitle>{t('No video models available')}</EmptyTitle>
+                  <EmptyDescription>
+                    {t('This API key has no video models.')}
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            ) : null}
 
-        {composer}
+            {!noKeys && !noModels ? (
+              <VideoComposer
+                capability={capability}
+                models={modelsQuery.models}
+                modelId={model}
+                onModelChange={handleModelChange}
+                modelsDisabled={modelsQuery.isLoading || keyId == null}
+                keyId={keyId}
+                resourceStore={resourceStore}
+                canSubmit={canSubmit}
+                isSubmitting={submission.isBusy}
+                submitErrorText={submitErrorText}
+                restore={restore}
+                onSubmit={handleSubmit}
+              />
+            ) : null}
+          </div>
 
-        <TaskGallery tasks={submission.tasks} />
+          <div className='flex min-w-0 flex-col gap-5'>
+            <VideoPreview
+              submission={selectedSubmission}
+              canRestore={
+                selectedSubmission != null &&
+                settingsStore.settings[selectedSubmission.id] !== undefined
+              }
+              onRestoreSettings={handleRestoreSettings}
+            />
+            <RecentTaskList
+              tasks={visibleTasks}
+              selectedId={selectedSubmissionId}
+              onSelect={setSelectedSubmissionId}
+            />
+          </div>
+        </div>
       </div>
     </div>
   )

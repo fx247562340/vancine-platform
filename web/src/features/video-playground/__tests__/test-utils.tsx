@@ -21,16 +21,17 @@ import {
   QueryClient,
   QueryClientProvider,
 } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import userEvent, { type UserEvent } from '@testing-library/user-event'
 import i18next, { type i18n as I18n } from 'i18next'
 import { I18nextProvider, initReactI18next } from 'react-i18next'
-import { afterEach, expect } from 'vitest'
+import { afterEach, expect, vi } from 'vitest'
 
 import { useAuthStore } from '@/stores/auth-store'
 import { routerLinkMock } from '@/test/router-link-mock'
 
 import { VideoPlayground } from '../index'
+import type { VideoApiKeyOption } from '../lib/keys'
 
 export const FAKE_SECRET = 'vp-secret-do-not-leak'
 
@@ -42,7 +43,36 @@ export const videoPlaygroundTranslations = {
     Prompt: 'Prompt',
     'Describe the video you want to generate':
       'Describe the video you want to generate',
+    'Describe the video you want to generate.':
+      'Describe the video you want to generate.',
     Generate: 'Generate',
+    'Generate video': 'Generate video',
+    Seconds: 'Seconds',
+    Default: 'Default',
+    'Reference images': 'Reference images',
+    'Drop images here or choose files': 'Drop images here or choose files',
+    'Choose files': 'Choose files',
+    'Recent tasks': 'Recent tasks',
+    '{{count}} task': '{{count}} task',
+    '{{count}} tasks': '{{count}} tasks',
+    Preview: 'Preview',
+    'Your generated video will appear here.':
+      'Your generated video will appear here.',
+    'Use these settings again': 'Use these settings again',
+    'Reload preview': 'Reload preview',
+    'videoPlayground.reference.modelDoesNotAcceptImages':
+      'This model does not accept reference images.',
+    'videoPlayground.reference.tooManyImages':
+      'This model accepts at most {{max}} reference images.',
+    'videoPlayground.reference.notAnImage':
+      'Only image files can be used as reference images.',
+    'videoPlayground.reference.unsupportedFormat':
+      'Use a JPEG, PNG or WebP image.',
+    'videoPlayground.reference.imageTooLarge':
+      'Each reference image must be 10 MB or smaller.',
+    'videoPlayground.reference.readFailed': 'Could not read this image.',
+    'videoPlayground.request.bodyTooLarge':
+      'The request is too large. Remove some reference images.',
     'Prompt is required': 'Prompt is required',
     'This request is charged at live prices':
       'This request is charged at live prices',
@@ -131,8 +161,6 @@ export const videoPlaygroundTranslations = {
     '@Audio{{n}}': '@Audio{{n}}',
     'Insert {{label}} into prompt': 'Insert {{label}} into prompt',
     'Remove {{name}}': 'Remove {{name}}',
-    'Describe the video you want to generate.':
-      'Describe the video you want to generate.',
     seconds: 'seconds',
     Cancelled: 'Cancelled',
     'Cancel pending submissions': 'Cancel pending submissions',
@@ -178,6 +206,18 @@ export const videoPlaygroundTranslations = {
   zh: {
     'Video generation': '视频生成',
     Generate: '生成',
+    'Generate video': '生成视频',
+    Prompt: '提示词',
+    Seconds: '秒数',
+    Resolution: '分辨率',
+    'Video model': '视频模型',
+    'API Key': 'API 密钥',
+    'Reference images': '参考图',
+    'Recent tasks': '最近任务',
+    Preview: '预览',
+    'Use these settings again': '再次使用这些设置',
+    'Reload preview': '重新加载预览',
+    'Prompt is required': '请输入提示词',
     'Video generation failed': '视频生成失败',
     'Failed to load video models': '加载视频模型失败',
     'Failed to load video status': '加载视频状态失败',
@@ -187,11 +227,8 @@ export const videoPlaygroundTranslations = {
     'Task ID': '任务 ID',
     'Open video': '打开视频',
     Download: '下载',
-    'Video model': '视频模型',
-    'API Key': 'API 密钥',
     Pricing: '定价',
     'View all task logs': '查看全部任务日志',
-    Prompt: '提示词',
     'Generated video': '生成的视频',
     'No playable video result': '没有可播放的视频结果',
     'No API keys available': '暂无可用 API 密钥',
@@ -310,17 +347,181 @@ export function renderVideoPlayground(
 
 export async function readyGenerateButton() {
   await waitFor(() => {
-    expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Generate video' })).toBeEnabled()
   })
-  return screen.getByRole('button', { name: 'Generate' })
+  return screen.getByRole('button', { name: 'Generate video' })
 }
 
 export async function fillAndSubmitPrompt(prompt = 'a cat walks on the moon') {
   const user = userEvent.setup()
   await readyGenerateButton()
   await user.type(await screen.findByLabelText('Prompt'), prompt)
-  await user.click(screen.getByRole('button', { name: 'Generate' }))
+  await user.click(screen.getByRole('button', { name: 'Generate video' }))
   return user
 }
 
 export { routerLinkMock }
+
+/** The five video models Vancine actually has in production. */
+export const PRODUCTION_VIDEO_MODELS = [
+  'wan3.0-video',
+  'wan3.0-video-prime',
+  'MiniMax-H3',
+  'Doubao-Seedance-2.0',
+  'Doubao-Seedance-2.5',
+] as const
+
+/** Two usable keys, so a key switch can be exercised without extra fixtures. */
+export const STUDIO_API_KEYS: VideoApiKeyOption[] = [
+  {
+    id: 7,
+    name: 'studio',
+    maskedKey: 'sk-***7777',
+    status: 1,
+    createdTime: 100,
+  },
+  {
+    id: 9,
+    name: 'newer',
+    maskedKey: 'sk-***9999',
+    status: 1,
+    createdTime: 200,
+  },
+]
+
+/**
+ * Point the mocked `../api` module at a fixed key list and model list.
+ *
+ * Each test file still declares its own `vi.mock('../api', ...)` factory; this
+ * only fills in resolved values, and it reaches the mock through a dynamic
+ * import so nothing here depends on vi.mock hoisting order.
+ */
+export async function stubVideoApi(options: {
+  models?: ReadonlyArray<string>
+  keys?: ReadonlyArray<VideoApiKeyOption>
+}): Promise<void> {
+  const api = await import('../api')
+  vi.mocked(api.listUsableVideoApiKeys).mockResolvedValue([
+    ...(options.keys ?? STUDIO_API_KEYS),
+  ])
+  vi.mocked(api.loadVideoApiSecret).mockResolvedValue(FAKE_SECRET)
+  vi.mocked(api.getVideoModelsWithApiKey).mockResolvedValue(
+    (options.models ?? PRODUCTION_VIDEO_MODELS).map((id) => ({
+      label: id,
+      value: id,
+    }))
+  )
+  vi.mocked(api.submitVideoGenerationRequest).mockReset()
+  vi.mocked(api.submitVideoGenerationRequest).mockResolvedValue({
+    task_id: 'task-stub',
+    id: 'task-stub',
+  })
+  vi.mocked(api.submitVideoGenerationWithApiKey).mockReset()
+  vi.mocked(api.getVideoTask).mockReset()
+}
+
+/** The bodies handed to `submitVideoGenerationRequest`, in submit order. */
+export async function capturedSubmitBodies(): Promise<unknown[]> {
+  const api = await import('../api')
+  return vi
+    .mocked(api.submitVideoGenerationRequest)
+    .mock.calls.map((call) => call[1])
+}
+
+/**
+ * A real File with deterministic bytes, so FileReader yields a real data URL.
+ * The content depends on the name, which keeps two fixtures of the same size
+ * and MIME type from producing the same data URL.
+ */
+export function makeImageFile(
+  name: string,
+  mimeType = 'image/png',
+  byteSize = 64
+): File {
+  const bytes = new Uint8Array(byteSize)
+  for (let index = 0; index < byteSize; index += 1) {
+    bytes[index] =
+      ((index + name.charCodeAt(index % name.length) + mimeType.length) % 251) +
+      1
+  }
+  return new File([bytes], name, { type: mimeType })
+}
+
+export async function pickVideoModel(
+  user: UserEvent,
+  modelId: string
+): Promise<void> {
+  await user.click(screen.getByLabelText('Video model'))
+  await user.click(await screen.findByRole('option', { name: modelId }))
+}
+
+export async function pickSeconds(
+  user: UserEvent,
+  label: string
+): Promise<void> {
+  await user.click(screen.getByLabelText('Seconds'))
+  await user.click(await screen.findByRole('option', { name: label }))
+}
+
+export async function pickResolution(
+  user: UserEvent,
+  label: string
+): Promise<void> {
+  await user.click(screen.getByLabelText('Resolution'))
+  await user.click(await screen.findByRole('option', { name: label }))
+}
+
+/** Input path 1: the tray's file picker. */
+export async function pickReferenceImages(
+  user: UserEvent,
+  files: File[]
+): Promise<void> {
+  await user.upload(screen.getByTestId('reference-image-file-input'), files)
+}
+
+/** Input path 2: dropping files on the tray. */
+export function dropReferenceImages(files: File[]): void {
+  fireEvent.drop(screen.getByTestId('reference-image-dropzone'), {
+    dataTransfer: { files, items: [], types: ['Files'] },
+  })
+}
+
+/**
+ * Input path 3: pasting from the clipboard. Dispatched on `document`, which is
+ * where the tray listens, so it works whatever currently has focus.
+ */
+export function pasteFromClipboard(
+  files: File[],
+  text?: string
+): { event: Event; defaultPrevented: () => boolean } {
+  const event = new Event('paste', { bubbles: true, cancelable: true })
+  Object.defineProperty(event, 'clipboardData', {
+    value: {
+      files,
+      items: [],
+      types: files.length > 0 ? ['Files'] : ['text/plain'],
+      getData: () => text ?? '',
+    },
+  })
+  document.dispatchEvent(event)
+  return { event, defaultPrevented: () => event.defaultPrevented }
+}
+
+export async function switchApiKey(
+  user: UserEvent,
+  keyName: string
+): Promise<void> {
+  await user.click(screen.getByRole('button', { name: 'API Key' }))
+  await user.click(
+    await screen.findByRole('menuitemradio', { name: new RegExp(keyName) })
+  )
+}
+
+export async function typePrompt(user: UserEvent, prompt: string) {
+  await readyGenerateButton()
+  await user.type(await screen.findByLabelText('Prompt'), prompt)
+}
+
+export async function submitStudio(user: UserEvent): Promise<void> {
+  await user.click(screen.getByRole('button', { name: 'Generate video' }))
+}

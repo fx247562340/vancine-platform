@@ -16,18 +16,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import {
-  Cancel01Icon,
-  CheckmarkCircle01Icon,
-  Loading03Icon,
-} from '@hugeicons/core-free-icons'
+import { Loading03Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Link } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -44,6 +39,7 @@ import {
   type VideoPlaygroundError,
 } from '../lib/errors'
 import { isTerminalVideoTaskStatus } from '../lib/task'
+import { TaskStatusBadge } from './task-status-badge'
 
 type TaskQueueItemProps = {
   taskId: string | null
@@ -86,7 +82,7 @@ export function TaskQueueItem({
           <span className='truncate'>
             {promptPreview || t('Untitled prompt')}
           </span>
-          <StatusBadge
+          <TaskStatusBadge
             status={submitStatus}
             queryStatus={status}
             isPending={isPending}
@@ -214,116 +210,4 @@ export function TaskQueueItem({
       ) : null}
     </Card>
   )
-}
-
-type StatusBadgeProps = {
-  status: TaskQueueItemProps['submitStatus']
-  queryStatus: string | undefined
-  isPending: boolean
-}
-
-/**
- * Six canonical labels — no seventh "Pending" fallback. Mapping:
- *   submitting          → Submitting
- *   pending             → Queued
- *   cancelled           → Cancelled
- *   failed (submit)     → Failed
- *   queryStatus SUCCESS → Completed
- *   queryStatus FAILURE → Failed
- *   submitStatus polling + !terminal → Running
- * The polling branch wins even on a query error: a transient 503 must
- * not surface as Failed, and a still-fetching first call must not
- * hide Running. The dedicated error Alert in TaskQueueItem carries
- * the query error; the badge keeps the polling semantic.
- */
-function StatusBadge({ status, queryStatus, isPending }: StatusBadgeProps) {
-  const { t } = useTranslation()
-  if (status === 'submitting') {
-    return (
-      <Badge variant='secondary' className='gap-1'>
-        <HugeiconsIcon
-          icon={Loading03Icon}
-          aria-hidden
-          data-icon='inline-start'
-          className='animate-spin'
-        />
-        {t('Submitting')}
-      </Badge>
-    )
-  }
-  if (status === 'cancelled') {
-    return (
-      <Badge variant='outline' className='gap-1'>
-        <HugeiconsIcon
-          icon={Cancel01Icon}
-          aria-hidden
-          data-icon='inline-start'
-        />
-        {t('Cancelled')}
-      </Badge>
-    )
-  }
-  if (status === 'failed') {
-    return (
-      <Badge variant='destructive' className='gap-1'>
-        <HugeiconsIcon
-          icon={Cancel01Icon}
-          aria-hidden
-          data-icon='inline-start'
-        />
-        {t('Failed')}
-      </Badge>
-    )
-  }
-  if (status === 'pending') {
-    return (
-      <Badge variant='outline' className='gap-1'>
-        {t('Queued')}
-      </Badge>
-    )
-  }
-  if (queryStatus === VIDEO_TASK_SUCCESS) {
-    return (
-      <Badge variant='default' className='gap-1'>
-        <HugeiconsIcon
-          icon={CheckmarkCircle01Icon}
-          aria-hidden
-          data-icon='inline-start'
-        />
-        {t('Completed')}
-      </Badge>
-    )
-  }
-  if (queryStatus === VIDEO_TASK_FAILURE) {
-    return (
-      <Badge variant='destructive' className='gap-1'>
-        <HugeiconsIcon
-          icon={Cancel01Icon}
-          aria-hidden
-          data-icon='inline-start'
-        />
-        {t('Failed')}
-      </Badge>
-    )
-  }
-  // submitStatus is 'polling' (or any other unhandled case where the
-  // task is neither terminal nor locally failed/cancelled/submitting).
-  // The polling label stays on the badge even when the upstream
-  // query has errored — a transient retry failure is not a final
-  // outcome and the dedicated Alert below surfaces the error with a
-  // Retry status button.
-  if (isPending || status === 'polling') {
-    return (
-      <Badge variant='secondary' className='gap-1'>
-        <HugeiconsIcon
-          icon={Loading03Icon}
-          aria-hidden
-          data-icon='inline-start'
-          className='animate-spin'
-        />
-        {t('Running')}
-      </Badge>
-    )
-  }
-  return null
 }

@@ -18,9 +18,9 @@ For commercial licensing, please contact support@quantumnous.com.
 */
 import { useCallback } from 'react'
 
-import { submitVideoGenerationWithApiKey } from '../api'
+import { submitVideoGenerationRequest } from '../api'
 import { VideoPlaygroundError } from '../lib/errors'
-import type { VideoSubmitPayload } from '../types'
+import type { VideoGenerationRequestBody } from '../lib/video-request'
 import { useSubmission, type UseSubmissionResult } from './use-submission'
 
 export type VideoSubmissionParams = {
@@ -33,12 +33,11 @@ export type VideoSubmissionParams = {
 /**
  * The video page's single submission pipeline.
  *
- * It is owned by the page rather than by a composer so the task queue survives
- * switching between the dedicated (Seedance) and the generic composer. Both
- * composers keep their own preflight and serializer, but every accepted body
- * lands in this one queue, which means a task that already has a task_id keeps
- * polling, a POST whose response arrives after a profile switch is still
- * accepted by the same late-response guard, and terminal tasks never disappear.
+ * It is owned by the page rather than by the composer so the task queue outlives
+ * every model and API key switch: a task that already has a task_id keeps
+ * polling with its own submit-time key, a POST whose response arrives after a
+ * switch is still caught by the same late-response guard, and terminal tasks
+ * never disappear.
  *
  * The full API key is loaded per POST from the secret store by id and held only
  * in a local variable: it never enters React state, the DOM, storage, React
@@ -46,11 +45,11 @@ export type VideoSubmissionParams = {
  */
 export function useVideoSubmission(
   params: VideoSubmissionParams
-): UseSubmissionResult<VideoSubmitPayload> {
+): UseSubmissionResult<VideoGenerationRequestBody> {
   const { keyId, language, loadSecret } = params
 
   const submit = useCallback(
-    async (body: VideoSubmitPayload, signal?: AbortSignal) => {
+    async (body: VideoGenerationRequestBody, signal?: AbortSignal) => {
       if (keyId == null) {
         throw new VideoPlaygroundError({
           kind: 'system',
@@ -58,7 +57,7 @@ export function useVideoSubmission(
         })
       }
       const rawKey = await loadSecret(keyId, signal)
-      const response = await submitVideoGenerationWithApiKey(
+      const response = await submitVideoGenerationRequest(
         rawKey,
         body,
         language,
@@ -76,5 +75,5 @@ export function useVideoSubmission(
     [keyId, language, loadSecret]
   )
 
-  return useSubmission<VideoSubmitPayload>({ submit, keyId })
+  return useSubmission<VideoGenerationRequestBody>({ submit, keyId })
 }

@@ -16,18 +16,31 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, type UseQueryOptions } from '@tanstack/react-query'
 
 import { getVideoTask } from '../api'
 import { VIDEO_TASK_POLL_INTERVAL_MS } from '../constants'
 import { isRecoverableTaskError, VideoPlaygroundError } from '../lib/errors'
 import { videoTaskPollInterval } from '../lib/task'
+import type { VideoTask } from '../types'
 
 export const VIDEO_TASK_STATUS_RETRY_COUNT = 2
 export const VIDEO_TASK_STATUS_RETRY_DELAY_MS = 1000
 
-export function useVideoTask(taskId: string | null) {
-  return useQuery({
+export type VideoTaskQueryKey = ['video-playground-task', string | null]
+
+/**
+ * The one task-status query configuration.
+ *
+ * Both `useVideoTask` (the main preview) and the recent-task list's `useQueries`
+ * build their observers from this, so the polling interval, the retry policy and
+ * the never-auto-refresh rule for terminal tasks cannot drift between the two
+ * places that read the same task.
+ */
+export function videoTaskQueryOptions(
+  taskId: string | null
+): UseQueryOptions<VideoTask, Error, VideoTask, VideoTaskQueryKey> {
+  return {
     queryKey: ['video-playground-task', taskId],
     queryFn: ({ signal }) => getVideoTask(taskId as string, signal),
     enabled: Boolean(taskId),
@@ -53,7 +66,11 @@ export function useVideoTask(taskId: string | null) {
       return videoTaskPollInterval(query.state.data?.status)
     },
     refetchIntervalInBackground: false,
-  })
+  }
+}
+
+export function useVideoTask(taskId: string | null) {
+  return useQuery(videoTaskQueryOptions(taskId))
 }
 
 export function videoTaskQueryError(

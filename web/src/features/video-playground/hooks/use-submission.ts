@@ -20,6 +20,7 @@ import { useMutation } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { VideoPlaygroundError } from '../lib/errors'
+import { abortError } from '../lib/v1-client'
 
 export type SubmissionStatus =
   | 'pending'
@@ -61,13 +62,19 @@ export type UseSubmissionResult<TBody = unknown> = {
      * generic composer, and each has its own batch control.
      */
     batchSize: number
-  }) => void
+  }) => string
   /** Cancel pending/submitting items only. Does NOT abort tasks that already have a task_id. */
   cancel: () => void
 }
 
+/**
+ * The body travels inside a box that the pipeline empties as soon as its POST
+ * settles. `useMutation` keeps a settled entry reachable for as long as the page
+ * stays mounted, and a reference-image body can carry megabytes of base64, so
+ * the mutation cache must never be what retains those bytes.
+ */
 type MutationVars<TBody> = {
-  body: TBody
+  payload: { body: TBody | null }
   signal?: AbortSignal
 }
 
@@ -97,7 +104,15 @@ export function useSubmission<TBody = unknown>(
   const abortRef = useRef<AbortController | null>(null)
 
   const mutation = useMutation({
-    mutationFn: (vars: MutationVars<TBody>) => submit(vars.body, vars.signal),
+    mutationFn: (vars: MutationVars<TBody>) => {
+      const body = vars.payload.body
+      if (body === null) {
+        // The box was already emptied, so this submission was released before
+        // its POST started. Surface it as a cancellation, never as a body.
+        return Promise.reject(abortError())
+      }
+      return submit(body, vars.signal)
+    },
     gcTime: 0,
     onError: () => {
       // Inline owner: TaskQueueItem / preflight alert. Do not toast.
@@ -145,7 +160,7 @@ export function useSubmission<TBody = unknown>(
       modelId: string
       promptPreview: string
       batchSize: number
-    }) => {
+    }): string => {
       const generation = epochRef.current
       const submittedAt = Date.now()
       const local: QueuedSubmission[] = []
@@ -178,9 +193,10 @@ export function useSubmission<TBody = unknown>(
           if (index > 0) {
             updateTask(entry.id, { status: 'submitting' })
           }
+          const payload: { body: TBody | null } = { body: params.body }
           try {
             const result = await mutateRef.current({
-              body: params.body,
+              payload,
               signal: controller.signal,
             })
             // Late-response guard: re-check the epoch and abort flag BEFORE
@@ -219,9 +235,17 @@ export function useSubmission<TBody = unknown>(
                     errorKey: 'Video generation failed',
                   })
             updateTask(entry.id, { status: 'failed', submitError })
+          } finally {
+            // Release the request body whatever the outcome, so neither the
+            // mutation cache nor this closure keeps the reference-image bytes.
+            payload.body = null
           }
         }
       })()
+
+      // The first placeholder is the submission this call created, which is the
+      // one the page promotes to the main preview.
+      return local[0]?.id ?? ''
     },
     [updateTask]
   )

@@ -16,45 +16,44 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com.
 */
+
 /**
- * Page-level integration tests for Video Playground.
+ * The studio's submit lifecycle, error ownership and form retention.
  *
- * Each title describes a real user action that the test performs on
- * the mounted page. Mocked `submitVideoGenerationWithApiKey` records
- * the POST body. Zero-POST cases wait for an inline error (or
- * cancelled status) that proves the submit path finished.
+ * A real user drives the mounted page: pick a model, attach local images,
+ * type a prompt, press generate. What is asserted is only what the user can
+ * observe — how many POSTs leave the page, where a failure is shown, whether
+ * it is toasted, and whether the form survives a submit so it can be tweaked
+ * and sent again. The exhaustive per-provider request bodies belong to
+ * `outbound-request.test.tsx`; this file spot-checks one duration/resolution
+ * slot per model so a page-level wiring regression still fails here.
  */
 import { screen, waitFor, within } from '@testing-library/react'
-import userEvent, { type UserEvent } from '@testing-library/user-event'
+import userEvent from '@testing-library/user-event'
 import type { i18n as I18n } from 'i18next'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { routerLinkMock } from '@/test/router-link-mock'
 
+import { getVideoTask, submitVideoGenerationRequest } from '../api'
+import { VideoPlaygroundError } from '../lib/errors'
+import { deferred } from './pipeline-harness'
 import {
-  getVideoModelsWithApiKey,
-  getVideoTask,
-  listUsableVideoApiKeys,
-  loadVideoApiSecret,
-  submitVideoGenerationWithApiKey,
-} from '../api'
-import {
+  capturedSubmitBodies,
   createVideoPlaygroundI18n,
-  FAKE_SECRET,
-  readyGenerateButton,
+  makeImageFile,
+  pickReferenceImages,
+  pickResolution,
+  pickSeconds,
+  pickVideoModel,
   renderVideoPlayground,
   stubAuthUser,
+  stubVideoApi,
+  submitStudio,
+  typePrompt,
 } from './test-utils'
 
 vi.mock('@tanstack/react-router', () => routerLinkMock)
-
-// jsdom never fires media-element events, so the duration probe would
-// hang. The probe is a browser-API boundary — stub it to report an
-// unreadable local file (undefined), which the adder must reject.
-vi.mock('../lib/media-duration', () => ({
-  readMediaDuration: vi.fn(async () => undefined),
-}))
-
 vi.mock('../api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api')>()
   return {
@@ -62,894 +61,390 @@ vi.mock('../api', async (importOriginal) => {
     listUsableVideoApiKeys: vi.fn(),
     loadVideoApiSecret: vi.fn(),
     getVideoModelsWithApiKey: vi.fn(),
+    submitVideoGenerationRequest: vi.fn(),
     submitVideoGenerationWithApiKey: vi.fn(),
     getVideoTask: vi.fn(),
   }
 })
 
-interface CapturedBody {
-  model: string
-  prompt: string
-  duration?: number
-  metadata?: {
-    content?: Array<{
-      type: string
-      role: string
-      image_url?: { url: string }
-      video_url?: { url: string }
-      audio_url?: { url: string }
-    }>
-    ratio?: string
-    resolution?: string
-    generate_audio?: boolean
-    watermark?: boolean
-    return_last_frame?: boolean
-    duration?: number
-    seed?: number
+const toastError = vi.fn()
+vi.mock('sonner', () => ({
+  toast: {
+    error: (...args: unknown[]) => toastError(...args),
+    success: vi.fn(),
+  },
+}))
+
+/** jsdom implements neither object URL, and the tray thumbnails need both. */
+const createObjectUrl = vi.fn(() => 'blob:reference-preview')
+const revokeObjectUrl = vi.fn()
+
+const UPSTREAM_MESSAGE = 'insufficient quota for video generation'
+
+function composerForm(): HTMLElement {
+  // Anchored on the prompt field, not on the generate button: that button's
+  // accessible name changes to "Submitting..." while a POST is in flight.
+  const form = screen.getByLabelText('Prompt').closest('form')
+  if (!form) {
+    throw new Error('the prompt field is not inside a form')
   }
+  return form
 }
 
-function getCapturedBody(callIndex = 0): CapturedBody {
-  const calls = vi.mocked(submitVideoGenerationWithApiKey).mock.calls
-  const args = calls[callIndex]
-  if (!args) throw new Error('no submit call captured')
-  return args[1] as unknown as CapturedBody
+function submitSlot(): HTMLElement {
+  return within(composerForm()).getByRole('alert')
 }
 
-async function selectMode(user: UserEvent, name: string) {
-  await user.click(screen.getByLabelText('Creation mode'))
-  await user.click(await screen.findByRole('option', { name }))
+function recentTaskRegion(): HTMLElement {
+  return screen.getByRole('region', { name: 'Recent tasks' })
 }
 
-async function selectModel(user: UserEvent, name: string) {
-  await user.click(screen.getByLabelText('Video model'))
-  await user.click(await screen.findByRole('option', { name }))
+function previewRegion(): HTMLElement {
+  return screen.getByRole('region', { name: 'Preview' })
 }
 
-async function addUrl(
-  user: UserEvent,
-  ariaLabel: string,
-  placeholder: string,
-  url: string,
-  chip: string
-) {
-  await user.click(screen.getByRole('button', { name: ariaLabel }))
-  expect(await screen.findByLabelText('Public URL')).toBeTruthy()
-  const input = await screen.findByPlaceholderText(placeholder)
-  await user.clear(input)
-  await user.type(input, url)
-  await user.keyboard('{Enter}')
-  expect(await screen.findByText(chip)).toBeTruthy()
-}
-
-async function addImageUrl(user: UserEvent, url: string, chip = '@Image1') {
-  await addUrl(
-    user,
-    'Add reference image',
-    'https://cdn.example.com/reference.png',
-    url,
-    chip
-  )
-}
-
-async function addVideoUrl(user: UserEvent, url: string, chip = '@Video1') {
-  await addUrl(
-    user,
-    'Add reference video',
-    'https://cdn.example.com/reference.mp4',
-    url,
-    chip
-  )
-}
-
-async function addAudioUrl(user: UserEvent, url: string, chip = '@Audio1') {
-  await addUrl(
-    user,
-    'Add reference audio',
-    'https://cdn.example.com/reference.wav',
-    url,
-    chip
-  )
-}
-
-async function openParameters(user: UserEvent) {
-  await user.click(screen.getByRole('button', { name: 'Parameter settings' }))
-}
-
-async function chooseOption(
-  user: UserEvent,
-  comboboxName: string,
-  optionName: string
-) {
-  await user.click(screen.getByRole('combobox', { name: comboboxName }))
-  await user.click(await screen.findByRole('option', { name: optionName }))
-}
-
-describe('VideoPlayground — page-level POST body', () => {
-  let i18n: I18n
-
-  beforeEach(async () => {
-    i18n = await createVideoPlaygroundI18n()
-    stubAuthUser()
-    vi.mocked(listUsableVideoApiKeys).mockResolvedValue([
-      {
-        id: 7,
-        name: 'phaseD',
-        maskedKey: 'sk-***7777',
-        status: 1,
-        createdTime: 100,
-      },
-      {
-        id: 8,
-        name: 'newer',
-        maskedKey: 'sk-***8888',
-        status: 1,
-        createdTime: 200,
-      },
-    ])
-    vi.mocked(loadVideoApiSecret).mockResolvedValue(FAKE_SECRET)
-    vi.mocked(getVideoModelsWithApiKey).mockResolvedValue([
-      { label: 'Doubao-Seedance-2.5', value: 'Doubao-Seedance-2.5' },
-      { label: 'Doubao-Seedance-2.0', value: 'Doubao-Seedance-2.0' },
-    ])
-    vi.mocked(submitVideoGenerationWithApiKey).mockReset()
-    vi.mocked(getVideoTask).mockReset()
+async function waitForSubmitCount(count: number): Promise<void> {
+  await waitFor(() => {
+    expect(vi.mocked(submitVideoGenerationRequest)).toHaveBeenCalledTimes(count)
   })
+}
 
-  afterEach(() => {
-    const html = document.body.innerHTML
-    expect(html).not.toContain(FAKE_SECRET)
-    expect(html).not.toContain(`sk-${FAKE_SECRET}`)
-    expect(localStorage.getItem(FAKE_SECRET)).toBeNull()
-    expect(sessionStorage.getItem(FAKE_SECRET)).toBeNull()
-  })
+let i18n: I18n
 
-  it('writes a non-default fixed duration chosen in the UI to both duration fields', async () => {
-    vi.mocked(submitVideoGenerationWithApiKey).mockResolvedValue({
-      task_id: 'task-dur',
-    })
-    vi.mocked(getVideoTask).mockResolvedValue({
-      task_id: 'task-dur',
-      status: 'IN_PROGRESS',
-    })
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
+beforeEach(async () => {
+  stubAuthUser()
+  await stubVideoApi({})
+  // Keep the status query honest: an accepted task stays "running", so nothing
+  // in these tests depends on a task reaching a terminal state.
+  vi.mocked(getVideoTask).mockImplementation(async (taskId: string) => ({
+    task_id: taskId,
+    status: 'SUBMITTED',
+  }))
+  toastError.mockReset()
+  createObjectUrl.mockClear()
+  revokeObjectUrl.mockClear()
+  ;(
+    URL as unknown as { createObjectURL: typeof createObjectUrl }
+  ).createObjectURL = createObjectUrl
+  ;(
+    URL as unknown as { revokeObjectURL: typeof revokeObjectUrl }
+  ).revokeObjectURL = revokeObjectUrl
+  i18n = await createVideoPlaygroundI18n()
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
+  delete (URL as unknown as Record<string, unknown>).createObjectURL
+  delete (URL as unknown as Record<string, unknown>).revokeObjectURL
+})
+
+describe('Video studio submit lifecycle', () => {
+  it('sends exactly one POST for one generate click and a second click while it is held open sends none', async () => {
+    const gate = deferred<{ id?: string; task_id?: string }>()
+    vi.mocked(submitVideoGenerationRequest).mockImplementation(
+      () => gate.promise
+    )
+    const user = userEvent.setup()
     renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await openParameters(user)
-    await chooseOption(user, 'Duration', '8 seconds')
-    await user.type(screen.getByLabelText('Prompt'), 'a cat walks on the moon')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
+    await typePrompt(user, 'a cat walks on the moon')
+
+    await submitStudio(user)
+    await waitForSubmitCount(1)
+
+    // While the POST is open the single generate button reports it and refuses
+    // a second attempt, so a nervous double click cannot bill twice.
+    const button = within(composerForm()).getByRole('button', {
+      name: 'Submitting...',
+    })
+    expect(button).toBeDisabled()
+    await user.click(button)
+    expect(vi.mocked(submitVideoGenerationRequest)).toHaveBeenCalledTimes(1)
+
+    gate.resolve({ task_id: 'task-stub', id: 'task-stub' })
     await waitFor(() => {
-      expect(submitVideoGenerationWithApiKey).toHaveBeenCalled()
+      expect(
+        within(composerForm()).getByRole('button', { name: 'Generate video' })
+      ).toBeEnabled()
     })
-    const body = getCapturedBody()
-    expect(body.duration).toBe(8)
-    expect(body.metadata?.duration).toBe(8)
+    expect(vi.mocked(submitVideoGenerationRequest)).toHaveBeenCalledTimes(1)
   })
 
-  it('omits duration in both places after switching to intelligent duration', async () => {
-    vi.mocked(submitVideoGenerationWithApiKey).mockResolvedValue({
-      task_id: 'task-intel',
-    })
-    vi.mocked(getVideoTask).mockResolvedValue({
-      task_id: 'task-intel',
-      status: 'IN_PROGRESS',
-    })
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
+  it('shows an upstream submit failure verbatim above the generate button, on the task row and in the preview', async () => {
+    vi.mocked(submitVideoGenerationRequest).mockRejectedValue(
+      new VideoPlaygroundError({
+        kind: 'upstream',
+        rawMessage: UPSTREAM_MESSAGE,
+        httpStatus: 402,
+      })
+    )
+    const user = userEvent.setup()
     renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await openParameters(user)
-    await user.click(screen.getByRole('button', { name: 'Fixed duration' }))
+    await typePrompt(user, 'a cat walks on the moon')
+
+    await submitStudio(user)
+
+    // One owning error, three intentional surfaces: the submit slot above the
+    // button, the selected task's preview, and a Failed badge on its row.
+    const inline = await screen.findAllByText(UPSTREAM_MESSAGE)
+    expect(inline).toHaveLength(2)
+    expect(submitSlot()).toHaveTextContent(UPSTREAM_MESSAGE)
+    expect(within(previewRegion()).getByText(UPSTREAM_MESSAGE)).toBeTruthy()
+    const row = within(recentTaskRegion()).getByRole('button')
+    expect(within(row).getByText('Failed')).toBeTruthy()
+    expect(toastError).not.toHaveBeenCalled()
+  })
+
+  it('shows the translated system failure above the generate button when the submit response carries no task id', async () => {
+    vi.mocked(submitVideoGenerationRequest).mockResolvedValue({})
+    const user = userEvent.setup()
+    renderVideoPlayground(i18n)
+    await typePrompt(user, 'a cat walks on the moon')
+
+    await submitStudio(user)
+
+    const inline = await screen.findAllByText('Video generation failed')
+    expect(inline).toHaveLength(2)
+    expect(submitSlot()).toHaveTextContent('Video generation failed')
     expect(
-      screen.getByRole('button', { name: 'Intelligent duration' })
+      within(previewRegion()).getByText('Video generation failed')
     ).toBeTruthy()
-    await user.type(screen.getByLabelText('Prompt'), 'a dog')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
-    await waitFor(() => {
-      expect(submitVideoGenerationWithApiKey).toHaveBeenCalled()
-    })
-    const body = getCapturedBody()
-    expect(body.duration).toBeUndefined()
-    expect(body.metadata?.duration).toBeUndefined()
+    expect(toastError).not.toHaveBeenCalled()
   })
 
-  it('sends the ratio chosen in the UI', async () => {
-    vi.mocked(submitVideoGenerationWithApiKey).mockResolvedValue({
-      task_id: 'task-ratio',
-    })
-    vi.mocked(getVideoTask).mockResolvedValue({
-      task_id: 'task-ratio',
-      status: 'IN_PROGRESS',
-    })
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
+  it('emits no toast at all when a submit fails', async () => {
+    vi.mocked(submitVideoGenerationRequest).mockRejectedValue(
+      new VideoPlaygroundError({
+        kind: 'system',
+        errorKey: 'Video generation failed',
+      })
+    )
+    const user = userEvent.setup()
     renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await openParameters(user)
-    await chooseOption(user, 'Aspect ratio', '9:16')
-    await user.type(screen.getByLabelText('Prompt'), 'a dog')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
-    await waitFor(() => {
-      expect(submitVideoGenerationWithApiKey).toHaveBeenCalled()
-    })
-    expect(getCapturedBody().metadata?.ratio).toBe('9:16')
+    await typePrompt(user, 'a cat walks on the moon')
+
+    await submitStudio(user)
+    await screen.findAllByText('Video generation failed')
+
+    // The mutation's onError is deliberately a no-op: the inline slot owns it.
+    expect(toastError).not.toHaveBeenCalled()
   })
 
-  it('sends the resolution chosen in the UI', async () => {
-    vi.mocked(submitVideoGenerationWithApiKey).mockResolvedValue({
-      task_id: 'task-res',
-    })
-    vi.mocked(getVideoTask).mockResolvedValue({
-      task_id: 'task-res',
-      status: 'IN_PROGRESS',
-    })
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
+  it('clears an over-budget rejection above the generate button as soon as the user edits the prompt', async () => {
+    const user = userEvent.setup()
     renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await openParameters(user)
-    await chooseOption(user, 'Resolution', '480p')
-    await user.type(screen.getByLabelText('Prompt'), 'a dog')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
-    await waitFor(() => {
-      expect(submitVideoGenerationWithApiKey).toHaveBeenCalled()
-    })
-    expect(getCapturedBody().metadata?.resolution).toBe('480p')
-  })
-
-  it('writes a seed typed in the UI to metadata.seed', async () => {
-    vi.mocked(submitVideoGenerationWithApiKey).mockResolvedValue({
-      task_id: 'task-seed',
-    })
-    vi.mocked(getVideoTask).mockResolvedValue({
-      task_id: 'task-seed',
-      status: 'IN_PROGRESS',
-    })
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await openParameters(user)
-    await user.type(screen.getByLabelText('Random seed (optional)'), '42')
-    await user.type(screen.getByLabelText('Prompt'), 'a dog')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
-    await waitFor(() => {
-      expect(submitVideoGenerationWithApiKey).toHaveBeenCalled()
-    })
-    expect(getCapturedBody().metadata?.seed).toBe(42)
-  })
-
-  it('sends generate_audio false, watermark true, and return_last_frame true after toggling the switches', async () => {
-    vi.mocked(submitVideoGenerationWithApiKey).mockResolvedValue({
-      task_id: 'task-sw',
-    })
-    vi.mocked(getVideoTask).mockResolvedValue({
-      task_id: 'task-sw',
-      status: 'IN_PROGRESS',
-    })
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await openParameters(user)
-    await user.click(screen.getByRole('switch', { name: 'Generate audio' }))
-    await user.click(screen.getByRole('switch', { name: 'Watermark' }))
-    await user.click(screen.getByRole('switch', { name: 'Return last frame' }))
-    await user.type(screen.getByLabelText('Prompt'), 'a dog')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
-    await waitFor(() => {
-      expect(submitVideoGenerationWithApiKey).toHaveBeenCalled()
-    })
-    const body = getCapturedBody()
-    expect(body.metadata?.generate_audio).toBe(false)
-    expect(body.metadata?.watermark).toBe(true)
-    expect(body.metadata?.return_last_frame).toBe(true)
-  })
-
-  it('omits metadata.content for textToVideo with zero attached resources', async () => {
-    vi.mocked(submitVideoGenerationWithApiKey).mockResolvedValue({
-      task_id: 'task-text',
-    })
-    vi.mocked(getVideoTask).mockResolvedValue({
-      task_id: 'task-text',
-      status: 'IN_PROGRESS',
-    })
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await user.type(await screen.findByLabelText('Prompt'), 'a dog running')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
-    await waitFor(() => {
-      expect(submitVideoGenerationWithApiKey).toHaveBeenCalled()
-    })
-    expect(getCapturedBody().metadata?.content).toBeUndefined()
-  })
-
-  it('rejects textToVideo with an attached image: inline error and zero POST', async () => {
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await addImageUrl(user, 'https://cdn.example.com/cat.png')
-    await user.type(screen.getByLabelText('Prompt'), 'a dog @Image1')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
-    expect(
-      await screen.findByText(
-        'Text to video mode does not allow reference assets.'
+    await pickVideoModel(user, 'MiniMax-H3')
+    await pickReferenceImages(
+      user,
+      [1, 2, 3, 4, 5].map((index) =>
+        makeImageFile(`heavy-${index}.png`, 'image/png', 10 * 1024 * 1024)
       )
-    ).toBeTruthy()
-    expect(submitVideoGenerationWithApiKey).not.toHaveBeenCalled()
-  })
-
-  it('does not add an unsafe javascript: URL and never sends it in a POST', async () => {
-    vi.mocked(submitVideoGenerationWithApiKey).mockResolvedValue({
-      task_id: 'task-safe',
-    })
-    vi.mocked(getVideoTask).mockResolvedValue({
-      task_id: 'task-safe',
-      status: 'IN_PROGRESS',
-    })
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await user.click(
-      screen.getByRole('button', { name: 'Add reference image' })
     )
-    const input = await screen.findByPlaceholderText(
-      'https://cdn.example.com/reference.png'
-    )
-    await user.type(input, 'javascript:alert(1).png')
-    const popover =
-      input.closest('[data-slot="popover-content"]') ?? document.body
-    await user.click(
-      within(popover as HTMLElement).getByRole('button', { name: 'Add' })
-    )
-    expect(await screen.findByText('This URL is not supported.')).toBeTruthy()
-    expect(screen.queryByText('@Image1')).toBeNull()
-    await user.type(screen.getByLabelText('Prompt'), 'a dog')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
     await waitFor(() => {
-      expect(submitVideoGenerationWithApiKey).toHaveBeenCalled()
+      expect(screen.getAllByRole('button', { name: /^Remove / })).toHaveLength(
+        5
+      )
     })
-    const body = getCapturedBody()
-    expect(JSON.stringify(body)).not.toContain('javascript:')
-    expect(body.metadata?.content).toBeUndefined()
-  })
+    await typePrompt(user, 'a very heavy clip')
 
-  it('serialises firstFrame with the attached image as role first_frame', async () => {
-    vi.mocked(submitVideoGenerationWithApiKey).mockResolvedValue({
-      task_id: 'task-ff',
-    })
-    vi.mocked(getVideoTask).mockResolvedValue({
-      task_id: 'task-ff',
-      status: 'IN_PROGRESS',
-    })
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await selectMode(user, 'First frame')
-    await addImageUrl(user, 'https://cdn.example.com/first.png')
-    await user.type(screen.getByLabelText('Prompt'), 'start from @Image1')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
+    await submitStudio(user)
+
+    expect(await screen.findByText(/The request is too large/)).toBeTruthy()
+    expect(vi.mocked(submitVideoGenerationRequest)).not.toHaveBeenCalled()
+
+    // A rejection is never sticky: the next keystroke clears it.
+    await user.type(screen.getByLabelText('Prompt'), '!')
     await waitFor(() => {
-      expect(submitVideoGenerationWithApiKey).toHaveBeenCalled()
+      expect(within(composerForm()).queryByRole('alert')).toBeNull()
     })
-    expect(getCapturedBody().metadata?.content).toEqual([
-      {
-        type: 'image_url',
-        image_url: { url: 'https://cdn.example.com/first.png' },
-        role: 'first_frame',
-      },
-    ])
+    expect(vi.mocked(submitVideoGenerationRequest)).not.toHaveBeenCalled()
   })
 
-  it('serialises firstAndLastFrame with first_frame then last_frame roles', async () => {
-    vi.mocked(submitVideoGenerationWithApiKey).mockResolvedValue({
-      task_id: 'task-fl',
-    })
-    vi.mocked(getVideoTask).mockResolvedValue({
-      task_id: 'task-fl',
-      status: 'IN_PROGRESS',
-    })
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await selectMode(user, 'First and last frame')
-    await addImageUrl(user, 'https://cdn.example.com/first.png', '@Image1')
-    await addImageUrl(user, 'https://cdn.example.com/last.png', '@Image2')
-    await user.type(screen.getByLabelText('Prompt'), 'from @Image1 to @Image2')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
-    await waitFor(() => {
-      expect(submitVideoGenerationWithApiKey).toHaveBeenCalled()
-    })
-    expect(getCapturedBody().metadata?.content).toEqual([
-      {
-        type: 'image_url',
-        image_url: { url: 'https://cdn.example.com/first.png' },
-        role: 'first_frame',
-      },
-      {
-        type: 'image_url',
-        image_url: { url: 'https://cdn.example.com/last.png' },
-        role: 'last_frame',
-      },
-    ])
-  })
-
-  it('serialises referenceGeneration content for attached image, video, and audio URLs', async () => {
-    vi.mocked(submitVideoGenerationWithApiKey).mockResolvedValue({
-      task_id: 'task-ref',
-    })
-    vi.mocked(getVideoTask).mockResolvedValue({
-      task_id: 'task-ref',
-      status: 'IN_PROGRESS',
-    })
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await selectMode(user, 'Reference generation')
-    await addImageUrl(user, 'https://cdn.example.com/ref.png')
-    await addVideoUrl(user, 'https://cdn.example.com/ref.mp4')
-    await addAudioUrl(user, 'https://cdn.example.com/ref.wav')
-    await user.type(
-      screen.getByLabelText('Prompt'),
-      'use @Image1 @Video1 @Audio1'
-    )
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
-    await waitFor(() => {
-      expect(submitVideoGenerationWithApiKey).toHaveBeenCalled()
-    })
-    expect(getCapturedBody().metadata?.content).toEqual([
-      {
-        type: 'image_url',
-        image_url: { url: 'https://cdn.example.com/ref.png' },
-        role: 'reference_image',
-      },
-      {
-        type: 'video_url',
-        video_url: { url: 'https://cdn.example.com/ref.mp4' },
-        role: 'reference_video',
-      },
-      {
-        type: 'audio_url',
-        audio_url: { url: 'https://cdn.example.com/ref.wav' },
-        role: 'reference_audio',
-      },
-    ])
-  })
-
-  it('shows Video edit and Video extend for both Seedance 2.5 and 2.0', async () => {
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await user.click(screen.getByLabelText('Creation mode'))
-    expect(
-      await screen.findByRole('option', { name: 'Video edit' })
-    ).toBeTruthy()
-    expect(screen.getByRole('option', { name: 'Video extend' })).toBeTruthy()
-    await user.keyboard('{Escape}')
-    await selectModel(user, 'Doubao-Seedance-2.0')
-    await user.click(screen.getByLabelText('Creation mode'))
-    expect(
-      await screen.findByRole('option', { name: 'Video edit' })
-    ).toBeTruthy()
-    expect(screen.getByRole('option', { name: 'Video extend' })).toBeTruthy()
-  })
-
-  it('serialises Seedance 2.0 videoEdit with image + video in content', async () => {
-    vi.mocked(submitVideoGenerationWithApiKey).mockResolvedValue({
-      task_id: 'task-edit20',
-    })
-    vi.mocked(getVideoTask).mockResolvedValue({
-      task_id: 'task-edit20',
-      status: 'IN_PROGRESS',
-    })
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await selectModel(user, 'Doubao-Seedance-2.0')
-    await selectMode(user, 'Video edit')
-    await addImageUrl(user, 'https://cdn.example.com/scene.png')
-    await addVideoUrl(user, 'https://cdn.example.com/clip.mp4')
-    await user.type(screen.getByLabelText('Prompt'), 'replace the scene')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
-    await waitFor(() => {
-      expect(submitVideoGenerationWithApiKey).toHaveBeenCalled()
-    })
-    const body = getCapturedBody()
-    expect(body.model).toBe('Doubao-Seedance-2.0')
-    expect('mode' in body).toBe(false)
-    expect(body.metadata?.content).toEqual([
-      {
-        type: 'image_url',
-        image_url: { url: 'https://cdn.example.com/scene.png' },
-        role: 'reference_image',
-      },
-      {
-        type: 'video_url',
-        video_url: { url: 'https://cdn.example.com/clip.mp4' },
-        role: 'reference_video',
-      },
-    ])
-  })
-
-  it('serialises Seedance 2.5 videoExtend with the attached reference video', async () => {
-    vi.mocked(submitVideoGenerationWithApiKey).mockResolvedValue({
-      task_id: 'task-ext25',
-    })
-    vi.mocked(getVideoTask).mockResolvedValue({
-      task_id: 'task-ext25',
-      status: 'IN_PROGRESS',
-    })
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await selectMode(user, 'Video extend')
-    await addVideoUrl(user, 'https://cdn.example.com/extend.mp4')
-    await user.type(screen.getByLabelText('Prompt'), 'continue this clip')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
-    await waitFor(() => {
-      expect(submitVideoGenerationWithApiKey).toHaveBeenCalled()
-    })
-    const body = getCapturedBody()
-    expect(body.model).toBe('Doubao-Seedance-2.5')
-    expect('mode' in body).toBe(false)
-    expect(body.metadata?.content).toEqual([
-      {
-        type: 'video_url',
-        video_url: { url: 'https://cdn.example.com/extend.mp4' },
-        role: 'reference_video',
-      },
-    ])
-  })
-
-  it('firstFrame without an image shows an inline error and sends zero POST', async () => {
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await selectMode(user, 'First frame')
-    await user.type(screen.getByLabelText('Prompt'), 'a dog')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
-    expect(
-      await screen.findByText('First frame mode requires exactly one image.')
-    ).toBeTruthy()
-    expect(submitVideoGenerationWithApiKey).not.toHaveBeenCalled()
-  })
-
-  it('clamps Seedance 2.0 off 1080p as soon as a reference image is added', async () => {
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await selectModel(user, 'Doubao-Seedance-2.0')
-    await openParameters(user)
-    await chooseOption(user, 'Resolution', '1080p')
-    await user.keyboard('{Escape}')
-    await user.keyboard('{Escape}')
-    await addImageUrl(user, 'https://cdn.example.com/ref.png')
-    await openParameters(user)
-    await user.click(screen.getByRole('combobox', { name: 'Resolution' }))
-    const options = await screen.findAllByRole('option')
-    expect(options.map((node) => node.textContent)).not.toContain('1080p')
-  })
-
-  it('reloads the secret after switching keys and does not reuse the old key on the second submit', async () => {
-    const secretSeven = 'vp-secret-seven'
-    const secretEight = 'vp-secret-eight'
-    vi.mocked(loadVideoApiSecret).mockImplementation(async (id) =>
-      id === 7 ? secretSeven : secretEight
-    )
-    vi.mocked(submitVideoGenerationWithApiKey).mockResolvedValue({
-      task_id: 'task-key',
-    })
-    vi.mocked(getVideoTask).mockResolvedValue({
-      task_id: 'task-key',
-      status: 'IN_PROGRESS',
-    })
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await user.type(screen.getByLabelText('Prompt'), 'first submit')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
-    await waitFor(() => {
-      expect(submitVideoGenerationWithApiKey).toHaveBeenCalled()
-    })
-    expect(
-      String(vi.mocked(submitVideoGenerationWithApiKey).mock.calls[0]?.[0])
-    ).toContain(secretSeven)
-    await user.click(screen.getByLabelText('Connection settings'))
-    await user.click(await screen.findByLabelText('API Key'))
-    await user.click(await screen.findByRole('option', { name: /newer/ }))
-    await readyGenerateButton()
-    await user.clear(screen.getByLabelText('Prompt'))
-    await user.type(screen.getByLabelText('Prompt'), 'second submit')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
-    await waitFor(() => {
-      expect(submitVideoGenerationWithApiKey).toHaveBeenCalledTimes(2)
-    })
-    expect(
-      String(vi.mocked(submitVideoGenerationWithApiKey).mock.calls[1]?.[0])
-    ).toContain(secretEight)
-    expect(
-      String(vi.mocked(submitVideoGenerationWithApiKey).mock.calls[1]?.[0])
-    ).not.toContain(secretSeven)
-    expect(getCapturedBody(1).prompt).toBe('second submit')
-    expect(document.body.innerHTML).not.toContain(secretSeven)
-    expect(document.body.innerHTML).not.toContain(secretEight)
-  })
-
-  it('cancels remaining batch items, sends no further POST, and does not show Submission failed', async () => {
-    vi.mocked(submitVideoGenerationWithApiKey).mockImplementation(
-      () =>
-        new Promise(() => {
-          /* hang until cancelled */
+  it('removes the previous submit failure above the generate button once a later submit succeeds', async () => {
+    vi.mocked(submitVideoGenerationRequest)
+      .mockRejectedValueOnce(
+        new VideoPlaygroundError({
+          kind: 'upstream',
+          rawMessage: UPSTREAM_MESSAGE,
+          httpStatus: 503,
         })
-    )
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await user.click(screen.getByRole('button', { name: '4' }))
-    await user.type(screen.getByLabelText('Prompt'), 'batch cancel')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
-    await waitFor(() => {
-      expect(submitVideoGenerationWithApiKey).toHaveBeenCalledTimes(1)
-    })
-    await user.click(
-      screen.getByRole('button', { name: 'Cancel pending submissions' })
-    )
-    expect(await screen.findAllByText('Cancelled')).not.toHaveLength(0)
-    expect(screen.queryByText('Submission failed')).toBeNull()
-    expect(submitVideoGenerationWithApiKey).toHaveBeenCalledTimes(1)
-  })
-
-  it('never writes the full API key into the DOM or storage', async () => {
-    vi.mocked(submitVideoGenerationWithApiKey).mockResolvedValue({
-      task_id: 'task-leak',
-    })
-    vi.mocked(getVideoTask).mockResolvedValue({
-      task_id: 'task-leak',
-      status: 'IN_PROGRESS',
-    })
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await user.type(screen.getByLabelText('Prompt'), 'a dog running')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
-    await waitFor(() => {
-      expect(submitVideoGenerationWithApiKey).toHaveBeenCalled()
-    })
-    expect(document.body.innerHTML).not.toContain(FAKE_SECRET)
-    expect(window.localStorage.getItem(FAKE_SECRET)).toBeNull()
-    expect(window.sessionStorage.getItem(FAKE_SECRET)).toBeNull()
-  })
-
-  it('keeps signed query strings on attached image, video, and audio URLs in the POST body', async () => {
-    vi.mocked(submitVideoGenerationWithApiKey).mockResolvedValue({
-      task_id: 'task-signed',
-    })
-    vi.mocked(getVideoTask).mockResolvedValue({
-      task_id: 'task-signed',
-      status: 'IN_PROGRESS',
-    })
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await selectMode(user, 'Reference generation')
-    await addImageUrl(
-      user,
-      'https://cdn.example.com/cat.png?sig=abc&exp=999',
-      '@Image1'
-    )
-    await addVideoUrl(
-      user,
-      'https://cdn.example.com/clip.mp4?token=v1',
-      '@Video1'
-    )
-    await addAudioUrl(user, 'https://cdn.example.com/voice.wav?k=1', '@Audio1')
-    await user.type(screen.getByLabelText('Prompt'), 'use the signed refs')
-    expect(
-      screen.getAllByText('Size unknown — upstream will verify.').length
-    ).toBeGreaterThanOrEqual(3)
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
-    await waitFor(() => {
-      expect(submitVideoGenerationWithApiKey).toHaveBeenCalled()
-    })
-    expect(getCapturedBody().metadata?.content).toEqual([
-      {
-        type: 'image_url',
-        image_url: { url: 'https://cdn.example.com/cat.png?sig=abc&exp=999' },
-        role: 'reference_image',
-      },
-      {
-        type: 'video_url',
-        video_url: { url: 'https://cdn.example.com/clip.mp4?token=v1' },
-        role: 'reference_video',
-      },
-      {
-        type: 'audio_url',
-        audio_url: { url: 'https://cdn.example.com/voice.wav?k=1' },
-        role: 'reference_audio',
-      },
-    ])
-  })
-
-  it('rejects IPv6 multicast and sends zero POST in first-frame mode', async () => {
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await selectMode(user, 'First frame')
-    await user.click(
-      screen.getByRole('button', { name: 'Add reference image' })
-    )
-    const input = await screen.findByPlaceholderText(
-      'https://cdn.example.com/reference.png'
-    )
-    await user.click(input)
-    await user.paste('https://[ff02::1]/x.png')
-    await user.keyboard('{Enter}')
-    expect(await screen.findByText('This URL is not supported.')).toBeTruthy()
-    expect(screen.queryByText('@Image1')).toBeNull()
-    await user.type(screen.getByLabelText('Prompt'), 'a dog')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
-    expect(
-      await screen.findByText('First frame mode requires exactly one image.')
-    ).toBeTruthy()
-    expect(submitVideoGenerationWithApiKey).not.toHaveBeenCalled()
-  })
-
-  it('rejects an IPv6 loopback image URL and sends zero POST in first-frame mode', async () => {
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await selectMode(user, 'First frame')
-    await user.click(
-      screen.getByRole('button', { name: 'Add reference image' })
-    )
-    const input = await screen.findByPlaceholderText(
-      'https://cdn.example.com/reference.png'
-    )
-    await user.click(input)
-    await user.paste('https://[::1]/x.png')
-    await user.keyboard('{Enter}')
-    expect(await screen.findByText('This URL is not supported.')).toBeTruthy()
-    expect(screen.queryByText('@Image1')).toBeNull()
-    await user.type(screen.getByLabelText('Prompt'), 'a dog')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
-    expect(
-      await screen.findByText('First frame mode requires exactly one image.')
-    ).toBeTruthy()
-    expect(submitVideoGenerationWithApiKey).not.toHaveBeenCalled()
-  })
-
-  it('rejects a non-canonical asset id and sends zero POST in video edit mode', async () => {
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await selectMode(user, 'Video edit')
-    await user.click(
-      screen.getByRole('button', { name: 'Add reference video' })
-    )
-    const asset = await screen.findByPlaceholderText('asset://<id>')
-    await user.type(asset, '../etc/passwd')
-    await user.keyboard('{Enter}')
-    expect(await screen.findByText('This URL is not supported.')).toBeTruthy()
-    await user.type(screen.getByLabelText('Prompt'), 'edit this')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
-    expect(
-      await screen.findByText(
-        'Video edit and extend modes require at least one reference video.'
       )
-    ).toBeTruthy()
-    expect(submitVideoGenerationWithApiKey).not.toHaveBeenCalled()
-  })
-
-  it('keeps historical task model and prompt after the form changes', async () => {
-    vi.mocked(submitVideoGenerationWithApiKey).mockResolvedValue({
-      task_id: 'task-snap',
-    })
-    vi.mocked(getVideoTask).mockResolvedValue({
-      task_id: 'task-snap',
-      status: 'IN_PROGRESS',
-    })
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
+      .mockResolvedValue({ task_id: 'task-stub', id: 'task-stub' })
+    const user = userEvent.setup()
     renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await user.type(screen.getByLabelText('Prompt'), 'original snapshot prompt')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
+    await typePrompt(user, 'a cat walks on the moon')
+
+    await submitStudio(user)
+    await screen.findAllByText(UPSTREAM_MESSAGE)
+    expect(submitSlot()).toHaveTextContent(UPSTREAM_MESSAGE)
+
+    await submitStudio(user)
+    await waitForSubmitCount(2)
+
+    // The slot shows only the newest attempt, so the old failure is gone.
     await waitFor(() => {
-      expect(submitVideoGenerationWithApiKey).toHaveBeenCalled()
+      expect(screen.queryAllByText(UPSTREAM_MESSAGE)).toHaveLength(0)
     })
-    const queue = await screen.findByRole('region', { name: 'Task queue' })
-    expect(within(queue).getByText('original snapshot prompt')).toBeTruthy()
-    expect(within(queue).getByText('Doubao-Seedance-2.5')).toBeTruthy()
-    await user.clear(screen.getByLabelText('Prompt'))
-    await user.type(screen.getByLabelText('Prompt'), 'changed later')
-    await selectModel(user, 'Doubao-Seedance-2.0')
-    expect(within(queue).getByText('original snapshot prompt')).toBeTruthy()
-    expect(within(queue).getByText('Doubao-Seedance-2.5')).toBeTruthy()
-    expect(within(queue).queryByText('changed later')).toBeNull()
-    expect(within(queue).queryByText('Doubao-Seedance-2.0')).toBeNull()
+    expect(within(composerForm()).queryByRole('alert')).toBeNull()
   })
+})
 
-  it('rejects a local image that cannot be decoded and sends zero POST', async () => {
-    // jsdom never decodes blob: images (Image fires neither load nor error),
-    // so simulate a real decode failure at the probe boundary instead.
-    const decodeError = new Error('Failed to decode image')
-    const dimsSpy = vi
-      .spyOn(await import('../lib/image-dimensions'), 'readImageDimensions')
-      .mockRejectedValue(decodeError)
-    void dimsSpy
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
+describe('Video studio form retention', () => {
+  it('keeps model, prompt, images, seconds and resolution after a successful submit so a tweak can be sent again', async () => {
+    const user = userEvent.setup()
     renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await selectMode(user, 'First frame')
-    await user.click(
-      screen.getByRole('button', { name: 'Add reference image' })
-    )
-    const fileInput = await screen.findByLabelText('Local file')
-    const file = new File(['not-an-image'], 'bad.png', { type: 'image/png' })
-    await user.upload(fileInput, file)
-    expect(await screen.findByText('Could not read this image.')).toBeTruthy()
-    expect(screen.queryByText('@Image1')).toBeNull()
-    await user.type(screen.getByLabelText('Prompt'), 'a dog')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
-    expect(
-      await screen.findByText('First frame mode requires exactly one image.')
-    ).toBeTruthy()
-    expect(submitVideoGenerationWithApiKey).not.toHaveBeenCalled()
-  })
-
-  it('rejects a local audio that cannot be read and sends zero POST', async () => {
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await selectMode(user, 'Reference generation')
-    await user.click(
-      screen.getByRole('button', { name: 'Add reference audio' })
-    )
-    const fileInput = await screen.findByLabelText('Local file')
-    const file = new File(['not-an-audio'], 'bad.wav', {
-      type: 'audio/wav',
-    })
-    await user.upload(fileInput, file)
-    expect(await screen.findByText('Could not read this audio.')).toBeTruthy()
-    // The Local file input is marked invalid and points at its own FieldError.
-    expect(fileInput.getAttribute('aria-invalid')).toBe('true')
-    const describedBy = fileInput.getAttribute('aria-describedby')
-    expect(describedBy).toBeTruthy()
-    const errorNode = document.getElementById(String(describedBy))
-    expect(errorNode?.textContent).toContain('Could not read this audio.')
-    // The Public URL input in the same popover must NOT be marked invalid.
-    const urlInput = screen.getByPlaceholderText(
-      'https://cdn.example.com/reference.wav'
-    )
-    expect(urlInput.getAttribute('aria-invalid')).toBeNull()
-    expect(screen.queryByText('@Audio1')).toBeNull()
-    await user.type(screen.getByLabelText('Prompt'), 'a dog')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
-    expect(
-      await screen.findByText(
-        'Reference generation requires at least one reference asset.'
+    await pickVideoModel(user, 'Doubao-Seedance-2.5')
+    await pickSeconds(user, '12 seconds')
+    await pickResolution(user, '720p')
+    await typePrompt(user, 'a long single take')
+    await pickReferenceImages(user, [makeImageFile('station.png')])
+    await waitFor(() => {
+      expect(screen.getAllByRole('button', { name: /^Remove / })).toHaveLength(
+        1
       )
-    ).toBeTruthy()
-    expect(submitVideoGenerationWithApiKey).not.toHaveBeenCalled()
+    })
+
+    await submitStudio(user)
+    await waitForSubmitCount(1)
+
+    // Nothing was consumed by the submit: the user can tweak and go again.
+    expect(screen.getByLabelText('Video model')).toHaveTextContent(
+      'Doubao-Seedance-2.5'
+    )
+    expect(screen.getByLabelText('Prompt')).toHaveValue('a long single take')
+    expect(screen.getAllByRole('button', { name: /^Remove / })).toHaveLength(1)
+    expect(screen.getByLabelText('Seconds')).toHaveTextContent('12 seconds')
+    expect(screen.getByLabelText('Resolution')).toHaveTextContent('720p')
+
+    await pickSeconds(user, '8 seconds')
+    await submitStudio(user)
+    await waitForSubmitCount(2)
+
+    const bodies = await capturedSubmitBodies()
+    expect(bodies).toHaveLength(2)
+    expect(bodies[1]).toMatchObject({ seconds: '8' })
+    // The retained image and prompt travelled into the second body unchanged.
+    expect(bodies[1]).toMatchObject({
+      model: 'Doubao-Seedance-2.5',
+      prompt: 'a long single take',
+      metadata: { resolution: '720p' },
+    })
+    expect(
+      (bodies[1] as { metadata?: { content?: unknown[] } }).metadata?.content
+    ).toHaveLength(1)
   })
 
-  it('continues remaining batch POSTs after a middle item fails', async () => {
-    vi.mocked(submitVideoGenerationWithApiKey)
-      .mockResolvedValueOnce({ task_id: 'task-b1' })
-      .mockRejectedValueOnce(new Error('upstream 503 — service unavailable'))
-      .mockResolvedValueOnce({ task_id: 'task-b3' })
-      .mockResolvedValueOnce({ task_id: 'task-b4' })
-    vi.mocked(getVideoTask).mockImplementation(async (id: string) => ({
-      task_id: id,
-      status: 'IN_PROGRESS',
-    }))
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
+  it('clears the reference-image tray on a model switch so an over-cap body cannot be sent', async () => {
+    const user = userEvent.setup()
     renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await user.click(screen.getByRole('button', { name: '4' }))
-    await user.type(screen.getByLabelText('Prompt'), 'batch continue')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
+    await pickVideoModel(user, 'Doubao-Seedance-2.5')
+    await pickReferenceImages(
+      user,
+      Array.from({ length: 30 }, (_, index) =>
+        makeImageFile(`frame-${index}.png`)
+      )
+    )
     await waitFor(() => {
-      expect(submitVideoGenerationWithApiKey).toHaveBeenCalledTimes(4)
+      expect(screen.getAllByRole('button', { name: /^Remove / })).toHaveLength(
+        30
+      )
     })
-    expect(await screen.findByText(/task-b1/)).toBeTruthy()
-    expect(await screen.findByText(/task-b3/)).toBeTruthy()
-    expect(await screen.findByText(/task-b4/)).toBeTruthy()
+
+    // MiniMax-H3 accepts at most five, so keeping the tray would guarantee an
+    // over-cap body. The switch empties it instead.
+    await pickVideoModel(user, 'MiniMax-H3')
+    await waitFor(() => {
+      expect(
+        screen.queryAllByRole('button', { name: /^Remove / })
+      ).toHaveLength(0)
+    })
+
+    await typePrompt(user, 'a heron landing on a post')
+    await submitStudio(user)
+    await waitForSubmitCount(1)
+
+    const bodies = await capturedSubmitBodies()
+    expect(bodies[0]).toMatchObject({ model: 'MiniMax-H3' })
+    // The emptied tray must leave no image anywhere in the body.
+    expect(
+      (bodies[0] as { metadata?: { content?: unknown[] } }).metadata?.content
+    ).toBeUndefined()
+    expect(bodies[0]).not.toHaveProperty('image')
+    expect(bodies[0]).not.toHaveProperty('images')
   })
+})
+
+describe('Video studio per-model parameter slot', () => {
+  type SlotCheck = {
+    model: string
+    models?: ReadonlyArray<string>
+    seconds?: string
+    resolution?: string
+    slot: Record<string, unknown>
+    exact?: boolean
+  }
+
+  const slotChecks: SlotCheck[] = [
+    {
+      model: 'wan3.0-video',
+      slot: { duration: 5, size: '1080P' },
+    },
+    {
+      model: 'wan3.0-video-prime',
+      seconds: '10 seconds',
+      resolution: '720P',
+      slot: { duration: 10, size: '720P' },
+    },
+    {
+      model: 'MiniMax-H3',
+      slot: { duration: 5, metadata: { resolution: '2K' } },
+    },
+    {
+      model: 'Doubao-Seedance-2.0',
+      slot: { seconds: '5', metadata: { resolution: '4k' } },
+    },
+    {
+      model: 'Doubao-Seedance-2.5',
+      seconds: '30 seconds',
+      slot: { seconds: '30', metadata: { resolution: '1080p' } },
+    },
+    {
+      model: 'some-future-video-model',
+      models: ['some-future-video-model'],
+      slot: {},
+      exact: true,
+    },
+  ]
+
+  it.each(slotChecks)(
+    'sends $model its own duration and resolution slot',
+    async (check) => {
+      if (check.models) {
+        await stubVideoApi({ models: check.models })
+      }
+      const user = userEvent.setup()
+      renderVideoPlayground(i18n)
+      await pickVideoModel(user, check.model)
+      if (check.seconds) {
+        await pickSeconds(user, check.seconds)
+      }
+      if (check.resolution) {
+        await pickResolution(user, check.resolution)
+      }
+      await typePrompt(user, 'a slot check clip')
+
+      await submitStudio(user)
+      await waitForSubmitCount(1)
+
+      const bodies = await capturedSubmitBodies()
+      if (check.exact) {
+        // No capability evidence: the plugin owns every parameter.
+        expect(bodies[0]).toEqual({
+          model: check.model,
+          prompt: 'a slot check clip',
+        })
+        return
+      }
+      expect(bodies[0]).toMatchObject(check.slot)
+    }
+  )
 })

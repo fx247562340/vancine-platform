@@ -733,4 +733,15 @@ export const STATIC_I18N_KEYS = [
   'Image generation failed',
   'Download failed, opened in a new window',
   'Failed to download image',
+
+  // Video studio — dynamic reason keys passed to t() from the reference-image
+  // intake gate and the request serializer, so the t('...') scanner cannot see
+  // them as literals.
+  'videoPlayground.reference.modelDoesNotAcceptImages',
+  'videoPlayground.reference.tooManyImages',
+  'videoPlayground.reference.notAnImage',
+  'videoPlayground.reference.unsupportedFormat',
+  'videoPlayground.reference.imageTooLarge',
+  'videoPlayground.reference.readFailed',
+  'videoPlayground.request.bodyTooLarge',
 ] as const

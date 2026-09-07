@@ -16,315 +16,470 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com.
 */
+
 /**
- * User-visible task status mapping tests. The internal state machine
- * (useSubmission / polling / server status) is unchanged — only the
- * six canonical labels surface in the UI:
- *   Queued, Submitting, Running, Completed, Failed, Cancelled.
+ * The frozen task-status vocabulary and the surfaces that hang off it.
  *
- * These tests also assert that the user never sees a seventh
- * "Pending" state: a query failure keeps the last non-terminal
- * semantic (Running) instead of falling back, and a successful retry
- * resumes one of the six canonical labels.
+ * Six labels, no seventh fallback, and the same mapping in the main preview and
+ * in every recent-task row. On top of that: the upstream fail_reason, the
+ * SUCCESS-without-playable-result state, and the rule that a transient status
+ * query error keeps the badge on Running rather than degrading it to Failed —
+ * with the retry affordance re-running the status route only, never the POST.
+ *
+ * Driven through the real `api.ts`; only the relay `fetch` and the dashboard
+ * axios client are faked, so request counts by URL are real evidence.
  */
-import { act, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import i18next, { type i18n as I18n } from 'i18next'
-import { initReactI18next } from 'react-i18next'
+import type { i18n as I18n } from 'i18next'
+import { I18nextProvider } from 'react-i18next'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { routerLinkMock } from '@/test/router-link-mock'
 
+import { TaskStatusBadge } from '../components/task-status-badge'
+import { clearAllTaskApiKeys, lookupTaskApiKey } from '../lib/task-key-registry'
 import {
-  getVideoModelsWithApiKey,
-  getVideoTask,
-  listUsableVideoApiKeys,
-  loadVideoApiSecret,
-  submitVideoGenerationWithApiKey,
-} from '../api'
+  artifactsEnvelope,
+  capabilityUrl,
+  createVideoRecorder,
+  deferred,
+  jsonResponse,
+  nextMutationSettled,
+  OTHER_API_KEY,
+  statusEnvelope,
+  stubKeyEndpoints,
+  SUBMIT_API_KEY,
+  videoArtifact,
+  type RecordedCall,
+} from './pipeline-harness'
 import {
-  FAKE_SECRET,
-  readyGenerateButton,
+  createVideoPlaygroundI18n,
   renderVideoPlayground,
   stubAuthUser,
+  typePrompt,
 } from './test-utils'
 
 vi.mock('@tanstack/react-router', () => routerLinkMock)
 
-vi.mock('../lib/media-duration', () => ({
-  readMediaDuration: vi.fn(async () => undefined),
+const apiClientMock = vi.hoisted(() => ({
+  get: vi.fn(),
+  post: vi.fn(),
 }))
 
-vi.mock('../api', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../api')>()
-  return {
-    ...actual,
-    listUsableVideoApiKeys: vi.fn(),
-    loadVideoApiSecret: vi.fn(),
-    getVideoModelsWithApiKey: vi.fn(),
-    submitVideoGenerationWithApiKey: vi.fn(),
-    getVideoTask: vi.fn(),
-  }
+vi.mock('@/lib/api', () => ({ api: apiClientMock }))
+
+const TASK_ID = 'task-status'
+const MODEL = 'Doubao-Seedance-2.5'
+const PROMPT = 'a lighthouse in a swell'
+
+const recorder = createVideoRecorder()
+const calls = recorder.calls
+
+let i18n: I18n
+
+type RouteOverrides = {
+  /** Replaces the POST reply, e.g. with a held-open deferred or a 400. */
+  submitResponse?: () => Response | Promise<Response>
+  statusResponse?: (taskId: string) => Response
+  artifactsResponse?: (taskId: string) => Response
+}
+
+function stubRoutes(overrides: RouteOverrides = {}): void {
+  recorder.install((url) => {
+    if (url === '/v1/models') {
+      return jsonResponse(200, {
+        data: [{ id: MODEL, supported_endpoint_types: ['openai-video'] }],
+      })
+    }
+    if (url === '/v1/video/generations') {
+      return (
+        overrides.submitResponse?.() ??
+        jsonResponse(200, { task_id: TASK_ID, id: TASK_ID })
+      )
+    }
+    if (url.startsWith('/v1/video/generations/')) {
+      const taskId = decodeURIComponent(
+        url.slice('/v1/video/generations/'.length)
+      )
+      return (
+        overrides.statusResponse?.(taskId) ??
+        jsonResponse(200, statusEnvelope(taskId, 'SUBMITTED'))
+      )
+    }
+    if (url.startsWith('/v1/tasks/')) {
+      const taskId = decodeURIComponent(url.split('/')[3] ?? '')
+      return (
+        overrides.artifactsResponse?.(taskId) ??
+        jsonResponse(200, artifactsEnvelope(taskId, [videoArtifact(taskId)]))
+      )
+    }
+    throw new Error(`unexpected fetch: ${url}`)
+  })
+}
+
+/** Two usable keys, so an API key switch can cancel an in-flight POST. */
+function stubTwoKeys(): void {
+  apiClientMock.get.mockImplementation(async (url: string) => {
+    if (url.startsWith('/api/token/')) {
+      return {
+        data: {
+          success: true,
+          data: {
+            items: [
+              {
+                id: 2,
+                name: 'key-two',
+                key: 'sk-***2222',
+                status: 1,
+                created_time: 200,
+                expired_time: 0,
+                remain_quota: 0,
+                unlimited_quota: true,
+              },
+              {
+                id: 3,
+                name: 'key-one',
+                key: 'sk-***1111',
+                status: 1,
+                created_time: 100,
+                expired_time: 0,
+                remain_quota: 0,
+                unlimited_quota: true,
+              },
+            ],
+            total: 2,
+          },
+        },
+      }
+    }
+    throw new Error(`unexpected api.get: ${url}`)
+  })
+  apiClientMock.post.mockImplementation(async (url: string) => {
+    if (url === '/api/token/3/key') {
+      return { data: { success: true, data: { key: SUBMIT_API_KEY } } }
+    }
+    if (url === '/api/token/2/key') {
+      return { data: { success: true, data: { key: OTHER_API_KEY } } }
+    }
+    throw new Error(`unexpected api.post: ${url}`)
+  })
+}
+
+function postRequests(): RecordedCall[] {
+  return calls.filter((call) => call.url === '/v1/video/generations')
+}
+
+function statusRequests(): RecordedCall[] {
+  return calls.filter((call) => call.url.startsWith('/v1/video/generations/'))
+}
+
+function artifactRequests(): RecordedCall[] {
+  return calls.filter((call) => call.url.startsWith('/v1/tasks/'))
+}
+
+function previewSection(): HTMLElement {
+  return screen.getByRole('region', { name: 'Preview' })
+}
+
+function recentTasksRegion(): HTMLElement {
+  return screen.getByRole('region', { name: 'Recent tasks' })
+}
+
+/**
+ * One frozen mapping drives both panes, so a label is only correct when it
+ * shows in the main preview AND in the recent-task row.
+ */
+function expectLabelInBothPanes(label: string): void {
+  expect(
+    within(previewSection()).getAllByText(label).length,
+    `preview "${label}"`
+  ).toBeGreaterThan(0)
+  expect(
+    within(recentTasksRegion()).getAllByText(label).length,
+    `recent-task row "${label}"`
+  ).toBeGreaterThan(0)
+}
+
+async function submitPrompt(user: ReturnType<typeof userEvent.setup>) {
+  await typePrompt(user, PROMPT)
+  await user.click(screen.getByRole('button', { name: 'Generate video' }))
+}
+
+describe('Video studio task status labels', () => {
+  beforeEach(async () => {
+    i18n = await createVideoPlaygroundI18n()
+    stubAuthUser()
+    clearAllTaskApiKeys()
+    vi.unstubAllGlobals()
+    apiClientMock.get.mockReset()
+    apiClientMock.post.mockReset()
+    stubKeyEndpoints(apiClientMock)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('shows Submitting in the preview and the recent-task row while the POST is in flight', async () => {
+    const held = deferred<Response>()
+    stubRoutes({ submitResponse: () => held.promise })
+    const user = userEvent.setup()
+    renderVideoPlayground(i18n)
+    await submitPrompt(user)
+
+    await waitFor(() => {
+      expect(postRequests()).toHaveLength(1)
+    })
+    expectLabelInBothPanes('Submitting')
+    expect(screen.queryAllByText('Running')).toHaveLength(0)
+  })
+
+  it('shows Running while the upstream task has not reached a terminal status', async () => {
+    stubRoutes({
+      statusResponse: (taskId) =>
+        jsonResponse(200, statusEnvelope(taskId, 'IN_PROGRESS')),
+    })
+    const user = userEvent.setup()
+    renderVideoPlayground(i18n)
+    await submitPrompt(user)
+
+    expect(await screen.findByText(`Task ID: ${TASK_ID}`)).toBeTruthy()
+    expectLabelInBothPanes('Running')
+    expect(
+      within(previewSection()).getByText('Waiting for video...')
+    ).toBeTruthy()
+  })
+
+  it('shows Completed once the upstream task reports SUCCESS', async () => {
+    stubRoutes({
+      statusResponse: (taskId) =>
+        jsonResponse(200, statusEnvelope(taskId, 'SUCCESS')),
+    })
+    const user = userEvent.setup()
+    renderVideoPlayground(i18n)
+    await submitPrompt(user)
+
+    expect(await screen.findByLabelText('Generated video')).toHaveAttribute(
+      'src',
+      capabilityUrl(TASK_ID, 'video')
+    )
+    expectLabelInBothPanes('Completed')
+    expect(screen.queryAllByText('Running')).toHaveLength(0)
+  })
+
+  it('shows Failed once the upstream task reports FAILURE', async () => {
+    stubRoutes({
+      statusResponse: (taskId) =>
+        jsonResponse(
+          200,
+          statusEnvelope(taskId, 'FAILURE', { fail_reason: 'prompt blocked' })
+        ),
+    })
+    const user = userEvent.setup()
+    renderVideoPlayground(i18n)
+    await submitPrompt(user)
+
+    await waitFor(() => {
+      expectLabelInBothPanes('Failed')
+    })
+    expect(screen.queryAllByText('Completed')).toHaveLength(0)
+    expect(screen.queryAllByText('Running')).toHaveLength(0)
+  })
+
+  it('shows Failed when the POST itself is rejected by the upstream', async () => {
+    stubRoutes({
+      submitResponse: () =>
+        jsonResponse(400, { error: { message: 'insufficient quota' } }),
+    })
+    const user = userEvent.setup()
+    renderVideoPlayground(i18n)
+    await submitPrompt(user)
+
+    await waitFor(() => {
+      expectLabelInBothPanes('Failed')
+    })
+    // A rejected POST never becomes a task, so nothing is polled for it.
+    expect(statusRequests()).toHaveLength(0)
+    expect(lookupTaskApiKey(TASK_ID)).toBeNull()
+  })
+
+  it('shows Cancelled when an API key switch cancels an in-flight POST', async () => {
+    stubTwoKeys()
+    const held = deferred<Response>()
+    stubRoutes({ submitResponse: () => held.promise })
+    const user = userEvent.setup({ pointerEventsCheck: 0 })
+    const client = renderVideoPlayground(i18n).client
+    await submitPrompt(user)
+    await waitFor(() => {
+      expect(postRequests()).toHaveLength(1)
+    })
+
+    await user.click(screen.getByRole('button', { name: 'API Key' }))
+    await user.click(
+      await screen.findByRole('menuitemradio', { name: /key-two/ })
+    )
+
+    await waitFor(() => {
+      expectLabelInBothPanes('Cancelled')
+    })
+    expect(screen.queryAllByText('Running')).toHaveLength(0)
+
+    const submitSettled = nextMutationSettled(client)
+    await act(async () => {
+      held.resolve(jsonResponse(200, { task_id: TASK_ID, id: TASK_ID }))
+      await submitSettled
+    })
+    // The late task id does not move a cancelled submission back to Running.
+    expectLabelInBothPanes('Cancelled')
+  })
+
+  it('shows Queued for a not-yet-posted submission and never a seventh Pending label', () => {
+    // The studio always creates a single-item batch, so a `pending`
+    // placeholder — the queue's "created but not posted yet" state — cannot be
+    // reached by clicking through the page. The frozen mapping is asserted on
+    // the badge that both panes render.
+    render(
+      <I18nextProvider i18n={i18n}>
+        <TaskStatusBadge status='pending' queryStatus={undefined} isPending />
+      </I18nextProvider>
+    )
+
+    expect(screen.getByText('Queued')).toBeTruthy()
+    expect(screen.queryAllByText('Pending')).toHaveLength(0)
+  })
 })
 
-async function createI18n(): Promise<I18n> {
-  const instance = i18next.createInstance()
-  await instance.use(initReactI18next).init({
-    lng: 'en',
-    resources: {
-      en: {
-        translation: {
-          Prompt: 'Prompt',
-          Generate: 'Generate',
-          Queued: 'Queued',
-          Submitting: 'Submitting',
-          Running: 'Running',
-          Completed: 'Completed',
-          Failed: 'Failed',
-          Cancelled: 'Cancelled',
-          'Task queue': 'Task queue',
-          'Parameter settings': 'Parameter settings',
-          'Failed to load video status': 'Failed to load video status',
-          'Retry status': 'Retry status',
-          'Submitting...': 'Submitting...',
-        },
-      },
-    },
+describe('Video studio task status surfaces', () => {
+  beforeEach(async () => {
+    i18n = await createVideoPlaygroundI18n()
+    stubAuthUser()
+    clearAllTaskApiKeys()
+    vi.unstubAllGlobals()
+    apiClientMock.get.mockReset()
+    apiClientMock.post.mockReset()
+    stubKeyEndpoints(apiClientMock)
   })
-  return instance
-}
 
-const setup = () => {
-  stubAuthUser()
-  vi.mocked(listUsableVideoApiKeys).mockResolvedValue([
-    {
-      id: 7,
-      name: 'phaseD',
-      maskedKey: 'sk-***7777',
-      status: 1,
-      createdTime: 100,
-    },
-  ])
-  vi.mocked(loadVideoApiSecret).mockResolvedValue(FAKE_SECRET)
-  vi.mocked(getVideoModelsWithApiKey).mockResolvedValue([
-    { label: 'Doubao-Seedance-2.5', value: 'Doubao-Seedance-2.5' },
-  ])
-  vi.mocked(submitVideoGenerationWithApiKey).mockReset()
-  vi.mocked(getVideoTask).mockReset()
-}
-
-describe('VideoPlayground user-visible task status mapping', () => {
-  beforeEach(setup)
   afterEach(() => {
-    // Drop any deferred promise resolver between tests.
-    vi.useRealTimers()
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
   })
 
-  it('shows the Submitting label while the POST is in flight', async () => {
-    let resolveSubmit!: (value: { task_id: string }) => void
-    const submitPromise = new Promise<{ task_id: string }>((resolve) => {
-      resolveSubmit = resolve
+  it('shows the upstream fail_reason in the preview on FAILURE and never reads the artifacts route', async () => {
+    stubRoutes({
+      statusResponse: (taskId) =>
+        jsonResponse(
+          200,
+          statusEnvelope(taskId, 'FAILURE', {
+            fail_reason: 'upstream rejected the prompt',
+          })
+        ),
     })
-    vi.mocked(submitVideoGenerationWithApiKey).mockImplementation(
-      () => submitPromise
-    )
-    vi.mocked(getVideoTask).mockResolvedValue({
-      task_id: 'task-1',
-      status: 'IN_PROGRESS',
-    })
-    const i18n = await createI18n()
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
+    const user = userEvent.setup()
     renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await user.type(screen.getByLabelText('Prompt'), 'a cat walks on the moon')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
-    expect(await screen.findByText('Submitting')).toBeTruthy()
-    // Resolve the in-flight submit inside act so the post-resolve
-    // re-render is flushed before the test ends.
-    await waitFor(() => {
-      expect(submitVideoGenerationWithApiKey).toHaveBeenCalled()
-    })
-    await act(async () => {
-      resolveSubmit({ task_id: 'task-1' })
-      // Let react-query and the polling fetch settle.
-      await Promise.resolve()
-    })
-  })
+    await submitPrompt(user)
 
-  it('shows the Running label while the upstream task is still pending', async () => {
-    vi.mocked(submitVideoGenerationWithApiKey).mockResolvedValue({
-      task_id: 'task-run',
-    })
-    vi.mocked(getVideoTask).mockResolvedValue({
-      task_id: 'task-run',
-      status: 'IN_PROGRESS',
-    })
-    const i18n = await createI18n()
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await user.type(
-      screen.getByLabelText('Prompt'),
-      'a dog running in the park'
-    )
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
-    await waitFor(() => {
-      expect(submitVideoGenerationWithApiKey).toHaveBeenCalled()
-    })
-    expect(await screen.findByText('Running')).toBeTruthy()
-  })
-
-  it('shows the Completed label when the upstream task succeeds', async () => {
-    vi.mocked(submitVideoGenerationWithApiKey).mockResolvedValue({
-      task_id: 'task-ok',
-    })
-    vi.mocked(getVideoTask).mockResolvedValue({
-      task_id: 'task-ok',
-      status: 'SUCCESS',
-    })
-    const i18n = await createI18n()
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await user.type(screen.getByLabelText('Prompt'), 'a bright sunrise')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
-    expect(await screen.findByText('Completed')).toBeTruthy()
-  })
-
-  it('shows the Failed label when the upstream task reports failure', async () => {
-    vi.mocked(submitVideoGenerationWithApiKey).mockResolvedValue({
-      task_id: 'task-fail',
-    })
-    vi.mocked(getVideoTask).mockResolvedValue({
-      task_id: 'task-fail',
-      status: 'FAILURE',
-      fail_reason: 'content moderation rejected the prompt',
-    })
-    const i18n = await createI18n()
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await user.type(screen.getByLabelText('Prompt'), 'a banned scene')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
-    expect(await screen.findByText('Failed')).toBeTruthy()
-  })
-
-  it('keeps the Running label when the polling query fails, never falls back to a Pending seventh state', async () => {
-    vi.mocked(submitVideoGenerationWithApiKey).mockResolvedValue({
-      task_id: 'task-qfail',
-    })
-    // First call: a transient failure. Subsequent retries also fail
-    // so the query error state is eventually reachable in the test.
-    vi.mocked(getVideoTask).mockRejectedValue(
-      new Error('upstream 503 — service unavailable')
-    )
-    const i18n = await createI18n()
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await user.type(screen.getByLabelText('Prompt'), 'a quiet street')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
-    // Running is the last non-terminal semantic; a query failure
-    // must not collapse it into a seventh "Pending" state.
-    expect(await screen.findByText('Running')).toBeTruthy()
-    // Wait for the retry budget to exhaust and the dedicated error
-    // alert to surface — the badge keeps the last non-terminal
-    // semantic and never falls back to a generic "Pending" state.
     expect(
-      await screen.findByRole(
-        'button',
-        { name: 'Retry status' },
-        { timeout: 5000 }
-      )
+      await within(previewSection()).findByText('upstream rejected the prompt')
     ).toBeTruthy()
-    // The exact "Pending" text is never produced.
-    expect(screen.queryByText('Pending')).toBeNull()
+    expect(within(previewSection()).getByText('Task failed')).toBeTruthy()
+    expect(screen.queryByLabelText('Generated video')).toBeNull()
+    expect(artifactRequests()).toHaveLength(0)
   })
 
-  it('transitions from Running to Completed after a successful Retry status', async () => {
-    vi.mocked(submitVideoGenerationWithApiKey).mockResolvedValue({
-      task_id: 'task-retry-success',
+  it('shows No playable video result when SUCCESS carries no video artifact', async () => {
+    stubRoutes({
+      statusResponse: (taskId) =>
+        jsonResponse(200, statusEnvelope(taskId, 'SUCCESS')),
+      artifactsResponse: (taskId) =>
+        jsonResponse(
+          200,
+          artifactsEnvelope(taskId, [
+            {
+              key: 'poster',
+              type: 'image',
+              mime_type: 'image/png',
+              content_url: capabilityUrl(taskId, 'poster'),
+            },
+          ])
+        ),
     })
-    // The first poll (and its two react-query retries) all fail.
-    // Only the final attempt driven by the user's Retry status click
-    // succeeds. The counter increments per actual queryFn call, so the
-    // user-driven retry is the 4th call overall.
-    let call = 0
-    vi.mocked(getVideoTask).mockImplementation(async () => {
-      call += 1
-      if (call < 4) {
-        throw new Error('upstream 503 — service unavailable')
-      }
-      return { task_id: 'task-retry-success', status: 'SUCCESS' }
-    })
-    const i18n = await createI18n()
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
+    const user = userEvent.setup()
     renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await user.type(screen.getByLabelText('Prompt'), 'a calm dusk')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
+    await submitPrompt(user)
 
-    // 1. While react-query retries, the badge stays on the polling
-    //    semantic — Running, never a generic Pending.
-    expect(await screen.findByText('Running')).toBeTruthy()
-
-    // 2. The retry budget exhausts and the dedicated error alert
-    //    surfaces a Retry status button. Wait for that exact signal
-    //    instead of counting API calls.
-    const retryButton = await screen.findByRole(
-      'button',
-      { name: 'Retry status' },
-      { timeout: 5000 }
-    )
-    expect(screen.getByText('Running')).toBeTruthy()
-    expect(screen.queryByText('Pending')).toBeNull()
-
-    // 3. The user clicks Retry status. The next call returns SUCCESS
-    //    and the badge transitions to Completed; the error alert
-    //    and the retry button leave the DOM.
-    await user.click(retryButton)
-    expect(await screen.findByText('Completed')).toBeTruthy()
-    expect(screen.queryByText('Running')).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Retry status' })).toBeNull()
+    expect(
+      await within(previewSection()).findByText('No playable video result')
+    ).toBeTruthy()
+    expect(screen.queryByLabelText('Generated video')).toBeNull()
+    expectLabelInBothPanes('Completed')
+    expect(artifactRequests()).toHaveLength(1)
   })
 
-  it('transitions from Running to Failed after a Retry status that reports failure', async () => {
-    vi.mocked(submitVideoGenerationWithApiKey).mockResolvedValue({
-      task_id: 'task-retry-failure',
+  it('refetches only the status route from Retry status after a status query error', async () => {
+    let failing = true
+    stubRoutes({
+      statusResponse: (taskId) =>
+        failing
+          ? jsonResponse(503, { error: { message: 'upstream unavailable' } })
+          : jsonResponse(200, statusEnvelope(taskId, 'IN_PROGRESS')),
     })
-    let call = 0
-    vi.mocked(getVideoTask).mockImplementation(async () => {
-      call += 1
-      if (call < 4) {
-        throw new Error('upstream 503 — service unavailable')
-      }
-      return {
-        task_id: 'task-retry-failure',
-        status: 'FAILURE',
-        fail_reason: 'upstream rejected the output',
-      }
-    })
-    const i18n = await createI18n()
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
+    const user = userEvent.setup()
     renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await user.type(screen.getByLabelText('Prompt'), 'a stormy day')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
+    await submitPrompt(user)
 
-    expect(await screen.findByText('Running')).toBeTruthy()
-
-    const retryButton = await screen.findByRole(
+    // A 503 is retryable, so the query exhausts its own retries (2 x 1s)
+    // before the surface appears; the task keeps its key across all of them.
+    const retry = await screen.findByRole(
       'button',
       { name: 'Retry status' },
-      { timeout: 5000 }
+      { timeout: 4000 }
     )
-    expect(screen.getByText('Running')).toBeTruthy()
-    expect(screen.queryByText('Pending')).toBeNull()
+    const attemptsBeforeRetry = statusRequests().length
+    expect(attemptsBeforeRetry).toBeGreaterThan(0)
+    expect(artifactRequests()).toHaveLength(0)
+    expect(lookupTaskApiKey(TASK_ID)).toBe(SUBMIT_API_KEY)
 
-    // The user's Retry click drives the final API call to FAILURE.
-    await user.click(retryButton)
-    expect(await screen.findByText('Failed')).toBeTruthy()
-    expect(screen.queryByText('Running')).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Retry status' })).toBeNull()
+    failing = false
+    await user.click(retry)
+
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'Retry status' })).toBeNull()
+    })
+    expect(statusRequests().length).toBeGreaterThan(attemptsBeforeRetry)
+    expect(
+      within(previewSection()).getByText('Waiting for video...')
+    ).toBeTruthy()
+    // The retry re-runs the status read only: no second POST, no artifacts yet.
+    expect(postRequests()).toHaveLength(1)
+    expect(artifactRequests()).toHaveLength(0)
+  })
+
+  it('keeps the badge on Running while a transient status query error is up', async () => {
+    stubRoutes({
+      statusResponse: () =>
+        jsonResponse(503, { error: { message: 'upstream unavailable' } }),
+    })
+    const user = userEvent.setup()
+    renderVideoPlayground(i18n)
+    await submitPrompt(user)
+
+    await screen.findByRole(
+      'button',
+      { name: 'Retry status' },
+      { timeout: 4000 }
+    )
+
+    // A transient 503 is not a task failure: the badge keeps the polling
+    // semantic in both panes and the error surface carries the message.
+    expectLabelInBothPanes('Running')
+    expect(screen.queryAllByText('Failed')).toHaveLength(0)
+    expect(screen.queryAllByText('Cancelled')).toHaveLength(0)
+    expect(
+      within(previewSection()).getAllByText('Failed to load video status')
+        .length
+    ).toBeGreaterThan(0)
   })
 })

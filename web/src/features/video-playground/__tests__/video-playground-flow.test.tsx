@@ -14,229 +14,280 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-For commercial licensing, please contact support@quantumnous.com
+For commercial licensing, please contact support@quantumnous.com.
 */
-import { act, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+
+/**
+ * The studio's end-to-end journeys, driven through the real `api.ts`.
+ *
+ * Only the two genuinely external boundaries are faked: the relay `fetch` and
+ * the dashboard axios client. Everything else — key selection, model
+ * auto-selection, the composer, the submission queue, the task poll, the
+ * artifact read and the preview — is the shipping code, so a break anywhere in
+ * that chain fails here rather than only in a narrower unit test.
+ */
+import { screen, waitFor, within } from '@testing-library/react'
+import userEvent, { type UserEvent } from '@testing-library/user-event'
 import type { i18n as I18n } from 'i18next'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { routerLinkMock } from '@/test/router-link-mock'
 
+import { clearAllTaskApiKeys } from '../lib/task-key-registry'
 import {
-  getVideoModelsWithApiKey,
-  getVideoTask,
-  listUsableVideoApiKeys,
-  loadVideoApiSecret,
-  submitVideoGenerationWithApiKey,
-} from '../api'
-import { VideoPlaygroundError } from '../lib/errors'
+  artifactsEnvelope,
+  capabilityUrl,
+  createVideoRecorder,
+  jsonResponse,
+  statusEnvelope,
+  stubKeyEndpoints,
+  videoArtifact,
+  type RecordedCall,
+} from './pipeline-harness'
 import {
   createVideoPlaygroundI18n,
-  FAKE_SECRET,
-  fillAndSubmitPrompt,
+  makeImageFile,
+  pickReferenceImages,
+  pickResolution,
+  pickSeconds,
+  pickVideoModel,
   readyGenerateButton,
   renderVideoPlayground,
   stubAuthUser,
+  submitStudio,
+  typePrompt,
 } from './test-utils'
 
 vi.mock('@tanstack/react-router', () => routerLinkMock)
 
-vi.mock('../api', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../api')>()
-  return {
-    ...actual,
-    listUsableVideoApiKeys: vi.fn(),
-    loadVideoApiSecret: vi.fn(),
-    getVideoModelsWithApiKey: vi.fn(),
-    submitVideoGenerationWithApiKey: vi.fn(),
-    getVideoTask: vi.fn(),
-  }
-})
+const apiClientMock = vi.hoisted(() => ({
+  get: vi.fn(),
+  post: vi.fn(),
+}))
 
-describe('VideoPlayground user flow', () => {
-  let i18n: I18n
+vi.mock('@/lib/api', () => ({ api: apiClientMock }))
 
+const TASK_ID = 'task-flow'
+const PLAYABLE_URL = capabilityUrl(TASK_ID, 'video')
+const PROMPT = 'a heron landing on a post'
+const FIRST_MODEL = 'Doubao-Seedance-2.5'
+const SECOND_MODEL = 'wan3.0-video'
+
+const recorder = createVideoRecorder()
+const calls = recorder.calls
+
+let i18n: I18n
+
+/** Server order matters: the page must take the FIRST model the key returns. */
+const MODELS_PAYLOAD = {
+  data: [
+    { id: FIRST_MODEL, supported_endpoint_types: ['openai-video'] },
+    { id: SECOND_MODEL, supported_endpoint_types: ['openai-video'] },
+  ],
+}
+
+function stubFlowRoutes(statusResponse: () => Response): void {
+  recorder.install((url) => {
+    if (url === '/v1/models') {
+      return jsonResponse(200, MODELS_PAYLOAD)
+    }
+    if (url === '/v1/video/generations') {
+      return jsonResponse(200, { task_id: TASK_ID, id: TASK_ID })
+    }
+    if (url.startsWith('/v1/video/generations/')) {
+      return statusResponse()
+    }
+    if (url.startsWith('/v1/tasks/')) {
+      return jsonResponse(
+        200,
+        artifactsEnvelope(TASK_ID, [videoArtifact(TASK_ID)])
+      )
+    }
+    throw new Error(`unexpected fetch: ${url}`)
+  })
+}
+
+function postRequests(): RecordedCall[] {
+  return calls.filter((call) => call.url === '/v1/video/generations')
+}
+
+function artifactRequests(): RecordedCall[] {
+  return calls.filter((call) => call.url.startsWith('/v1/tasks/'))
+}
+
+function previewSection(): HTMLElement {
+  return screen.getByRole('region', { name: 'Preview' })
+}
+
+function recentTasksRegion(): HTMLElement {
+  return screen.getByRole('region', { name: 'Recent tasks' })
+}
+
+function restoreButton(): HTMLElement {
+  return within(previewSection()).getByRole('button', {
+    name: 'Use these settings again',
+  })
+}
+
+/**
+ * The shared happy-path prefix: keys and models load, the server's first model
+ * is auto-selected, a fully specified submission is accepted, and its artifact
+ * is playing in the preview.
+ */
+async function arrangePlayingSubmission(user: UserEvent): Promise<void> {
+  stubFlowRoutes(() => jsonResponse(200, statusEnvelope(TASK_ID, 'SUCCESS')))
+  renderVideoPlayground(i18n)
+  await readyGenerateButton()
+  expect(screen.getByLabelText('Video model')).toHaveTextContent(FIRST_MODEL)
+
+  await typePrompt(user, PROMPT)
+  await pickReferenceImages(user, [makeImageFile('street.png')])
+  await waitFor(() => {
+    expect(
+      screen.getByRole('button', { name: 'Remove street.png' })
+    ).toBeTruthy()
+  })
+  await pickSeconds(user, '8 seconds')
+  await pickResolution(user, '720p')
+  await submitStudio(user)
+
+  await waitFor(() => {
+    expect(postRequests()).toHaveLength(1)
+  })
+  expect(await screen.findByText(`Task ID: ${TASK_ID}`)).toBeTruthy()
+  expect(await screen.findByLabelText('Generated video')).toHaveAttribute(
+    'src',
+    PLAYABLE_URL
+  )
+}
+
+describe('Video studio end-to-end flow', () => {
   beforeEach(async () => {
     i18n = await createVideoPlaygroundI18n()
     stubAuthUser()
-    vi.mocked(listUsableVideoApiKeys).mockResolvedValue([
-      {
-        id: 2,
-        name: 'older',
-        maskedKey: 'sk-***1111',
-        status: 1,
-        createdTime: 100,
-      },
-      {
-        id: 3,
-        name: 'newer',
-        maskedKey: 'sk-***2222',
-        status: 1,
-        createdTime: 200,
-      },
-    ])
-    vi.mocked(loadVideoApiSecret).mockResolvedValue(FAKE_SECRET)
-    vi.mocked(getVideoModelsWithApiKey).mockResolvedValue([
-      { label: 'Doubao-Seedance-2.5', value: 'Doubao-Seedance-2.5' },
-    ])
-    vi.mocked(submitVideoGenerationWithApiKey).mockReset()
-    vi.mocked(getVideoTask).mockReset()
+    clearAllTaskApiKeys()
+    vi.unstubAllGlobals()
+    apiClientMock.get.mockReset()
+    apiClientMock.post.mockReset()
+    stubKeyEndpoints(apiClientMock)
   })
 
-  it('defaults to the earliest key and submits the full model-driven body', async () => {
-    vi.mocked(submitVideoGenerationWithApiKey).mockResolvedValue({
-      task_id: 'task-123',
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('submits once, promotes the task to the preview, plays the artifact and offers a download of the same URL', async () => {
+    const user = userEvent.setup()
+    await arrangePlayingSubmission(user)
+
+    // The fresh submission is the preview and the only, selected recent row.
+    expect(within(previewSection()).getByText(PROMPT)).toBeTruthy()
+    const rows = within(recentTasksRegion()).getAllByRole('button')
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toHaveAttribute('aria-pressed', 'true')
+    expect(within(previewSection()).getByText('Completed')).toBeTruthy()
+
+    // The only media source is the validated artifact capability URL, and the
+    // download anchor points at exactly the same URL.
+    const download = within(previewSection()).getByRole('button', {
+      name: 'Download',
     })
-    vi.mocked(getVideoTask).mockResolvedValue({
-      task_id: 'task-123',
-      status: 'IN_PROGRESS',
-    })
-    renderVideoPlayground(i18n)
-    await fillAndSubmitPrompt()
+    expect(download.tagName).toBe('A')
+    expect(download).toHaveAttribute('href', PLAYABLE_URL)
+    expect(download).toHaveAttribute('download')
+    expect(artifactRequests()).toHaveLength(1)
+  })
+
+  it('restores prompt, seconds, resolution and reference image from "Use these settings again" without a second POST', async () => {
+    const user = userEvent.setup()
+    await arrangePlayingSubmission(user)
+
+    // Move every field away from what was submitted.
+    await user.clear(screen.getByLabelText('Prompt'))
+    await user.type(screen.getByLabelText('Prompt'), 'an unrelated rewrite')
+    await pickSeconds(user, '12 seconds')
+    await pickResolution(user, '480p')
+    await user.click(screen.getByRole('button', { name: 'Remove street.png' }))
+
+    await user.click(restoreButton())
 
     await waitFor(() => {
-      expect(loadVideoApiSecret).toHaveBeenCalledWith(
-        2,
-        expect.any(AbortSignal)
+      expect(screen.getByLabelText('Video model')).toHaveTextContent(
+        FIRST_MODEL
       )
-      expect(submitVideoGenerationWithApiKey).toHaveBeenCalled()
+      expect(screen.getByLabelText('Prompt')).toHaveValue(PROMPT)
+      expect(screen.getByLabelText('Seconds')).toHaveTextContent('8 seconds')
+      expect(screen.getByLabelText('Resolution')).toHaveTextContent('720p')
+      expect(
+        screen.getByRole('button', { name: 'Remove street.png' })
+      ).toBeTruthy()
     })
-    const [, payload] = vi.mocked(submitVideoGenerationWithApiKey).mock.calls[0]
-    expect(payload).toEqual({
-      model: 'Doubao-Seedance-2.5',
-      prompt: 'a cat walks on the moon',
-      duration: 5,
-      metadata: {
-        duration: 5,
-        ratio: '16:9',
-        resolution: '720p',
-        generate_audio: true,
-        watermark: false,
-        return_last_frame: false,
-      },
-    })
-    expect(document.body.textContent).not.toContain(FAKE_SECRET)
-    expect(document.body.textContent).not.toContain(`sk-${FAKE_SECRET}`)
+    // Restoring is a form action only: it must never bill a second generation.
+    expect(postRequests()).toHaveLength(1)
   })
 
-  it('reloads models after switching API keys', async () => {
-    vi.mocked(loadVideoApiSecret).mockImplementation(async (id) =>
-      id === 3 ? 'second-key' : FAKE_SECRET
-    )
-    vi.mocked(getVideoModelsWithApiKey).mockImplementation(async (apiKey) => {
-      if (String(apiKey).includes('second-key')) {
-        return [{ label: 'Doubao-Seedance-2.0', value: 'Doubao-Seedance-2.0' }]
-      }
-      return [{ label: 'Doubao-Seedance-2.5', value: 'Doubao-Seedance-2.5' }]
-    })
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    await user.click(screen.getByLabelText('Connection settings'))
-    await user.click(await screen.findByLabelText('API Key'))
-    const newer = await screen.findByRole('option', { name: /newer/ })
-    await user.click(newer)
+  it('restores the submitted model together with its seconds and resolution after the user switched model', async () => {
+    const user = userEvent.setup()
+    await arrangePlayingSubmission(user)
+
+    // Switching model resets the composer and clears the tray.
+    await pickVideoModel(user, SECOND_MODEL)
     await waitFor(() => {
-      expect(loadVideoApiSecret).toHaveBeenCalledWith(
-        3,
-        expect.any(AbortSignal)
+      expect(screen.getByLabelText('Video model')).toHaveTextContent(
+        SECOND_MODEL
       )
+      expect(screen.getByLabelText('Prompt')).toHaveValue('')
+      expect(
+        screen.queryByRole('button', { name: 'Remove street.png' })
+      ).toBeNull()
     })
-  })
 
-  it('shows a create-key empty state when no usable key exists', async () => {
-    vi.mocked(listUsableVideoApiKeys).mockResolvedValue([])
-    renderVideoPlayground(i18n)
-    expect(await screen.findByText('No API keys available')).toBeTruthy()
-    expect(
-      screen.getByRole('link', { name: 'Create API Key' })
-    ).toHaveAttribute('href', '/keys')
-  })
+    await user.click(restoreButton())
 
-  it('shows a successful video without autoplay and offers open and download', async () => {
-    vi.mocked(submitVideoGenerationWithApiKey).mockResolvedValue({
-      id: 'task-123',
-    })
-    vi.mocked(getVideoTask).mockResolvedValue({
-      task_id: 'task-123',
-      status: 'SUCCESS',
-      content_url:
-        'https://vancine.test/v1/tasks/task-123/artifacts/video/content',
-    })
-    renderVideoPlayground(i18n)
-    await fillAndSubmitPrompt()
-
-    const video = await screen.findByLabelText('Generated video')
-    expect(video.getAttribute('src')).toBe(
-      'https://vancine.test/v1/tasks/task-123/artifacts/video/content'
-    )
-    expect(video.hasAttribute('autoplay')).toBe(false)
-    expect(screen.getByRole('link', { name: 'Open video' })).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'Download' })).toHaveAttribute(
-      'download',
-      'task-123.mp4'
-    )
-  })
-
-  it('shows an upstream error only as an inline alert', async () => {
-    vi.mocked(submitVideoGenerationWithApiKey).mockRejectedValue(
-      new VideoPlaygroundError({
-        kind: 'upstream',
-        rawMessage: 'insufficient quota',
-      })
-    )
-    renderVideoPlayground(i18n)
-    await fillAndSubmitPrompt()
-    expect(await screen.findByText('insufficient quota')).toBeTruthy()
-    expect(document.body.textContent).not.toContain(FAKE_SECRET)
-  })
-
-  it('clears the previous secret when the selected key disappears', async () => {
-    vi.mocked(loadVideoApiSecret).mockImplementation(async (id) =>
-      id === 3 ? 'secret-b' : 'secret-a'
-    )
-    vi.mocked(getVideoModelsWithApiKey).mockResolvedValue([
-      { label: 'Doubao-Seedance-2.5', value: 'Doubao-Seedance-2.5' },
-    ])
-    vi.mocked(submitVideoGenerationWithApiKey).mockResolvedValue({
-      task_id: 'task-9',
-    })
-    vi.mocked(getVideoTask).mockResolvedValue({
-      task_id: 'task-9',
-      status: 'IN_PROGRESS',
-    })
-    const { client } = renderVideoPlayground(i18n)
-    await readyGenerateButton()
-    expect(loadVideoApiSecret).toHaveBeenCalledWith(2, expect.any(AbortSignal))
-
-    vi.mocked(listUsableVideoApiKeys).mockResolvedValue([
-      {
-        id: 3,
-        name: 'newer',
-        maskedKey: 'sk-***2222',
-        status: 1,
-        createdTime: 200,
-      },
-    ])
-    await act(async () => {
-      await client.invalidateQueries({ queryKey: ['video-playground-keys'] })
-    })
     await waitFor(() => {
-      expect(loadVideoApiSecret).toHaveBeenCalledWith(
-        3,
-        expect.any(AbortSignal)
+      expect(screen.getByLabelText('Video model')).toHaveTextContent(
+        FIRST_MODEL
       )
+      expect(screen.getByLabelText('Prompt')).toHaveValue(PROMPT)
+      expect(screen.getByLabelText('Seconds')).toHaveTextContent('8 seconds')
+      expect(screen.getByLabelText('Resolution')).toHaveTextContent('720p')
+      expect(
+        screen.getByRole('button', { name: 'Remove street.png' })
+      ).toBeTruthy()
     })
-    await fillAndSubmitPrompt()
+    expect(postRequests()).toHaveLength(1)
+  })
+
+  it('shows the upstream fail_reason on FAILURE and restores the settings without resubmitting', async () => {
+    stubFlowRoutes(() =>
+      jsonResponse(
+        200,
+        statusEnvelope(TASK_ID, 'FAILURE', {
+          fail_reason: 'upstream rejected the prompt',
+        })
+      )
+    )
+    const user = userEvent.setup()
+    renderVideoPlayground(i18n)
+    await typePrompt(user, PROMPT)
+    await submitStudio(user)
+
+    expect(
+      await within(previewSection()).findByText('upstream rejected the prompt')
+    ).toBeTruthy()
+    expect(within(previewSection()).getByText('Failed')).toBeTruthy()
+    expect(screen.queryByLabelText('Generated video')).toBeNull()
+    expect(artifactRequests()).toHaveLength(0)
+
+    await user.clear(screen.getByLabelText('Prompt'))
+    await user.type(screen.getByLabelText('Prompt'), 'something else entirely')
+
+    await user.click(restoreButton())
+
     await waitFor(() => {
-      expect(submitVideoGenerationWithApiKey).toHaveBeenCalled()
+      expect(screen.getByLabelText('Prompt')).toHaveValue(PROMPT)
     })
-    expect(
-      String(vi.mocked(submitVideoGenerationWithApiKey).mock.calls[0][0])
-    ).toContain('secret-b')
-    expect(
-      String(vi.mocked(submitVideoGenerationWithApiKey).mock.calls[0][0])
-    ).not.toContain('secret-a')
+    expect(postRequests()).toHaveLength(1)
   })
 })

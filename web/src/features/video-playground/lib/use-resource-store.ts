@@ -40,6 +40,9 @@ export function useResourceStore() {
   const [images, setImages] = useState<VideoResource[]>([])
   const [videos, setVideos] = useState<VideoResource[]>([])
   const [audios, setAudios] = useState<VideoResource[]>([])
+  // Renderable preview object URLs by resource id. The registry ref below stays
+  // the single revocation owner; this state only lets a component render one.
+  const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({})
   const urlRegistryRef = useRef<Map<string, string>>(new Map())
 
   const revoke = useCallback((id: string) => {
@@ -52,6 +55,38 @@ export function useResourceStore() {
       }
       urlRegistryRef.current.delete(id)
     }
+    setPreviewUrls((prev) => {
+      if (!(id in prev)) return prev
+      const next = { ...prev }
+      delete next[id]
+      return next
+    })
+  }, [])
+
+  /**
+   * Create and own the preview object URL for one local resource. Re-attaching
+   * an id that already has a URL revokes the previous one first, so restoring a
+   * submitted task's reference images cannot leak a URL.
+   */
+  const attachPreview = useCallback((id: string, blob: Blob) => {
+    let url: string
+    try {
+      url = URL.createObjectURL(blob)
+    } catch {
+      // jsdom and hardened browsers may not implement object URLs; the tray
+      // then renders a named tile instead of a thumbnail.
+      return
+    }
+    const previous = urlRegistryRef.current.get(id)
+    if (previous && previous !== url) {
+      try {
+        URL.revokeObjectURL(previous)
+      } catch {
+        // ignore
+      }
+    }
+    urlRegistryRef.current.set(id, url)
+    setPreviewUrls((prev) => ({ ...prev, [id]: url }))
   }, [])
 
   const registerPreviewUrl = useCallback((id: string, url: string) => {
@@ -105,6 +140,7 @@ export function useResourceStore() {
     for (const id of urlRegistryRef.current.keys()) {
       revoke(id)
     }
+    setPreviewUrls({})
     setImages([])
     setVideos([])
     setAudios([])
@@ -129,12 +165,14 @@ export function useResourceStore() {
     images: images as VideoImageResource[],
     videos: videos as VideoVideoResource[],
     audios: audios as VideoAudioResource[],
+    previewUrls,
     addImage,
     addVideo,
     addAudio,
     removeImage,
     removeVideo,
     removeAudio,
+    attachPreview,
     registerPreviewUrl,
     reset,
   }

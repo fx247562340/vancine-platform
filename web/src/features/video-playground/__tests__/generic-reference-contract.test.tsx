@@ -14,233 +14,227 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-For commercial licensing, please contact support@quantumnous.com
+For commercial licensing, please contact support@quantumnous.com.
 */
 /**
- * A generic video model receives its reference image through the top-level
- * `image` field. It has no prompt-reference syntax, so the page must not teach
- * the user one: no `@Image1` hint in the placeholder, no insert action on the
- * chip, and nothing injected into the prompt or the outbound body.
+ * The safe default for a video model Vancine holds no capability evidence for.
  *
- * The dedicated Seedance composer is the opposite contract — its wire format
- * carries `metadata.content` entries that the prompt cites by token — so the
- * last test pins that its insert behaviour is untouched.
- *
- * Only the two genuinely external boundaries are faked: the relay `fetch` and the
- * dashboard axios client.
+ * Such a model stays fully usable — selectable, submittable — but the page
+ * invents nothing about it: both parameter selects collapse to a single
+ * "Default" entry, the reference-image tray refuses all three input paths, and
+ * only `model` plus the trimmed prompt go on the wire. The last group of tests
+ * is the anti-guessing regression: an id that merely CONTAINS a known id as a
+ * substring must earn exactly the same safe default, never the known model's
+ * capability table.
  */
-import { screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { screen, waitFor, within } from '@testing-library/react'
+import userEvent, { type UserEvent } from '@testing-library/user-event'
 import type { i18n as I18n } from 'i18next'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { routerLinkMock } from '@/test/router-link-mock'
 
-import { clearAllTaskApiKeys } from '../lib/task-key-registry'
-import {
-  createVideoRecorder,
-  jsonResponse,
-  statusEnvelope,
-  stubKeyEndpoints,
-  type VideoRecorder,
-} from './pipeline-harness'
+import { submitVideoGenerationRequest } from '../api'
 import {
   createVideoPlaygroundI18n,
-  readyGenerateButton,
+  dropReferenceImages,
+  makeImageFile,
+  pasteFromClipboard,
+  pickReferenceImages,
+  pickVideoModel,
   renderVideoPlayground,
   stubAuthUser,
+  stubVideoApi,
+  submitStudio,
+  typePrompt,
 } from './test-utils'
 
 vi.mock('@tanstack/react-router', () => routerLinkMock)
 
-const TASK_ID = 'task-reference-contract'
-const IMAGE_URL = 'https://cdn.example.com/first.png'
-
-const apiClientMock = vi.hoisted(() => ({
-  get: vi.fn(),
-  post: vi.fn(),
-}))
-
-vi.mock('@/lib/api', () => ({ api: apiClientMock }))
-
-const recorder: VideoRecorder = createVideoRecorder()
-
-/** Every JSON body that reached POST /v1/video/generations, in order. */
-let postedBodies: unknown[] = []
-
-const TWO_PROFILE_MODELS = [
-  {
-    id: 'wan3.0-video',
-    object: 'model',
-    owned_by: 'vancine',
-    supported_endpoint_types: ['openai', 'openai-video'],
-  },
-  {
-    id: 'Doubao-Seedance-2.5',
-    object: 'model',
-    owned_by: 'vancine',
-    supported_endpoint_types: ['openai', 'openai-video'],
-  },
-]
-
-function stubRelay(models: unknown[]) {
-  postedBodies = []
-  recorder.install((url, init) => {
-    if (url === '/v1/models') {
-      return jsonResponse(200, { object: 'list', data: models })
-    }
-    if (url === '/v1/video/generations') {
-      if (init?.body) {
-        postedBodies.push(JSON.parse(String(init.body)))
-      }
-      return jsonResponse(200, { task_id: TASK_ID, id: TASK_ID })
-    }
-    if (url.startsWith('/v1/video/generations/')) {
-      return jsonResponse(200, statusEnvelope(TASK_ID, 'SUBMITTED'))
-    }
-    throw new Error(`unexpected fetch: ${url}`)
-  })
-}
-
-async function selectModel(
-  user: ReturnType<typeof userEvent.setup>,
-  name: string
-) {
-  await user.click(screen.getByLabelText('Video model'))
-  await user.click(await screen.findByRole('option', { name }))
-}
-
-async function selectMode(
-  user: ReturnType<typeof userEvent.setup>,
-  name: string
-) {
-  await user.click(screen.getByLabelText('Creation mode'))
-  await user.click(await screen.findByRole('option', { name }))
-}
-
-async function addImageUrl(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole('button', { name: 'Add reference image' }))
-  await user.type(await screen.findByLabelText('Public URL'), IMAGE_URL)
-  await user.keyboard('{Enter}')
-}
-
-function promptValue(): string {
-  const prompt = screen.getByLabelText('Prompt')
-  if (!(prompt instanceof HTMLTextAreaElement)) {
-    throw new Error('the prompt field is not a textarea')
+vi.mock('../api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../api')>()
+  return {
+    ...actual,
+    listUsableVideoApiKeys: vi.fn(),
+    loadVideoApiSecret: vi.fn(),
+    getVideoModelsWithApiKey: vi.fn(),
+    submitVideoGenerationRequest: vi.fn(),
+    submitVideoGenerationWithApiKey: vi.fn(),
+    getVideoTask: vi.fn(),
   }
-  return prompt.value
+})
+
+/** An id that contains no known model id at all: the neutral unknown case. */
+const UNVERIFIED_MODEL = 'some-future-video-model'
+
+const NO_IMAGES_MESSAGE = 'This model does not accept reference images.'
+
+/**
+ * Ids that merely contain a capability-table id as a substring. Each must be
+ * treated as unverified: guessing from a name would hand the user a duration
+ * range, a resolution tier and a reference-image budget Vancine never checked.
+ */
+const SUBSTRING_IDS = [
+  'Doubao-Seedance-2.5-experimental',
+  'wan3.0-video-turbo',
+  'MiniMax-H3-fast',
+  'prefix-wan3.0-video',
+] as const
+
+/** The body handed to `submitVideoGenerationRequest` by the given call. */
+function submittedBody(callIndex = 0): unknown {
+  return vi.mocked(submitVideoGenerationRequest).mock.calls[callIndex]?.[1]
 }
 
-describe('VideoPlayground — generic models have no prompt-reference syntax', () => {
-  let i18n: I18n
-
-  beforeEach(async () => {
-    i18n = await createVideoPlaygroundI18n()
-    stubAuthUser()
-    clearAllTaskApiKeys()
-    vi.unstubAllGlobals()
-    apiClientMock.get.mockReset()
-    apiClientMock.post.mockReset()
-    stubKeyEndpoints(apiClientMock)
-    stubRelay(TWO_PROFILE_MODELS)
+async function waitForSubmitCount(count: number): Promise<void> {
+  await waitFor(() => {
+    expect(vi.mocked(submitVideoGenerationRequest)).toHaveBeenCalledTimes(count)
   })
+}
 
-  afterEach(() => {
-    vi.unstubAllGlobals()
-    vi.restoreAllMocks()
+/**
+ * The option labels one select currently offers.
+ *
+ * The popup is closed again before returning: a Base UI Select trigger toggles,
+ * so leaving it open would make the next click close it instead of opening the
+ * other select.
+ */
+async function offeredOptions(
+  user: UserEvent,
+  label: string
+): Promise<Array<string | null>> {
+  await user.click(screen.getByLabelText(label))
+  const options = await screen.findAllByRole('option')
+  const names = options.map((option) => option.textContent)
+  await user.keyboard('{Escape}')
+  await waitFor(() => {
+    expect(screen.queryAllByRole('option')).toHaveLength(0)
   })
+  return names
+}
 
-  it('does not hint at @Image1 in the generic prompt placeholder', async () => {
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
+/**
+ * Renders the studio on a key that offers one known model plus `modelId`, then
+ * selects `modelId`. The api stub has to be in place before the first render,
+ * because the model list is fetched once on mount.
+ */
+async function renderOnUnverifiedModel(
+  user: UserEvent,
+  i18n: I18n,
+  modelId: string
+): Promise<void> {
+  await stubVideoApi({ models: ['wan3.0-video', modelId] })
+  renderVideoPlayground(i18n)
+  await pickVideoModel(user, modelId)
+  expect(screen.getByLabelText('Video model')).toHaveTextContent(modelId)
+}
 
-    // wan3.0-video is the auto-selected first model and has no dedicated profile.
-    const prompt = await screen.findByLabelText('Prompt')
-    expect(prompt.getAttribute('placeholder')).toBe(
-      'Describe the video you want to generate.'
-    )
-    expect(prompt.getAttribute('placeholder')).not.toContain('@Image1')
-  })
+/** Asserts the tray refused the last input and kept every image out. */
+async function expectTrayRefusedImages(): Promise<void> {
+  const tray = await screen.findByRole('group', { name: 'Reference images' })
+  expect(await within(tray).findByText(NO_IMAGES_MESSAGE)).toBeTruthy()
+  expect(screen.queryAllByRole('button', { name: /^Remove / })).toHaveLength(0)
+}
 
-  it('shows a generic image chip with no insert action', async () => {
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
+let i18n: I18n
 
-    await selectMode(user, 'Image to video')
-    await addImageUrl(user)
+beforeEach(async () => {
+  stubAuthUser()
+  i18n = await createVideoPlaygroundI18n()
+})
 
-    // The chip keeps the resource name and its remove control.
-    expect(await screen.findByText('first.png')).toBeTruthy()
-    expect(
-      screen.getByRole('button', { name: 'Remove first.png' })
-    ).toBeTruthy()
-    // No prompt token, and nothing that looks like one.
-    expect(screen.queryByText('@Image1')).toBeNull()
-    expect(
-      screen.queryByRole('button', { name: /Insert @Image1 into prompt/ })
-    ).toBeNull()
-  })
+describe('VideoPlayground — a video model with no capability entry', () => {
+  it('stays selectable and submittable', async () => {
+    const user = userEvent.setup()
+    await renderOnUnverifiedModel(user, i18n, UNVERIFIED_MODEL)
 
-  it('leaves the prompt exactly as the user typed it when an image is attached', async () => {
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
+    await typePrompt(user, 'an unverified model still generates')
+    expect(screen.getByRole('button', { name: 'Generate video' })).toBeEnabled()
+    await submitStudio(user)
 
-    await selectMode(user, 'Image to video')
-    await user.type(screen.getByLabelText('Prompt'), 'the cat starts running')
-    expect(promptValue()).toBe('the cat starts running')
-
-    await addImageUrl(user)
-    expect(await screen.findByText('first.png')).toBeTruthy()
-    expect(promptValue()).toBe('the cat starts running')
-  })
-
-  it('sends the user prompt verbatim and the image in the top-level field', async () => {
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
-
-    await selectMode(user, 'Image to video')
-    await addImageUrl(user)
-    await user.type(screen.getByLabelText('Prompt'), 'the cat starts running')
-    await user.click(screen.getByRole('button', { name: 'Generate' }))
-
-    await waitFor(() => expect(postedBodies).toHaveLength(1))
-    expect(postedBodies[0]).toEqual({
-      model: 'wan3.0-video',
-      prompt: 'the cat starts running',
-      image: IMAGE_URL,
+    await waitForSubmitCount(1)
+    expect(submittedBody()).toEqual({
+      model: UNVERIFIED_MODEL,
+      prompt: 'an unverified model still generates',
     })
-    // No token can hide in a field the equality check above would not catch.
-    expect(JSON.stringify(postedBodies[0])).not.toContain('@Image')
   })
 
-  it('still inserts @Image1 into the prompt for a dedicated Seedance model', async () => {
-    const user = userEvent.setup({ pointerEventsCheck: 0 })
-    renderVideoPlayground(i18n)
-    await readyGenerateButton()
+  it('offers exactly one Default option in both the Seconds and the Resolution select', async () => {
+    const user = userEvent.setup()
+    await renderOnUnverifiedModel(user, i18n, UNVERIFIED_MODEL)
 
-    await selectModel(user, 'Doubao-Seedance-2.5')
-    await selectMode(user, 'First frame')
-    await addImageUrl(user)
-
-    expect(await screen.findByText('@Image1')).toBeTruthy()
-    expect(promptValue()).toBe('')
-
-    await user.click(
-      screen.getByRole('button', { name: 'Insert @Image1 into prompt' })
-    )
-    expect(promptValue()).toBe('@Image1 ')
-
-    // Appending is the dedicated composer's pre-existing behaviour, including its
-    // spacing: the second insert separates the existing text with a space and
-    // the token keeps its own trailing one.
-    await user.click(
-      screen.getByRole('button', { name: 'Insert @Image1 into prompt' })
-    )
-    expect(promptValue()).toBe('@Image1  @Image1 ')
-    expect(screen.getByRole('button', { name: 'Remove @Image1' })).toBeTruthy()
+    expect(await offeredOptions(user, 'Seconds')).toEqual(['Default'])
+    expect(await offeredOptions(user, 'Resolution')).toEqual(['Default'])
   })
+
+  it('refuses a file picked through the tray and attaches no image', async () => {
+    const user = userEvent.setup()
+    await renderOnUnverifiedModel(user, i18n, UNVERIFIED_MODEL)
+
+    await pickReferenceImages(user, [makeImageFile('picked.png')])
+
+    await expectTrayRefusedImages()
+  })
+
+  it('refuses a file dropped on the tray and attaches no image', async () => {
+    const user = userEvent.setup()
+    await renderOnUnverifiedModel(user, i18n, UNVERIFIED_MODEL)
+
+    dropReferenceImages([makeImageFile('dropped.png')])
+
+    await expectTrayRefusedImages()
+  })
+
+  it('refuses an image pasted from the clipboard and leaves the prompt untouched', async () => {
+    const user = userEvent.setup()
+    await renderOnUnverifiedModel(user, i18n, UNVERIFIED_MODEL)
+
+    const paste = pasteFromClipboard([makeImageFile('pasted.png')])
+    // The tray owns the paste, so the clipboard image never reaches the prompt.
+    expect(paste.defaultPrevented()).toBe(true)
+
+    await expectTrayRefusedImages()
+    expect(screen.getByLabelText('Prompt')).toHaveValue('')
+  })
+
+  it('sends only model and the trimmed prompt, with no duration, seconds, size or metadata', async () => {
+    const user = userEvent.setup()
+    await renderOnUnverifiedModel(user, i18n, UNVERIFIED_MODEL)
+
+    await typePrompt(user, '   provider owns every parameter   ')
+    await submitStudio(user)
+
+    await waitForSubmitCount(1)
+    expect(submittedBody()).toEqual({
+      model: UNVERIFIED_MODEL,
+      prompt: 'provider owns every parameter',
+    })
+    expect(submittedBody()).not.toHaveProperty('duration')
+    expect(submittedBody()).not.toHaveProperty('seconds')
+    expect(submittedBody()).not.toHaveProperty('size')
+    expect(submittedBody()).not.toHaveProperty('metadata')
+  })
+
+  it.each(SUBSTRING_IDS)(
+    'gives %s the identical unverified default instead of the capability its name contains',
+    async (substringId) => {
+      const user = userEvent.setup()
+      await renderOnUnverifiedModel(user, i18n, substringId)
+
+      expect(await offeredOptions(user, 'Seconds')).toEqual(['Default'])
+      expect(await offeredOptions(user, 'Resolution')).toEqual(['Default'])
+
+      await pickReferenceImages(user, [makeImageFile('reference.png')])
+      await expectTrayRefusedImages()
+
+      await typePrompt(user, 'a substring id is still unverified')
+      await submitStudio(user)
+
+      await waitForSubmitCount(1)
+      expect(submittedBody()).toEqual({
+        model: substringId,
+        prompt: 'a substring id is still unverified',
+      })
+    }
+  )
 })
