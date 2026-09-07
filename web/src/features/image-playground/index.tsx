@@ -287,13 +287,21 @@ export function ImagePlayground() {
                 />
               }
               footer={
-                <>
+                // Image-page-local quick controls row. The shell footer
+                // centers its children vertically, but the labeled quick
+                // parameters (Size, Number of images) are taller than the
+                // unlabeled buttons (Advanced settings, Generate), so this
+                // full-width container re-aligns everything on their
+                // bottom edge and wraps naturally on small screens.
+                <div className='flex w-full flex-wrap items-end gap-2'>
                   <FormField
                     control={form.control}
                     name='size'
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className='sr-only'>{t('Size')}</FormLabel>
+                        <FormLabel className='text-muted-foreground hidden text-xs lg:inline'>
+                          {t('Size')}
+                        </FormLabel>
                         <FormControl>
                           <NativeSelect
                             size='sm'
@@ -402,7 +410,7 @@ export function ImagePlayground() {
                       {t('Generate')}
                     </Button>
                   </div>
-                </>
+                </div>
               }
             >
               <div
