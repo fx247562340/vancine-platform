@@ -165,9 +165,21 @@
     "desc": "Call the public pricing endpoint to read model names, supported endpoints, ratios, and prices.",
     "fetchPricing": "Fetch model pricing",
     "textModelsTitle": "Text models ({{count}})",
+    "imageModelsTitle": "Image models ({{count}})",
+    "videoModelsTitle": "Video models ({{count}})",
     "multimodalTitle": "Multimodal generation models",
     "colType": "Type",
-    "colUsageNotes": "Usage notes"
+    "colUsageNotes": "Usage notes",
+    "imageEndpoint": "POST /v1/images/generations",
+    "videoEndpoint": "POST /v1/video/generations (async)",
+    "loading": "Loading the live model catalog…",
+    "loadErrorTitle": "Live model catalog is unavailable",
+    "loadErrorBody": "We could not load the current model list. The live Pricing endpoint remains the source of truth — open it from the curl above to inspect every available model.",
+    "emptyTitle": "No models are currently available",
+    "emptyTextBody": "No text models are currently listed in the live catalog. Please check the live Pricing page for availability.",
+    "emptyImageBody": "No image models are currently listed in the live catalog. Please check the live Pricing page for availability.",
+    "emptyVideoBody": "No video models are currently listed in the live catalog. Please check the live Pricing page for availability.",
+    "retry": "Retry"
   },
   "errors": {
     "title": "Error Handling",

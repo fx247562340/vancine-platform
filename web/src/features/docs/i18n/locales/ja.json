@@ -165,9 +165,21 @@
     "desc": "公開価格エンドポイントを呼び出して、モデル名、対応エンドポイント、レシオ、価格を読み取ることができます。",
     "fetchPricing": "モデル価格を取得",
     "textModelsTitle": "テキストモデル（{{count}}）",
+    "imageModelsTitle": "画像モデル（{{count}}）",
+    "videoModelsTitle": "動画モデル（{{count}}）",
     "multimodalTitle": "マルチモーダル生成モデル",
     "colType": "タイプ",
-    "colUsageNotes": "使用上の注意"
+    "colUsageNotes": "使用上の注意",
+    "imageEndpoint": "POST /v1/images/generations",
+    "videoEndpoint": "POST /v1/video/generations（非同期）",
+    "loading": "ライブモデルカタログを読み込み中…",
+    "loadErrorTitle": "ライブモデルカタログは利用できません",
+    "loadErrorBody": "現在のモデル一覧を読み込めませんでした。ライブ価格エンドポイントが引き続き正しい情報源です。上の curl を使って利用可能なすべてのモデルを確認してください。",
+    "emptyTitle": "現在利用可能なモデルはありません",
+    "emptyTextBody": "ライブカタログにテキストモデルが登録されていません。可用性はライブ価格ページで確認してください。",
+    "emptyImageBody": "ライブカタログに画像モデルが登録されていません。可用性はライブ価格ページで確認してください。",
+    "emptyVideoBody": "ライブカタログに動画モデルが登録されていません。可用性はライブ価格ページで確認してください。",
+    "retry": "再試行"
   },
   "errors": {
     "title": "エラー処理",

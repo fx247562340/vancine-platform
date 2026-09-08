@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import i18n from 'i18next'
 import { I18nextProvider, initReactI18next } from 'react-i18next'
@@ -24,8 +24,18 @@ import { describe, expect, it } from 'vitest'
 
 import { TocProvider } from '../components/toc-context'
 import enDocs from '../i18n/locales/en.json'
-import ModelsPage from '../pages/models'
 import VideoPage from '../pages/video'
+
+// The original `seedance-2-5.test.tsx` file once mixed two distinct
+// responsibilities: the VideoPage Seedance 2.5 contract (cURL / Python /
+// Node.js minimal request shapes) and the ModelsPage dynamic listing of
+// Doubao-Seedance-2.5. After v2.2.x the ModelsPage switched to a live
+// model catalog projection; pinning a single hardcoded row there no
+// longer makes sense, and dynamic-catalog behaviour now has its own
+// dedicated test file (`models-live-catalog.test.tsx`). This file is
+// therefore reduced to the Seedance 2.5 protocol contract on the
+// VideoPage, which is the only stable, hardcoded, vendor-specific
+// surface that still belongs to the v2.2.x code base.
 
 const TARGET_MODEL = 'Doubao-Seedance-2.5'
 const OLD_MODELS = [
@@ -195,56 +205,5 @@ describe('Docs VideoPage converges to Doubao-Seedance-2.5', () => {
     for (const price of OLD_PRICES) {
       expect(container.textContent).not.toContain(price)
     }
-  })
-})
-
-describe('Docs ModelsPage lists only Doubao-Seedance-2.5 video model', () => {
-  async function renderModels() {
-    const instance = await makeDocsI18n()
-    return render(
-      <I18nextProvider i18n={instance}>
-        <TocProvider>
-          <ModelsPage baseUrl={BASE_URL} />
-        </TocProvider>
-      </I18nextProvider>
-    )
-  }
-
-  it('shows the Seedance 2.5 video row with a live-pricing note', async () => {
-    await renderModels()
-
-    // Find the row by its semantic (accessible) name — the model, its video
-    // type badge, and the live-pricing note — without querySelector / nth-child.
-    const targetRow = screen.getByRole('row', {
-      name: /Doubao-Seedance-2\.5.*video.*Fetch model pricing/,
-    })
-    expect(targetRow).toBeInTheDocument()
-
-    // Assert in-row content through the scoped within() wrapper.
-    expect(
-      within(targetRow).getByText(/Doubao-Seedance-2\.5/)
-    ).toBeInTheDocument()
-    expect(
-      within(targetRow).getByText('Fetch model pricing')
-    ).toBeInTheDocument()
-  })
-
-  it('removes the three legacy Seedance IDs and their fixed prices', async () => {
-    const { container } = await renderModels()
-    const text = container.textContent ?? ''
-
-    for (const old of OLD_MODELS) {
-      expect(text).not.toContain(old)
-    }
-    for (const price of OLD_PRICES) {
-      expect(text).not.toContain(price)
-    }
-  })
-
-  it('keeps the live /api/pricing entry', async () => {
-    await renderModels()
-
-    // The pricing code block points at the live pricing endpoint.
-    expect(document.body.textContent ?? '').toContain('/api/pricing')
   })
 })

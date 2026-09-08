@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next'
 
 import { PublicLayout } from '@/components/layout'
 import { Footer } from '@/components/layout/components/footer'
+import { useLiveModelCatalog } from '@/features/live-model-catalog/hooks/use-live-model-catalog'
 import { usePageMetadata } from '@/hooks/use-page-metadata'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -40,6 +41,11 @@ import { getAiMediaPageMetadata } from './lib/landing'
  * Public developer landing page for the AI Media API. Composes the shared
  * PublicLayout and Footer, manages its own SEO metadata through the shared
  * page-metadata hook, and delegates every section to a dedicated component.
+ *
+ * The page is the single owner of the live model catalog query. The
+ * resulting catalog state and refetch handle are forwarded to every
+ * consumer that may need to retry (MediaCategories / ApiExamples) so
+ * they never trigger an independent `/api/pricing` request.
  */
 export function AiMediaApiPage(): ReactElement {
   const { i18n } = useTranslation()
@@ -57,14 +63,19 @@ export function AiMediaApiPage(): ReactElement {
   // bootstrap in main.tsx from overwriting the route-level title.
   usePageMetadata(metadata, { publicMarketingPage: true })
 
+  // The single live media catalog query for the entire page. Both
+  // MediaCategories and ApiExamples consume the same shape, so the same
+  // TanStack Query cache entry backs both renderers.
+  const { catalog, refetch } = useLiveModelCatalog()
+
   return (
     <PublicLayout showMainContainer={false}>
       <main className='flex flex-1 flex-col'>
         <AiMediaHero isAuthenticated={isAuthenticated} search={search} />
         <CapabilityStrip />
         <IntegrationBenefits />
-        <MediaCategories />
-        <ApiExamples />
+        <MediaCategories catalog={catalog} />
+        <ApiExamples catalog={catalog} onRetry={refetch} />
         <UseCases />
         <LiveSources />
         <AiMediaFaq />

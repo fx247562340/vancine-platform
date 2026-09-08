@@ -165,9 +165,21 @@
     "desc": "调用公开定价接口可读取模型名称、支持端点、倍率和价格。",
     "fetchPricing": "获取模型价格",
     "textModelsTitle": "文本模型（{{count}} 个）",
+    "imageModelsTitle": "图像模型（{{count}} 个）",
+    "videoModelsTitle": "视频模型（{{count}} 个）",
     "multimodalTitle": "多媒体模型",
     "colType": "类型",
-    "colUsageNotes": "调用说明"
+    "colUsageNotes": "调用说明",
+    "imageEndpoint": "POST /v1/images/generations",
+    "videoEndpoint": "POST /v1/video/generations（异步）",
+    "loading": "正在加载实时模型目录…",
+    "loadErrorTitle": "实时模型目录暂不可用",
+    "loadErrorBody": "无法加载当前模型列表。实时定价接口仍是权威来源——可使用上方的 curl 命令直接查看所有可用模型。",
+    "emptyTitle": "当前没有可用的模型",
+    "emptyTextBody": "实时目录中暂未列出文本模型。请查看实时定价页面以确认可用性。",
+    "emptyImageBody": "实时目录中暂未列出图像模型。请查看实时定价页面以确认可用性。",
+    "emptyVideoBody": "实时目录中暂未列出视频模型。请查看实时定价页面以确认可用性。",
+    "retry": "重试"
   },
   "errors": {
     "title": "错误处理",

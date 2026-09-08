@@ -165,9 +165,21 @@
     "desc": "Appelez le point de terminaison public de tarification pour lire les noms de modèles, les points de terminaison pris en charge, les ratios et les prix.",
     "fetchPricing": "Récupérer la tarification des modèles",
     "textModelsTitle": "Modèles de texte ({{count}})",
+    "imageModelsTitle": "Modèles d'image ({{count}})",
+    "videoModelsTitle": "Modèles de vidéo ({{count}})",
     "multimodalTitle": "Modèles de génération multimodaux",
     "colType": "Type",
-    "colUsageNotes": "Notes d'utilisation"
+    "colUsageNotes": "Notes d'utilisation",
+    "imageEndpoint": "POST /v1/images/generations",
+    "videoEndpoint": "POST /v1/video/generations (asynchrone)",
+    "loading": "Chargement du catalogue de modèles en direct…",
+    "loadErrorTitle": "Le catalogue de modèles en direct est indisponible",
+    "loadErrorBody": "Impossible de charger la liste actuelle des modèles. L'endpoint de tarification en direct reste la source de référence — utilisez le curl ci-dessus pour inspecter tous les modèles disponibles.",
+    "emptyTitle": "Aucun modèle n'est disponible pour le moment",
+    "emptyTextBody": "Aucun modèle de texte n'est listé dans le catalogue en direct. Consultez la page Tarification en direct pour connaître la disponibilité.",
+    "emptyImageBody": "Aucun modèle d'image n'est listé dans le catalogue en direct. Consultez la page Tarification en direct pour connaître la disponibilité.",
+    "emptyVideoBody": "Aucun modèle de vidéo n'est listé dans le catalogue en direct. Consultez la page Tarification en direct pour connaître la disponibilité.",
+    "retry": "Réessayer"
   },
   "errors": {
     "title": "Gestion des erreurs",

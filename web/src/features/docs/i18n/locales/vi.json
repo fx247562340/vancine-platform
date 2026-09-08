@@ -165,9 +165,21 @@
     "desc": "Gọi endpoint giá công khai để đọc tên mô hình, endpoint được hỗ trợ, tỷ lệ và giá.",
     "fetchPricing": "Lấy giá mô hình",
     "textModelsTitle": "Mô hình văn bản ({{count}})",
+    "imageModelsTitle": "Mô hình hình ảnh ({{count}})",
+    "videoModelsTitle": "Mô hình video ({{count}})",
     "multimodalTitle": "Mô hình tạo đa phương thức",
     "colType": "Loại",
-    "colUsageNotes": "Ghi chú sử dụng"
+    "colUsageNotes": "Ghi chú sử dụng",
+    "imageEndpoint": "POST /v1/images/generations",
+    "videoEndpoint": "POST /v1/video/generations (bất đồng bộ)",
+    "loading": "Đang tải danh mục mô hình trực tiếp…",
+    "loadErrorTitle": "Danh mục mô hình trực tiếp không khả dụng",
+    "loadErrorBody": "Không thể tải danh sách mô hình hiện tại. Endpoint giá trực tiếp vẫn là nguồn chính thức — hãy dùng lệnh curl ở trên để xem tất cả các mô hình khả dụng.",
+    "emptyTitle": "Hiện không có mô hình nào khả dụng",
+    "emptyTextBody": "Danh mục trực tiếp hiện không liệt kê mô hình văn bản. Vui lòng kiểm tra trang Giá trực tiếp để biết tình trạng khả dụng.",
+    "emptyImageBody": "Danh mục trực tiếp hiện không liệt kê mô hình hình ảnh. Vui lòng kiểm tra trang Giá trực tiếp để biết tình trạng khả dụng.",
+    "emptyVideoBody": "Danh mục trực tiếp hiện không liệt kê mô hình video. Vui lòng kiểm tra trang Giá trực tiếp để biết tình trăng khả dụng.",
+    "retry": "Thử lại"
   },
   "errors": {
     "title": "Xử lý lỗi",

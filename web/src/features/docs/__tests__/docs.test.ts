@@ -609,6 +609,7 @@ const SAME_ENGLISH_ALLOWLIST = new Set<string>([
   'nav.faq',
   'capabilities.rows.chat',
   'models.colType',
+  'models.imageEndpoint',
   'common.type',
   'common.action',
   'common.description',

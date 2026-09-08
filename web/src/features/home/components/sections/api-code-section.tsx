@@ -53,7 +53,7 @@ export function ApiCodeSection() {
           </h2>
           <p className='text-muted-foreground mx-auto mt-3 max-w-2xl text-sm leading-relaxed md:text-base'>
             {t(
-              'One OpenAI-compatible endpoint, one API key, one bill. Pick a Chat, Responses, Claude, or Gemini style and switch models on the same surface.'
+              'One OpenAI-compatible endpoint, one API key, one bill. Switch models on the same surface through supported compatible API routes.'
             )}
           </p>
         </AnimateInView>

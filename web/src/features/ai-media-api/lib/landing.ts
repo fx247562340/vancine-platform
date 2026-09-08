@@ -234,7 +234,7 @@ export function getAiMediaPageMetadata(language: string): PageMetadata {
 }
 
 // ---------------------------------------------------------------------------
-// API example contract — endpoints and models mirror the live Docs
+// API example contract — endpoints and model IDs mirror the live Docs
 // ---------------------------------------------------------------------------
 
 export const AI_MEDIA_API_BASE_URL = 'https://vancine.com/v1'
@@ -246,48 +246,131 @@ export interface AiMediaApiExample {
   labelKey: string
   /** Docs slug the example links to. */
   docsSlug: 'image' | 'video'
-  code: string
+  /** Stable endpoint path the example posts to. */
+  endpointPath: string
+  method: 'POST'
+  /** Static contract describing the request body keys. */
+  bodyKeys: readonly string[]
+  /** Optional async follow-up (for video polling). */
+  poll?: {
+    method: 'GET'
+    /** Path with a `{{taskId}}` placeholder, appended to the base URL. */
+    pathTemplate: string
+  }
 }
 
 /**
- * Quickstart examples. Endpoints and model IDs mirror the current Docs
- * (image / video pages); the API key is read exclusively from the
- * VANCINE_API_KEY environment variable — never a hardcoded secret. Video is
- * an async task workflow (submit, then poll by task id).
+ * The example code strings used to live in this file as hardcoded, fully
+ * serialized curl invocations. The v2.2.x redesign makes them dynamic: the
+ * static contract below declares the *shape* of each example (endpoint
+ * path, body keys, async poll follow-up) and the actual code text is built
+ * at render time against the live model catalog so the model field is
+ * never pinned to a fixed identifier. The API key is read exclusively
+ * from the VANCINE_API_KEY environment variable — never a hardcoded
+ * secret. Video is an async task workflow (submit, then poll by task id).
  */
 export const AI_MEDIA_API_EXAMPLES: readonly AiMediaApiExample[] = [
   {
     id: 'image',
     labelKey: 'Image',
     docsSlug: 'image',
-    code: `curl -X POST https://vancine.com/v1/images/generations \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer $VANCINE_API_KEY" \\
-  -d '{
-    "model": "qwen-image-2.0",
-    "prompt": "a red apple on a wooden table",
-    "n": 1,
-    "size": "1024x1024"
-  }'`,
+    endpointPath: '/images/generations',
+    method: 'POST',
+    bodyKeys: ['model', 'prompt', 'n', 'size'],
   },
   {
     id: 'video',
     labelKey: 'Video',
     docsSlug: 'video',
-    code: `# 1. Submit the async task
-curl -X POST https://vancine.com/v1/video/generations \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer $VANCINE_API_KEY" \\
-  -d '{
-    "model": "Doubao-Seedance-2.5",
-    "prompt": "a cat walking on a beach"
-  }'
-
-# 2. Poll the task status with the returned task_id
-curl -X GET https://vancine.com/v1/video/generations/$TASK_ID \\
-  -H "Authorization: Bearer $VANCINE_API_KEY"`,
+    endpointPath: '/video/generations',
+    method: 'POST',
+    bodyKeys: ['model', 'prompt'],
+    poll: {
+      method: 'GET',
+      pathTemplate: '/video/generations/{{taskId}}',
+    },
   },
 ]
+
+function defaultPromptFor(id: 'image' | 'video'): string {
+  if (id === 'image') return 'a red apple on a wooden table'
+  return 'a cat walking on a beach'
+}
+
+function defaultBodyValue(
+  key: string,
+  exampleId: 'image' | 'video',
+  modelName: string
+): unknown {
+  if (key === 'model') return modelName
+  if (key === 'prompt') return defaultPromptFor(exampleId)
+  if (key === 'n') return 1
+  if (key === 'size') return '1024x1024'
+  return null
+}
+
+/**
+ * Wrap a JSON body fragment in POSIX shell single quotes, escaping every
+ * embedded single quote as `'\''` so the resulting token is safe to pass
+ * to bash / sh / zsh. The function intentionally handles the full set of
+ * shell-sensitive bytes (', ", $, `, newline) by routing the value
+ * through JSON first — JSON is a strict subset of the printable
+ * characters that POSIX single quotes can carry except for the quote
+ * itself, which is the only byte that needs explicit `'\''` escaping.
+ * The output of this function can be copy-pasted into a real shell
+ * without re-quoting, even for hostile model names.
+ */
+export function shellSingleQuote(value: string): string {
+  return `'${value.replaceAll("'", "'\\''")}'`
+}
+
+function renderSubmit(
+  method: 'POST' | 'GET',
+  fullUrl: string,
+  body: Record<string, unknown>
+): string {
+  const bodyJson = JSON.stringify(body, null, 2)
+  return [
+    `curl -X ${method} ${fullUrl} \\`,
+    `  -H "Content-Type: application/json" \\`,
+    `  -H "Authorization: Bearer $${AI_MEDIA_API_KEY_ENV_VAR}" \\`,
+    `  -d ${shellSingleQuote(bodyJson)}`,
+  ].join('\n')
+}
+
+function renderPoll(fullPollUrl: string): string {
+  return [
+    '',
+    '# 2. Poll the task status with the returned task_id',
+    `curl -X GET ${fullPollUrl} \\`,
+    `  -H "Authorization: Bearer $${AI_MEDIA_API_KEY_ENV_VAR}"`,
+  ].join('\n')
+}
+
+/**
+ * Render a single API example as a copyable curl snippet. The body is
+ * serialized with `JSON.stringify` and then wrapped in POSIX shell single
+ * quotes via `shellSingleQuote` so dynamic model names — including
+ * names that contain single quotes, double quotes, dollar signs,
+ * backticks, or newlines — produce a command that is still valid and
+ * safe shell text. The model field is never pinned to a fixed identifier:
+ * it is always read from the live catalog, and the API key is read
+ * exclusively from the VANCINE_API_KEY environment variable.
+ */
+export function buildAiMediaApiExample(
+  example: AiMediaApiExample,
+  modelName: string
+): string {
+  const body: Record<string, unknown> = {}
+  for (const key of example.bodyKeys) {
+    body[key] = defaultBodyValue(key, example.id, modelName)
+  }
+  const fullUrl = `${AI_MEDIA_API_BASE_URL}${example.endpointPath}`
+  const submit = renderSubmit(example.method, fullUrl, body)
+  if (!example.poll) return submit
+  const pollPath = example.poll.pathTemplate.replace('{{taskId}}', '$TASK_ID')
+  return submit + renderPoll(`${AI_MEDIA_API_BASE_URL}${pollPath}`)
+}
 
 // ---------------------------------------------------------------------------
 // Page content contract (i18n key registries for data-driven sections)
@@ -423,6 +506,20 @@ export const AI_MEDIA_I18N_KEYS = [
   'Image and video generation—available with one API key.',
   'One integration, one account',
   'One integration across the AI media stack',
+  'One integration across image and video',
+  'Browse currently available media models and start from the documented endpoint.',
+  'Example model',
+  'Available models',
+  'Live media catalog is loading…',
+  'Live media catalog is currently empty.',
+  'Live media catalog is unavailable. Use Docs or Pricing to inspect the current model list.',
+  'Retry the live catalog or open the authoritative Docs and Pricing pages.',
+  'Open Docs model catalog',
+  'Open Docs',
+  'Retry',
+  'Currently available image models: {{count}}',
+  'Currently available video models: {{count}}',
+  'One OpenAI-compatible endpoint, one API key, one bill. Switch models on the same surface through supported compatible API routes.',
   'Make your first request in minutes',
   'Call the documented media endpoints with any HTTP client. Availability and pricing follow the live Docs and Pricing.',
   'API examples',

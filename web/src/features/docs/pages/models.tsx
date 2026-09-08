@@ -16,115 +16,72 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useMemo } from 'react'
+import { Alert02Icon, Refresh01Icon } from '@hugeicons/core-free-icons'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { useMemo, type ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useLiveModelCatalog } from '@/features/live-model-catalog/hooks/use-live-model-catalog'
+import type {
+  LiveModelCatalog,
+  LiveModelSummary,
+} from '@/features/live-model-catalog/types'
 
 import { DocsCodeBlock } from '../components/code-block'
 import { DocsH2, DocsH3, DocsP } from '../components/headings'
-import { DocsTable, DocsTd, DocsTr } from '../components/primitives'
 import { useRegisterHeadings } from '../components/register-headings'
 import { getPricingUrl } from '../lib/base-url'
 import type { TocHeading } from '../types'
 
-const TEXT_MODELS = [
-  'deepseek-v4-flash',
-  'deepseek-v4-pro',
-  'Doubao-Seed-2.0-Code',
-  'Doubao-Seed-2.0-pro',
-  'Doubao-Seed-2.1-pro',
-  'Doubao-Seed-2.1-turbo',
-  'glm-5.1',
-  'glm-5.2',
-  'kimi-k2.5',
-  'kimi-k2.6',
-  'kimi-k2.7-code',
-  'kimi-k2.7-code-highspeed',
-  'kimi-k3',
-  'LongCat-2.0',
-  'MiniMax-M2.7',
-  'MiniMax-M2.7-highspeed',
-  'MiniMax-M3',
-  'qwen3.5-omni-flash',
-  'qwen3.6-plus',
-  'qwen3.7-max',
-  'qwen3.7-plus',
-]
+type CatalogStatus = LiveModelCatalog['status']
 
-const IMAGE_MODELS: [model: string, size: string, note: string][] = [
-  ['qwen-image-2.0', '1024x1024', ''],
-  ['qwen-image-2.0-pro', '1024x1024', '2K'],
-  ['Doubao-Seedream-5.0-pro', '1K / 2K / WxH', '921,600 ~ 4,624,220 px'],
-  ['Doubao-Seedream-5.0-lite', '2K / 3K / 4K / WxH', '≥ 3,686,400 px'],
-  ['wan2.7-image', 'WxH', ''],
-  ['wan2.7-image-pro', 'WxH', ''],
-]
-
-const VIDEO_MODELS: [model: string][] = [['Doubao-Seedance-2.5']]
-
-type ModelType = 'image' | 'video' | 'audio'
-
-interface MultimodalRow {
-  model: string
-  type: ModelType
-  note: string
-}
-
-const TYPE_BADGE_CLASSES: Record<ModelType, string> = {
-  image: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
-  video: 'bg-violet-500/15 text-violet-700 dark:text-violet-400',
-  audio: 'bg-slate-500/15 text-slate-700 dark:text-slate-300',
-}
-
-export default function ModelsPage(props: { baseUrl: string }) {
-  const baseUrl = props.baseUrl
+export default function ModelsPage(props: { baseUrl: string }): ReactElement {
   const { t } = useTranslation('docs', { useSuspense: false })
+  const pricingUrl = getPricingUrl(props.baseUrl)
 
-  // Derive pricingUrl from baseUrl
-  const pricingUrl = getPricingUrl(baseUrl)
+  // Single call to the live catalog hook. The catalog state is forwarded
+  // to every child section, so we never refetch per-section.
+  const { catalog, refetch } = useLiveModelCatalog()
 
-  useRegisterHeadings(
-    useMemo<TocHeading[]>(
-      () => [
-        { id: 'models-title', title: t('models.title'), level: 2 },
-        {
-          id: 'models-text',
-          title: t('models.textModelsTitle', { count: TEXT_MODELS.length }),
-          level: 3,
-        },
-        {
-          id: 'models-multimodal',
-          title: t('models.multimodalTitle'),
-          level: 3,
-        },
-      ],
-      [t]
-    )
-  )
+  const textCount = catalog.textModels.length
+  const imageCount = catalog.imageModels.length
+  const videoCount = catalog.videoModels.length
 
-  const multimodalRows = useMemo<MultimodalRow[]>(
+  const headings = useMemo<TocHeading[]>(
     () => [
-      ...IMAGE_MODELS.map(
-        ([model, size, note]): MultimodalRow => ({
-          model,
-          type: 'image',
-          note: note !== '' ? note : size,
-        })
-      ),
-      ...VIDEO_MODELS.map(
-        ([model]): MultimodalRow => ({
-          model,
-          type: 'video',
-          note: t('models.fetchPricing'),
-        })
-      ),
+      { id: 'models-title', title: t('models.title'), level: 2 },
+      {
+        id: 'models-text',
+        title: t('models.textModelsTitle', { count: textCount }),
+        level: 3,
+      },
+      {
+        id: 'models-image',
+        title: t('models.imageModelsTitle', { count: imageCount }),
+        level: 3,
+      },
+      {
+        id: 'models-video',
+        title: t('models.videoModelsTitle', { count: videoCount }),
+        level: 3,
+      },
     ],
-    [t]
+    [t, textCount, imageCount, videoCount]
   )
+  useRegisterHeadings(headings)
+
+  // Retry uses a single refetch call only — it never stacks with
+  // invalidateQueries so the network and the cache both see one event.
+  const handleRetry = (): void => {
+    void refetch()
+  }
 
   return (
-    <div>
+    <div data-testid='docs-models-page'>
       <DocsH2 id='models-title'>{t('models.title')}</DocsH2>
       <DocsP>{t('models.desc')}</DocsP>
       <DocsCodeBlock
@@ -134,45 +91,216 @@ export default function ModelsPage(props: { baseUrl: string }) {
       />
 
       <DocsH3 id='models-text'>
-        {t('models.textModelsTitle', { count: TEXT_MODELS.length })}
+        {t('models.textModelsTitle', { count: textCount })}
       </DocsH3>
-      <div className='mb-6 flex flex-wrap gap-2'>
-        {TEXT_MODELS.map((model) => (
-          <Badge
-            key={model}
-            variant='secondary'
-            className='bg-blue-500/10 font-mono text-blue-700 transition-colors hover:bg-blue-500/20 dark:text-blue-300'
-          >
-            {model}
-          </Badge>
+      <TextCategorySection
+        status={catalog.status}
+        models={catalog.textModels}
+        onRetry={handleRetry}
+      />
+
+      <DocsH3 id='models-image'>
+        {t('models.imageModelsTitle', { count: imageCount })}
+      </DocsH3>
+      <MediaCategorySection
+        kind='image'
+        status={catalog.status}
+        models={catalog.imageModels}
+        onRetry={handleRetry}
+      />
+
+      <DocsH3 id='models-video'>
+        {t('models.videoModelsTitle', { count: videoCount })}
+      </DocsH3>
+      <MediaCategorySection
+        kind='video'
+        status={catalog.status}
+        models={catalog.videoModels}
+        onRetry={handleRetry}
+      />
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Text category
+// ---------------------------------------------------------------------------
+
+function TextCategorySection(props: {
+  status: CatalogStatus
+  models: LiveModelSummary[]
+  onRetry: () => void
+}): ReactElement {
+  const { t } = useTranslation('docs', { useSuspense: false })
+
+  if (props.status === 'loading') {
+    return <TextSkeleton />
+  }
+  if (props.status === 'error') {
+    return (
+      <CategoryErrorCallout
+        onRetry={props.onRetry}
+        testId='docs-models-text-error'
+      />
+    )
+  }
+  if (props.models.length === 0) {
+    return (
+      <CategoryEmpty
+        emptyKey='models.emptyTextBody'
+        testId='docs-models-text-empty'
+      />
+    )
+  }
+  return (
+    <div
+      data-testid='docs-models-text-list'
+      className='mb-6 flex flex-wrap gap-2'
+    >
+      {props.models.map((model) => (
+        <Badge
+          key={model.model_name}
+          variant='secondary'
+          className='bg-muted/40 text-foreground hover:bg-muted font-mono transition-colors'
+        >
+          {model.model_name}
+        </Badge>
+      ))}
+      <span className='sr-only'>
+        {t('models.textModelsTitle', { count: props.models.length })}
+      </span>
+    </div>
+  )
+}
+
+function TextSkeleton(): ReactElement {
+  return (
+    <div
+      role='status'
+      aria-live='polite'
+      data-testid='docs-models-text-loading'
+      className='mb-6 flex flex-col gap-3'
+    >
+      <div className='flex flex-wrap gap-2'>
+        {['a', 'b', 'c', 'd', 'e', 'f'].map((slot) => (
+          <Skeleton
+            key={`docs-models-text-skeleton-${slot}`}
+            className='h-5 w-24'
+          />
         ))}
       </div>
-
-      <DocsH3 id='models-multimodal'>{t('models.multimodalTitle')}</DocsH3>
-      <DocsTable
-        headers={[
-          t('common.model'),
-          t('models.colType'),
-          t('models.colUsageNotes'),
-        ]}
-      >
-        {multimodalRows.map((row, i) => (
-          <DocsTr key={row.model} last={i === multimodalRows.length - 1}>
-            <DocsTd className='text-primary font-mono text-[13px]'>
-              {row.model}
-            </DocsTd>
-            <DocsTd>
-              <Badge
-                variant='secondary'
-                className={TYPE_BADGE_CLASSES[row.type]}
-              >
-                {row.type}
-              </Badge>
-            </DocsTd>
-            <DocsTd className='text-muted-foreground'>{row.note}</DocsTd>
-          </DocsTr>
-        ))}
-      </DocsTable>
     </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Image / video category
+// ---------------------------------------------------------------------------
+
+interface MediaCategorySectionProps {
+  kind: 'image' | 'video'
+  status: CatalogStatus
+  models: LiveModelSummary[]
+  onRetry: () => void
+}
+
+function MediaCategorySection(props: MediaCategorySectionProps): ReactElement {
+  if (props.status === 'loading') {
+    return <MediaSkeleton kind={props.kind} />
+  }
+  if (props.status === 'error') {
+    return (
+      <CategoryErrorCallout
+        onRetry={props.onRetry}
+        testId={`docs-models-${props.kind}-error`}
+      />
+    )
+  }
+  if (props.models.length === 0) {
+    return (
+      <CategoryEmpty
+        emptyKey={
+          props.kind === 'image'
+            ? 'models.emptyImageBody'
+            : 'models.emptyVideoBody'
+        }
+        testId={`docs-models-${props.kind}-empty`}
+      />
+    )
+  }
+  return (
+    <div
+      data-testid={`docs-models-${props.kind}-list`}
+      className='text-muted-foreground mb-6 flex flex-col gap-1 text-sm'
+    >
+      <p className='font-mono text-xs break-all'>
+        {props.kind === 'image'
+          ? 'POST /v1/images/generations'
+          : 'POST /v1/video/generations (async)'}
+      </p>
+      <p>{props.models.map((m) => m.model_name).join(' · ')}</p>
+    </div>
+  )
+}
+
+function MediaSkeleton(props: { kind: 'image' | 'video' }): ReactElement {
+  return (
+    <div
+      role='status'
+      aria-live='polite'
+      data-testid={`docs-models-${props.kind}-loading`}
+      className='mb-6 flex flex-col gap-2'
+    >
+      <Skeleton className='h-4 w-32' />
+      <Skeleton className='h-3 w-64' />
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Shared callouts
+// ---------------------------------------------------------------------------
+
+function CategoryErrorCallout(props: {
+  onRetry: () => void
+  testId: string
+}): ReactElement {
+  const { t } = useTranslation('docs', { useSuspense: false })
+  return (
+    <Alert variant='destructive' data-testid={props.testId} className='mb-6'>
+      <HugeiconsIcon icon={Alert02Icon} aria-hidden='true' />
+      <AlertTitle>{t('models.loadErrorTitle')}</AlertTitle>
+      <AlertDescription>{t('models.loadErrorBody')}</AlertDescription>
+      <div className='mt-3'>
+        <Button
+          size='sm'
+          variant='outline'
+          onClick={props.onRetry}
+          data-testid='docs-models-retry'
+        >
+          <HugeiconsIcon icon={Refresh01Icon} aria-hidden='true' />
+          {t('models.retry')}
+        </Button>
+      </div>
+    </Alert>
+  )
+}
+
+function CategoryEmpty(props: {
+  emptyKey:
+    | 'models.emptyTextBody'
+    | 'models.emptyImageBody'
+    | 'models.emptyVideoBody'
+  testId: string
+}): ReactElement {
+  const { t } = useTranslation('docs', { useSuspense: false })
+  return (
+    <p
+      data-testid={props.testId}
+      className='text-muted-foreground mb-6 text-sm'
+      role='status'
+    >
+      {t(props.emptyKey)}
+    </p>
   )
 }
