@@ -30,28 +30,11 @@ import {
   render,
   screen,
   waitFor,
+  within,
   type RenderResult,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import i18n from 'i18next'
-/*
-Copyright (C) 2023-2026 QuantumNous
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-For commercial licensing, please contact support@quantumnous.com
-*/
 import type { ReactNode } from 'react'
 import { initReactI18next } from 'react-i18next'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -151,6 +134,7 @@ const testRouteTree = testRootRoute.addChildren([
   stubRoute('/sign-up', 'sign-up-page'),
   stubRoute('/playground', 'playground-page'),
   stubRoute('/pricing', 'pricing-page'),
+  stubRoute('/pricing/$modelId', 'pricing-model-page'),
   stubRoute('/docs/$slug', 'docs-page'),
 ])
 
@@ -199,68 +183,95 @@ afterEach(() => {
 })
 
 describe('kimi-k3-api page structure', () => {
-  it('renders exactly one h1 and all required sections', async () => {
+  it('renders exactly one h1 and all required sections in decision order', async () => {
     renderPage()
 
     const headings = await screen.findAllByRole('heading', { level: 1 })
     expect(headings).toHaveLength(1)
-    expect(headings[0]).toHaveTextContent('Kimi K3 API for Coding Agents')
+    expect(headings[0]).toHaveTextContent(
+      'Kimi K3 API pricing and OpenRouter comparison'
+    )
 
-    for (const section of [
+    const sections = screen
+      .getAllByRole('heading', { level: 2 })
+      .map((heading) => heading.textContent)
+    expect(sections).toEqual([
+      'Kimi K3 API price comparison',
+      'Real Kimi K3 API test evidence',
       'OpenAI-compatible quickstart',
       'Agent setup',
-      'Live verification evidence',
-      'One key, a focused China AI portfolio',
       'Frequently asked questions',
-      'Put Kimi K3 in your coding agent today',
-    ]) {
-      expect(
-        screen.getByRole('heading', { level: 2, name: section })
-      ).toBeInTheDocument()
+      'Get Kimi K3 through an OpenAI-compatible API',
+    ])
+  })
+
+  it('does not present a generalized China-model portfolio', async () => {
+    renderPage()
+    await screen.findByRole('heading', { level: 1 })
+    const pageText = document.body.textContent ?? ''
+    for (const needle of ['GLM-5.2', 'DeepSeek V4', 'Qwen 3.7', 'MiniMax']) {
+      expect(pageText).not.toContain(needle)
     }
   })
 })
 
 describe('CTA destinations and UTM safety', () => {
-  it('points guest CTAs at /sign-up and keeps only allowlisted UTM parameters', async () => {
+  it('points every guest destination CTA at /sign-up and keeps only allowlisted UTM parameters', async () => {
     renderPage(
       '/kimi-k3-api/?utm_source=launch&utm_campaign=kimi&email=a@b.com&api_key=sk-secret&redirect=%2Fevil'
     )
 
-    const heroCta = await screen.findByRole('button', {
-      name: /Create account/,
-    })
-    expect(heroCta).toHaveAttribute(
-      'href',
-      '/sign-up?utm_source=launch&utm_campaign=kimi'
-    )
-    expect(String(heroCta.getAttribute('href'))).not.toContain('email')
-    expect(String(heroCta.getAttribute('href'))).not.toContain('api_key')
-    expect(String(heroCta.getAttribute('href'))).not.toContain('redirect')
+    const heroPrimary = await screen.findByTestId('kimi-k3-hero-primary-cta')
+    const heroSecondary = screen.getByTestId('kimi-k3-hero-secondary-cta')
+    const quickstartCta = screen.getByTestId('kimi-k3-quickstart-cta')
+    const finalCta = screen.getByTestId('kimi-k3-final-cta')
+    const expectedSignUp = '/sign-up?utm_source=launch&utm_campaign=kimi'
 
-    const finalCta = await screen.findByRole('button', {
-      name: /Get started with Vancine/,
-    })
-    expect(finalCta).toHaveAttribute(
-      'href',
-      '/sign-up?utm_source=launch&utm_campaign=kimi'
-    )
+    expect(screen.getAllByTestId('kimi-k3-hero-primary-cta')).toHaveLength(1)
+    expect(screen.getAllByTestId('kimi-k3-hero-secondary-cta')).toHaveLength(1)
+    expect(screen.getAllByTestId('kimi-k3-quickstart-cta')).toHaveLength(1)
+    expect(screen.getAllByTestId('kimi-k3-final-cta')).toHaveLength(1)
+    expect(
+      screen.getAllByRole('button', { name: /Create an API key/ })
+    ).toHaveLength(3)
+
+    expect(heroPrimary).toHaveAttribute('href', expectedSignUp)
+    expect(quickstartCta).toHaveAttribute('href', expectedSignUp)
+    expect(finalCta).toHaveAttribute('href', expectedSignUp)
+    expect(heroSecondary).toHaveAttribute('href', '#pricing')
+
+    for (const cta of [heroPrimary, quickstartCta, finalCta]) {
+      const href = String(cta.getAttribute('href'))
+      expect(href.startsWith('/sign-up')).toBe(true)
+      expect(href).not.toContain('email')
+      expect(href).not.toContain('api_key')
+      expect(href).not.toContain('redirect')
+    }
   })
 
-  it('points authenticated CTAs at /playground', async () => {
+  it('points every authenticated destination CTA at /playground', async () => {
     setAuthenticated(true)
     renderPage('/kimi-k3-api/?utm_source=launch&token=abc')
 
-    const heroCta = await screen.findByRole('button', {
-      name: /Go to Playground/,
-    })
-    expect(heroCta).toHaveAttribute('href', '/playground?utm_source=launch')
-    expect(String(heroCta.getAttribute('href'))).not.toContain('token')
+    const heroPrimary = await screen.findByTestId('kimi-k3-hero-primary-cta')
+    const heroSecondary = screen.getByTestId('kimi-k3-hero-secondary-cta')
+    const quickstartCta = screen.getByTestId('kimi-k3-quickstart-cta')
+    const finalCta = screen.getByTestId('kimi-k3-final-cta')
 
-    const finalCta = await screen.findByRole('button', {
-      name: /Run K3 in Playground/,
-    })
+    expect(
+      screen.getAllByRole('button', { name: /Open Playground/ })
+    ).toHaveLength(2)
+    expect(heroPrimary).toHaveAttribute('href', '/playground?utm_source=launch')
     expect(finalCta).toHaveAttribute('href', '/playground?utm_source=launch')
+    expect(quickstartCta).toHaveAttribute(
+      'href',
+      '/playground?utm_source=launch'
+    )
+    expect(heroSecondary).toHaveAttribute('href', '#pricing')
+
+    for (const cta of [heroPrimary, quickstartCta, finalCta]) {
+      expect(String(cta.getAttribute('href'))).not.toContain('token')
+    }
   })
 })
 
@@ -352,7 +363,7 @@ describe('quickstart examples', () => {
 })
 
 describe('link safety', () => {
-  it('uses same-origin routes for Docs and Pricing without target=_blank', async () => {
+  it('uses same-origin routes for Docs and Vancine Pricing without target=_blank', async () => {
     renderPage()
     await screen.findByRole('heading', { level: 1 })
 
@@ -362,29 +373,26 @@ describe('link safety', () => {
     expect(docsLink).toHaveAttribute('href', '/docs/chat')
     expect(docsLink).not.toHaveAttribute('target')
 
-    const pricingLink = screen.getByRole('button', {
-      name: /View live pricing and availability/,
+    const pricingLinks = screen.getAllByRole('link', {
+      name: /Vancine live Pricing/,
     })
-    expect(pricingLink).toHaveAttribute('href', '/pricing')
-    expect(pricingLink).not.toHaveAttribute('target')
-
-    const catalogLink = screen.getByRole('button', {
-      name: /Browse the Docs model catalog/,
-    })
-    expect(catalogLink).toHaveAttribute('href', '/docs/models')
-    expect(catalogLink).not.toHaveAttribute('target')
+    expect(pricingLinks.length).toBeGreaterThanOrEqual(1)
+    for (const pricingLink of pricingLinks) {
+      expect(pricingLink).toHaveAttribute('href', '/pricing/kimi-k3')
+      expect(pricingLink).not.toHaveAttribute('target')
+    }
   })
 
   it('opens GitHub evidence links in a new tab with noopener noreferrer', async () => {
     renderPage()
     await screen.findByRole('heading', { level: 1 })
 
-    const evidenceLink = screen.getByRole('button', {
+    const evidenceLink = screen.getAllByRole('button', {
       name: /View public evidence file/,
-    })
-    const starterLink = screen.getByRole('button', {
+    })[0]
+    const starterLink = screen.getAllByRole('button', {
       name: /View starter repository/,
-    })
+    })[0]
     for (const link of [evidenceLink, starterLink]) {
       expect(
         String(link.getAttribute('href')).startsWith(
@@ -406,13 +414,15 @@ describe('anonymous analytics emissions', () => {
     const first = renderPage('/kimi-k3-api/?utm_source=launch&email=a@b.com')
     await screen.findByRole('heading', { level: 1 })
     await user.click(
-      screen.getByRole('button', { name: /View live pricing and availability/ })
+      screen.getAllByRole('link', { name: /Vancine live Pricing/ })[0]
     )
     first.unmount()
 
     const second = renderPage('/kimi-k3-api/?utm_source=launch&email=a@b.com')
     await screen.findByRole('heading', { level: 1 })
-    await user.click(screen.getByRole('button', { name: /Create account/ }))
+    await user.click(
+      screen.getAllByRole('button', { name: /Create an API key/ })[0]
+    )
     second.unmount()
 
     expect(trackEventMock.mock.calls.length).toBeGreaterThanOrEqual(2)
@@ -437,13 +447,13 @@ describe('FAQ keyboard accessibility', () => {
     const user = userEvent.setup()
     renderPage()
 
-    const question = 'Where can I confirm Kimi K3 availability and pricing?'
+    const question = 'Where can I confirm current Kimi K3 pricing?'
     const trigger = await screen.findByRole('button', { name: question })
     trigger.focus()
     await user.keyboard('{Enter}')
 
     await waitFor(() => {
-      expect(screen.getByText(/Check live pricing/)).toBeVisible()
+      expect(screen.getByText(/Check Vancine live Pricing/)).toBeVisible()
     })
   })
 })
@@ -451,7 +461,7 @@ describe('FAQ keyboard accessibility', () => {
 describe('VANCINE-FINAL-GATE-REMEDIATION: no inactive-promo copy on the Kimi K3 page', () => {
   const FORBIDDEN_SUBSTRINGS = [
     'Start free',
-    '$1',
+    '$1 free',
     'promotional API credit',
     'signup bonus',
   ] as const
@@ -475,36 +485,234 @@ describe('VANCINE-FINAL-GATE-REMEDIATION: no inactive-promo copy on the Kimi K3 
     }
   })
 
-  it('guest primary CTA is Create account and points to /sign-up', async () => {
+  it('guest primary CTA is Create an API key and points to /sign-up', async () => {
     renderPage()
-    const heroCta = await screen.findByRole('button', {
-      name: /Create account/,
+    const heroCta = await screen.findAllByRole('button', {
+      name: /Create an API key/,
     })
-    expect(heroCta).toHaveAttribute('href', '/sign-up')
+    expect(heroCta[0]).toHaveAttribute('href', '/sign-up')
   })
 
-  it('authenticated primary CTA is Go to Playground and points to /playground', async () => {
+  it('authenticated primary CTA is Open Playground and points to /playground', async () => {
     setAuthenticated(true)
     renderPage()
-    const heroCta = await screen.findByRole('button', {
-      name: /Go to Playground/,
+    const heroCta = await screen.findAllByRole('button', {
+      name: /Open Playground/,
     })
-    expect(heroCta).toHaveAttribute('href', '/playground')
+    expect(heroCta[0]).toHaveAttribute('href', '/playground')
   })
 
   it('guest UTM allowlist still strips sensitive parameters', async () => {
     renderPage(
       '/kimi-k3-api/?utm_source=launch&utm_campaign=kimi&email=a@b.com&api_key=sk-secret&redirect=%2Fevil&token=t-1'
     )
-    const heroCta = await screen.findByRole('button', {
-      name: /Create account/,
+    const heroCta = await screen.findAllByRole('button', {
+      name: /Create an API key/,
     })
-    const href = String(heroCta.getAttribute('href'))
+    const href = String(heroCta[0].getAttribute('href'))
     expect(href).toContain('utm_source=launch')
     expect(href).toContain('utm_campaign=kimi')
     expect(href).not.toContain('email')
     expect(href).not.toContain('api_key')
     expect(href).not.toContain('redirect')
     expect(href).not.toContain('token')
+  })
+})
+
+describe('price comparison', () => {
+  it('labels every hero price as input or output for readers and screen readers', async () => {
+    renderPage()
+    const card = await screen.findByTestId('kimi-k3-hero-price-card')
+
+    const labeledAmounts = [
+      { provider: 'Vancine', input: 'Input $2.40', output: 'Output $12.00' },
+      {
+        provider: 'OpenRouter',
+        input: 'Input $3.00',
+        output: 'Output $15.00',
+      },
+    ] as const
+
+    for (const row of labeledAmounts) {
+      const inputAmount = within(card).getByText(row.input)
+      const outputAmount = within(card).getByText(row.output)
+      const priceLine = inputAmount.closest('div') as HTMLElement
+
+      expect(priceLine).not.toBeNull()
+      expect(within(priceLine).getByRole('term')).toHaveTextContent(
+        row.provider
+      )
+      expect(within(priceLine).getByRole('definition')).toContainElement(
+        inputAmount
+      )
+      expect(within(priceLine).getByRole('definition')).toContainElement(
+        outputAmount
+      )
+    }
+
+    // The hero never shows a bare "$2.40 / $12.00" pair without labels.
+    expect(card.textContent).not.toContain('$2.40 / $12.00')
+    expect(card.textContent).not.toContain('$3.00 / $15.00')
+    expect(within(card).getByText('USD per 1M tokens')).toBeInTheDocument()
+  })
+
+  it('shows the dated snapshot with Vancine cheaper than OpenRouter and Kimi official', async () => {
+    renderPage()
+    await screen.findByRole('heading', {
+      level: 2,
+      name: 'Kimi K3 API price comparison',
+    })
+
+    const pageText = document.body.textContent ?? ''
+    expect(pageText).toContain('$2.40')
+    expect(pageText).toContain('$12.00')
+    expect(pageText).toContain('$3.00')
+    expect(pageText).toContain('$15.00')
+    // Retired draft prices and the former 33% / 25% split must not return.
+    for (const retired of [
+      '$2.00',
+      '$11.20',
+      '$2.50',
+      '$14.00',
+      '33%',
+      '25%',
+      'up to 33%',
+      'at least 20%',
+    ]) {
+      expect(pageText).not.toContain(retired)
+    }
+    expect(pageText).toContain('USD per 1M tokens')
+    expect(pageText).toContain('Vancine is 20% lower on both input and output')
+    expect(pageText).toContain('Current Vancine price')
+    expect(pageText).toContain(
+      'OpenRouter and Kimi official prices were snapshotted on September 9, 2026.'
+    )
+    expect(pageText).toContain(
+      'OpenRouter figures are the standard prices returned by the OpenRouter Models API under default conditions.'
+    )
+    expect(pageText).toContain(
+      'Free variants, promotional prices, cached input prices, and temporary provider discounts are excluded from this comparison.'
+    )
+    expect(pageText).not.toMatch(
+      /Vancine is 20% lower on input · 20% lower on output/
+    )
+  })
+
+  it('uses accessible names on the three pricing source links', async () => {
+    renderPage()
+    await screen.findByRole('heading', {
+      level: 2,
+      name: 'Kimi K3 API price comparison',
+    })
+
+    const vancine = screen.getAllByRole('link', {
+      name: /Vancine live Pricing/,
+    })[0]
+    expect(vancine).toHaveAttribute('href', '/pricing/kimi-k3')
+    expect(vancine).not.toHaveAttribute('target')
+
+    const official = screen.getAllByRole('link', {
+      name: /Kimi official pricing/,
+    })[0]
+    expect(official).toHaveAttribute(
+      'href',
+      'https://platform.kimi.ai/docs/pricing/chat-k3'
+    )
+    expect(official).toHaveAttribute('target', '_blank')
+    expect(official.getAttribute('rel')).toContain('noopener')
+    expect(official.getAttribute('rel')).toContain('noreferrer')
+
+    const openrouter = screen.getAllByRole('link', {
+      name: /OpenRouter Models API/,
+    })[0]
+    expect(openrouter).toHaveAttribute(
+      'href',
+      'https://openrouter.ai/api/v1/models'
+    )
+    expect(openrouter).toHaveAttribute('target', '_blank')
+    expect(openrouter.getAttribute('rel')).toContain('noopener')
+    expect(openrouter.getAttribute('rel')).toContain('noreferrer')
+  })
+
+  it('renders the same providers, prices, and conclusions in the table and mobile cards', async () => {
+    renderPage()
+    await screen.findByRole('heading', {
+      level: 2,
+      name: 'Kimi K3 API price comparison',
+    })
+
+    const cards = screen.getAllByTestId('kimi-k3-price-card')
+    const table = screen.getByTestId('kimi-k3-price-table')
+    expect(cards).toHaveLength(3)
+    expect(table.tagName).toBe('TABLE')
+    expect(table.querySelectorAll('tbody tr')).toHaveLength(3)
+
+    const expected = [
+      {
+        name: 'Vancine',
+        input: '$2.40',
+        output: '$12.00',
+        difference: 'Current Vancine price',
+      },
+      {
+        name: 'OpenRouter',
+        input: '$3.00',
+        output: '$15.00',
+        difference: 'Vancine is 20% lower on both input and output',
+      },
+      {
+        name: 'Kimi official',
+        input: '$3.00',
+        output: '$15.00',
+        difference: 'Vancine is 20% lower on both input and output',
+      },
+    ] as const
+
+    for (const [index, row] of expected.entries()) {
+      expect(cards[index]).toHaveTextContent(row.name)
+      expect(cards[index]).toHaveTextContent(row.input)
+      expect(cards[index]).toHaveTextContent(row.output)
+      expect(cards[index]).toHaveTextContent(row.difference)
+      expect(table).toHaveTextContent(row.name)
+      expect(table).toHaveTextContent(row.input)
+      expect(table).toHaveTextContent(row.output)
+      expect(table).toHaveTextContent(row.difference)
+    }
+  })
+})
+
+describe('evidence hierarchy', () => {
+  it('leads with request success, returned model, tool calls, tests, and the public file', async () => {
+    renderPage()
+    await screen.findByRole('heading', {
+      level: 2,
+      name: 'Real Kimi K3 API test evidence',
+    })
+    const headline = screen.getByTestId('kimi-k3-evidence-headline')
+    expect(headline).toHaveTextContent('HTTP 200')
+    expect(headline).toHaveTextContent('kimi-k3')
+    expect(headline).toHaveTextContent('PASS')
+    expect(
+      screen.getAllByRole('button', { name: /View public evidence file/ })
+        .length
+    ).toBeGreaterThanOrEqual(1)
+  })
+
+  it('keeps the single-run limitations next to the evidence', async () => {
+    renderPage()
+    await screen.findByRole('heading', {
+      level: 2,
+      name: 'Real Kimi K3 API test evidence',
+    })
+    const pageText = document.body.textContent ?? ''
+    expect(pageText).toContain('single historical controlled run')
+    expect(pageText).toContain('not a current price or credit commitment')
+    expect(pageText).toContain('not an official Moonshot AI or Kimi service')
+    expect(pageText).toContain(
+      'Cline and Roo Code configurations are provided in the starter repository but have not been independently live-verified'
+    )
+    expect(pageText.toLowerCase()).not.toContain('99.9%')
+    expect(pageText.toLowerCase()).not.toContain('production sla')
+    expect(pageText.toLowerCase()).not.toContain('unlimited rate')
   })
 })

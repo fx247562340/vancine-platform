@@ -59,10 +59,10 @@ export function KimiK3ApiPage(): ReactElement {
     <PublicLayout showMainContainer={false}>
       <main className='flex flex-1 flex-col'>
         <Hero isAuthenticated={isAuthenticated} search={search} />
+        <Availability />
+        <Evidence />
         <Quickstart isAuthenticated={isAuthenticated} search={search} />
         <AgentCompatibility />
-        <Evidence />
-        <Availability />
         <Faq />
         <FinalCta isAuthenticated={isAuthenticated} search={search} />
       </main>

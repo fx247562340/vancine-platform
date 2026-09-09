@@ -186,12 +186,12 @@ export function Comparison(): ReactElement {
       <dl className='text-muted-foreground mt-6 space-y-2 text-xs md:text-sm'>
         <div>
           <dt className='sr-only'>{t('Last verified')}</dt>
-          <dd>{t('Last verified: August 27, 2026.')}</dd>
+          <dd>{t('Last verified: September 9, 2026.')}</dd>
         </div>
         <div>
           <dd>
             {t(
-              'OpenRouter comparison uses its standard paid model listing. Free variants, promotional routes, and temporary provider discounts are excluded.'
+              'OpenRouter comparison uses OpenRouter Models API standard pricing under default conditions; provider prices shown on OpenRouter model pages can differ. Free variants, promotional routes, and temporary provider discounts are excluded.'
             )}
           </dd>
         </div>

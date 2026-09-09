@@ -48,7 +48,7 @@ export function Evidence(): ReactElement {
       icon: Tag01Icon,
       titleKey: '20% lower on four flagship paid listings',
       bodyKey:
-        'On four flagship paid listings — qwen3.8-max, kimi-k3, glm-5.3, and MiniMax-M3 — Vancine is 20% lower than the OpenRouter standard paid model listing as of the verified date.',
+        'On four flagship paid listings — qwen3.8-max, kimi-k3, glm-5.3, and MiniMax-M3 — Vancine is 20% lower than OpenRouter Models API standard pricing as of the verified date.',
     },
     {
       icon: PackageOpenIcon,

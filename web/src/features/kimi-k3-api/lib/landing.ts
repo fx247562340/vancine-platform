@@ -24,9 +24,10 @@ import {
 
 /**
  * Pure business logic for the Kimi K3 developer landing page: CTA target
- * resolution, UTM filtering, page metadata, code examples, and the published
- * historical evidence. Everything here is deterministic and unit-testable —
- * nothing reads request headers, user input, or live configuration.
+ * resolution, UTM filtering, dated public price snapshot, page metadata,
+ * code examples, and the published historical evidence. Everything here
+ * is deterministic and unit-testable — nothing reads request headers,
+ * user input, or live configuration.
  */
 
 // ---------------------------------------------------------------------------
@@ -50,16 +51,16 @@ export const KIMI_K3_RESOURCE_VALUES = [
   'docs',
   'pricing',
   'starter_repo',
+  'kimi_official_pricing',
+  'openrouter_pricing',
 ] as const
 
 export type KimiK3ResourceValue = (typeof KIMI_K3_RESOURCE_VALUES)[number]
 
 export const KIMI_K3_RESOURCE_LOCATIONS = [
-  'header',
   'quickstart',
-  'faq',
   'evidence',
-  'availability',
+  'pricing',
 ] as const
 
 export type KimiK3ResourceLocation = (typeof KIMI_K3_RESOURCE_LOCATIONS)[number]
@@ -70,6 +71,9 @@ export type KimiK3ResourceLocation = (typeof KIMI_K3_RESOURCE_LOCATIONS)[number]
 
 /** The fixed canonical origin for every public link on this page. */
 export const KIMI_K3_CANONICAL = 'https://vancine.com/kimi-k3-api'
+
+/** In-page anchor for the price comparison section. */
+export const KIMI_K3_PRICING_SECTION_ID = 'pricing'
 
 /** Only standard UTM attribution parameters survive CTA URL building. */
 const ALLOWED_UTM_KEYS = new Set([
@@ -134,6 +138,19 @@ export function getKimiK3CtaTarget(
   }
 }
 
+export type KimiK3CtaLabelKey = 'Create an API key' | 'Open Playground'
+
+/**
+ * The English-source CTA label for the current auth state. Components
+ * pass the result to t() so the rendered string follows the active
+ * language; tests use the returned literal directly.
+ */
+export function getKimiK3CtaLabelKey(
+  isAuthenticated: boolean
+): KimiK3CtaLabelKey {
+  return isAuthenticated ? 'Open Playground' : 'Create an API key'
+}
+
 // ---------------------------------------------------------------------------
 // Page metadata (SEO) — fixed canonical, seven supported languages
 // ---------------------------------------------------------------------------
@@ -149,84 +166,84 @@ interface KimiK3LanguageMetadata {
 
 const KIMI_K3_METADATA: Record<InterfaceLanguageCode, KimiK3LanguageMetadata> =
   {
-    // The English twitter pair is pinned byte-for-byte against
+    // The English block is pinned byte-for-byte against
     // router/web_metadata.go's /kimi-k3-api entry.
     en: {
-      title: 'Kimi K3 API for Coding Agents | Vancine',
+      title: 'Kimi K3 API Pricing & OpenRouter Comparison | Vancine',
       description:
-        'Connect OpenCode, Cline, Roo Code, and OpenAI-compatible tools to Kimi K3 with one API key through Vancine.',
-      ogTitle: 'Kimi K3 for Coding Agents',
+        'Kimi K3 API from $2.40 input and $12.00 output per 1M tokens—20% below the OpenRouter Models API standard price as of September 9, 2026. Compare pricing, code, and test evidence.',
+      ogTitle: 'Kimi K3 API Pricing & OpenRouter Comparison',
       ogDescription:
-        'Use one OpenAI-compatible API key to connect coding agents to Kimi K3 and other frontier models.',
-      twitterTitle: 'Kimi K3 API for Coding Agents',
+        'Kimi K3 API from $2.40 input and $12.00 output per 1M tokens—20% below the OpenRouter Models API standard price as of September 9, 2026. Compare pricing, code, and test evidence.',
+      twitterTitle: 'Kimi K3 API Pricing & OpenRouter Comparison',
       twitterDescription:
-        'Connect OpenCode, Cline, Roo Code, and OpenAI-compatible tools to Kimi K3 with one API key through Vancine.',
+        'Kimi K3 API from $2.40 input and $12.00 output per 1M tokens—20% below the OpenRouter Models API standard price as of September 9, 2026. Compare pricing, code, and test evidence.',
     },
     zhCN: {
-      title: 'Kimi K3 编程智能体 API | Vancine',
+      title: 'Kimi K3 API 价格与 OpenRouter 对比 | Vancine',
       description:
-        '通过 Vancine 的一个 API 密钥，将 OpenCode、Cline、Roo Code 和兼容 OpenAI 的工具连接至 Kimi K3。',
-      ogTitle: '面向编程智能体的 Kimi K3',
+        'Kimi K3 API 起价每 100 万 tokens 输入 $2.40、输出 $12.00——比 OpenRouter Models API 2026 年 9 月 9 日标准价格低 20%。可对比价格、代码与实测证据。',
+      ogTitle: 'Kimi K3 API 价格与 OpenRouter 对比',
       ogDescription:
-        '使用一个兼容 OpenAI 的 API 密钥，将编程智能体接入 Kimi K3 和其他前沿模型。',
-      twitterTitle: 'Kimi K3 编程智能体 API',
+        'Kimi K3 API 起价每 100 万 tokens 输入 $2.40、输出 $12.00——比 OpenRouter Models API 2026 年 9 月 9 日标准价格低 20%。可对比价格、代码与实测证据。',
+      twitterTitle: 'Kimi K3 API 价格与 OpenRouter 对比',
       twitterDescription:
-        '通过 Vancine 的一个 API 密钥，将 OpenCode、Cline、Roo Code 和兼容 OpenAI 的工具连接至 Kimi K3。',
+        'Kimi K3 API 起价每 100 万 tokens 输入 $2.40、输出 $12.00——比 OpenRouter Models API 2026 年 9 月 9 日标准价格低 20%。可对比价格、代码与实测证据。',
     },
     zhTW: {
-      title: 'Kimi K3 程式設計智能體 API | Vancine',
+      title: 'Kimi K3 API 價格與 OpenRouter 對比 | Vancine',
       description:
-        '透過 Vancine 的一個 API 金鑰，將 OpenCode、Cline、Roo Code 和相容 OpenAI 的工具連接至 Kimi K3。',
-      ogTitle: '面向程式設計智能體的 Kimi K3',
+        'Kimi K3 API 起價每 100 萬 tokens 輸入 $2.40、輸出 $12.00——比 OpenRouter Models API 2026 年 9 月 9 日標準價格低 20%。可對比價格、程式碼與實測證據。',
+      ogTitle: 'Kimi K3 API 價格與 OpenRouter 對比',
       ogDescription:
-        '使用一個相容 OpenAI 的 API 金鑰，將程式設計智能體接入 Kimi K3 和其他前沿模型。',
-      twitterTitle: 'Kimi K3 程式設計智能體 API',
+        'Kimi K3 API 起價每 100 萬 tokens 輸入 $2.40、輸出 $12.00——比 OpenRouter Models API 2026 年 9 月 9 日標準價格低 20%。可對比價格、程式碼與實測證據。',
+      twitterTitle: 'Kimi K3 API 價格與 OpenRouter 對比',
       twitterDescription:
-        '透過 Vancine 的一個 API 金鑰，將 OpenCode、Cline、Roo Code 和相容 OpenAI 的工具連接至 Kimi K3。',
+        'Kimi K3 API 起價每 100 萬 tokens 輸入 $2.40、輸出 $12.00——比 OpenRouter Models API 2026 年 9 月 9 日標準價格低 20%。可對比價格、程式碼與實測證據。',
     },
     fr: {
-      title: 'API Kimi K3 pour agents de code | Vancine',
+      title: "Tarifs de l'API Kimi K3 et comparaison OpenRouter | Vancine",
       description:
-        'Connectez OpenCode, Cline, Roo Code et les outils compatibles OpenAI à Kimi K3 avec une seule clé API via Vancine.',
-      ogTitle: 'Kimi K3 pour les agents de code',
+        'API Kimi K3 dès 2,40 $ en entrée et 12,00 $ en sortie pour 1 M de tokens — 20 % sous le tarif standard OpenRouter Models API au 9 septembre 2026. Comparez les tarifs, le code et les preuves de test.',
+      ogTitle: "Tarifs de l'API Kimi K3 et comparaison OpenRouter",
       ogDescription:
-        "Utilisez une seule clé API compatible OpenAI pour connecter vos agents de code à Kimi K3 et à d'autres modèles de pointe.",
-      twitterTitle: 'API Kimi K3 pour agents de code',
+        'API Kimi K3 dès 2,40 $ en entrée et 12,00 $ en sortie pour 1 M de tokens — 20 % sous le tarif standard OpenRouter Models API au 9 septembre 2026. Comparez les tarifs, le code et les preuves de test.',
+      twitterTitle: "Tarifs de l'API Kimi K3 et comparaison OpenRouter",
       twitterDescription:
-        'Connectez OpenCode, Cline, Roo Code et les outils compatibles OpenAI à Kimi K3 avec une seule clé API via Vancine.',
+        'API Kimi K3 dès 2,40 $ en entrée et 12,00 $ en sortie pour 1 M de tokens — 20 % sous le tarif standard OpenRouter Models API au 9 septembre 2026. Comparez les tarifs, le code et les preuves de test.',
     },
     ru: {
-      title: 'Kimi K3 API для агентов-программистов | Vancine',
+      title: 'Цены API Kimi K3 и сравнение с OpenRouter | Vancine',
       description:
-        'Подключите OpenCode, Cline, Roo Code и инструменты с поддержкой OpenAI к Kimi K3 с одним API-ключом через Vancine.',
-      ogTitle: 'Kimi K3 для агентов-программистов',
+        'API Kimi K3 от $2.40 за вход и $12.00 за выход на 1 млн токенов — на 20% ниже стандартной цены OpenRouter Models API на 9 сентября 2026 г. Сравните цены, код и результаты тестов.',
+      ogTitle: 'Цены API Kimi K3 и сравнение с OpenRouter',
       ogDescription:
-        'Используйте один OpenAI-совместимый API-ключ, чтобы подключить агентов-программистов к Kimi K3 и другим передовым моделям.',
-      twitterTitle: 'Kimi K3 API для агентов-программистов',
+        'API Kimi K3 от $2.40 за вход и $12.00 за выход на 1 млн токенов — на 20% ниже стандартной цены OpenRouter Models API на 9 сентября 2026 г. Сравните цены, код и результаты тестов.',
+      twitterTitle: 'Цены API Kimi K3 и сравнение с OpenRouter',
       twitterDescription:
-        'Подключите OpenCode, Cline, Roo Code и инструменты с поддержкой OpenAI к Kimi K3 с одним API-ключом через Vancine.',
+        'API Kimi K3 от $2.40 за вход и $12.00 за выход на 1 млн токенов — на 20% ниже стандартной цены OpenRouter Models API на 9 сентября 2026 г. Сравните цены, код и результаты тестов.',
     },
     ja: {
-      title: 'コーディングエージェント向け Kimi K3 API | Vancine',
+      title: 'Kimi K3 API の価格と OpenRouter 比較 | Vancine',
       description:
-        'Vancine の単一の API キーで、OpenCode、Cline、Roo Code、OpenAI 互換ツールを Kimi K3 に接続できます。',
-      ogTitle: 'コーディングエージェントのための Kimi K3',
+        'Kimi K3 API は 100 万トークンあたり入力 $2.40、出力 $12.00。OpenRouter Models API の 2026 年 9 月 9 日標準価格より 20% 安い。価格、コード、テスト証拠を比較できます。',
+      ogTitle: 'Kimi K3 API の価格と OpenRouter 比較',
       ogDescription:
-        'OpenAI 互換の単一 API キーで、コーディングエージェントを Kimi K3 やその他の最先端モデルに接続できます。',
-      twitterTitle: 'コーディングエージェント向け Kimi K3 API',
+        'Kimi K3 API は 100 万トークンあたり入力 $2.40、出力 $12.00。OpenRouter Models API の 2026 年 9 月 9 日標準価格より 20% 安い。価格、コード、テスト証拠を比較できます。',
+      twitterTitle: 'Kimi K3 API の価格と OpenRouter 比較',
       twitterDescription:
-        'Vancine の単一の API キーで、OpenCode、Cline、Roo Code、OpenAI 互換ツールを Kimi K3 に接続できます。',
+        'Kimi K3 API は 100 万トークンあたり入力 $2.40、出力 $12.00。OpenRouter Models API の 2026 年 9 月 9 日標準価格より 20% 安い。価格、コード、テスト証拠を比較できます。',
     },
     vi: {
-      title: 'API Kimi K3 cho tác tử lập trình | Vancine',
+      title: 'Giá API Kimi K3 và so sánh OpenRouter | Vancine',
       description:
-        'Kết nối OpenCode, Cline, Roo Code và các công cụ tương thích OpenAI với Kimi K3 bằng một khóa API duy nhất qua Vancine.',
-      ogTitle: 'Kimi K3 cho tác tử lập trình',
+        'API Kimi K3 từ $2.40 đầu vào và $12.00 đầu ra mỗi 1 triệu token—thấp hơn 20% so với giá chuẩn OpenRouter Models API ngày 9 tháng 9 năm 2026. So sánh giá, mã mẫu và bằng chứng kiểm thử.',
+      ogTitle: 'Giá API Kimi K3 và so sánh OpenRouter',
       ogDescription:
-        'Dùng một khóa API tương thích OpenAI để kết nối tác tử lập trình với Kimi K3 và các mô hình tiên tiến khác.',
-      twitterTitle: 'API Kimi K3 cho tác tử lập trình',
+        'API Kimi K3 từ $2.40 đầu vào và $12.00 đầu ra mỗi 1 triệu token—thấp hơn 20% so với giá chuẩn OpenRouter Models API ngày 9 tháng 9 năm 2026. So sánh giá, mã mẫu và bằng chứng kiểm thử.',
+      twitterTitle: 'Giá API Kimi K3 và so sánh OpenRouter',
       twitterDescription:
-        'Kết nối OpenCode, Cline, Roo Code và các công cụ tương thích OpenAI với Kimi K3 bằng một khóa API duy nhất qua Vancine.',
+        'API Kimi K3 từ $2.40 đầu vào và $12.00 đầu ra mỗi 1 triệu token—thấp hơn 20% so với giá chuẩn OpenRouter Models API ngày 9 tháng 9 năm 2026. So sánh giá, mã mẫu và bằng chứng kiểm thử.',
     },
   }
 
@@ -250,6 +267,101 @@ export function getKimiK3PageMetadata(language: string): PageMetadata {
     canonical: KIMI_K3_CANONICAL,
   }
 }
+
+// ---------------------------------------------------------------------------
+// Dated public price snapshot (USD / 1M tokens)
+// ---------------------------------------------------------------------------
+
+/**
+ * Display snapshot dated 2026-09-09. Vancine figures are the intended
+ * live settlement prices ($2.40 / $12.00) to be configured in admin.
+ * OpenRouter figures are the standard prices that the OpenRouter Models
+ * API (https://openrouter.ai/api/v1/models) returns for moonshotai/kimi-k3
+ * under default conditions ($3.00 / $15.00). Provider prices shown on the
+ * OpenRouter model page follow a different, dynamic basis and are not the
+ * comparison basis here. Kimi official figures are from
+ * https://platform.kimi.ai/docs/pricing/chat-k3 ($3.00 / $15.00).
+ * This snapshot is display-only and is not wired to billing code.
+ */
+export const KIMI_K3_PRICE_UNIT_KEY = 'USD per 1M tokens'
+
+export const KIMI_K3_VANCINE_PRICING_PATH = '/pricing/kimi-k3'
+
+export const KIMI_K3_VANCINE_PRICING_MODEL_ID = 'kimi-k3'
+
+export const KIMI_K3_OFFICIAL_PRICING_URL =
+  'https://platform.kimi.ai/docs/pricing/chat-k3'
+
+/**
+ * Evidence link for the OpenRouter comparator: the public Models API whose
+ * default-condition standard pricing this page quotes. The model detail page
+ * is deliberately not used as price evidence because its headline price
+ * follows provider-specific dynamic pricing.
+ */
+export const KIMI_K3_OPENROUTER_PRICING_URL =
+  'https://openrouter.ai/api/v1/models'
+
+export interface KimiK3PriceProvider {
+  id: 'vancine' | 'openrouter' | 'kimi_official'
+  nameKey: string
+  inputUsd: number
+  outputUsd: number
+  sourceHref: string
+  sourceLabelKey: string
+  sourceKind: 'internal' | 'external'
+  resource: KimiK3ResourceValue
+  differenceKey: string
+}
+
+export const KIMI_K3_PRICE_PROVIDERS: readonly KimiK3PriceProvider[] = [
+  {
+    id: 'vancine',
+    nameKey: 'Vancine',
+    inputUsd: 2.4,
+    outputUsd: 12.0,
+    sourceHref: KIMI_K3_VANCINE_PRICING_PATH,
+    sourceLabelKey: 'Vancine live Pricing',
+    sourceKind: 'internal',
+    resource: 'pricing',
+    differenceKey: 'Current Vancine price',
+  },
+  {
+    id: 'openrouter',
+    nameKey: 'OpenRouter',
+    inputUsd: 3.0,
+    outputUsd: 15.0,
+    sourceHref: KIMI_K3_OPENROUTER_PRICING_URL,
+    sourceLabelKey: 'OpenRouter Models API standard pricing',
+    sourceKind: 'external',
+    resource: 'openrouter_pricing',
+    differenceKey: 'Vancine is 20% lower on both input and output',
+  },
+  {
+    id: 'kimi_official',
+    nameKey: 'Kimi official',
+    inputUsd: 3.0,
+    outputUsd: 15.0,
+    sourceHref: KIMI_K3_OFFICIAL_PRICING_URL,
+    sourceLabelKey: 'Kimi official pricing',
+    sourceKind: 'external',
+    resource: 'kimi_official_pricing',
+    differenceKey: 'Vancine is 20% lower on both input and output',
+  },
+]
+
+/** Two-decimal USD formatter for the Kimi K3 snapshot ($2.40, $12.00). */
+export function formatKimiK3Usd(value: number): string {
+  return `$${value.toFixed(2)}`
+}
+
+export const KIMI_K3_PRICE_DISCLAIMER_KEYS = [
+  'All prices are shown per 1M tokens.',
+  'OpenRouter and Kimi official prices were snapshotted on September 9, 2026.',
+  'OpenRouter figures are the standard prices returned by the OpenRouter Models API under default conditions. Provider prices shown on OpenRouter model pages can differ.',
+  'Free variants, promotional prices, cached input prices, and temporary provider discounts are excluded from this comparison.',
+  'Third-party prices may change.',
+  'Current Vancine settlement prices are on the Vancine Pricing page.',
+] as const
 
 // ---------------------------------------------------------------------------
 // API example contract
@@ -484,14 +596,20 @@ export interface KimiK3FaqEntry {
 
 export const KIMI_K3_FAQ: readonly KimiK3FaqEntry[] = [
   {
-    questionKey: 'Where can I confirm Kimi K3 availability and pricing?',
+    questionKey: 'Where can I confirm current Kimi K3 pricing?',
     answerKey:
-      'Check live pricing and your authenticated model list. Availability, pricing, and limits can change, and those live sources are authoritative.',
+      'Check Vancine live Pricing. The comparison on this page is a dated public snapshot; live Pricing is authoritative for current Vancine rates.',
   },
   {
-    questionKey: 'Which developer tools work with this API?',
+    questionKey:
+      'How does Vancine pricing compare with Kimi official and OpenRouter?',
     answerKey:
-      'OpenCode, Cline, Roo Code, and tools that support the OpenAI-compatible chat completions API can use the same base URL and API key.',
+      'As of September 9, 2026, Vancine lists $2.40 input and $12.00 output per 1M tokens, 20% below both the OpenRouter Models API standard price of $3.00 / $15.00 and Kimi official pricing of $3.00 / $15.00. Third-party prices may change. Live Vancine Pricing is authoritative.',
+  },
+  {
+    questionKey: 'Is this the real kimi-k3 model?',
+    answerKey:
+      'The published API probe requested kimi-k3 and received kimi-k3 with HTTP 200. That is a single historical check, not a guarantee for every future request.',
   },
   {
     questionKey: 'Is Vancine an official Moonshot AI or Kimi service?',
@@ -499,24 +617,21 @@ export const KIMI_K3_FAQ: readonly KimiK3FaqEntry[] = [
       'Vancine is an independent third-party API aggregation platform, not an official Moonshot AI or Kimi service.',
   },
   {
-    questionKey: 'How do I get an API key and start testing?',
+    questionKey: 'What has actually been tested?',
     answerKey:
-      'Create a Vancine account, generate an API key in the console, and follow the quickstart above. The same key works with every OpenAI-compatible client.',
+      'A compatibility probe returned HTTP 200 for kimi-k3, and one controlled OpenCode v1.18.3 run completed tool calls and passed tests. Cline and Roo Code have configuration notes only, not independent live evidence. The run does not predict future requests.',
+  },
+  {
+    questionKey: 'Are rate limits and availability guaranteed?',
+    answerKey:
+      'No. This page does not promise unlimited rate, permanent pricing, uptime, or a production SLA. Availability, limits, and latency can change.',
+  },
+  {
+    questionKey: 'How do I start with an OpenAI-compatible request?',
+    answerKey:
+      'Create a Vancine account, generate an API key, and send a chat completion to https://vancine.com/v1 with model kimi-k3, reading the key from VANCINE_API_KEY.',
   },
 ]
-
-/**
- * Example model combinations shown in the availability section. These are
- * illustrative only — the live Docs model catalog and live Pricing are the
- * authoritative sources.
- */
-export const KIMI_K3_PORTFOLIO_EXAMPLES = [
-  'Kimi K3',
-  'GLM-5.2',
-  'DeepSeek V4',
-  'Qwen 3.7',
-  'MiniMax',
-] as const
 
 // ---------------------------------------------------------------------------
 // i18n key registry for this page
@@ -528,18 +643,39 @@ export const KIMI_K3_PORTFOLIO_EXAMPLES = [
  * intentionally not localized (e.g. "OpenCode") are excluded.
  */
 export const KIMI_K3_I18N_KEYS = [
-  'Kimi K3 API for Coding Agents',
-  'China frontier AI, one developer path',
-  'Connect OpenCode, Cline, Roo Code, and OpenAI-compatible tools to Kimi K3 with one Vancine API key.',
-  'Create account',
-  'Go to Playground',
-  'View quickstart',
+  'Kimi K3 API pricing and OpenRouter comparison',
+  'Vancine is an independent third-party API platform, not an official Moonshot AI or Kimi service. This page compares dated public prices, shows OpenAI-compatible examples, and publishes existing test evidence. Rates, availability, and behavior are not guaranteed to match the official service.',
+  'Create an API key',
+  'Open Playground',
+  'Compare prices',
+  'Kimi K3 API pricing',
+  'Vancine',
+  'OpenRouter',
+  'Kimi official',
+  'OpenAI-compatible API',
+  'Pay as you go',
+  '20% lower than OpenRouter on both input and output',
+  KIMI_K3_PRICE_UNIT_KEY,
+  'Kimi K3 API price comparison',
+  'Provider',
+  'Input price',
+  'Output price',
+  'Input',
+  'Output',
+  'Unit',
+  'Difference',
+  'Source',
+  'Current Vancine price',
+  'Vancine is 20% lower on both input and output',
+  'Vancine live Pricing',
+  'Kimi official pricing',
+  'OpenRouter Models API standard pricing',
+  ...KIMI_K3_PRICE_DISCLAIMER_KEYS,
   'Quickstart',
   'OpenAI-compatible quickstart',
   'Send your first Kimi K3 chat completion with an environment variable, not a pasted secret.',
   'Quickstart languages',
   'Read API documentation',
-  'Create an API key',
   'Copy',
   'Code copied',
   'Unable to copy code',
@@ -555,8 +691,13 @@ export const KIMI_K3_I18N_KEYS = [
   'Select kimi-k3 as the model ID.',
   'Only OpenCode v1.18.3 has a live coding-agent verification so far. Cline and Roo Code configurations are provided in the starter repository but have not been independently live-verified.',
   'Evidence',
-  'Live verification evidence',
-  'Three recorded checks against the real kimi-k3 model through the Vancine endpoint: API compatibility, a completed OpenCode coding-agent run, and the measured usage of that run.',
+  'Real Kimi K3 API test evidence',
+  'Headline results from a single historical run: the request succeeded, the returned model matched, tool calls completed, tests passed, and the evidence file is public. Token counts and run IDs are secondary detail.',
+  'Request succeeded',
+  'Returned model',
+  'Tool calls completed',
+  'Tests passed',
+  'Evidence file is public',
   'Verified',
   'Measured',
   'OpenCode coding agent',
@@ -585,15 +726,8 @@ export const KIMI_K3_I18N_KEYS = [
   'Measured Vancine usage',
   'The probe used a 16-token completion budget that was mostly consumed by reasoning, so its visible content is inconclusive. This small reasoning-heavy response is not a content-generation failure.',
   ...KIMI_K3_EVIDENCE_LIMITATION_KEYS,
-  'One key, a focused China AI portfolio',
-  'Switch models as your task changes. Features, availability, and pricing are model-specific.',
-  'View live pricing and availability',
-  'Browse the Docs model catalog',
-  'kimi-k3 is listed in the live Docs model catalog, and live Pricing shows current rates. Other model combinations are examples only; the live catalog is authoritative.',
   'Frequently asked questions',
   ...KIMI_K3_FAQ.flatMap((entry) => [entry.questionKey, entry.answerKey]),
-  'Put Kimi K3 in your coding agent today',
-  'Start with a documented OpenAI-compatible request, then choose the model that fits the work.',
-  'Get started with Vancine',
-  'Run K3 in Playground',
+  'Get Kimi K3 through an OpenAI-compatible API',
+  'Review the dated price snapshot and the published test evidence, then send a request with your Vancine API key.',
 ] as const

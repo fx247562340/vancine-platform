@@ -155,13 +155,14 @@ var publicMarketingPages = []publicPageMeta{
 	},
 	{
 		path:  "/kimi-k3-api",
-		title: "Kimi K3 API for Coding Agents | Vancine",
-		description: "Connect OpenCode, Cline, Roo Code, and OpenAI-compatible " +
-			"tools to Kimi K3 with one API key through Vancine.",
-		ogTitle:          "Kimi K3 for Coding Agents",
-		ogDescription:    "Use one OpenAI-compatible API key to connect coding agents to Kimi K3 and other frontier models.",
-		twitterTitle:     "Kimi K3 API for Coding Agents",
-		twitterDesc:      "Connect OpenCode, Cline, Roo Code, and OpenAI-compatible tools to Kimi K3 with one API key through Vancine.",
+		title: "Kimi K3 API Pricing & OpenRouter Comparison | Vancine",
+		description: "Kimi K3 API from $2.40 input and $12.00 output per 1M " +
+			"tokens—20% below the OpenRouter Models API standard price as of " +
+			"September 9, 2026. Compare pricing, code, and test evidence.",
+		ogTitle:          "Kimi K3 API Pricing & OpenRouter Comparison",
+		ogDescription:    "Kimi K3 API from $2.40 input and $12.00 output per 1M tokens—20% below the OpenRouter Models API standard price as of September 9, 2026. Compare pricing, code, and test evidence.",
+		twitterTitle:     "Kimi K3 API Pricing & OpenRouter Comparison",
+		twitterDesc:      "Kimi K3 API from $2.40 input and $12.00 output per 1M tokens—20% below the OpenRouter Models API standard price as of September 9, 2026. Compare pricing, code, and test evidence.",
 		twitterCardValue: "summary",
 	},
 	{

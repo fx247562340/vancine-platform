@@ -31,8 +31,9 @@ import {
  * latest flagship Chinese AI models". Claims stay restrained and
  * verifiable: the comparison table only covers the four flagship paid
  * model listings explicitly approved by product, the OpenRouter scope
- * is its standard paid model listing, and the live /api/pricing is the
- * authoritative source for Vancine's current rates.
+ * is OpenRouter Models API standard pricing under default conditions,
+ * and the live /api/pricing is the authoritative source for Vancine's
+ * current rates.
  */
 
 // ---------------------------------------------------------------------------
@@ -303,11 +304,22 @@ export interface OpenRouterAlternativeComparisonRow {
 }
 
 /**
+ * The public OpenRouter Models API endpoint. It is the single price-evidence
+ * source for every comparison row: the page quotes OpenRouter Models API
+ * standard pricing under default conditions, so each row links to the API that
+ * returns those numbers rather than to a model detail page whose headline
+ * price follows provider-specific dynamic pricing.
+ */
+export const OPENROUTER_ALTERNATIVE_MODELS_API_URL =
+  'https://openrouter.ai/api/v1/models'
+
+/**
  * Approved comparison rows. The set is intentionally closed: every
  * row is a flagship paid model listing the product team has
- * validated, and the savings on every row is exactly 20%. Adding
- * more rows requires re-running the verification and updating the
- * Last-verified string in OPENROUTER_ALTERNATIVE_PRICING_DISCLAIMER_KEYS.
+ * validated, and the savings on every row is exactly 20%. Every row
+ * cites the same Models API evidence URL. Adding more rows requires
+ * re-running the verification and updating the Last-verified string in
+ * OPENROUTER_ALTERNATIVE_PRICING_DISCLAIMER_KEYS.
  */
 export const OPENROUTER_ALTERNATIVE_COMPARISON_ROWS: readonly OpenRouterAlternativeComparisonRow[] =
   [
@@ -317,7 +329,7 @@ export const OPENROUTER_ALTERNATIVE_COMPARISON_ROWS: readonly OpenRouterAlternat
       vancineOutputUsd: 4.8,
       openrouterInputUsd: 2.0,
       openrouterOutputUsd: 6.0,
-      openrouterSourceUrl: 'https://openrouter.ai/qwen/qwen3.8-max',
+      openrouterSourceUrl: OPENROUTER_ALTERNATIVE_MODELS_API_URL,
     },
     {
       modelId: 'kimi-k3',
@@ -325,7 +337,7 @@ export const OPENROUTER_ALTERNATIVE_COMPARISON_ROWS: readonly OpenRouterAlternat
       vancineOutputUsd: 12.0,
       openrouterInputUsd: 3.0,
       openrouterOutputUsd: 15.0,
-      openrouterSourceUrl: 'https://openrouter.ai/moonshotai/kimi-k3',
+      openrouterSourceUrl: OPENROUTER_ALTERNATIVE_MODELS_API_URL,
     },
     {
       modelId: 'glm-5.3',
@@ -333,7 +345,7 @@ export const OPENROUTER_ALTERNATIVE_COMPARISON_ROWS: readonly OpenRouterAlternat
       vancineOutputUsd: 3.52,
       openrouterInputUsd: 1.4,
       openrouterOutputUsd: 4.4,
-      openrouterSourceUrl: 'https://openrouter.ai/z-ai/glm-5.3',
+      openrouterSourceUrl: OPENROUTER_ALTERNATIVE_MODELS_API_URL,
     },
     {
       modelId: 'MiniMax-M3',
@@ -341,7 +353,7 @@ export const OPENROUTER_ALTERNATIVE_COMPARISON_ROWS: readonly OpenRouterAlternat
       vancineOutputUsd: 0.96,
       openrouterInputUsd: 0.3,
       openrouterOutputUsd: 1.2,
-      openrouterSourceUrl: 'https://openrouter.ai/MiniMax/MiniMax-M3',
+      openrouterSourceUrl: OPENROUTER_ALTERNATIVE_MODELS_API_URL,
     },
   ]
 
@@ -355,8 +367,8 @@ export const OPENROUTER_ALTERNATIVE_COMPARISON_ROWS: readonly OpenRouterAlternat
  * and the authoritative live pricing source.
  */
 export const OPENROUTER_ALTERNATIVE_PRICING_DISCLAIMER_KEYS = [
-  'Last verified: August 27, 2026.',
-  'OpenRouter comparison uses its standard paid model listing. Free variants, promotional routes, and temporary provider discounts are excluded.',
+  'Last verified: September 9, 2026.',
+  'OpenRouter comparison uses OpenRouter Models API standard pricing under default conditions; provider prices shown on OpenRouter model pages can differ. Free variants, promotional routes, and temporary provider discounts are excluded.',
   'Prices may change. Vancine live pricing is authoritative at /api/pricing.',
 ] as const
 
@@ -515,7 +527,7 @@ export const OPENROUTER_ALTERNATIVE_EVIDENCE_KEYS = [
   'View live pricing',
   'What you get',
   '20% lower on four flagship paid listings',
-  'On four flagship paid listings — qwen3.8-max, kimi-k3, glm-5.3, and MiniMax-M3 — Vancine is 20% lower than the OpenRouter standard paid model listing as of the verified date.',
+  'On four flagship paid listings — qwen3.8-max, kimi-k3, glm-5.3, and MiniMax-M3 — Vancine is 20% lower than OpenRouter Models API standard pricing as of the verified date.',
   'No top-up platform fee',
   'Vancine does not add a platform fee to top-ups. The amount you pay is the amount you can spend on the Vancine catalog.',
   'OpenAI-compatible',

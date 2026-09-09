@@ -68,13 +68,28 @@ function EvidenceStatList(props: { stats: EvidenceStat[] }): ReactElement {
 
 /**
  * Published historical evidence from the single controlled verification run,
- * with the mandatory public caveats bounding what it may be read as.
+ * with headline decision facts first and token / run-id detail second.
  */
 export function Evidence(): ReactElement {
   const { t } = useTranslation()
   const agent = KIMI_K3_OPENCODE_AGENT_EVIDENCE
   const probe = KIMI_K3_API_COMPATIBILITY_EVIDENCE
   const usage = KIMI_K3_MEASURED_USAGE_EVIDENCE
+  const toolCallsCompleted =
+    agent.toolCalls.read.completed +
+    agent.toolCalls.edit.completed +
+    agent.toolCalls.bash.completed
+
+  const headlineStats: EvidenceStat[] = [
+    { label: t('Request succeeded'), value: `HTTP ${probe.httpStatus}` },
+    { label: t('Returned model'), value: probe.responseModel },
+    { label: t('Tool calls completed'), value: String(toolCallsCompleted) },
+    {
+      label: t('Tests passed'),
+      value: agent.testsPassed ? t('PASS') : t('FAIL'),
+    },
+    { label: t('Evidence file is public'), value: t('Verified') },
+  ]
 
   const agentStats: EvidenceStat[] = [
     {
@@ -153,16 +168,70 @@ export function Evidence(): ReactElement {
     >
       <div className='flex flex-col gap-2'>
         <h2 id='kimi-k3-evidence-title' className='text-3xl font-bold'>
-          {t('Live verification evidence')}
+          {t('Real Kimi K3 API test evidence')}
         </h2>
         <p className='text-muted-foreground max-w-3xl'>
           {t(
-            'Three recorded checks against the real kimi-k3 model through the Vancine endpoint: API compatibility, a completed OpenCode coding-agent run, and the measured usage of that run.'
+            'Headline results from a single historical run: the request succeeded, the returned model matched, tool calls completed, tests passed, and the evidence file is public. Token counts and run IDs are secondary detail.'
           )}
         </p>
       </div>
 
-      <div className='mt-8 grid gap-4 lg:grid-cols-3'>
+      <div
+        data-testid='kimi-k3-evidence-headline'
+        className='border-border bg-card mt-8 rounded-xl border p-4 md:p-5'
+      >
+        <EvidenceStatList stats={headlineStats} />
+        <div className='mt-4 flex flex-wrap gap-2'>
+          <Button
+            variant='outline'
+            size='sm'
+            render={
+              <a
+                href={KIMI_K3_EVIDENCE_FILE_URL}
+                target='_blank'
+                rel='noopener noreferrer'
+              />
+            }
+            onClick={trackEvidenceResource}
+          >
+            {t('View public evidence file')}
+          </Button>
+          <Button
+            variant='ghost'
+            size='sm'
+            render={
+              <a
+                href={KIMI_K3_EVIDENCE_STARTER_REPO}
+                target='_blank'
+                rel='noopener noreferrer'
+              />
+            }
+            onClick={trackEvidenceResource}
+          >
+            {t('View starter repository')}
+          </Button>
+        </div>
+      </div>
+
+      <div className='mt-6 grid gap-4 lg:grid-cols-3'>
+        <Card>
+          <CardHeader>
+            <CardTitle className='flex flex-wrap items-center gap-2'>
+              {t('API compatibility')}
+              <Badge variant='secondary'>{t('Verified')}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className='flex flex-col gap-3'>
+            <EvidenceStatList stats={probeStats} />
+            <p className='text-muted-foreground text-xs'>
+              {t(
+                'The probe used a 16-token completion budget that was mostly consumed by reasoning, so its visible content is inconclusive. This small reasoning-heavy response is not a content-generation failure.'
+              )}
+            </p>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle className='flex flex-wrap items-center gap-2'>
@@ -211,23 +280,6 @@ export function Evidence(): ReactElement {
         <Card>
           <CardHeader>
             <CardTitle className='flex flex-wrap items-center gap-2'>
-              {t('API compatibility')}
-              <Badge variant='secondary'>{t('Verified')}</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className='flex flex-col gap-3'>
-            <EvidenceStatList stats={probeStats} />
-            <p className='text-muted-foreground text-xs'>
-              {t(
-                'The probe used a 16-token completion budget that was mostly consumed by reasoning, so its visible content is inconclusive. This small reasoning-heavy response is not a content-generation failure.'
-              )}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className='flex flex-wrap items-center gap-2'>
               {t('Measured usage')}
               <Badge variant='outline'>{t('Measured')}</Badge>
             </CardTitle>
@@ -244,7 +296,7 @@ export function Evidence(): ReactElement {
       </div>
 
       <aside
-        aria-label={t('Live verification evidence')}
+        aria-label={t('Real Kimi K3 API test evidence')}
         className='border-border bg-muted/30 mt-6 rounded-lg border p-4'
       >
         <ul className='flex flex-col gap-2'>

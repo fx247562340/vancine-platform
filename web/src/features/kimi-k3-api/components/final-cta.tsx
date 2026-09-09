@@ -26,7 +26,11 @@ import { Button } from '@/components/ui/button'
 import { FirstTopUpBonusCallout } from '@/features/first-topup-bonus'
 import { trackEvent } from '@/lib/analytics'
 
-import { getKimiK3CtaTarget, KIMI_K3_CTA_EVENT } from '../lib/landing'
+import {
+  getKimiK3CtaLabelKey,
+  getKimiK3CtaTarget,
+  KIMI_K3_CTA_EVENT,
+} from '../lib/landing'
 
 export interface FinalCtaProps {
   isAuthenticated: boolean
@@ -38,6 +42,7 @@ export interface FinalCtaProps {
 export function FinalCta(props: FinalCtaProps): ReactElement {
   const { t } = useTranslation()
   const ctaTarget = getKimiK3CtaTarget(props.isAuthenticated, props.search)
+  const ctaLabelKey = getKimiK3CtaLabelKey(props.isAuthenticated)
 
   return (
     <section
@@ -51,25 +56,24 @@ export function FinalCta(props: FinalCtaProps): ReactElement {
           aria-hidden='true'
         />
         <h2 id='kimi-k3-final-cta-title' className='text-3xl font-bold'>
-          {t('Put Kimi K3 in your coding agent today')}
+          {t('Get Kimi K3 through an OpenAI-compatible API')}
         </h2>
         <p className='text-muted-foreground'>
           {t(
-            'Start with a documented OpenAI-compatible request, then choose the model that fits the work.'
+            'Review the dated price snapshot and the published test evidence, then send a request with your Vancine API key.'
           )}
         </p>
         <FirstTopUpBonusCallout className='w-full max-w-xl' />
         <Button
           size='lg'
           className='h-11 px-6'
+          data-testid='kimi-k3-final-cta'
           render={<Link to={ctaTarget.to} search={ctaTarget.search} />}
           onClick={() =>
             trackEvent(KIMI_K3_CTA_EVENT, { location: 'kimi_k3_final_cta' })
           }
         >
-          {props.isAuthenticated
-            ? t('Run K3 in Playground')
-            : t('Get started with Vancine')}
+          {t(ctaLabelKey)}
           <HugeiconsIcon
             icon={ArrowRight01Icon}
             data-icon='inline-end'

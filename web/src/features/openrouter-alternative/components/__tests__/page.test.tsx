@@ -30,6 +30,7 @@ import {
   cleanup,
   render,
   screen,
+  within,
   type RenderResult,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -266,12 +267,48 @@ describe('price comparison table', () => {
     }
   })
 
+  it('points every OpenRouter source link at the Models API evidence URL', async () => {
+    await renderPage()
+    await screen.findByRole('heading', { level: 1 })
+
+    const table = screen.getByTestId('comparison-table')
+    const rows = [...table.querySelectorAll('tbody tr')]
+    expect(rows).toHaveLength(4)
+
+    // Each desktop row cites the same public Models API endpoint that returns
+    // the standard pricing quoted on this page.
+    const tableLinks = within(table).getAllByRole('link', { name: 'View' })
+    expect(tableLinks).toHaveLength(4)
+    for (const row of rows) {
+      const link = row.querySelector('a[data-testid="openrouter-source-link"]')
+      expect(link).not.toBeNull()
+      expect(link).toHaveAttribute(
+        'href',
+        'https://openrouter.ai/api/v1/models'
+      )
+    }
+
+    // The mobile-first card list renders the same four rows, so all eight
+    // rendered source links must carry the same href, target, and rel.
+    const allLinks = screen.getAllByTestId('openrouter-source-link')
+    expect(allLinks).toHaveLength(8)
+    for (const link of allLinks) {
+      expect(link).toHaveAttribute(
+        'href',
+        'https://openrouter.ai/api/v1/models'
+      )
+      expect(link).toHaveAttribute('target', '_blank')
+      expect(link.getAttribute('rel')).toContain('noopener')
+      expect(link.getAttribute('rel')).toContain('noreferrer')
+    }
+  })
+
   it('renders the verification date and pricing disclaimers', async () => {
     await renderPage()
     await screen.findByRole('heading', { level: 1 })
 
     const text = document.body.textContent ?? ''
-    expect(text).toContain('Last verified: August 27, 2026.')
+    expect(text).toContain('Last verified: September 9, 2026.')
     expect(text).toContain('/api/pricing')
     expect(text).toMatch(/free variants|promotional routes|provider discounts/i)
   })

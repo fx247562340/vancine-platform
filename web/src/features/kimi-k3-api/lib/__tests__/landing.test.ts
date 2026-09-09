@@ -22,6 +22,7 @@ import { describe, test } from 'vitest'
 
 import {
   getKimiK3CtaDestination,
+  getKimiK3CtaLabelKey,
   getKimiK3CtaTarget,
   getKimiK3PageMetadata,
   KIMI_K3_API_COMPATIBILITY_EVIDENCE,
@@ -40,6 +41,8 @@ import {
   KIMI_K3_MODEL_ID,
   KIMI_K3_OPENCODE_AGENT_EVIDENCE,
   KIMI_K3_RESOURCE_EVENT,
+  KIMI_K3_RESOURCE_LOCATIONS,
+  KIMI_K3_RESOURCE_VALUES,
 } from '../landing'
 
 describe('CTA destination resolution', () => {
@@ -99,6 +102,18 @@ describe('CTA destination resolution', () => {
   })
 })
 
+describe('CTA label / destination parity', () => {
+  test('guest label is Create an API key and the destination is /sign-up', () => {
+    assert.equal(getKimiK3CtaLabelKey(false), 'Create an API key')
+    assert.equal(getKimiK3CtaDestination(false), '/sign-up')
+  })
+
+  test('authenticated label is Open Playground and the destination is /playground', () => {
+    assert.equal(getKimiK3CtaLabelKey(true), 'Open Playground')
+    assert.equal(getKimiK3CtaDestination(true), '/playground')
+  })
+})
+
 describe('page metadata', () => {
   const supportedLanguages = ['en', 'zhCN', 'zhTW', 'fr', 'ru', 'ja', 'vi']
 
@@ -123,13 +138,26 @@ describe('page metadata', () => {
     }
   })
 
-  test('English Twitter pair is byte-identical to router/web_metadata.go', () => {
+  test('English metadata is byte-identical to router/web_metadata.go', () => {
     const metadata = getKimiK3PageMetadata('en')
-    assert.equal(metadata.twitterTitle, 'Kimi K3 API for Coding Agents')
     assert.equal(
-      metadata.twitterDescription,
-      'Connect OpenCode, Cline, Roo Code, and OpenAI-compatible tools to Kimi K3 with one API key through Vancine.'
+      metadata.title,
+      'Kimi K3 API Pricing & OpenRouter Comparison | Vancine'
     )
+    assert.equal(
+      metadata.description,
+      'Kimi K3 API from $2.40 input and $12.00 output per 1M tokens—20% below the OpenRouter Models API standard price as of September 9, 2026. Compare pricing, code, and test evidence.'
+    )
+    assert.equal(
+      metadata.ogTitle,
+      'Kimi K3 API Pricing & OpenRouter Comparison'
+    )
+    assert.equal(metadata.ogDescription, metadata.description)
+    assert.equal(
+      metadata.twitterTitle,
+      'Kimi K3 API Pricing & OpenRouter Comparison'
+    )
+    assert.equal(metadata.twitterDescription, metadata.description)
   })
 
   test('covers all seven supported languages distinctly', () => {
@@ -289,14 +317,31 @@ describe('analytics event enumeration', () => {
         'kimi_k3_final_cta',
       ]
     )
+    assert.deepEqual(
+      [...KIMI_K3_RESOURCE_VALUES],
+      [
+        'docs',
+        'pricing',
+        'starter_repo',
+        'kimi_official_pricing',
+        'openrouter_pricing',
+      ]
+    )
+    assert.deepEqual(
+      [...KIMI_K3_RESOURCE_LOCATIONS],
+      ['quickstart', 'evidence', 'pricing']
+    )
   })
 
-  test('FAQ contract answers availability, tools, officiality, and keys', () => {
-    assert.equal(KIMI_K3_FAQ.length, 4)
+  test('FAQ contract covers pricing, comparison, model identity, officiality, evidence, limits, and quickstart', () => {
+    assert.equal(KIMI_K3_FAQ.length, 7)
     const questions = KIMI_K3_FAQ.map((entry) => entry.questionKey).join(' ')
-    assert.ok(questions.includes('availability and pricing'))
-    assert.ok(questions.includes('developer tools'))
+    assert.ok(questions.includes('current Kimi K3 pricing'))
+    assert.ok(questions.includes('Kimi official and OpenRouter'))
+    assert.ok(questions.includes('real kimi-k3 model'))
     assert.ok(questions.includes('official Moonshot AI or Kimi service'))
-    assert.ok(questions.includes('API key'))
+    assert.ok(questions.includes('actually been tested'))
+    assert.ok(questions.includes('rate limits and availability'))
+    assert.ok(questions.includes('OpenAI-compatible request'))
   })
 })

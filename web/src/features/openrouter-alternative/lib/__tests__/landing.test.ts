@@ -30,6 +30,7 @@ import {
   OPENROUTER_ALTERNATIVE_CODE_EXAMPLES,
   OPENROUTER_ALTERNATIVE_EVIDENCE_KEYS,
   OPENROUTER_ALTERNATIVE_FAQ,
+  OPENROUTER_ALTERNATIVE_MODELS_API_URL,
   OPENROUTER_ALTERNATIVE_MODEL_CATALOG_TOKENS,
   OPENROUTER_ALTERNATIVE_PRICING_DISCLAIMER_KEYS,
 } from '../landing'
@@ -210,7 +211,7 @@ describe('comparison table — model rows and 20% savings', () => {
       vancineOutputUsd: 4.8,
       openrouterInputUsd: 2.0,
       openrouterOutputUsd: 6.0,
-      openrouterSourceUrl: 'https://openrouter.ai/qwen/qwen3.8-max',
+      openrouterSourceUrl: OPENROUTER_ALTERNATIVE_MODELS_API_URL,
     })
     assert.deepEqual(byId.get('kimi-k3'), {
       modelId: 'kimi-k3',
@@ -218,7 +219,7 @@ describe('comparison table — model rows and 20% savings', () => {
       vancineOutputUsd: 12.0,
       openrouterInputUsd: 3.0,
       openrouterOutputUsd: 15.0,
-      openrouterSourceUrl: 'https://openrouter.ai/moonshotai/kimi-k3',
+      openrouterSourceUrl: OPENROUTER_ALTERNATIVE_MODELS_API_URL,
     })
     assert.deepEqual(byId.get('glm-5.3'), {
       modelId: 'glm-5.3',
@@ -226,7 +227,7 @@ describe('comparison table — model rows and 20% savings', () => {
       vancineOutputUsd: 3.52,
       openrouterInputUsd: 1.4,
       openrouterOutputUsd: 4.4,
-      openrouterSourceUrl: 'https://openrouter.ai/z-ai/glm-5.3',
+      openrouterSourceUrl: OPENROUTER_ALTERNATIVE_MODELS_API_URL,
     })
     assert.deepEqual(byId.get('MiniMax-M3'), {
       modelId: 'MiniMax-M3',
@@ -234,15 +235,20 @@ describe('comparison table — model rows and 20% savings', () => {
       vancineOutputUsd: 0.96,
       openrouterInputUsd: 0.3,
       openrouterOutputUsd: 1.2,
-      openrouterSourceUrl: 'https://openrouter.ai/MiniMax/MiniMax-M3',
+      openrouterSourceUrl: OPENROUTER_ALTERNATIVE_MODELS_API_URL,
     })
   })
 
-  test('every row carries a public OpenRouter comparison source URL', () => {
+  test('every row cites the OpenRouter Models API as its price evidence', () => {
+    assert.equal(
+      OPENROUTER_ALTERNATIVE_MODELS_API_URL,
+      'https://openrouter.ai/api/v1/models'
+    )
     for (const row of OPENROUTER_ALTERNATIVE_COMPARISON_ROWS) {
-      assert.ok(
-        row.openrouterSourceUrl.startsWith('https://openrouter.ai/'),
-        `${row.modelId} source ${row.openrouterSourceUrl} must be a public OpenRouter URL`
+      assert.equal(
+        row.openrouterSourceUrl,
+        OPENROUTER_ALTERNATIVE_MODELS_API_URL,
+        `${row.modelId} source must be the Models API URL, got ${row.openrouterSourceUrl}`
       )
     }
   })
@@ -260,10 +266,13 @@ describe('evidence and disclaimer copy', () => {
 
   test('evidence copy names the verified date, the OpenRouter scope, and live pricing as authoritative', () => {
     const joined = OPENROUTER_ALTERNATIVE_EVIDENCE_KEYS.join(' | ')
-    assert.ok(/August 27, 2026/.test(joined), 'must name the verification date')
     assert.ok(
-      /standard paid model listing/i.test(joined),
-      'must state the OpenRouter scope is its standard paid listing'
+      /September 9, 2026/.test(joined),
+      'must name the verification date'
+    )
+    assert.ok(
+      /Models API standard pricing/i.test(joined),
+      'must state the OpenRouter scope is Models API standard pricing'
     )
     assert.ok(
       /\/api\/pricing/i.test(joined) || /api\/pricing/.test(joined),

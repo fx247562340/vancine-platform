@@ -102,6 +102,7 @@ export function Quickstart(props: QuickstartProps): ReactElement {
           {t('Read API documentation')}
         </Button>
         <Button
+          data-testid='kimi-k3-quickstart-cta'
           render={<Link to={ctaTarget.to} search={ctaTarget.search} />}
           onClick={() =>
             trackEvent(KIMI_K3_CTA_EVENT, { location: 'kimi_k3_quickstart' })

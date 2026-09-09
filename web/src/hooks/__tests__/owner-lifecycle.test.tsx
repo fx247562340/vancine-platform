@@ -448,24 +448,26 @@ describe('public marketing page metadata switches', () => {
       })
     )
 
-    expect(document.title).toBe('Kimi K3 API for Coding Agents | Vancine')
+    expect(document.title).toBe(
+      'Kimi K3 API Pricing & OpenRouter Comparison | Vancine'
+    )
     expect(
       document.head.querySelector('meta[name="title"]')?.getAttribute('content')
-    ).toBe('Kimi K3 API for Coding Agents | Vancine')
+    ).toBe('Kimi K3 API Pricing & OpenRouter Comparison | Vancine')
     expect(descriptionContent()).toBe(
-      'Connect OpenCode, Cline, Roo Code, and OpenAI-compatible tools to Kimi K3 with one API key through Vancine.'
+      'Kimi K3 API from $2.40 input and $12.00 output per 1M tokens—20% below the OpenRouter Models API standard price as of September 9, 2026. Compare pricing, code, and test evidence.'
     )
     expect(
       document.head
         .querySelector('meta[property="og:title"]')
         ?.getAttribute('content')
-    ).toBe('Kimi K3 for Coding Agents')
+    ).toBe('Kimi K3 API Pricing & OpenRouter Comparison')
     expect(
       document.head
         .querySelector('meta[property="og:description"]')
         ?.getAttribute('content')
     ).toBe(
-      'Use one OpenAI-compatible API key to connect coding agents to Kimi K3 and other frontier models.'
+      'Kimi K3 API from $2.40 input and $12.00 output per 1M tokens—20% below the OpenRouter Models API standard price as of September 9, 2026. Compare pricing, code, and test evidence.'
     )
     expect(
       document.head
@@ -477,18 +479,20 @@ describe('public marketing page metadata switches', () => {
       document.head
         .querySelector('meta[name="twitter:title"]')
         ?.getAttribute('content')
-    ).toBe('Kimi K3 API for Coding Agents')
+    ).toBe('Kimi K3 API Pricing & OpenRouter Comparison')
     expect(
       document.head
         .querySelector('meta[name="twitter:description"]')
         ?.getAttribute('content')
     ).toBe(
-      'Connect OpenCode, Cline, Roo Code, and OpenAI-compatible tools to Kimi K3 with one API key through Vancine.'
+      'Kimi K3 API from $2.40 input and $12.00 output per 1M tokens—20% below the OpenRouter Models API standard price as of September 9, 2026. Compare pricing, code, and test evidence.'
     )
 
     home.unmount()
     // Kimi still owns the head after Home unmounts.
-    expect(document.title).toBe('Kimi K3 API for Coding Agents | Vancine')
+    expect(document.title).toBe(
+      'Kimi K3 API Pricing & OpenRouter Comparison | Vancine'
+    )
     expect(canonicalHref()).toBe('https://vancine.com/kimi-k3-api')
     expect(isPublicMarketingMetadataActive()).toBe(true)
 
