@@ -15,7 +15,7 @@ import (
 
 // Vancine-specific top-up extensions on top of the upstream settlement
 // structure: PayPal order identifiers, the PayPal refund path, and the
-// pending-order cleaner.
+// pending-order cleaner (PayPal + Waffo Pancake).
 
 // GetTopUpByTransactionId returns the order holding the given settled
 // provider transaction identifier, or nil.
@@ -259,16 +259,23 @@ func RechargePayPal(tradeNo string, customerEmail string, customerName string, c
 	return nil
 }
 
-// CleanExpiredPendingTopUps marks pending PAYPAL orders older than maxAge as
-// expired and returns how many rows were updated. Only PayPal orders are
-// cleaned: Stripe, Creem, EPay, Waffo, Waffo Pancake, and subscription
-// settlement state machines are owned by their upstream provider flows and
-// must not be touched by the Vancine cleaner.
+// CleanExpiredPendingTopUps marks pending PAYPAL and WAFFO PANCAKE orders
+// older than maxAge as expired and returns how many rows were updated.
+// Stripe, Creem, EPay, plain Waffo, and the empty payment_provider rows
+// that act as subscription top-up mappings are owned by their own upstream
+// settlement flows and must not be touched by the Vancine cleaner.
+//
+// The 1-hour interval combined with a 45-minute Waffo Pancake checkout
+// session window means at most one cleaner tick can outlast a real
+// session; an out-of-band late-callback race against an already-expired
+// row is accepted by the project owner and intentionally not handled here.
 func CleanExpiredPendingTopUps(maxAge time.Duration) int64 {
 	cutoff := common.GetTimestamp() - int64(maxAge.Seconds())
 	result := DB.Model(&TopUp{}).
-		Where("status = ? AND payment_provider = ? AND create_time < ?",
-			common.TopUpStatusPending, PaymentProviderPayPal, cutoff).
+		Where("status = ? AND payment_provider IN ? AND create_time < ?",
+			common.TopUpStatusPending,
+			[]string{PaymentProviderPayPal, PaymentProviderWaffoPancake},
+			cutoff).
 		Update("status", common.TopUpStatusExpired)
 	if result.Error != nil {
 		common.SysLog("failed to expire pending topups: " + result.Error.Error())
