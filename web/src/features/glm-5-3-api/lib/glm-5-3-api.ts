@@ -29,10 +29,8 @@ import {
  * there is deliberately no /glm-5-3-flash-api sibling route. Claims stay
  * restrained and verifiable:
  *   - the comparison covers exactly the two linked OpenRouter public
- *     prices displayed on August 28, 2026 (including the provider
- *     promotion active at that time), never "all models";
- *   - OpenRouter reference figures keep three-decimal display accuracy
- *     ($0.012 / $0.015 / $0.075);
+ *     prices currently displayed for these two models, never "all
+ *     models";
  *   - compatibility promises are limited to the OpenAI-compatible chat
  *     completions request, response, and streaming formats, and the page
  *     always discloses that provider-specific errors may differ.
@@ -286,13 +284,9 @@ export interface Glm53ApiComparisonRow {
 }
 
 /**
- * Approved comparison rows — exactly the two linked OpenRouter public
- * prices displayed on August 28, 2026 (flash figures are the provider
- * promotion prices shown that day). Vancine current prices are read
- * live from /api/pricing by model id. The set is closed: adding rows
- * requires re-running the verification. OpenRouter values are
- * display-only and are NOT wired to ModelRatio / CompletionRatio or
- * any billing code.
+ * Approved static OpenRouter reference prices for the two comparison
+ * rows. Vancine prices are loaded live from /api/pricing. These values
+ * are display-only and are not connected to billing.
  */
 export const GLM53_API_COMPARISON_ROWS: readonly Glm53ApiComparisonRow[] = [
   {
@@ -304,18 +298,20 @@ export const GLM53_API_COMPARISON_ROWS: readonly Glm53ApiComparisonRow[] = [
   },
   {
     modelId: 'glm-5.3-flash',
-    openrouterInputUsd: 0.075,
-    openrouterOutputUsd: 0.25,
-    openrouterCacheReadUsd: 0.015,
+    openrouterInputUsd: 0.15,
+    openrouterOutputUsd: 0.5,
+    openrouterCacheReadUsd: 0.03,
     openrouterSourceUrl: 'https://openrouter.ai/z-ai/glm-5.3-flash',
   },
 ]
 
 /**
- * Price formatter used by the comparison table for dated OpenRouter
- * reference amounts. Shows up to three decimals so figures such as
- * $0.075 and $0.015 render exactly; trailing zeros are trimmed for
- * two-decimal figures ($1.40, $0.26).
+ * Price formatter used by the comparison table for OpenRouter
+ * reference amounts. Formats to up to three decimals, but each
+ * reference price is displayed only as far as it actually needs:
+ *   - two-decimal amounts such as $0.50 and $1.40 keep their
+ *     trailing zero (the second decimal is part of the value);
+ *   - a third decimal that would only be a "0" is dropped.
  */
 export function formatGlm53Usd(value: number): string {
   const fixed = value.toFixed(3)
@@ -324,23 +320,6 @@ export function formatGlm53Usd(value: number): string {
     : fixed.replace(/0$/, '')
   return `$${trimmed}`
 }
-
-// ---------------------------------------------------------------------------
-// Verification and mandatory disclaimers (i18n keys, byte-stable)
-// ---------------------------------------------------------------------------
-
-/** The date both listings were last verified, in the en-US long form. */
-export const GLM53_API_VERIFIED_DATE_KEY = 'Last verified: August 28, 2026.'
-
-/**
- * Mandatory disclaimers rendered next to the comparison table. The two
- * sentences after the verified date are REQUIRED copy; do not shorten
- * or reorder them.
- */
-export const GLM53_API_PRICING_DISCLAIMER_KEYS = [
-  GLM53_API_VERIFIED_DATE_KEY,
-  'Prices and promotions may change. Vancine live pricing is authoritative. The OpenRouter comparison reflects the linked public prices displayed on August 28, 2026, including active provider promotions. No claim is made about other models.',
-] as const
 
 // ---------------------------------------------------------------------------
 // API quickstart examples (curated, no real API key)
@@ -528,6 +507,5 @@ export const GLM53_API_EVIDENCE_KEYS = [
   'View pricing',
   'OpenRouter Alternative for Chinese AI Models',
   'Frequently asked questions',
-  ...GLM53_API_PRICING_DISCLAIMER_KEYS,
   ...GLM53_API_FAQ.flatMap((entry) => [entry.questionKey, entry.answerKey]),
 ] as const

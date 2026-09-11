@@ -308,9 +308,9 @@ describe('price comparison table and mobile cards', () => {
     ['glm-5.3', 'Input', '$75.00', '$1.40'],
     ['glm-5.3', 'Output', '$75.00', '$4.40'],
     ['glm-5.3', 'Cache read', '—', '$0.26'],
-    ['glm-5.3-flash', 'Input', '$4.00', '$0.075'],
-    ['glm-5.3-flash', 'Output', '$8.00', '$0.25'],
-    ['glm-5.3-flash', 'Cache read', '$0.40', '$0.015'],
+    ['glm-5.3-flash', 'Input', '$4.00', '$0.15'],
+    ['glm-5.3-flash', 'Output', '$8.00', '$0.50'],
+    ['glm-5.3-flash', 'Cache read', '$0.40', '$0.03'],
   ] as const
   const RETIRED_VANCINE_PRICES = [
     '$1.12',
@@ -411,20 +411,19 @@ describe('price comparison table and mobile cards', () => {
     }
   })
 
-  it('renders the verified date, comparison scope, and live-pricing links', async () => {
+  it('hides the verified date and long disclaimer while keeping the 20% summary', async () => {
     renderPage()
     await screen.findByRole('heading', { level: 1 })
 
     const text = document.body.textContent ?? ''
-    expect(text).not.toContain('Last verified: August 27, 2026.')
-    expect(text).not.toContain('standard paid model listings')
+    // The verified date and the long pricing disclaimer are no longer
+    // rendered on the page (the red-box copy was removed).
+    expect(text).not.toContain('Last verified:')
     expect(text).not.toContain(
-      'promotions, and temporary provider discounts are excluded'
+      'Prices and promotions may change. Vancine live pricing is authoritative. The OpenRouter comparison reflects the linked public prices displayed on August 28, 2026, including active provider promotions. No claim is made about other models.'
     )
-    expect(text).toContain('Last verified: August 28, 2026.')
-    expect(text).toContain(
-      'The OpenRouter comparison reflects the linked public prices displayed on August 28, 2026, including active provider promotions.'
-    )
+    // The 20% summary line that stays above the (now-removed) red box
+    // must still be present.
     expect(text).toContain(
       'Vancine is 20% lower than the linked OpenRouter prices currently displayed for these two models.'
     )

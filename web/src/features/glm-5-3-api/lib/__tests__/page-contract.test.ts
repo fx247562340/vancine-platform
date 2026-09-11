@@ -36,9 +36,9 @@ import {
  * Pure business contract tests for the /glm-api acquisition page.
  * Locked values:
  *   - the two model ids (glm-5.3, glm-5.3-flash);
- *   - dated OpenRouter reference prices with three-decimal display
- *     accuracy ($0.012 / $0.015 / $0.075);
- *   - source URLs, verification date, and the mandatory disclaimer;
+ *   - OpenRouter reference prices with display accuracy (e.g. $0.15,
+ *     $0.50, $0.03, $1.40, $4.40, $0.26);
+ *   - source URLs;
  *   - seven-language metadata with byte-identical English vs. Go server
  *     metadata (router/web_metadata.go /glm-api entry);
  *   - restrained claims (no "all models cheaper", no absolutes);
@@ -190,24 +190,23 @@ describe('price comparison — two models, three OpenRouter dimensions', () => {
     })
     assert.deepEqual(byId.get('glm-5.3-flash'), {
       modelId: 'glm-5.3-flash',
-      openrouterInputUsd: 0.075,
-      openrouterOutputUsd: 0.25,
-      openrouterCacheReadUsd: 0.015,
+      openrouterInputUsd: 0.15,
+      openrouterOutputUsd: 0.5,
+      openrouterCacheReadUsd: 0.03,
       openrouterSourceUrl: 'https://openrouter.ai/z-ai/glm-5.3-flash',
     })
   })
 
-  test('three-decimal display formatting never rounds away precision', () => {
+  test('OpenRouter reference prices render exactly to the expected display', () => {
     // Locked against the PRODUCTION formatter (formatGlm53Usd), never a
-    // local copy: $0.012, $0.015, and $0.075 can never degrade to two
-    // decimals, and two-decimal figures keep their trailing zero.
-    assert.equal(formatGlm53Usd(0.012), '$0.012')
-    assert.equal(formatGlm53Usd(0.015), '$0.015')
-    assert.equal(formatGlm53Usd(0.075), '$0.075')
-    assert.equal(formatGlm53Usd(1.12), '$1.12')
-    assert.equal(formatGlm53Usd(0.06), '$0.06')
-    assert.equal(formatGlm53Usd(0.2), '$0.20')
+    // local copy. The six values are the current OpenRouter reference
+    // prices shown in the comparison table and mobile cards.
+    assert.equal(formatGlm53Usd(0.15), '$0.15')
+    assert.equal(formatGlm53Usd(0.5), '$0.50')
+    assert.equal(formatGlm53Usd(0.03), '$0.03')
     assert.equal(formatGlm53Usd(1.4), '$1.40')
+    assert.equal(formatGlm53Usd(4.4), '$4.40')
+    assert.equal(formatGlm53Usd(0.26), '$0.26')
   })
 
   test('every row carries the public OpenRouter comparison source URL', () => {
@@ -221,27 +220,7 @@ describe('price comparison — two models, three OpenRouter dimensions', () => {
 })
 
 describe('scope, disclaimers, and restrained claims', () => {
-  test('the mandatory disclaimer text is present verbatim', () => {
-    const joined = GLM53_API_EVIDENCE_KEYS.join(' | ')
-    assert.ok(
-      joined.includes(
-        'Prices and promotions may change. Vancine live pricing is authoritative.'
-      ),
-      'must carry the mandatory "Prices and promotions may change" sentence'
-    )
-    assert.ok(
-      joined.includes(
-        'The OpenRouter comparison reflects the linked public prices displayed on August 28, 2026, including active provider promotions.'
-      ),
-      'must carry the mandatory displayed-public-prices sentence'
-    )
-    assert.ok(
-      joined.includes('No claim is made about other models.'),
-      'must keep the other-models disclaimer'
-    )
-  })
-
-  test('the saving claim anchors to the linked OpenRouter prices currently displayed', () => {
+  test('the saving claim still anchors to the linked OpenRouter prices currently displayed', () => {
     const joined = GLM53_API_EVIDENCE_KEYS.join(' | ')
     assert.ok(
       joined.includes(
@@ -254,12 +233,8 @@ describe('scope, disclaimers, and restrained claims', () => {
       'the excluded-promotions formulation must be gone'
     )
     assert.ok(
-      joined.includes('Last verified: August 28, 2026.'),
-      'must carry the new verified date'
-    )
-    assert.ok(
-      !joined.includes('August 27, 2026'),
-      'the stale August 27 date must be gone'
+      !joined.includes('Last verified'),
+      'the verified-date phrase must be gone from page copy'
     )
     assert.ok(
       /\/pricing/.test(joined) || /live pricing/i.test(joined),
@@ -267,13 +242,13 @@ describe('scope, disclaimers, and restrained claims', () => {
     )
   })
 
-  test('the pricing note anchors verification to the displayed linked prices', () => {
+  test('the pricing note still anchors the comparison to the displayed linked prices', () => {
     const joined = GLM53_API_EVIDENCE_KEYS.join(' | ')
     assert.ok(
       joined.includes(
         'USD per 1M tokens, verified against the linked OpenRouter prices displayed on August 28, 2026. Vancine live pricing is authoritative.'
       ),
-      'the pricing note must cite the displayed linked OpenRouter prices'
+      'the pricing note must still cite the displayed linked OpenRouter prices'
     )
     assert.ok(
       !joined.includes(

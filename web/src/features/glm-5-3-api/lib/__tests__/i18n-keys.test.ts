@@ -32,7 +32,6 @@ import {
   GLM53_API_EVIDENCE_KEYS,
   GLM53_API_FAQ,
   GLM53_API_MODEL_CARDS,
-  GLM53_API_PRICING_DISCLAIMER_KEYS,
 } from '../glm-5-3-api'
 
 /**
@@ -79,7 +78,6 @@ function isPlaceholderLike(value: string): boolean {
 const DYNAMIC_CONFIG_KEYS = [
   ...GLM53_API_FAQ.flatMap((entry) => [entry.questionKey, entry.answerKey]),
   ...GLM53_API_MODEL_CARDS.flatMap((card) => [card.titleKey, card.bodyKey]),
-  ...GLM53_API_PRICING_DISCLAIMER_KEYS,
 ]
 
 describe('glm-5-3-api locale completeness', () => {

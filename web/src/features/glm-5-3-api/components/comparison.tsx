@@ -26,11 +26,7 @@ import {
   type LandingPricingState,
 } from '@/features/landing-pricing'
 
-import {
-  formatGlm53Usd,
-  GLM53_API_COMPARISON_ROWS,
-  GLM53_API_PRICING_DISCLAIMER_KEYS,
-} from '../lib/glm-5-3-api'
+import { formatGlm53Usd, GLM53_API_COMPARISON_ROWS } from '../lib/glm-5-3-api'
 
 const DIMENSIONS = [
   {
@@ -223,20 +219,11 @@ export function Comparison(props: {
           </table>
         </div>
 
-        <dl className='text-muted-foreground mt-6 space-y-2 text-xs md:text-sm'>
-          <div>
-            <dd>
-              {t(
-                'Vancine is 20% lower than the linked OpenRouter prices currently displayed for these two models.'
-              )}
-            </dd>
-          </div>
-          {GLM53_API_PRICING_DISCLAIMER_KEYS.map((key) => (
-            <div key={key}>
-              <dd>{t(key)}</dd>
-            </div>
-          ))}
-        </dl>
+        <p className='text-muted-foreground mt-6 text-xs md:text-sm'>
+          {t(
+            'Vancine is 20% lower than the linked OpenRouter prices currently displayed for these two models.'
+          )}
+        </p>
       </div>
     </section>
   )
