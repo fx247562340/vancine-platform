@@ -35,9 +35,9 @@ import {
 /**
  * Pure business contract tests for the /glm-api acquisition page.
  * Locked values:
- *   - the two model ids (glm-5.3, glm-5.3-flash) and six prices;
- *   - the exact 0.8 Vancine/OpenRouter ratio on all six figures with
- *     three-decimal display accuracy ($0.012 / $0.015 / $0.075);
+ *   - the two model ids (glm-5.3, glm-5.3-flash);
+ *   - dated OpenRouter reference prices with three-decimal display
+ *     accuracy ($0.012 / $0.015 / $0.075);
  *   - source URLs, verification date, and the mandatory disclaimer;
  *   - seven-language metadata with byte-identical English vs. Go server
  *     metadata (router/web_metadata.go /glm-api entry);
@@ -169,7 +169,7 @@ describe('canonical and metadata', () => {
   })
 })
 
-describe('price comparison — two models, three dimensions, 0.8 ratio', () => {
+describe('price comparison — two models, three OpenRouter dimensions', () => {
   test('contains exactly the two approved model rows', () => {
     assert.deepEqual(
       GLM53_API_COMPARISON_ROWS.map((row) => row.modelId),
@@ -177,15 +177,12 @@ describe('price comparison — two models, three dimensions, 0.8 ratio', () => {
     )
   })
 
-  test('the six published prices match exactly', () => {
+  test('static rows keep OpenRouter reference prices and omit Vancine amounts', () => {
     const byId = new Map(
       GLM53_API_COMPARISON_ROWS.map((row) => [row.modelId, row])
     )
     assert.deepEqual(byId.get('glm-5.3'), {
       modelId: 'glm-5.3',
-      vancineInputUsd: 1.12,
-      vancineOutputUsd: 3.52,
-      vancineCacheReadUsd: 0.208,
       openrouterInputUsd: 1.4,
       openrouterOutputUsd: 4.4,
       openrouterCacheReadUsd: 0.26,
@@ -193,34 +190,11 @@ describe('price comparison — two models, three dimensions, 0.8 ratio', () => {
     })
     assert.deepEqual(byId.get('glm-5.3-flash'), {
       modelId: 'glm-5.3-flash',
-      vancineInputUsd: 0.06,
-      vancineOutputUsd: 0.2,
-      vancineCacheReadUsd: 0.012,
       openrouterInputUsd: 0.075,
       openrouterOutputUsd: 0.25,
       openrouterCacheReadUsd: 0.015,
       openrouterSourceUrl: 'https://openrouter.ai/z-ai/glm-5.3-flash',
     })
-  })
-
-  test('all six Vancine/OpenRouter ratios are exactly 0.8', () => {
-    for (const row of GLM53_API_COMPARISON_ROWS) {
-      const pairs: ReadonlyArray<[number, number, string]> = [
-        [row.vancineInputUsd, row.openrouterInputUsd, 'input'],
-        [row.vancineOutputUsd, row.openrouterOutputUsd, 'output'],
-        [row.vancineCacheReadUsd, row.openrouterCacheReadUsd, 'cache read'],
-      ]
-      for (const [vancine, openrouter, dimension] of pairs) {
-        // Compare in integer thousandths of a dollar to avoid float dust:
-        // 1.12/1.40 = 0.8 exactly in fixed point.
-        const ratioMilli =
-          Math.round(vancine * 100000) / Math.round(openrouter * 100000)
-        assert.ok(
-          Math.abs(ratioMilli - 0.8) < 1e-9,
-          `${row.modelId} ${dimension}: $${vancine}/$${openrouter} must equal 0.8`
-        )
-      }
-    }
   })
 
   test('three-decimal display formatting never rounds away precision', () => {

@@ -31,6 +31,7 @@ import {
   cleanup,
   render,
   screen,
+  waitFor,
   type RenderResult,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -44,6 +45,7 @@ import {
   GLM53_API_EVIDENCE_KEYS,
   getGlm53ApiPageMetadata,
 } from '@/features/glm-5-3-api/lib/glm-5-3-api'
+import type { PricingData, PricingModel } from '@/features/pricing/types'
 import {
   isPublicMarketingMetadataActive,
   resetMetadataRegistry,
@@ -116,6 +118,11 @@ vi.mock('@/lib/analytics', () => ({
 
 const trackEventMock = trackEvent as ReturnType<typeof vi.fn>
 
+const getPricingMock = vi.fn()
+vi.mock('@/features/pricing/api', () => ({
+  getPricing: (...args: unknown[]) => getPricingMock(...args),
+}))
+
 // Build a real router around the ACTUAL glm-api route module so the
 // page renders exactly as wired in routeTree.gen.ts, plus the real
 // /openrouter-alternative page for the internal-link contract.
@@ -146,7 +153,51 @@ const testRouteTree = testRootRoute.addChildren([
   stubRoute('/openrouter-alternative', 'openrouter-alternative-page'),
 ])
 
-function renderPage(initialPath = '/glm-api/'): RenderResult {
+function tokenModel(
+  overrides: Partial<PricingModel> & Pick<PricingModel, 'model_name'>
+): PricingModel {
+  return {
+    id: 1,
+    quota_type: 0,
+    model_ratio: 1,
+    completion_ratio: 1,
+    enable_groups: ['default'],
+    group_ratio: { default: 1 },
+    ...overrides,
+  }
+}
+
+function fixturePricing(models: PricingModel[]): PricingData {
+  return {
+    success: true,
+    data: models,
+    vendors: [],
+    group_ratio: { default: 1 },
+    usable_group: { default: { desc: 'default', ratio: 1 } },
+    supported_endpoint: {},
+    auto_groups: [],
+  }
+}
+
+const GLM_LIVE_MODELS: PricingModel[] = [
+  tokenModel({
+    id: 1,
+    model_name: 'glm-5.3',
+    model_ratio: 37.5,
+    completion_ratio: 1,
+  }),
+  tokenModel({
+    id: 2,
+    model_name: 'glm-5.3-flash',
+    model_ratio: 2,
+    completion_ratio: 2,
+    cache_ratio: 0.1,
+  }),
+]
+
+function renderPage(initialPath = '/glm-api/'): RenderResult & {
+  queryClient: QueryClient
+} {
   const router = createRouter({
     routeTree: testRouteTree,
     history: createMemoryHistory({ initialEntries: [initialPath] }),
@@ -154,13 +205,14 @@ function renderPage(initialPath = '/glm-api/'): RenderResult {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   })
-  return render(
+  const result = render(
     <I18nextProvider i18n={testI18n}>
       <QueryClientProvider client={queryClient}>
         <RouterProvider router={router} />
       </QueryClientProvider>
     </I18nextProvider>
   )
+  return Object.assign(result, { queryClient })
 }
 
 function setAuthenticated(isAuthenticated: boolean): void {
@@ -180,6 +232,8 @@ beforeEach(async () => {
   await ensureI18n()
   setAuthenticated(false)
   trackEventMock.mockClear()
+  getPricingMock.mockReset()
+  getPricingMock.mockResolvedValue(fixturePricing(GLM_LIVE_MODELS))
   actResetMetadata()
 })
 
@@ -251,12 +305,20 @@ describe('price comparison table and mobile cards', () => {
   // OpenRouter from the table's own structure — no unlabeled "$x / $y"
   // cells and no reliance on a legend outside the table.
   const EXPECTED_ROWS = [
-    ['glm-5.3', 'Input', '$1.12', '$1.40'],
-    ['glm-5.3', 'Output', '$3.52', '$4.40'],
-    ['glm-5.3', 'Cache read', '$0.208', '$0.26'],
-    ['glm-5.3-flash', 'Input', '$0.06', '$0.075'],
-    ['glm-5.3-flash', 'Output', '$0.20', '$0.25'],
-    ['glm-5.3-flash', 'Cache read', '$0.012', '$0.015'],
+    ['glm-5.3', 'Input', '$75.00', '$1.40'],
+    ['glm-5.3', 'Output', '$75.00', '$4.40'],
+    ['glm-5.3', 'Cache read', '—', '$0.26'],
+    ['glm-5.3-flash', 'Input', '$4.00', '$0.075'],
+    ['glm-5.3-flash', 'Output', '$8.00', '$0.25'],
+    ['glm-5.3-flash', 'Cache read', '$0.40', '$0.015'],
+  ] as const
+  const RETIRED_VANCINE_PRICES = [
+    '$1.12',
+    '$3.52',
+    '$0.208',
+    '$0.06',
+    '$0.20',
+    '$0.012',
   ] as const
 
   it('names attribution columns so no amount depends on an external legend', async () => {
@@ -284,6 +346,9 @@ describe('price comparison table and mobile cards', () => {
   it('renders one self-contained row per model × dimension with attributed amounts', async () => {
     renderPage()
     await screen.findByRole('heading', { level: 1 })
+    await waitFor(() => {
+      expect(document.body.textContent ?? '').toContain('$75.00')
+    })
 
     const table = (await screen.findByRole('table')) as HTMLTableElement
     const rows = [...table.querySelectorAll('tbody tr')]
@@ -315,6 +380,13 @@ describe('price comparison table and mobile cards', () => {
         /^https:\/\/openrouter\.ai\//
       )
     }
+
+    const tableText = table.textContent ?? ''
+    for (const retired of RETIRED_VANCINE_PRICES) {
+      expect(tableText).not.toContain(retired)
+    }
+    expect(tableText).toContain('—')
+    expect(tableText).not.toContain('$0.00')
   })
 
   it('mobile cards attribute every dimension amount to Vancine, OpenRouter and Saving separately', async () => {
@@ -388,6 +460,30 @@ describe('price comparison table and mobile cards', () => {
     for (const card of cards) {
       expect(card.textContent).toMatch(/20\s*%/)
     }
+  })
+
+  it('does not fall back to retired static Vancine prices when /api/pricing fails', async () => {
+    getPricingMock.mockRejectedValue(new Error('pricing down'))
+    renderPage()
+    await screen.findByRole('heading', { level: 1 })
+    await waitFor(() => {
+      expect(document.body.textContent ?? '').toContain('View live pricing')
+    })
+    const text = document.body.textContent ?? ''
+    for (const retired of RETIRED_VANCINE_PRICES) {
+      expect(text).not.toContain(retired)
+    }
+    expect(text).toMatch(/20\s*%/)
+  })
+
+  it('uses a single pricing query for the page', async () => {
+    const { queryClient } = renderPage()
+    await waitFor(() => {
+      expect(document.body.textContent ?? '').toContain('$75.00')
+    })
+    expect(
+      queryClient.getQueryCache().findAll({ queryKey: ['pricing'] })
+    ).toHaveLength(1)
   })
 })
 

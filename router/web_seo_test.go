@@ -253,13 +253,13 @@ var seoPublicRouteCases = []seoPublicRouteCase{
 	{
 		path:                 "/kimi-k3-api",
 		wantTitle:            "Kimi K3 API Pricing & OpenRouter Comparison | Vancine",
-		wantDescription:      "Kimi K3 API from $2.40 input and $12.00 output per 1M tokens—20% below the OpenRouter Models API standard price as of September 9, 2026. Compare pricing, code, and test evidence.",
+		wantDescription:      "See live Vancine pricing for Kimi K3. Vancine is offered at a fixed 20% discount to the referenced OpenRouter Models API standard price as of September 9, 2026. Compare pricing, code, and test evidence.",
 		wantCanonical:        "https://vancine.com/kimi-k3-api",
 		wantOGTitle:          "Kimi K3 API Pricing & OpenRouter Comparison",
-		wantOGDescription:    "Kimi K3 API from $2.40 input and $12.00 output per 1M tokens—20% below the OpenRouter Models API standard price as of September 9, 2026. Compare pricing, code, and test evidence.",
+		wantOGDescription:    "See live Vancine pricing for Kimi K3. Vancine is offered at a fixed 20% discount to the referenced OpenRouter Models API standard price as of September 9, 2026. Compare pricing, code, and test evidence.",
 		wantOGURL:            "https://vancine.com/kimi-k3-api",
 		wantTwitterTitle:     "Kimi K3 API Pricing & OpenRouter Comparison",
-		wantTwitterDesc:      "Kimi K3 API from $2.40 input and $12.00 output per 1M tokens—20% below the OpenRouter Models API standard price as of September 9, 2026. Compare pricing, code, and test evidence.",
+		wantTwitterDesc:      "See live Vancine pricing for Kimi K3. Vancine is offered at a fixed 20% discount to the referenced OpenRouter Models API standard price as of September 9, 2026. Compare pricing, code, and test evidence.",
 		wantTwitterCardValue: "summary",
 	},
 	{

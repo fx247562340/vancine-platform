@@ -23,6 +23,10 @@ import type { ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
+import {
+  VancineLivePrice,
+  type LandingModelPrice,
+} from '@/features/landing-pricing'
 import { trackEvent } from '@/lib/analytics'
 import { cn } from '@/lib/utils'
 
@@ -34,12 +38,14 @@ import {
   KIMI_K3_PRICE_PROVIDERS,
   KIMI_K3_PRICE_UNIT_KEY,
   KIMI_K3_PRICING_SECTION_ID,
+  type KimiK3PriceProvider,
 } from '../lib/landing'
 
 export interface HeroProps {
   isAuthenticated: boolean
   /** The raw query string of the landing page URL. */
   search: string
+  vancinePrice: LandingModelPrice
 }
 
 /**
@@ -51,7 +57,21 @@ const HERO_PRICE_ROWS = [
   { provider: KIMI_K3_PRICE_PROVIDERS[1], reference: true },
 ] as const
 
-function HeroPriceCard(): ReactElement {
+function providerAmount(
+  provider: KimiK3PriceProvider,
+  field: 'input' | 'output',
+  vancinePrice: LandingModelPrice
+): ReactElement {
+  if (provider.id === 'vancine') {
+    return <VancineLivePrice price={vancinePrice} field={field} />
+  }
+  const amount = field === 'input' ? provider.inputUsd : provider.outputUsd
+  return <>{formatKimiK3Usd(amount)}</>
+}
+
+function HeroPriceCard(props: {
+  vancinePrice: LandingModelPrice
+}): ReactElement {
   const { t } = useTranslation()
 
   return (
@@ -76,8 +96,14 @@ function HeroPriceCard(): ReactElement {
               {t(provider.nameKey)}
             </dt>
             <dd className='text-right tabular-nums'>
-              <span className='block'>{`${t('Input')} ${formatKimiK3Usd(provider.inputUsd)}`}</span>
-              <span className='block'>{`${t('Output')} ${formatKimiK3Usd(provider.outputUsd)}`}</span>
+              <span className='block'>
+                {t('Input')}{' '}
+                {providerAmount(provider, 'input', props.vancinePrice)}
+              </span>
+              <span className='block'>
+                {t('Output')}{' '}
+                {providerAmount(provider, 'output', props.vancinePrice)}
+              </span>
             </dd>
           </div>
         ))}
@@ -154,7 +180,7 @@ export function Hero(props: HeroProps): ReactElement {
             </Button>
           </div>
         </div>
-        <HeroPriceCard />
+        <HeroPriceCard vancinePrice={props.vancinePrice} />
       </div>
     </section>
   )

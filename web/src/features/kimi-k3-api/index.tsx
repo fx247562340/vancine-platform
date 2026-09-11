@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next'
 
 import { PublicLayout } from '@/components/layout'
 import { Footer } from '@/components/layout/components/footer'
+import { useLandingPricing } from '@/features/landing-pricing'
 import { usePageMetadata } from '@/hooks/use-page-metadata'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -32,7 +33,7 @@ import { Faq } from './components/faq'
 import { FinalCta } from './components/final-cta'
 import { Hero } from './components/hero'
 import { Quickstart } from './components/quickstart'
-import { getKimiK3PageMetadata } from './lib/landing'
+import { getKimiK3PageMetadata, KIMI_K3_MODEL_ID } from './lib/landing'
 
 /**
  * Public developer landing page for the Kimi K3 model. Composes the shared
@@ -54,12 +55,18 @@ export function KimiK3ApiPage(): ReactElement {
   // `publicMarketingPage: true` flag prevents the system branding
   // bootstrap in main.tsx from overwriting the route-level title.
   usePageMetadata(metadata, { publicMarketingPage: true })
+  const landingPricing = useLandingPricing()
+  const vancinePrice = landingPricing.resolve(KIMI_K3_MODEL_ID)
 
   return (
     <PublicLayout showMainContainer={false}>
       <main className='flex flex-1 flex-col'>
-        <Hero isAuthenticated={isAuthenticated} search={search} />
-        <Availability />
+        <Hero
+          isAuthenticated={isAuthenticated}
+          search={search}
+          vancinePrice={vancinePrice}
+        />
+        <Availability vancinePrice={vancinePrice} />
         <Evidence />
         <Quickstart isAuthenticated={isAuthenticated} search={search} />
         <AgentCompatibility />

@@ -184,55 +184,30 @@ describe('comparison table — model rows and 20% savings', () => {
     )
   })
 
-  test('every Vancine price is exactly 20% lower than OpenRouter (input and output)', () => {
-    for (const row of OPENROUTER_ALTERNATIVE_COMPARISON_ROWS) {
-      const expectedInput = +(row.openrouterInputUsd * 0.8).toFixed(2)
-      const expectedOutput = +(row.openrouterOutputUsd * 0.8).toFixed(2)
-      assert.equal(
-        row.vancineInputUsd,
-        expectedInput,
-        `${row.modelId} input: Vancine $${row.vancineInputUsd} must be 20% lower than OpenRouter $${row.openrouterInputUsd} ($${expectedInput})`
-      )
-      assert.equal(
-        row.vancineOutputUsd,
-        expectedOutput,
-        `${row.modelId} output: Vancine $${row.vancineOutputUsd} must be 20% lower than OpenRouter $${row.openrouterOutputUsd} ($${expectedOutput})`
-      )
-    }
-  })
-
-  test('comparison rows keep the exact published prices', () => {
+  test('static rows keep OpenRouter reference prices and omit Vancine amounts', () => {
     const byId = new Map(
       OPENROUTER_ALTERNATIVE_COMPARISON_ROWS.map((row) => [row.modelId, row])
     )
     assert.deepEqual(byId.get('qwen3.8-max'), {
       modelId: 'qwen3.8-max',
-      vancineInputUsd: 1.6,
-      vancineOutputUsd: 4.8,
       openrouterInputUsd: 2.0,
       openrouterOutputUsd: 6.0,
       openrouterSourceUrl: OPENROUTER_ALTERNATIVE_MODELS_API_URL,
     })
     assert.deepEqual(byId.get('kimi-k3'), {
       modelId: 'kimi-k3',
-      vancineInputUsd: 2.4,
-      vancineOutputUsd: 12.0,
       openrouterInputUsd: 3.0,
       openrouterOutputUsd: 15.0,
       openrouterSourceUrl: OPENROUTER_ALTERNATIVE_MODELS_API_URL,
     })
     assert.deepEqual(byId.get('glm-5.3'), {
       modelId: 'glm-5.3',
-      vancineInputUsd: 1.12,
-      vancineOutputUsd: 3.52,
       openrouterInputUsd: 1.4,
       openrouterOutputUsd: 4.4,
       openrouterSourceUrl: OPENROUTER_ALTERNATIVE_MODELS_API_URL,
     })
     assert.deepEqual(byId.get('MiniMax-M3'), {
       modelId: 'MiniMax-M3',
-      vancineInputUsd: 0.24,
-      vancineOutputUsd: 0.96,
       openrouterInputUsd: 0.3,
       openrouterOutputUsd: 1.2,
       openrouterSourceUrl: OPENROUTER_ALTERNATIVE_MODELS_API_URL,

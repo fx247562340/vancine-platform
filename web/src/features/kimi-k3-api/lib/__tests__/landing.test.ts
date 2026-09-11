@@ -146,7 +146,7 @@ describe('page metadata', () => {
     )
     assert.equal(
       metadata.description,
-      'Kimi K3 API from $2.40 input and $12.00 output per 1M tokens—20% below the OpenRouter Models API standard price as of September 9, 2026. Compare pricing, code, and test evidence.'
+      'See live Vancine pricing for Kimi K3. Vancine is offered at a fixed 20% discount to the referenced OpenRouter Models API standard price as of September 9, 2026. Compare pricing, code, and test evidence.'
     )
     assert.equal(
       metadata.ogTitle,

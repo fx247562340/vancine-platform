@@ -30,11 +30,6 @@ import {
   KIMI_K3_VANCINE_PRICING_PATH,
 } from '../landing'
 
-/** Integer percent by which the Vancine price is below a comparator. */
-function lowerPercent(vancineUsd: number, comparatorUsd: number): number {
-  return Math.round(((comparatorUsd - vancineUsd) / comparatorUsd) * 100)
-}
-
 describe('Kimi K3 dated public price snapshot', () => {
   const [vancine, openrouter, official] = KIMI_K3_PRICE_PROVIDERS
 
@@ -49,10 +44,8 @@ describe('Kimi K3 dated public price snapshot', () => {
     )
   })
 
-  test('pins the 2026-09-09 snapshot prices', () => {
+  test('keeps dated OpenRouter and Kimi official snapshot prices', () => {
     expect(vancine.id).toBe('vancine')
-    expect(vancine.inputUsd).toBe(2.4)
-    expect(vancine.outputUsd).toBe(12)
     expect(openrouter.id).toBe('openrouter')
     expect(openrouter.inputUsd).toBe(3)
     expect(openrouter.outputUsd).toBe(15)
@@ -62,21 +55,10 @@ describe('Kimi K3 dated public price snapshot', () => {
     expect(KIMI_K3_PRICE_UNIT_KEY).toBe('USD per 1M tokens')
   })
 
-  test('Vancine is exactly OpenRouter × 0.8 on input and output', () => {
-    expect(vancine.inputUsd).toBeCloseTo(openrouter.inputUsd * 0.8, 10)
-    expect(vancine.outputUsd).toBeCloseTo(openrouter.outputUsd * 0.8, 10)
-    expect(lowerPercent(vancine.inputUsd, openrouter.inputUsd)).toBe(20)
-    expect(lowerPercent(vancine.outputUsd, openrouter.outputUsd)).toBe(20)
+  test('keeps the fixed 20% marketing copy without computing a discount from live prices', () => {
     expect(openrouter.differenceKey).toBe(
       'Vancine is 20% lower on both input and output'
     )
-  })
-
-  test('Vancine is exactly Kimi official × 0.8 on input and output', () => {
-    expect(vancine.inputUsd).toBeCloseTo(official.inputUsd * 0.8, 10)
-    expect(vancine.outputUsd).toBeCloseTo(official.outputUsd * 0.8, 10)
-    expect(lowerPercent(vancine.inputUsd, official.inputUsd)).toBe(20)
-    expect(lowerPercent(vancine.outputUsd, official.outputUsd)).toBe(20)
     expect(official.differenceKey).toBe(
       'Vancine is 20% lower on both input and output'
     )
@@ -139,18 +121,19 @@ describe('Kimi K3 dated public price snapshot', () => {
     expect(joined).not.toMatch(/September 8, 2026/)
   })
 
-  test('FAQ and metadata use the same snapshot and do not revive retired prices', () => {
+  test('FAQ and metadata do not claim a hardcoded Vancine live price', () => {
     const comparison = KIMI_K3_FAQ.find((entry) =>
       entry.questionKey.includes('Kimi official and OpenRouter')
     )
     expect(comparison).toBeDefined()
     const answer = comparison?.answerKey ?? ''
-    expect(answer).toMatch(/\$2\.40/)
-    expect(answer).toMatch(/\$12\.00/)
+    expect(answer).toMatch(/See live Vancine pricing for Kimi K3/)
+    expect(answer).toMatch(/fixed 20% discount/)
     expect(answer).toMatch(/\$3\.00 \/ \$15\.00/)
-    expect(answer).toMatch(/OpenRouter Models API standard price/)
+    expect(answer).toMatch(/OpenRouter standard API pricing/)
     expect(answer).toMatch(/September 9, 2026/)
-    expect(answer).toMatch(/20% below both/)
+    expect(answer).not.toMatch(/Vancine lists \$2\.40/)
+    expect(answer).not.toMatch(/\$12\.00 output/)
     for (const retired of [
       /\$2\.00/,
       /\$11\.20/,
@@ -164,11 +147,12 @@ describe('Kimi K3 dated public price snapshot', () => {
     }
 
     const metadata = getKimiK3PageMetadata('en')
-    expect(metadata.description).toMatch(/\$2\.40/)
-    expect(metadata.description).toMatch(/\$12\.00/)
+    expect(metadata.description).toMatch(/See live Vancine pricing for Kimi K3/)
+    expect(metadata.description).toMatch(/fixed 20% discount/)
     expect(metadata.description).toMatch(/OpenRouter Models API standard price/)
-    expect(metadata.description).toMatch(/20% below/)
     expect(metadata.description).toMatch(/September 9, 2026/)
+    expect(metadata.description).not.toMatch(/\$2\.40/)
+    expect(metadata.description).not.toMatch(/\$12\.00/)
     for (const retired of [
       /\$2\.00/,
       /\$11\.20/,

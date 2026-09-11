@@ -30,6 +30,7 @@ import {
   cleanup,
   render,
   screen,
+  waitFor,
   within,
   type RenderResult,
 } from '@testing-library/react'
@@ -39,6 +40,7 @@ import type { ReactNode } from 'react'
 import { I18nextProvider, initReactI18next } from 'react-i18next'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { PricingData, PricingModel } from '@/features/pricing/types'
 import enLocale from '@/i18n/locales/en.json'
 import { trackEvent } from '@/lib/analytics'
 import { Route as OpenRouterAlternativeRouteImport } from '@/routes/openrouter-alternative/index'
@@ -107,6 +109,11 @@ vi.mock('@/lib/analytics', () => ({
 
 const trackEventMock = trackEvent as ReturnType<typeof vi.fn>
 
+const getPricingMock = vi.fn()
+vi.mock('@/features/pricing/api', () => ({
+  getPricing: (...args: unknown[]) => getPricingMock(...args),
+}))
+
 // Build a real router around the ACTUAL openrouter-alternative route
 // module so the page renders exactly as wired in routeTree.gen.ts, with
 // stub destinations for every internal link target.
@@ -133,7 +140,62 @@ const testRouteTree = testRootRoute.addChildren([
   stubRoute('/docs/$slug', 'docs-page'),
 ])
 
-function renderPage(initialPath = '/openrouter-alternative/'): RenderResult {
+function tokenModel(
+  overrides: Partial<PricingModel> & Pick<PricingModel, 'model_name'>
+): PricingModel {
+  return {
+    id: 1,
+    quota_type: 0,
+    model_ratio: 1,
+    completion_ratio: 1,
+    enable_groups: ['default'],
+    group_ratio: { default: 1 },
+    ...overrides,
+  }
+}
+
+function fixturePricing(models: PricingModel[]): PricingData {
+  return {
+    success: true,
+    data: models,
+    vendors: [],
+    group_ratio: { default: 1 },
+    usable_group: { default: { desc: 'default', ratio: 1 } },
+    supported_endpoint: {},
+    auto_groups: [],
+  }
+}
+
+const LIVE_COMPARISON_MODELS: PricingModel[] = [
+  tokenModel({
+    id: 1,
+    model_name: 'qwen3.8-max',
+    model_ratio: 10,
+    completion_ratio: 3,
+  }),
+  tokenModel({
+    id: 2,
+    model_name: 'kimi-k3',
+    model_ratio: 5,
+    completion_ratio: 2,
+  }),
+  tokenModel({
+    id: 3,
+    model_name: 'glm-5.3',
+    model_ratio: 37.5,
+    completion_ratio: 1,
+  }),
+  tokenModel({
+    id: 4,
+    model_name: 'MiniMax-M3',
+    model_ratio: 0.5,
+    completion_ratio: 2,
+  }),
+]
+
+function renderPage(initialPath = '/openrouter-alternative/'): RenderResult & {
+  queryClient: QueryClient
+} {
   const router = createRouter({
     routeTree: testRouteTree,
     history: createMemoryHistory({ initialEntries: [initialPath] }),
@@ -141,13 +203,14 @@ function renderPage(initialPath = '/openrouter-alternative/'): RenderResult {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   })
-  return render(
+  const result = render(
     <I18nextProvider i18n={testI18n}>
       <QueryClientProvider client={queryClient}>
         <RouterProvider router={router} />
       </QueryClientProvider>
     </I18nextProvider>
   )
+  return Object.assign(result, { queryClient })
 }
 
 function setAuthenticated(isAuthenticated: boolean): void {
@@ -167,6 +230,8 @@ beforeEach(async () => {
   await ensureI18n()
   setAuthenticated(false)
   trackEventMock.mockClear()
+  getPricingMock.mockReset()
+  getPricingMock.mockResolvedValue(fixturePricing(LIVE_COMPARISON_MODELS))
 })
 
 afterEach(() => {
@@ -229,6 +294,10 @@ describe('price comparison table', () => {
 
     // Each row is asserted by its full row text so the test does not lock
     // the cell ordering or the saving-percentage presentation.
+    await waitFor(() => {
+      expect(table.textContent).toContain('$20.00 / $60.00')
+    })
+
     const expected: ReadonlyArray<{
       model: string
       vancine: string
@@ -236,22 +305,22 @@ describe('price comparison table', () => {
     }> = [
       {
         model: 'qwen3.8-max',
-        vancine: '$1.60 / $4.80',
+        vancine: '$20.00 / $60.00',
         openrouter: '$2.00 / $6.00',
       },
       {
         model: 'kimi-k3',
-        vancine: '$2.40 / $12.00',
+        vancine: '$10.00 / $20.00',
         openrouter: '$3.00 / $15.00',
       },
       {
         model: 'glm-5.3',
-        vancine: '$1.12 / $3.52',
-        openrouter: '$1.40 / $4.4',
+        vancine: '$75.00 / $75.00',
+        openrouter: '$1.40 / $4.40',
       },
       {
         model: 'MiniMax-M3',
-        vancine: '$0.24 / $0.96',
+        vancine: '$1.00 / $2.00',
         openrouter: '$0.30 / $1.20',
       },
     ]
@@ -265,6 +334,72 @@ describe('price comparison table', () => {
       // Every row shows a saving of 20%.
       expect(rowText).toMatch(/20\s*%/)
     }
+    const tableText = table.textContent ?? ''
+    for (const retired of [
+      '$1.60 / $4.80',
+      '$2.40 / $12.00',
+      '$1.12 / $3.52',
+      '$0.24 / $0.96',
+    ]) {
+      expect(tableText).not.toContain(retired)
+    }
+  })
+
+  it('keeps other models live when one model is missing from /api/pricing', async () => {
+    getPricingMock.mockResolvedValue(
+      fixturePricing(
+        LIVE_COMPARISON_MODELS.filter(
+          (model) => model.model_name !== 'MiniMax-M3'
+        )
+      )
+    )
+    await renderPage()
+    await screen.findByRole('heading', { level: 1 })
+    const table = await screen.findByRole('table')
+    await waitFor(() => {
+      expect(table.textContent).toContain('$20.00 / $60.00')
+    })
+    expect(table.textContent).toContain('$10.00 / $20.00')
+    expect(table.textContent).toContain('$75.00 / $75.00')
+    expect(table.textContent).toContain('MiniMax-M3')
+    expect(table.textContent).toContain('View live pricing')
+    expect(table.textContent).not.toContain('$0.24 / $0.96')
+    expect(table.textContent).not.toContain('$1.00 / $2.00')
+  })
+
+  it('does not show retired static Vancine prices when /api/pricing fails', async () => {
+    getPricingMock.mockRejectedValue(new Error('pricing down'))
+    await renderPage()
+    await screen.findByRole('heading', { level: 1 })
+    const table = await screen.findByRole('table')
+    await waitFor(() => {
+      expect(table.textContent).toContain('View live pricing')
+    })
+    const tableText = table.textContent ?? ''
+    for (const retired of [
+      '$1.60',
+      '$4.80',
+      '$2.40',
+      '$12.00',
+      '$1.12',
+      '$3.52',
+      '$0.24',
+      '$0.96',
+    ]) {
+      expect(tableText).not.toContain(retired)
+    }
+    expect(tableText).toMatch(/20\s*%/)
+    expect(tableText).toContain('$2.00 / $6.00')
+  })
+
+  it('uses a single pricing query for the page', async () => {
+    const { queryClient } = await renderPage()
+    await waitFor(() => {
+      expect(document.body.textContent ?? '').toContain('$20.00 / $60.00')
+    })
+    expect(
+      queryClient.getQueryCache().findAll({ queryKey: ['pricing'] })
+    ).toHaveLength(1)
   })
 
   it('points every OpenRouter source link at the Models API evidence URL', async () => {

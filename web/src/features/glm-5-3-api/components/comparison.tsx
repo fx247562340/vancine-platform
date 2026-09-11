@@ -22,6 +22,11 @@ import type { ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
+  VancineLivePrice,
+  type LandingPricingState,
+} from '@/features/landing-pricing'
+
+import {
   formatGlm53Usd,
   GLM53_API_COMPARISON_ROWS,
   GLM53_API_PRICING_DISCLAIMER_KEYS,
@@ -30,17 +35,17 @@ import {
 const DIMENSIONS = [
   {
     key: 'Input',
-    vancineField: 'vancineInputUsd',
+    vancineField: 'input',
     openrouterField: 'openrouterInputUsd',
   },
   {
     key: 'Output',
-    vancineField: 'vancineOutputUsd',
+    vancineField: 'output',
     openrouterField: 'openrouterOutputUsd',
   },
   {
     key: 'Cache read',
-    vancineField: 'vancineCacheReadUsd',
+    vancineField: 'cache',
     openrouterField: 'openrouterCacheReadUsd',
   },
 ] as const
@@ -56,7 +61,9 @@ const DIMENSIONS = [
  * screen reader to tell the two prices apart. The mobile cards apply
  * the same rule per dimension block.
  */
-export function Comparison(): ReactElement {
+export function Comparison(props: {
+  landingPricing: LandingPricingState
+}): ReactElement {
   const { t } = useTranslation()
 
   const renderSourceLink = (
@@ -119,7 +126,10 @@ export function Comparison(): ReactElement {
                             {t('Vancine')}
                           </dt>
                           <dd className='text-right font-medium tabular-nums'>
-                            {formatGlm53Usd(row[dim.vancineField])}
+                            <VancineLivePrice
+                              price={props.landingPricing.resolve(row.modelId)}
+                              field={dim.vancineField}
+                            />
                           </dd>
                           <dt className='text-muted-foreground'>
                             {t('OpenRouter')}
@@ -192,7 +202,10 @@ export function Comparison(): ReactElement {
                     </th>
                     <td className='px-4 py-3 text-left'>{t(dim.key)}</td>
                     <td className='px-4 py-3 text-right font-medium tabular-nums'>
-                      {formatGlm53Usd(row[dim.vancineField])}
+                      <VancineLivePrice
+                        price={props.landingPricing.resolve(row.modelId)}
+                        field={dim.vancineField}
+                      />
                     </td>
                     <td className='text-muted-foreground px-4 py-3 text-right tabular-nums'>
                       {formatGlm53Usd(row[dim.openrouterField])}

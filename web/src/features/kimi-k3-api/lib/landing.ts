@@ -171,79 +171,79 @@ const KIMI_K3_METADATA: Record<InterfaceLanguageCode, KimiK3LanguageMetadata> =
     en: {
       title: 'Kimi K3 API Pricing & OpenRouter Comparison | Vancine',
       description:
-        'Kimi K3 API from $2.40 input and $12.00 output per 1M tokens—20% below the OpenRouter Models API standard price as of September 9, 2026. Compare pricing, code, and test evidence.',
+        'See live Vancine pricing for Kimi K3. Vancine is offered at a fixed 20% discount to the referenced OpenRouter Models API standard price as of September 9, 2026. Compare pricing, code, and test evidence.',
       ogTitle: 'Kimi K3 API Pricing & OpenRouter Comparison',
       ogDescription:
-        'Kimi K3 API from $2.40 input and $12.00 output per 1M tokens—20% below the OpenRouter Models API standard price as of September 9, 2026. Compare pricing, code, and test evidence.',
+        'See live Vancine pricing for Kimi K3. Vancine is offered at a fixed 20% discount to the referenced OpenRouter Models API standard price as of September 9, 2026. Compare pricing, code, and test evidence.',
       twitterTitle: 'Kimi K3 API Pricing & OpenRouter Comparison',
       twitterDescription:
-        'Kimi K3 API from $2.40 input and $12.00 output per 1M tokens—20% below the OpenRouter Models API standard price as of September 9, 2026. Compare pricing, code, and test evidence.',
+        'See live Vancine pricing for Kimi K3. Vancine is offered at a fixed 20% discount to the referenced OpenRouter Models API standard price as of September 9, 2026. Compare pricing, code, and test evidence.',
     },
     zhCN: {
       title: 'Kimi K3 API 价格与 OpenRouter 对比 | Vancine',
       description:
-        'Kimi K3 API 起价每 100 万 tokens 输入 $2.40、输出 $12.00——比 OpenRouter Models API 2026 年 9 月 9 日标准价格低 20%。可对比价格、代码与实测证据。',
+        '查看 Vancine 上 Kimi K3 的实时价格。Vancine 相对所引用的 OpenRouter Models API 标准价格固定优惠 20%（参考日期 2026 年 9 月 9 日）。可对比价格、代码与实测证据。',
       ogTitle: 'Kimi K3 API 价格与 OpenRouter 对比',
       ogDescription:
-        'Kimi K3 API 起价每 100 万 tokens 输入 $2.40、输出 $12.00——比 OpenRouter Models API 2026 年 9 月 9 日标准价格低 20%。可对比价格、代码与实测证据。',
+        '查看 Vancine 上 Kimi K3 的实时价格。Vancine 相对所引用的 OpenRouter Models API 标准价格固定优惠 20%（参考日期 2026 年 9 月 9 日）。可对比价格、代码与实测证据。',
       twitterTitle: 'Kimi K3 API 价格与 OpenRouter 对比',
       twitterDescription:
-        'Kimi K3 API 起价每 100 万 tokens 输入 $2.40、输出 $12.00——比 OpenRouter Models API 2026 年 9 月 9 日标准价格低 20%。可对比价格、代码与实测证据。',
+        '查看 Vancine 上 Kimi K3 的实时价格。Vancine 相对所引用的 OpenRouter Models API 标准价格固定优惠 20%（参考日期 2026 年 9 月 9 日）。可对比价格、代码与实测证据。',
     },
     zhTW: {
       title: 'Kimi K3 API 價格與 OpenRouter 對比 | Vancine',
       description:
-        'Kimi K3 API 起價每 100 萬 tokens 輸入 $2.40、輸出 $12.00——比 OpenRouter Models API 2026 年 9 月 9 日標準價格低 20%。可對比價格、程式碼與實測證據。',
+        '查看 Vancine 上 Kimi K3 的即時價格。Vancine 相對所引用的 OpenRouter Models API 標準價格固定優惠 20%（參考日期 2026 年 9 月 9 日）。可對比價格、程式碼與實測證據。',
       ogTitle: 'Kimi K3 API 價格與 OpenRouter 對比',
       ogDescription:
-        'Kimi K3 API 起價每 100 萬 tokens 輸入 $2.40、輸出 $12.00——比 OpenRouter Models API 2026 年 9 月 9 日標準價格低 20%。可對比價格、程式碼與實測證據。',
+        '查看 Vancine 上 Kimi K3 的即時價格。Vancine 相對所引用的 OpenRouter Models API 標準價格固定優惠 20%（參考日期 2026 年 9 月 9 日）。可對比價格、程式碼與實測證據。',
       twitterTitle: 'Kimi K3 API 價格與 OpenRouter 對比',
       twitterDescription:
-        'Kimi K3 API 起價每 100 萬 tokens 輸入 $2.40、輸出 $12.00——比 OpenRouter Models API 2026 年 9 月 9 日標準價格低 20%。可對比價格、程式碼與實測證據。',
+        '查看 Vancine 上 Kimi K3 的即時價格。Vancine 相對所引用的 OpenRouter Models API 標準價格固定優惠 20%（參考日期 2026 年 9 月 9 日）。可對比價格、程式碼與實測證據。',
     },
     fr: {
       title: "Tarifs de l'API Kimi K3 et comparaison OpenRouter | Vancine",
       description:
-        'API Kimi K3 dès 2,40 $ en entrée et 12,00 $ en sortie pour 1 M de tokens — 20 % sous le tarif standard OpenRouter Models API au 9 septembre 2026. Comparez les tarifs, le code et les preuves de test.',
+        'Consultez les tarifs Vancine en direct pour Kimi K3. Vancine est proposé avec une remise fixe de 20 % par rapport au tarif standard OpenRouter Models API au 9 septembre 2026. Comparez les tarifs, le code et les preuves de test.',
       ogTitle: "Tarifs de l'API Kimi K3 et comparaison OpenRouter",
       ogDescription:
-        'API Kimi K3 dès 2,40 $ en entrée et 12,00 $ en sortie pour 1 M de tokens — 20 % sous le tarif standard OpenRouter Models API au 9 septembre 2026. Comparez les tarifs, le code et les preuves de test.',
+        'Consultez les tarifs Vancine en direct pour Kimi K3. Vancine est proposé avec une remise fixe de 20 % par rapport au tarif standard OpenRouter Models API au 9 septembre 2026. Comparez les tarifs, le code et les preuves de test.',
       twitterTitle: "Tarifs de l'API Kimi K3 et comparaison OpenRouter",
       twitterDescription:
-        'API Kimi K3 dès 2,40 $ en entrée et 12,00 $ en sortie pour 1 M de tokens — 20 % sous le tarif standard OpenRouter Models API au 9 septembre 2026. Comparez les tarifs, le code et les preuves de test.',
+        'Consultez les tarifs Vancine en direct pour Kimi K3. Vancine est proposé avec une remise fixe de 20 % par rapport au tarif standard OpenRouter Models API au 9 septembre 2026. Comparez les tarifs, le code et les preuves de test.',
     },
     ru: {
       title: 'Цены API Kimi K3 и сравнение с OpenRouter | Vancine',
       description:
-        'API Kimi K3 от $2.40 за вход и $12.00 за выход на 1 млн токенов — на 20% ниже стандартной цены OpenRouter Models API на 9 сентября 2026 г. Сравните цены, код и результаты тестов.',
+        'Смотрите актуальные цены Vancine на Kimi K3. Vancine предлагается с фиксированной скидкой 20% относительно стандартной цены OpenRouter Models API на 9 сентября 2026 г. Сравните цены, код и результаты тестов.',
       ogTitle: 'Цены API Kimi K3 и сравнение с OpenRouter',
       ogDescription:
-        'API Kimi K3 от $2.40 за вход и $12.00 за выход на 1 млн токенов — на 20% ниже стандартной цены OpenRouter Models API на 9 сентября 2026 г. Сравните цены, код и результаты тестов.',
+        'Смотрите актуальные цены Vancine на Kimi K3. Vancine предлагается с фиксированной скидкой 20% относительно стандартной цены OpenRouter Models API на 9 сентября 2026 г. Сравните цены, код и результаты тестов.',
       twitterTitle: 'Цены API Kimi K3 и сравнение с OpenRouter',
       twitterDescription:
-        'API Kimi K3 от $2.40 за вход и $12.00 за выход на 1 млн токенов — на 20% ниже стандартной цены OpenRouter Models API на 9 сентября 2026 г. Сравните цены, код и результаты тестов.',
+        'Смотрите актуальные цены Vancine на Kimi K3. Vancine предлагается с фиксированной скидкой 20% относительно стандартной цены OpenRouter Models API на 9 сентября 2026 г. Сравните цены, код и результаты тестов.',
     },
     ja: {
       title: 'Kimi K3 API の価格と OpenRouter 比較 | Vancine',
       description:
-        'Kimi K3 API は 100 万トークンあたり入力 $2.40、出力 $12.00。OpenRouter Models API の 2026 年 9 月 9 日標準価格より 20% 安い。価格、コード、テスト証拠を比較できます。',
+        'Kimi K3 の Vancine リアルタイム価格をご確認ください。Vancine は、参照した OpenRouter Models API の 2026 年 9 月 9 日標準価格から固定 20% 割引です。価格、コード、テスト証拠を比較できます。',
       ogTitle: 'Kimi K3 API の価格と OpenRouter 比較',
       ogDescription:
-        'Kimi K3 API は 100 万トークンあたり入力 $2.40、出力 $12.00。OpenRouter Models API の 2026 年 9 月 9 日標準価格より 20% 安い。価格、コード、テスト証拠を比較できます。',
+        'Kimi K3 の Vancine リアルタイム価格をご確認ください。Vancine は、参照した OpenRouter Models API の 2026 年 9 月 9 日標準価格から固定 20% 割引です。価格、コード、テスト証拠を比較できます。',
       twitterTitle: 'Kimi K3 API の価格と OpenRouter 比較',
       twitterDescription:
-        'Kimi K3 API は 100 万トークンあたり入力 $2.40、出力 $12.00。OpenRouter Models API の 2026 年 9 月 9 日標準価格より 20% 安い。価格、コード、テスト証拠を比較できます。',
+        'Kimi K3 の Vancine リアルタイム価格をご確認ください。Vancine は、参照した OpenRouter Models API の 2026 年 9 月 9 日標準価格から固定 20% 割引です。価格、コード、テスト証拠を比較できます。',
     },
     vi: {
       title: 'Giá API Kimi K3 và so sánh OpenRouter | Vancine',
       description:
-        'API Kimi K3 từ $2.40 đầu vào và $12.00 đầu ra mỗi 1 triệu token—thấp hơn 20% so với giá chuẩn OpenRouter Models API ngày 9 tháng 9 năm 2026. So sánh giá, mã mẫu và bằng chứng kiểm thử.',
+        'Xem giá Vancine trực tiếp cho Kimi K3. Vancine được cung cấp với mức chiết khấu cố định 20% so với giá chuẩn OpenRouter Models API ngày 9 tháng 9 năm 2026. So sánh giá, mã mẫu và bằng chứng kiểm thử.',
       ogTitle: 'Giá API Kimi K3 và so sánh OpenRouter',
       ogDescription:
-        'API Kimi K3 từ $2.40 đầu vào và $12.00 đầu ra mỗi 1 triệu token—thấp hơn 20% so với giá chuẩn OpenRouter Models API ngày 9 tháng 9 năm 2026. So sánh giá, mã mẫu và bằng chứng kiểm thử.',
+        'Xem giá Vancine trực tiếp cho Kimi K3. Vancine được cung cấp với mức chiết khấu cố định 20% so với giá chuẩn OpenRouter Models API ngày 9 tháng 9 năm 2026. So sánh giá, mã mẫu và bằng chứng kiểm thử.',
       twitterTitle: 'Giá API Kimi K3 và so sánh OpenRouter',
       twitterDescription:
-        'API Kimi K3 từ $2.40 đầu vào và $12.00 đầu ra mỗi 1 triệu token—thấp hơn 20% so với giá chuẩn OpenRouter Models API ngày 9 tháng 9 năm 2026. So sánh giá, mã mẫu và bằng chứng kiểm thử.',
+        'Xem giá Vancine trực tiếp cho Kimi K3. Vancine được cung cấp với mức chiết khấu cố định 20% so với giá chuẩn OpenRouter Models API ngày 9 tháng 9 năm 2026. So sánh giá, mã mẫu và bằng chứng kiểm thử.',
     },
   }
 
@@ -273,15 +273,15 @@ export function getKimiK3PageMetadata(language: string): PageMetadata {
 // ---------------------------------------------------------------------------
 
 /**
- * Display snapshot dated 2026-09-09. Vancine figures are the intended
- * live settlement prices ($2.40 / $12.00) to be configured in admin.
- * OpenRouter figures are the standard prices that the OpenRouter Models
- * API (https://openrouter.ai/api/v1/models) returns for moonshotai/kimi-k3
+ * Dated third-party reference snapshot (2026-09-09). OpenRouter figures
+ * are the standard prices that the OpenRouter Models API
+ * (https://openrouter.ai/api/v1/models) returns for moonshotai/kimi-k3
  * under default conditions ($3.00 / $15.00). Provider prices shown on the
  * OpenRouter model page follow a different, dynamic basis and are not the
  * comparison basis here. Kimi official figures are from
  * https://platform.kimi.ai/docs/pricing/chat-k3 ($3.00 / $15.00).
- * This snapshot is display-only and is not wired to billing code.
+ * Vancine current prices are read live from /api/pricing; this snapshot
+ * never stores a Vancine amount and is not wired to billing code.
  */
 export const KIMI_K3_PRICE_UNIT_KEY = 'USD per 1M tokens'
 
@@ -301,11 +301,8 @@ export const KIMI_K3_OFFICIAL_PRICING_URL =
 export const KIMI_K3_OPENROUTER_PRICING_URL =
   'https://openrouter.ai/api/v1/models'
 
-export interface KimiK3PriceProvider {
-  id: 'vancine' | 'openrouter' | 'kimi_official'
+interface KimiK3PriceProviderBase {
   nameKey: string
-  inputUsd: number
-  outputUsd: number
   sourceHref: string
   sourceLabelKey: string
   sourceKind: 'internal' | 'external'
@@ -313,12 +310,18 @@ export interface KimiK3PriceProvider {
   differenceKey: string
 }
 
-export const KIMI_K3_PRICE_PROVIDERS: readonly KimiK3PriceProvider[] = [
+export type KimiK3PriceProvider =
+  | (KimiK3PriceProviderBase & { id: 'vancine' })
+  | (KimiK3PriceProviderBase & {
+      id: 'openrouter' | 'kimi_official'
+      inputUsd: number
+      outputUsd: number
+    })
+
+export const KIMI_K3_PRICE_PROVIDERS = [
   {
     id: 'vancine',
     nameKey: 'Vancine',
-    inputUsd: 2.4,
-    outputUsd: 12.0,
     sourceHref: KIMI_K3_VANCINE_PRICING_PATH,
     sourceLabelKey: 'Vancine live Pricing',
     sourceKind: 'internal',
@@ -347,9 +350,9 @@ export const KIMI_K3_PRICE_PROVIDERS: readonly KimiK3PriceProvider[] = [
     resource: 'kimi_official_pricing',
     differenceKey: 'Vancine is 20% lower on both input and output',
   },
-]
+] as const satisfies readonly KimiK3PriceProvider[]
 
-/** Two-decimal USD formatter for the Kimi K3 snapshot ($2.40, $12.00). */
+/** Two-decimal USD formatter for dated third-party snapshot prices. */
 export function formatKimiK3Usd(value: number): string {
   return `$${value.toFixed(2)}`
 }
@@ -604,7 +607,7 @@ export const KIMI_K3_FAQ: readonly KimiK3FaqEntry[] = [
     questionKey:
       'How does Vancine pricing compare with Kimi official and OpenRouter?',
     answerKey:
-      'As of September 9, 2026, Vancine lists $2.40 input and $12.00 output per 1M tokens, 20% below both the OpenRouter Models API standard price of $3.00 / $15.00 and Kimi official pricing of $3.00 / $15.00. Third-party prices may change. Live Vancine Pricing is authoritative.',
+      'See live Vancine pricing for Kimi K3. Vancine is offered at a fixed 20% discount to the referenced OpenRouter standard API pricing. As of September 9, 2026, OpenRouter Models API standard pricing is $3.00 / $15.00 and Kimi official pricing is $3.00 / $15.00. Third-party prices may change. Live Vancine Pricing is authoritative.',
   },
   {
     questionKey: 'Is this the real kimi-k3 model?',
@@ -655,6 +658,9 @@ export const KIMI_K3_I18N_KEYS = [
   'OpenAI-compatible API',
   'Pay as you go',
   '20% lower than OpenRouter on both input and output',
+  'Loading',
+  'View live pricing',
+  'Dynamic Pricing',
   KIMI_K3_PRICE_UNIT_KEY,
   'Kimi K3 API price comparison',
   'Provider',

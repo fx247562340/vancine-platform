@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next'
 
 import { PublicLayout } from '@/components/layout'
 import { Footer } from '@/components/layout/components/footer'
+import { useLandingPricing } from '@/features/landing-pricing'
 import { usePageMetadata } from '@/hooks/use-page-metadata'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -61,13 +62,14 @@ export function Glm53ApiPage(): ReactElement {
   // `publicMarketingPage: true` flag prevents the system branding
   // bootstrap in main.tsx from overwriting the route-level title.
   usePageMetadata(metadata, { publicMarketingPage: true })
+  const landingPricing = useLandingPricing()
 
   return (
     <PublicLayout showMainContainer={false}>
       <main className='flex flex-1 flex-col'>
         <Hero isAuthenticated={isAuthenticated} search={search} />
         <ModelChoice />
-        <Comparison />
+        <Comparison landingPricing={landingPricing} />
         <Quickstart isAuthenticated={isAuthenticated} search={search} />
         <Faq />
         <FinalCta isAuthenticated={isAuthenticated} search={search} />

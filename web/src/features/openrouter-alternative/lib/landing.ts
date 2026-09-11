@@ -291,10 +291,6 @@ export function getOpenRouterAlternativePageMetadata(
 export interface OpenRouterAlternativeComparisonRow {
   /** The model id as Vancine lists it; the table renders this verbatim. */
   modelId: string
-  /** Vancine input price, USD per 1M tokens. */
-  vancineInputUsd: number
-  /** Vancine output price, USD per 1M tokens. */
-  vancineOutputUsd: number
   /** OpenRouter input price, USD per 1M tokens. */
   openrouterInputUsd: number
   /** OpenRouter output price, USD per 1M tokens. */
@@ -316,41 +312,34 @@ export const OPENROUTER_ALTERNATIVE_MODELS_API_URL =
 /**
  * Approved comparison rows. The set is intentionally closed: every
  * row is a flagship paid model listing the product team has
- * validated, and the savings on every row is exactly 20%. Every row
- * cites the same Models API evidence URL. Adding more rows requires
- * re-running the verification and updating the Last-verified string in
- * OPENROUTER_ALTERNATIVE_PRICING_DISCLAIMER_KEYS.
+ * validated. Vancine current prices are read live from /api/pricing
+ * by model id. The 20% saving is fixed marketing copy, not computed
+ * from live amounts. Every row cites the same Models API evidence URL.
+ * Adding more rows requires re-running the verification and updating
+ * the Last-verified string in OPENROUTER_ALTERNATIVE_PRICING_DISCLAIMER_KEYS.
  */
 export const OPENROUTER_ALTERNATIVE_COMPARISON_ROWS: readonly OpenRouterAlternativeComparisonRow[] =
   [
     {
       modelId: 'qwen3.8-max',
-      vancineInputUsd: 1.6,
-      vancineOutputUsd: 4.8,
       openrouterInputUsd: 2.0,
       openrouterOutputUsd: 6.0,
       openrouterSourceUrl: OPENROUTER_ALTERNATIVE_MODELS_API_URL,
     },
     {
       modelId: 'kimi-k3',
-      vancineInputUsd: 2.4,
-      vancineOutputUsd: 12.0,
       openrouterInputUsd: 3.0,
       openrouterOutputUsd: 15.0,
       openrouterSourceUrl: OPENROUTER_ALTERNATIVE_MODELS_API_URL,
     },
     {
       modelId: 'glm-5.3',
-      vancineInputUsd: 1.12,
-      vancineOutputUsd: 3.52,
       openrouterInputUsd: 1.4,
       openrouterOutputUsd: 4.4,
       openrouterSourceUrl: OPENROUTER_ALTERNATIVE_MODELS_API_URL,
     },
     {
       modelId: 'MiniMax-M3',
-      vancineInputUsd: 0.24,
-      vancineOutputUsd: 0.96,
       openrouterInputUsd: 0.3,
       openrouterOutputUsd: 1.2,
       openrouterSourceUrl: OPENROUTER_ALTERNATIVE_MODELS_API_URL,
@@ -525,6 +514,8 @@ export const OPENROUTER_ALTERNATIVE_EVIDENCE_KEYS = [
   'Open Playground',
   'OpenRouter Alternative for Chinese AI Models',
   'View live pricing',
+  'Loading',
+  'Dynamic Pricing',
   'What you get',
   '20% lower on four flagship paid listings',
   'On four flagship paid listings — qwen3.8-max, kimi-k3, glm-5.3, and MiniMax-M3 — Vancine is 20% lower than OpenRouter Models API standard pricing as of the verified date.',

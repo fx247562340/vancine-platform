@@ -22,6 +22,10 @@ import { Link } from '@tanstack/react-router'
 import type { ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import {
+  VancineLivePrice,
+  type LandingModelPrice,
+} from '@/features/landing-pricing'
 import { trackEvent } from '@/lib/analytics'
 
 import {
@@ -34,6 +38,18 @@ import {
   KIMI_K3_VANCINE_PRICING_MODEL_ID,
   type KimiK3PriceProvider,
 } from '../lib/landing'
+
+function providerAmount(
+  provider: KimiK3PriceProvider,
+  field: 'input' | 'output',
+  vancinePrice: LandingModelPrice
+): ReactElement {
+  if (provider.id === 'vancine') {
+    return <VancineLivePrice price={vancinePrice} field={field} />
+  }
+  const amount = field === 'input' ? provider.inputUsd : provider.outputUsd
+  return <>{formatKimiK3Usd(amount)}</>
+}
 
 function SourceLink(props: { provider: KimiK3PriceProvider }): ReactElement {
   const { t } = useTranslation()
@@ -89,7 +105,9 @@ function SourceLink(props: { provider: KimiK3PriceProvider }): ReactElement {
  * Kimi K3-only dated price comparison. Replaces the former China-portfolio
  * availability block while keeping this file name and export.
  */
-export function Availability(): ReactElement {
+export function Availability(props: {
+  vancinePrice: LandingModelPrice
+}): ReactElement {
   const { t } = useTranslation()
 
   return (
@@ -120,13 +138,13 @@ export function Availability(): ReactElement {
                       {t('Input price')}
                     </dt>
                     <dd className='text-right font-medium tabular-nums'>
-                      {formatKimiK3Usd(provider.inputUsd)}
+                      {providerAmount(provider, 'input', props.vancinePrice)}
                     </dd>
                     <dt className='text-muted-foreground'>
                       {t('Output price')}
                     </dt>
                     <dd className='text-right font-medium tabular-nums'>
-                      {formatKimiK3Usd(provider.outputUsd)}
+                      {providerAmount(provider, 'output', props.vancinePrice)}
                     </dd>
                     <dt className='text-muted-foreground'>{t('Unit')}</dt>
                     <dd className='text-right'>{t(KIMI_K3_PRICE_UNIT_KEY)}</dd>
@@ -180,10 +198,10 @@ export function Availability(): ReactElement {
                     {t(provider.nameKey)}
                   </th>
                   <td className='px-4 py-3 text-right tabular-nums'>
-                    {formatKimiK3Usd(provider.inputUsd)}
+                    {providerAmount(provider, 'input', props.vancinePrice)}
                   </td>
                   <td className='px-4 py-3 text-right tabular-nums'>
-                    {formatKimiK3Usd(provider.outputUsd)}
+                    {providerAmount(provider, 'output', props.vancinePrice)}
                   </td>
                   <td className='px-4 py-3'>{t(KIMI_K3_PRICE_UNIT_KEY)}</td>
                   <td className='px-4 py-3'>{t(provider.differenceKey)}</td>

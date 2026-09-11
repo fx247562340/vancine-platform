@@ -39,6 +39,7 @@ import type { ReactNode } from 'react'
 import { initReactI18next } from 'react-i18next'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { PricingData, PricingModel } from '@/features/pricing/types'
 import enLocale from '@/i18n/locales/en.json'
 import zhLocale from '@/i18n/locales/zh.json'
 import { trackEvent } from '@/lib/analytics'
@@ -82,6 +83,11 @@ vi.mock('@/lib/analytics', () => ({
 }))
 
 const trackEventMock = trackEvent as ReturnType<typeof vi.fn>
+
+const getPricingMock = vi.fn()
+vi.mock('@/features/pricing/api', () => ({
+  getPricing: (...args: unknown[]) => getPricingMock(...args),
+}))
 
 // Remember how jsdom originally exposed navigator.clipboard (typically: no own
 // property at all) so every case restores the exact descriptor — even when
@@ -138,7 +144,42 @@ const testRouteTree = testRootRoute.addChildren([
   stubRoute('/docs/$slug', 'docs-page'),
 ])
 
-function renderPage(initialPath = '/kimi-k3-api/'): RenderResult {
+function tokenModel(
+  overrides: Partial<PricingModel> & Pick<PricingModel, 'model_name'>
+): PricingModel {
+  return {
+    id: 1,
+    quota_type: 0,
+    model_ratio: 1,
+    completion_ratio: 1,
+    enable_groups: ['default'],
+    group_ratio: { default: 1 },
+    ...overrides,
+  }
+}
+
+function fixturePricing(models: PricingModel[]): PricingData {
+  return {
+    success: true,
+    data: models,
+    vendors: [],
+    group_ratio: { default: 1 },
+    usable_group: { default: { desc: 'default', ratio: 1 } },
+    supported_endpoint: {},
+    auto_groups: [],
+  }
+}
+
+/** Distinct from the retired static $2.40 / $12.00 Vancine snapshot. */
+const KIMI_LIVE_MODEL = tokenModel({
+  model_name: 'kimi-k3',
+  model_ratio: 5,
+  completion_ratio: 2,
+})
+
+function renderPage(initialPath = '/kimi-k3-api/'): RenderResult & {
+  queryClient: QueryClient
+} {
   const router = createRouter({
     routeTree: testRouteTree,
     history: createMemoryHistory({ initialEntries: [initialPath] }),
@@ -146,11 +187,12 @@ function renderPage(initialPath = '/kimi-k3-api/'): RenderResult {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   })
-  return render(
+  const result = render(
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
     </QueryClientProvider>
   )
+  return Object.assign(result, { queryClient })
 }
 
 function setAuthenticated(isAuthenticated: boolean): void {
@@ -167,6 +209,8 @@ beforeEach(async () => {
   await initTestI18n()
   setAuthenticated(false)
   trackEventMock.mockClear()
+  getPricingMock.mockReset()
+  getPricingMock.mockResolvedValue(fixturePricing([KIMI_LIVE_MODEL]))
 })
 
 afterEach(() => {
@@ -523,52 +567,41 @@ describe('price comparison', () => {
   it('labels every hero price as input or output for readers and screen readers', async () => {
     renderPage()
     const card = await screen.findByTestId('kimi-k3-hero-price-card')
+    await waitFor(() => {
+      expect(card.textContent).toContain('Input $10.00')
+    })
 
-    const labeledAmounts = [
-      { provider: 'Vancine', input: 'Input $2.40', output: 'Output $12.00' },
-      {
-        provider: 'OpenRouter',
-        input: 'Input $3.00',
-        output: 'Output $15.00',
-      },
-    ] as const
-
-    for (const row of labeledAmounts) {
-      const inputAmount = within(card).getByText(row.input)
-      const outputAmount = within(card).getByText(row.output)
-      const priceLine = inputAmount.closest('div') as HTMLElement
-
-      expect(priceLine).not.toBeNull()
-      expect(within(priceLine).getByRole('term')).toHaveTextContent(
-        row.provider
-      )
-      expect(within(priceLine).getByRole('definition')).toContainElement(
-        inputAmount
-      )
-      expect(within(priceLine).getByRole('definition')).toContainElement(
-        outputAmount
-      )
-    }
-
-    // The hero never shows a bare "$2.40 / $12.00" pair without labels.
+    expect(card.textContent).toContain('Output $20.00')
+    expect(card.textContent).toContain('Input $3.00')
+    expect(card.textContent).toContain('Output $15.00')
+    expect(card.textContent).toContain('Vancine')
+    expect(card.textContent).toContain('OpenRouter')
+    expect(card.textContent).not.toContain('$2.40')
+    expect(card.textContent).not.toContain('$12.00')
     expect(card.textContent).not.toContain('$2.40 / $12.00')
     expect(card.textContent).not.toContain('$3.00 / $15.00')
     expect(within(card).getByText('USD per 1M tokens')).toBeInTheDocument()
+    expect(card.textContent).toContain(
+      '20% lower than OpenRouter on both input and output'
+    )
   })
 
-  it('shows the dated snapshot with Vancine cheaper than OpenRouter and Kimi official', async () => {
+  it('shows live Vancine prices with dated OpenRouter and Kimi official references', async () => {
     renderPage()
     await screen.findByRole('heading', {
       level: 2,
       name: 'Kimi K3 API price comparison',
     })
+    await waitFor(() => {
+      expect(document.body.textContent ?? '').toContain('$10.00')
+    })
 
     const pageText = document.body.textContent ?? ''
-    expect(pageText).toContain('$2.40')
-    expect(pageText).toContain('$12.00')
+    expect(pageText).toContain('$20.00')
     expect(pageText).toContain('$3.00')
     expect(pageText).toContain('$15.00')
-    // Retired draft prices and the former 33% / 25% split must not return.
+    expect(pageText).not.toContain('$2.40')
+    expect(pageText).not.toContain('$12.00')
     for (const retired of [
       '$2.00',
       '$11.20',
@@ -596,6 +629,7 @@ describe('price comparison', () => {
     expect(pageText).not.toMatch(
       /Vancine is 20% lower on input · 20% lower on output/
     )
+    expect(pageText).toContain('$0.19')
   })
 
   it('uses accessible names on the three pricing source links', async () => {
@@ -647,11 +681,15 @@ describe('price comparison', () => {
     expect(table.tagName).toBe('TABLE')
     expect(table.querySelectorAll('tbody tr')).toHaveLength(3)
 
+    await waitFor(() => {
+      expect(cards[0]).toHaveTextContent('$10.00')
+    })
+
     const expected = [
       {
         name: 'Vancine',
-        input: '$2.40',
-        output: '$12.00',
+        input: '$10.00',
+        output: '$20.00',
         difference: 'Current Vancine price',
       },
       {
@@ -678,6 +716,52 @@ describe('price comparison', () => {
       expect(table).toHaveTextContent(row.output)
       expect(table).toHaveTextContent(row.difference)
     }
+  })
+
+  it('does not fall back to the retired static Vancine price while loading', async () => {
+    getPricingMock.mockReturnValue(new Promise(() => {}))
+    renderPage()
+    const card = await screen.findByTestId('kimi-k3-hero-price-card')
+    expect(card.textContent).toContain('Loading')
+    expect(card.textContent).not.toContain('$2.40')
+    expect(card.textContent).not.toContain('$12.00')
+    expect(card.textContent).toContain('Input $3.00')
+    expect(card.textContent).toContain(
+      '20% lower than OpenRouter on both input and output'
+    )
+  })
+
+  it('does not fall back to the retired static Vancine price on pricing error', async () => {
+    getPricingMock.mockRejectedValue(new Error('pricing down'))
+    renderPage()
+    const card = await screen.findByTestId('kimi-k3-hero-price-card')
+    await waitFor(() => {
+      expect(card.textContent).toContain('View live pricing')
+    })
+    expect(card.textContent).not.toContain('$2.40')
+    expect(card.textContent).not.toContain('$12.00')
+    expect(card.textContent).not.toContain('$10.00')
+  })
+
+  it('does not fall back to the retired static Vancine price when kimi-k3 is missing', async () => {
+    getPricingMock.mockResolvedValue(fixturePricing([]))
+    renderPage()
+    const card = await screen.findByTestId('kimi-k3-hero-price-card')
+    await waitFor(() => {
+      expect(card.textContent).toContain('View live pricing')
+    })
+    expect(card.textContent).not.toContain('$2.40')
+    expect(card.textContent).not.toContain('$12.00')
+  })
+
+  it('uses a single pricing query for the page', async () => {
+    const { queryClient } = renderPage()
+    await waitFor(() => {
+      expect(document.body.textContent ?? '').toContain('$10.00')
+    })
+    expect(
+      queryClient.getQueryCache().findAll({ queryKey: ['pricing'] })
+    ).toHaveLength(1)
   })
 })
 

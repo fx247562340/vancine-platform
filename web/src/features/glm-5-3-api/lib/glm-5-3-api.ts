@@ -31,8 +31,8 @@ import {
  *   - the comparison covers exactly the two linked OpenRouter public
  *     prices displayed on August 28, 2026 (including the provider
  *     promotion active at that time), never "all models";
- *   - every displayed figure satisfies Vancine/OpenRouter = 0.8 with
- *     three-decimal display accuracy ($0.012 / $0.015 / $0.075);
+ *   - OpenRouter reference figures keep three-decimal display accuracy
+ *     ($0.012 / $0.015 / $0.075);
  *   - compatibility promises are limited to the OpenAI-compatible chat
  *     completions request, response, and streaming formats, and the page
  *     always discloses that provider-specific errors may differ.
@@ -275,12 +275,6 @@ export function getGlm53ApiPageMetadata(language: string): PageMetadata {
 export interface Glm53ApiComparisonRow {
   /** The model id as Vancine lists it; the table renders this verbatim. */
   modelId: string
-  /** Vancine input price, USD per 1M tokens. */
-  vancineInputUsd: number
-  /** Vancine output price, USD per 1M tokens. */
-  vancineOutputUsd: number
-  /** Vancine cache-read price, USD per 1M tokens. */
-  vancineCacheReadUsd: number
   /** OpenRouter input price, USD per 1M tokens. */
   openrouterInputUsd: number
   /** OpenRouter output price, USD per 1M tokens. */
@@ -294,18 +288,15 @@ export interface Glm53ApiComparisonRow {
 /**
  * Approved comparison rows — exactly the two linked OpenRouter public
  * prices displayed on August 28, 2026 (flash figures are the provider
- * promotion prices shown that day). Every Vancine figure is exactly 0.8×
- * the OpenRouter figure on all three dimensions. The set is closed:
- * adding rows requires re-running the verification. These values are
+ * promotion prices shown that day). Vancine current prices are read
+ * live from /api/pricing by model id. The set is closed: adding rows
+ * requires re-running the verification. OpenRouter values are
  * display-only and are NOT wired to ModelRatio / CompletionRatio or
  * any billing code.
  */
 export const GLM53_API_COMPARISON_ROWS: readonly Glm53ApiComparisonRow[] = [
   {
     modelId: 'glm-5.3',
-    vancineInputUsd: 1.12,
-    vancineOutputUsd: 3.52,
-    vancineCacheReadUsd: 0.208,
     openrouterInputUsd: 1.4,
     openrouterOutputUsd: 4.4,
     openrouterCacheReadUsd: 0.26,
@@ -313,9 +304,6 @@ export const GLM53_API_COMPARISON_ROWS: readonly Glm53ApiComparisonRow[] = [
   },
   {
     modelId: 'glm-5.3-flash',
-    vancineInputUsd: 0.06,
-    vancineOutputUsd: 0.2,
-    vancineCacheReadUsd: 0.012,
     openrouterInputUsd: 0.075,
     openrouterOutputUsd: 0.25,
     openrouterCacheReadUsd: 0.015,
@@ -324,10 +312,10 @@ export const GLM53_API_COMPARISON_ROWS: readonly Glm53ApiComparisonRow[] = [
 ]
 
 /**
- * Price formatter used by the comparison table. Shows up to three
- * decimals so the cache-read figures ($0.208 / $0.012 / $0.015) and
- * the flash input ($0.075) render exactly; trailing zeros are trimmed
- * for two-decimal figures ($1.12, $0.06).
+ * Price formatter used by the comparison table for dated OpenRouter
+ * reference amounts. Shows up to three decimals so figures such as
+ * $0.075 and $0.015 render exactly; trailing zeros are trimmed for
+ * two-decimal figures ($1.40, $0.26).
  */
 export function formatGlm53Usd(value: number): string {
   const fixed = value.toFixed(3)
@@ -524,6 +512,9 @@ export const GLM53_API_EVIDENCE_KEYS = [
   'Output',
   'Cache read',
   'Saving: 20%',
+  'Loading',
+  'View live pricing',
+  'Dynamic Pricing',
   'Quickstart',
   'Point your OpenAI SDK or curl at https://vancine.com/v1, set the VANCINE_API_KEY environment variable, and use model glm-5.3 — or glm-5.3-flash when you want the lower token cost. Vancine supports the OpenAI-compatible chat completions request, response, and streaming formats. Provider-specific errors may differ.',
   'Default model glm-5.3 — switch to glm-5.3-flash by changing only the model id.',

@@ -21,28 +21,26 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import type { ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import {
+  VancineLivePricePair,
+  type LandingPricingState,
+} from '@/features/landing-pricing'
+
 import { OPENROUTER_ALTERNATIVE_COMPARISON_ROWS } from '../lib/landing'
 
 /**
  * Four-row Vancine vs. OpenRouter price comparison table. Each row
- * shows input / output USD per 1M tokens, the saving percentage, and a
- * link to the public OpenRouter model page that the comparison was
- * drawn from. The table must be readable down to a 390px viewport
- * without horizontal scroll.
+ * shows input / output USD per 1M tokens, the fixed 20% marketing
+ * saving, and a link to the public OpenRouter model page that the
+ * comparison was drawn from. The table must be readable down to a
+ * 390px viewport without horizontal scroll.
  */
-export function Comparison(): ReactElement {
+export function Comparison(props: {
+  landingPricing: LandingPricingState
+}): ReactElement {
   const { t } = useTranslation()
 
   const fmtUsd = (value: number): string => `$${value.toFixed(2)}`
-
-  const savingPct = (
-    row: (typeof OPENROUTER_ALTERNATIVE_COMPARISON_ROWS)[number]
-  ): number =>
-    Math.round(
-      ((row.openrouterInputUsd - row.vancineInputUsd) /
-        row.openrouterInputUsd) *
-        100
-    )
 
   return (
     <section
@@ -77,8 +75,9 @@ export function Comparison(): ReactElement {
                     {t('Vancine input / output')}
                   </dt>
                   <dd className='text-right font-medium'>
-                    {fmtUsd(row.vancineInputUsd)} /{' '}
-                    {fmtUsd(row.vancineOutputUsd)}
+                    <VancineLivePricePair
+                      price={props.landingPricing.resolve(row.modelId)}
+                    />
                   </dd>
                   <dt className='text-muted-foreground'>
                     {t('OpenRouter input / output')}
@@ -88,9 +87,7 @@ export function Comparison(): ReactElement {
                     {fmtUsd(row.openrouterOutputUsd)}
                   </dd>
                   <dt className='text-muted-foreground'>{t('Saving')}</dt>
-                  <dd className='text-primary text-right font-semibold'>
-                    {savingPct(row)}%
-                  </dd>
+                  <dd className='text-primary text-right font-semibold'>20%</dd>
                   <dt className='text-muted-foreground'>
                     {t('OpenRouter source')}
                   </dt>
@@ -152,14 +149,16 @@ export function Comparison(): ReactElement {
                   {row.modelId}
                 </th>
                 <td className='px-4 py-3 text-right tabular-nums'>
-                  {fmtUsd(row.vancineInputUsd)} / {fmtUsd(row.vancineOutputUsd)}
+                  <VancineLivePricePair
+                    price={props.landingPricing.resolve(row.modelId)}
+                  />
                 </td>
                 <td className='text-muted-foreground px-4 py-3 text-right tabular-nums'>
                   {fmtUsd(row.openrouterInputUsd)} /{' '}
                   {fmtUsd(row.openrouterOutputUsd)}
                 </td>
                 <td className='text-primary px-4 py-3 text-right font-semibold tabular-nums'>
-                  {savingPct(row)}%
+                  20%
                 </td>
                 <td className='px-4 py-3 text-right'>
                   <a
