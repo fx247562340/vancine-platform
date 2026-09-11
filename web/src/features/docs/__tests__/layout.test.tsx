@@ -29,6 +29,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { Route as DocsSlugRouteImport } from '@/routes/docs/$slug'
 import { Route as DocsIndexRouteImport } from '@/routes/docs/index'
+import { Route as DocsModelsModelRouteImport } from '@/routes/docs/models/$model'
 
 import { DocsLayout } from '../index'
 import { initTestI18n } from './test-i18n'
@@ -67,9 +68,15 @@ const TestDocsSlugRoute = DocsSlugRouteImport.update({
   path: '/docs/$slug',
   getParentRoute: () => testRootRoute,
 } as never)
+const TestDocsModelsModelRoute = DocsModelsModelRouteImport.update({
+  id: '/docs/models/$model',
+  path: '/docs/models/$model',
+  getParentRoute: () => testRootRoute,
+} as never)
 const testRouteTree = testRootRoute.addChildren([
   TestDocsIndexRoute,
   TestDocsSlugRoute,
+  TestDocsModelsModelRoute,
 ])
 
 function renderDocsRouter(initialPath: string) {
@@ -146,6 +153,17 @@ describe('Docs unknown-slug routing (real router beforeLoad/notFound)', () => {
       { timeout: 3000 }
     )
     await suspenseFlushed()
+  })
+
+  it('navigating to /docs/models/<unknown> hits beforeLoad → notFound → localized not-found page', async () => {
+    renderDocsRouter('/docs/models/definitely-not-a-real-slug')
+    await suspenseFlushed()
+
+    await waitFor(
+      () => expect(screen.getByText('Page not found')).toBeInTheDocument(),
+      { timeout: 3000 }
+    )
+    expect(document.querySelectorAll('[aria-current="page"]').length).toBe(0)
   })
 
   it('DocsLayout defensive branch also handles an invalid slug prop', async () => {

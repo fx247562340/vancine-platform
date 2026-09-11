@@ -22,6 +22,7 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Badge } from '@/components/ui/badge'
+import { useLiveModelCatalog } from '@/features/live-model-catalog/hooks/use-live-model-catalog'
 
 import { DocsCallout } from '../components/callout'
 import { DocsCodeBlock } from '../components/code-block'
@@ -30,6 +31,10 @@ import { DocsH2, DocsH3, DocsP } from '../components/headings'
 import { DocsTd, DocsTr } from '../components/primitives'
 import { useRegisterHeadings } from '../components/register-headings'
 import { buildCodeTabItems, type CodeTabSample } from '../lib/code-tabs'
+import {
+  pickDocsTextModel,
+  pickRecommendedTextModels,
+} from '../lib/text-model-choice'
 import type { DocsSlug, TocHeading } from '../types'
 
 const CODE_LANGUAGES = {
@@ -40,14 +45,6 @@ const CODE_LANGUAGES = {
 
 type CodeTab = keyof typeof CODE_LANGUAGES
 const CODE_TAB_ORDER: readonly CodeTab[] = ['curl', 'python', 'node']
-
-const RECOMMENDED_MODELS = [
-  'deepseek-v4-flash',
-  'deepseek-v4-pro',
-  'glm-5.1',
-  'qwen3.7-max',
-  'kimi-k2.5',
-]
 
 const EXPECTED_RESPONSE = `{
   "id": "chatcmpl-xxxxx",
@@ -74,6 +71,18 @@ export default function QuickStartPage(props: { baseUrl: string }) {
   const { t } = useTranslation('docs', { useSuspense: false })
   const baseUrl = props.baseUrl
 
+  // The same live catalog every other docs page reads. We never
+  // maintain a parallel "recommended" list here; the model id in the
+  // example code and the badge row both come from this single query.
+  const { catalog } = useLiveModelCatalog()
+
+  // Shared selectors: live catalog first, verified fallback next.
+  const exampleModelId = pickDocsTextModel(catalog).modelId
+  const recommendedModels = useMemo(
+    () => pickRecommendedTextModels(catalog),
+    [catalog]
+  )
+
   useRegisterHeadings(
     useMemo<TocHeading[]>(
       () => [
@@ -99,58 +108,9 @@ export default function QuickStartPage(props: { baseUrl: string }) {
   )
 
   const samples = useMemo<Record<CodeTab, CodeTabSample>>(
-    () => ({
-      curl: {
-        label: 'cURL',
-        code: `curl -X POST ${baseUrl}/chat/completions \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer sk-your-api-key" \\
-  -d '{
-    "model": "deepseek-v4-flash",
-    "messages": [
-      { "role": "user", "content": "Hello, Vancine!" }
-    ],
-    "max_tokens": 100
-  }'`,
-      },
-      python: {
-        label: 'Python',
-        code: `from openai import OpenAI
-
-client = OpenAI(
-    api_key="sk-your-api-key",
-    base_url="${baseUrl}"
-)
-
-response = client.chat.completions.create(
-    model="deepseek-v4-flash",
-    messages=[{"role": "user", "content": "Hello, Vancine!"}],
-    max_tokens=100,
-)
-
-print(response.choices[0].message.content)`,
-      },
-      node: {
-        label: 'Node.js',
-        code: `import OpenAI from "openai";
-
-const client = new OpenAI({
-  apiKey: "sk-your-api-key",
-  baseURL: "${baseUrl}",
-});
-
-const response = await client.chat.completions.create({
-  model: "deepseek-v4-flash",
-  messages: [{ role: "user", content: "Hello, Vancine!" }],
-  max_tokens: 100,
-});
-
-console.log(response.choices[0].message.content);`,
-      },
-    }),
-    [baseUrl]
+    () => buildChatSamples(baseUrl, exampleModelId),
+    [baseUrl, exampleModelId]
   )
-
   const codeTabItems = useMemo(
     () => buildCodeTabItems(samples, CODE_TAB_ORDER, CODE_LANGUAGES),
     [samples]
@@ -208,8 +168,17 @@ console.log(response.choices[0].message.content);`,
       {/* Step 2: Choose a model */}
       <DocsH2 id='step2'>{t('quickstart.step2.title')}</DocsH2>
       <DocsP>{t('quickstart.step2.desc')}</DocsP>
-      <div className='mb-4 flex flex-wrap gap-2'>
-        {RECOMMENDED_MODELS.map((model, i) => (
+      <p
+        className='text-muted-foreground text-xs font-semibold tracking-wide uppercase'
+        data-testid='docs-quickstart-recommended-label'
+      >
+        {t('quickstart.recommendedModels.dynamic')}
+      </p>
+      <div
+        className='mb-2 flex flex-wrap gap-2'
+        data-testid='docs-quickstart-recommended-list'
+      >
+        {recommendedModels.map((model, i) => (
           <Badge
             key={model}
             variant='secondary'
@@ -223,6 +192,14 @@ console.log(response.choices[0].message.content);`,
           </Badge>
         ))}
       </div>
+      {catalog.status !== 'ready' && (
+        <p
+          className='text-muted-foreground mb-4 text-xs'
+          data-testid='docs-quickstart-fallback-hint'
+        >
+          {t('quickstart.step2.dynamicFallback')}
+        </p>
+      )}
       <DocsP>
         <Link
           to='/docs/$slug'
@@ -315,4 +292,59 @@ console.log(response.choices[0].message.content);`,
       </div>
     </div>
   )
+}
+
+function buildChatSamples(
+  baseUrl: string,
+  modelId: string
+): Record<CodeTab, CodeTabSample> {
+  return {
+    curl: {
+      label: 'cURL',
+      code: `curl -X POST ${baseUrl}/chat/completions \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer sk-your-api-key" \\
+  -d '{
+    "model": "${modelId}",
+    "messages": [
+      { "role": "user", "content": "Hello, Vancine!" }
+    ],
+    "max_tokens": 100
+  }'`,
+    },
+    python: {
+      label: 'Python',
+      code: `from openai import OpenAI
+
+client = OpenAI(
+    api_key="sk-your-api-key",
+    base_url="${baseUrl}"
+)
+
+response = client.chat.completions.create(
+    model="${modelId}",
+    messages=[{"role": "user", "content": "Hello, Vancine!"}],
+    max_tokens=100,
+)
+
+print(response.choices[0].message.content)`,
+    },
+    node: {
+      label: 'Node.js',
+      code: `import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: "sk-your-api-key",
+  baseURL: "${baseUrl}",
+});
+
+const response = await client.chat.completions.create({
+  model: "${modelId}",
+  messages: [{ role: "user", content: "Hello, Vancine!" }],
+  max_tokens: 100,
+});
+
+console.log(response.choices[0].message.content);`,
+    },
+  }
 }

@@ -11,7 +11,8 @@
     "step2": {
       "title": "モデルを選択",
       "desc": "最初の呼び出しには deepseek-v4-flash をお勧めします — 高速、低コスト、テストに最適です。",
-      "viewAll": "すべての利用可能なモデルを表示"
+      "viewAll": "すべての利用可能なモデルを表示",
+      "dynamicFallback": "カタログ読み込み中、検証済みのデフォルトモデルを表示しています。"
     },
     "step3": {
       "title": "呼び出し方法を選択",
@@ -39,6 +40,10 @@
       "image": "画像生成",
       "video": "動画生成",
       "migrate": "OpenAIからの移行"
+    },
+    "recommendedModels": {
+      "dynamic": "オンラインの推奨テキストモデル",
+      "dynamicHelp": "以下のリストは現在のカタログを反映します。カタログが利用できない場合、検証済みのオンラインセットにフォールバックします。"
     }
   },
   "migrate": {
@@ -88,9 +93,9 @@
     "desc": "OpenAI互換のmessages配列を言語モデルに送信し、同期JSONレスポンスを取得します。",
     "paramsTitle": "パラメータ",
     "examplesTitle": "例",
-    "reasoningCallout": "deepseek-v4-flash と deepseek-v4-pro は推論モデルです。contentが空の間、推論は reasoning_content に表示されることがあります。finish_reason: length は、トークン予算が推論に消費されたことを示すことが多く、APIが失敗したわけではありません。",
+    "reasoningCallout": "推論モデルは `content` を空のまま、`reasoning_content` に入力する場合があります。`finish_reason: length` は多くの場合、API の失敗ではなく推論にトークン予算が使われたことを意味します。Models ページに推論可能なテキストモデルの一覧があります。",
     "params": {
-      "model": "モデル名（例：glm-5.1）",
+      "model": "モデル名。現在オンラインのテキストモデルを使用してください; 最新一覧は Models ページを参照。",
       "messages": "メッセージオブジェクトの配列",
       "maxTokens": "最大生成トークン数。推論モデルではより大きな値を推奨",
       "stream": "SSEストリーミングを有効化",
@@ -116,15 +121,31 @@
       "image": "参照画像の URL または Base64。画像→画像/複数画像融合に使用（5.0 pro：最大10枚、lite：最大14枚）",
       "watermark": "透かしを追加するか。Seedream のデフォルトは false"
     },
-    "advancedParamsCallout": "組圖（sequential_image_generation）、プロンプト最適化（optimize_prompt_options）などの Seedream 高度パラメータは、チャネルで PassThrough を有効にした場合のみ使用可能です。デフォルトでは転送されません。"
+    "advancedParamsCallout": "組圖（sequential_image_generation）、プロンプト最適化（optimize_prompt_options）などの Seedream 高度パラメータは、チャネルで PassThrough を有効にした場合のみ使用可能です。デフォルトでは転送されません。",
+    "intro": "画像生成は同期です: /v1/images/generations に POST すると、レスポンスの data 配列に画像 URL (または base64) が含まれます。下記はプラットフォームが現在掲載しているモデルで、各モデルに正確なリクエストスキーマを記載した専用ページがあります。",
+    "modelsHeading": "現在オンラインの画像モデル",
+    "modelsIntro": "各モデルは現在の価格カタログに掲載されています。各モデルに正確なリクエストスキーマを記載した専用ページがあります。",
+    "commonParamsTitle": "共通パラメータ",
+    "commonParamsDesc": "これらのフィールドはすべての現在オンラインの画像モデルに適用されます。各モデルページには、固有の追加パラメータ（サイズ階層、n 範囲、参照上限、高度な機能）が記載されています。",
+    "examplesIntro": "以下の例では現在オンラインのイメージモデルを使用し、最小限の有効なリクエスト (model + prompt + n + size) を送信します。各モデルページに正確なリクエストボディを含むモデル固有の例があります。",
+    "commonParams": {
+      "model": "モデル名。ページには現在オンラインのすべての画像モデルが一覧表示されます。",
+      "prompt": "テキストプロンプト。文字数の上限はゲートウェイのボディサイズのみ。モデル固有の注意点はモデルページに記載。",
+      "n": "生成枚数。有効範囲はモデル依存 (Qwen 3.x: 1〜6、Wan 2.7 Pro: 1〜4、Seedream 5.0 pro/lite: 常に 1)。正確な範囲はモデルページを参照。",
+      "size": "画像サイズ。各モデルが独自のサイズ階層を公開します; モデルページに有効な値、デフォルト、階層ごとの制約が記載されています。",
+      "responseFormat": "返却形式: `url` (デフォルト、24 時間有効な一時リンク) または `b64_json`。すべてのオンラインモデルで対応しています。",
+      "watermark": "ウォーターマークを埋め込むか。すべてのオンラインモデルでデフォルト false。デフォルト値はモデルごとに記載。",
+      "image": "参照画像 (URL または Base64)、image-to-image / 複数画像融合用。最大数、対応 MIME、画像あたりサイズ上限はモデル依存; モデルページを参照。"
+    },
+    "advancedParamsNote": "各モデルページにその拡張パラメータが記載されています。画像モデルはこれらの共通フィールドを共有します; サイズ階層、n 範囲、参照上限はモデルページが真実の源です。"
   },
   "video": {
     "title": "動画生成",
-    "desc": "動画生成は非同期タスクです。送信レスポンスからtask_idを保存し、同じ /v1/video/generations/{task_id} パスをポーリングします。",
+    "desc": "動画生成は非同期です。送信レスポンスのトップレベル id を保存し、GET /v1/video/generations/{id} をポーリングします。",
     "endpointSubmit": "非同期生成タスクを送信",
     "endpointPoll": "タスクのステータスと結果をポーリング",
     "paramsTitle": "パラメータ",
-    "statusTitle": "タスクステータス",
+    "statusTitle": "タスクのステータス",
     "examplesTitle": "例",
     "params": {
       "model": "動画モデル名",
@@ -135,18 +156,35 @@
       "duration": "動画の長さ（秒）",
       "metadata": "拡張パラメータオブジェクト（下記参照）"
     },
-    "metadataCallout": "metadata サブパラメータ：resolution（解像度 例：1080p）、ratio（アスペクト比 例：16:9）、frames（フレーム数）、seed（乱数シード）、watermark（透かし bool）、camera_fixed（カメラ固定 bool）、generate_audio（音声生成 bool）。これらはアップストリームプロバイダーに転送されます。",
+    "metadataCallout": "「共有 metadata ブロック」は存在しません — `metadata` 内で利用可能なフィールドはモデル固有です。モデルページに、そのモデルで有効なすべてのキーと値が記載されています。",
     "status": {
-      "queued": "タスクがキューに入っています",
-      "inProgress": "生成が実行中",
-      "success": "完了。data.result_url または data.data.content.video_url を読み取る",
-      "failure": "失敗。data.fail_reason を確認"
+      "queued": "タスクはキュー待ちです（status: QUEUED）。",
+      "inProgress": "生成を実行中 (status: IN_PROGRESS)。",
+      "success": "完了（status: SUCCESS）。結果動画 URL は `data.result_url` を読みます。",
+      "failure": "失敗（status: FAILURE）。`data.fail_reason` を読みます。",
+      "submitHeading": "送信レスポンス",
+      "pollHeading": "ポーリング状態（GET）",
+      "submitQueued": "送信レスポンスの status は小文字の queued です。タスクは受け付け済みで、まだ実行されていません。",
+      "notStart": "タスクはまだ開始されていません（status: NOT_START）。",
+      "submitted": "タスクは送信済みです（status: SUBMITTED）。"
+    },
+    "intro": "動画生成は非同期タスクワークフローです: リクエストを送信し、返された task id を保存し、ステータスが終端値に達するまで同じパスをポーリングし、結果 URL または失敗理由を読み取ってください。現在オンラインの各モデルに、正確な契約（時間、解像度、参照画像ルール、正確な JSON 形式）を記載した専用ページがあります。",
+    "modelsHeading": "現在オンラインの動画モデル",
+    "modelsIntro": "各モデルは現在の価格カタログに掲載されています。正確な契約 (時間、解像度、参照画像スロット) はモデル詳細ページにあります。",
+    "modelsDiffer": "動画モデル間で単一のパラメータスキーマは共有されません。正確な契約 (トップレベルの `duration` vs 文字列 `seconds`、`size` vs `metadata.resolution`、`metadata.input.media` vs `metadata.content`) はモデルページごとに記載されています。",
+    "examplesIntro": "以下の例は最小限の有効なリクエスト (model + prompt) を送信し、ステータスが終端値に達するまで同じパスをポーリングします。各モデルページに、正確な契約を使用したモデル固有の例 (duration vs seconds、size vs metadata.resolution、metadata.content vs metadata.input.media) があります。",
+    "commonParamsTitle": "共通タスクパラメータ",
+    "commonParamsDesc": "これらのフィールドはすべての動画モデルに共通です。モデル固有のフィールド (duration vs seconds、size vs metadata.resolution、参照画像スロット) はモデルページに記載されています。",
+    "commonParams": {
+      "model": "動画モデル名。オンラインの各モデルに、正確な契約を記載した専用ページがあります。",
+      "prompt": "テキストプロンプト。送信前にトリムされ、空はクライアントで拒否されます。"
     }
   },
   "auth": {
     "title": "認証",
     "desc": "すべての /v1 リクエストには、Authorization ヘッダーに API キーが必要です。",
-    "securityWarning": "APIキーをフロントエンドコード、公開リポジトリ、クライアントアプリに絶対に公開しないでください。Vancineを呼び出す前にサーバー側の環境変数から読み取ってください。"
+    "securityWarning": "APIキーをフロントエンドコード、公開リポジトリ、クライアントアプリに絶対に公開しないでください。Vancineを呼び出す前にサーバー側の環境変数から読み取ってください。",
+    "exampleModel": "現在オンラインのテキストモデルならどれでも動作します。最新一覧は Models ページを参照。"
   },
   "capabilities": {
     "title": "機能概要",
@@ -161,25 +199,28 @@
     }
   },
   "models": {
-    "title": "モデルと価格",
-    "desc": "公開価格エンドポイントを呼び出して、モデル名、対応エンドポイント、レシオ、価格を読み取ることができます。",
-    "fetchPricing": "モデル価格を取得",
-    "textModelsTitle": "テキストモデル（{{count}}）",
-    "imageModelsTitle": "画像モデル（{{count}}）",
-    "videoModelsTitle": "動画モデル（{{count}}）",
+    "title": "モデルと料金",
+    "desc": "公開料金エンドポイントを呼び出して、モデル名、対応エンドポイント、比率、価格を取得します。",
+    "fetchPricing": "モデル料金を取得",
+    "textModelsTitle": "テキストモデル ({{count}})",
+    "imageModelsTitle": "画像モデル ({{count}})",
+    "videoModelsTitle": "動画モデル ({{count}})",
     "multimodalTitle": "マルチモーダル生成モデル",
     "colType": "タイプ",
     "colUsageNotes": "使用上の注意",
     "imageEndpoint": "POST /v1/images/generations",
-    "videoEndpoint": "POST /v1/video/generations（非同期）",
-    "loading": "ライブモデルカタログを読み込み中…",
-    "loadErrorTitle": "ライブモデルカタログは利用できません",
-    "loadErrorBody": "現在のモデル一覧を読み込めませんでした。ライブ価格エンドポイントが引き続き正しい情報源です。上の curl を使って利用可能なすべてのモデルを確認してください。",
+    "videoEndpoint": "POST /v1/video/generations (非同期)",
+    "loading": "現在のモデルカタログを読み込み中…",
+    "loadErrorTitle": "現在のモデルカタログは利用できません",
+    "loadErrorBody": "現在のモデル一覧を読み込めませんでした。公開料金エンドポイントが依然として真実の源です — 上記の curl から開いて、利用可能なすべてのモデルを確認してください。",
     "emptyTitle": "現在利用可能なモデルはありません",
-    "emptyTextBody": "ライブカタログにテキストモデルが登録されていません。可用性はライブ価格ページで確認してください。",
-    "emptyImageBody": "ライブカタログに画像モデルが登録されていません。可用性はライブ価格ページで確認してください。",
-    "emptyVideoBody": "ライブカタログに動画モデルが登録されていません。可用性はライブ価格ページで確認してください。",
-    "retry": "再試行"
+    "emptyTextBody": "現在のカタログにテキストモデルはありません。可用性については料金ページを確認してください。",
+    "emptyImageBody": "現在のカタログに画像モデルはありません。可用性については料金ページを確認してください。",
+    "emptyVideoBody": "現在のカタログに動画モデルはありません。可用性については料金ページを確認してください。",
+    "retry": "再試行",
+    "imageLinksTitle": "画像モデルの詳細ページ",
+    "videoLinksTitle": "動画モデルの詳細ページ",
+    "detailLink": "詳細"
   },
   "errors": {
     "title": "エラー処理",
@@ -208,7 +249,7 @@
     "title": "エージェント統合",
     "desc": "エージェントツールを接続する前に、Chat CompletionsかResponsesかを確認してください。ほとんどのOpenAI Compatibleツールは/v1/chat/completionsを使用します。Codex CLI公式設定は現在/v1/responsesを使用しています。",
     "benchmarkLink": "Pi コーディングエージェント 8 モデル検証を見る",
-    "universalTip": "共通設定：Base URL = {{baseUrl}}、API Key = sk-your-api-key、Model = glm-5.1 または deepseek-v4-flash。",
+    "universalTip": "共通設定: Base URL = {{baseUrl}}、API Key = sk-your-api-key、Model = オンラインのテキストモデルのいずれか (Models ページ参照)。",
     "configExample": "設定例",
     "cliTitle": "CLI ツール",
     "guiTitle": "GUIツール",
@@ -245,7 +286,7 @@
         "step2": "OpenAI CompatibleまたはカスタムOpenAI APIを選択",
         "step3": "Base URLを{{baseUrl}}に設定",
         "step4": "Vancine APIキーを入力",
-        "step5": "glm-5.1やdeepseek-v4-flashなどのテキストモデルを使用"
+        "step5": "現在オンラインのテキストモデルを使用してください。最新一覧は Models ページを参照。"
       },
       "cherryStudio": {
         "title": "Cherry Studio",
@@ -298,7 +339,7 @@
         },
         "model": {
           "symptom": "モデルが見つからない / 存在しない。",
-          "fix": "Vancine のモデル一覧にある正確なモデル ID（例: glm-5.1）を使用してください。モデル ID は大文字・小文字を区別します。"
+          "fix": "Vancine モデルリストの正確なモデル ID を使用してください。ID は大文字小文字を区別します。オンライン一覧は Models ページが真実であり、ID をそのままコピーしてください。"
         },
         "protocol": {
           "symptom": "予期しないレスポンスや、非対応エンドポイントのエラー。",
@@ -315,7 +356,7 @@
     },
     "opencode": {
       "pageTitle": "OpenCode セットアップガイド",
-      "valueProp": "OpenCode で /connect を実行して Vancine に接続します。OpenCode は Models.dev の Provider カタログから Vancine を読み込むため、基本セットアップでは opencode.json の作成や編集は不要です。",
+      "valueProp": "OpenCode は Models.dev プロバイダーカタログから Vancine を読み込みます。動的な Models ページが利用可能なモデル ID の真実の源です。",
       "noJsonNote": "基本セットアップでは opencode.json の作成や編集は不要です。",
       "step1": "OpenCode をインストールまたは更新します。",
       "step2": "まだの場合は、Vancine アカウントと API Key を作成してください。",
@@ -323,13 +364,13 @@
       "step4": "Vancine を検索して選択します。",
       "step5": "ご自身の Vancine API Key を貼り付けます。",
       "step6": "/models を実行します。",
-      "step7": "vancine/glm-5.3-flash、または vancine Provider 配下の他のモデルを選んでプロンプトを送信します。",
+      "step7": "vancine/{{modelId}}、または vancine Provider 配下の他のモデルを選んでプロンプトを送信します。",
       "advancedTitle": "詳細設定（任意）",
       "advancedNote": "プロジェクト直下の opencode.json は、Base URL の上書き、モデルの whitelist / blacklist、ライブカタログ異常時の手動フォールバック、または Provider 設定を明示的に固定したい場合にだけ使います。基本の /connect セットアップの一部としては扱わないでください。",
       "notOfficial": "Vancine は独立した OpenAI 互換 API サービスであり、OpenCode が使用する Models.dev カタログに掲載されています。このカタログ掲載は、OpenCode による公式な提携、推奨、承認やお墨付きを意味しません。",
       "errors": {
         "model": {
-          "fix": "/models に表示される正確な vancine モデル ID を使うか、Vancine のモデルページを確認してください。モデル ID は大文字・小文字を区別します。"
+          "fix": "Vancine ライブカタログの正確なモデル ID を使用してください。ID は大文字小文字を区別します。Models ページが真実の源です。"
         }
       },
       "benchmarkTitle": "検証証拠",
@@ -420,5 +461,177 @@
     "status": "ステータス",
     "type": "タイプ",
     "yes": "はい"
+  },
+  "modelDetail": {
+    "contractMissing": "このモデルには検証済みの契約はまだありません。ページは意図的に架空のパラメータを表示しません。",
+    "image": {
+      "sizes": "対応サイズ: {{sizes}}。デフォルト: {{defaultSize}}。",
+      "nRange": "生成枚数: {{min}}〜{{max}} の整数、デフォルト {{default}}。",
+      "refs": "参照画像: 1 リクエスト最大 {{max}} 枚。対応 MIME: {{mimes}}。"
+    },
+    "kind": {
+      "image": "画像",
+      "video": "動画"
+    },
+    "meta": {
+      "description": "{{summary}} Vancine API の正確なリクエストスキーマ、対応パラメータ、検証済みサンプル。",
+      "title": "{{modelId}} API リファレンス | Vancine"
+    },
+    "mode": {
+      "firstLastFrame": "ファースト/ラストフレーム",
+      "imageToImage": "画像→画像",
+      "imageToVideo": "画像→動画",
+      "multiReference": "マルチリファレンス",
+      "textToImage": "テキスト→画像",
+      "textToVideo": "テキスト→動画"
+    },
+    "pricingDesc": "料金は動的で、料金ページに一覧があります。可用性とティア価格はここでは複製しません。",
+    "sections": {
+      "endpoint": "エンドポイント",
+      "examples": "例",
+      "modes": "対応する呼び出しモード",
+      "params": "パラメータ",
+      "pricing": "料金",
+      "verify": "検証済みソース"
+    },
+    "status": {
+      "checking": "可用性を確認中",
+      "live": "現在オンライン",
+      "offline": "現在利用不可",
+      "unconfirmed": "可用性は確認できません"
+    },
+    "verified": "検証日: {{date}}、ソース: {{source}}。リクエストスキーマは本番契約です。上流の変更はここに表示されます。",
+    "video": {
+      "bodyLimit": "リクエスト本文の上限: {{mb}} MB。スタジオは送信前にこの上限を強制し、超過はクライアント側で拒否されます。",
+      "paramDuration": "トップレベルの整数、範囲 [{{min}}, {{max}}]。範囲外は上流で拒否されます。",
+      "paramModel": "正確に \"{{modelId}}\" を指定してください。大文字小文字を区別し、他の値はサーバーで拒否されます。",
+      "paramPrompt": "自由形式のテキストプロンプト。送信前にトリムされ、空はクライアントで拒否されます。",
+      "paramRefs": "参照画像は最大 {{max}} 枚、各 { \"type\": \"image_url\", \"role\": \"reference_image\", \"image_url\": { \"url\": \"...\" } }。対応 MIME: jpeg, png, webp。",
+      "paramResolution": "{{list}} のいずれか。Wan3 / MiniMax-H3 / Seedance で表記が微妙に異なります；上記のドキュメントにこのモデルの正確な文字列があります。",
+      "paramSecondsString": "トップレベルの文字列、範囲 [{{min}}, {{max}}]（JSON 数値ではなく文字列 — Go では string 型）。",
+      "paramSizeWan3": "トップレベルの解像度（Wan3 契約）。{{list}} のいずれか。metadata.resolution と等価；スタジオはトップレベルを使用します。",
+      "paramWan3Refs": "参照メディアは最大 {{max}} 件、各 { \"type\": \"reference_image\", \"url\": \"...\" }。Wan3 はトップレベルの image/images を受け付けません。このスロットのみ使用してください。",
+      "rejectedWithRefs": "参照画像が 1 枚でも添付された場合に上流が拒否する解像度: {{list}}。フォームは自動的に残っている最大値に収束します。",
+      "wireKey": "契約フィールド",
+      "wireValue": "値"
+    },
+    "videoSubmit": "非同期生成タスクを送信",
+    "videoPoll": "タスク状態と結果をポーリング",
+    "videoDesc": "これは非同期タスクです。送信後 task id が返ります。同じパスをポーリングし、ステータスが終端値に達したら結果 URL または失敗理由を読み取ってください。",
+    "imageDesc": "画像エンドポイントは同期です: レスポンスの data 配列に画像 URL (または base64) が含まれます。",
+    "verifiedOn": "最終検証日: {{date}}。",
+    "summary": {
+      "qwenImage30": "Qwen 3.0 画像生成。Auto サイズ、オプション参照、prompt_extend / thinking モード対応。",
+      "qwenImage30Pro": "Qwen 3.0 Pro 画像生成。デフォルト 3.0 と同じパラメータ契約を共有します。",
+      "wan27ImagePro": "Alibaba Wan 2.7 Pro 画像生成。1K/2K/4K の階層サイズと最大 9 枚の参照画像に対応。",
+      "seedream50Pro": "ByteDance Seedream 5.0 Pro 画像生成。1K/1.5K/2K、最大 10 枚の参照画像、単一画像生成のみ。",
+      "seedream50Lite": "ByteDance Seedream 5.0 Lite 画像生成。2K/3K/4K、最大 14 枚の参照画像、3,686,400 ピクセルの下限。",
+      "wan30Video": "Alibaba Wan 3.0 テキスト→動画 / 画像→動画。2〜30 秒、480P / 720P / 1080P、最大 10 枚の参照画像。",
+      "wan30VideoPrime": "Wan 3.0 の高速版。ベースモデルと同じリクエスト契約。",
+      "minimaxH3": "MiniMax H3 動画生成。4〜15 秒、768P / 2K、Vancine で最大 5 枚の参照画像。",
+      "seedance20": "ByteDance Seedance 2.0 動画生成。4〜15 秒、480p / 720p / 1080p / 4k、最大 9 枚の参照画像。",
+      "seedance25": "ByteDance Seedance 2.5 動画生成。4〜30 秒、480p / 720p / 1080p (4k なし)、最大 30 枚の参照画像。"
+    },
+    "description": {
+      "qwenImage30": "Qwen 3.0 は Qwen 画像のデフォルトモデル。参照 (jpeg, png, bmp, tiff, webp, gif) を受け付け、Pro と同じ Auto + 4 階層のサイズ + 任意の WxH 契約を共有します。参照画像付きの agent モードは拒否されます。",
+      "qwenImage30Pro": "Qwen 3.0 の Pro 兄弟モデル。パラメータは同一で、違いはアップストリーム側の品質であって、リクエスト契約ではありません。",
+      "wan27ImagePro": "最大 9 枚の参照画像 (jpeg, png, webp)。参照画像が添付されている場合、上流は総ピクセルを 2048×2048 に制限します。参照付きの 4K 送信は 400 になります。非 Pro の Wan 2.7 画像モデルには公開されたサイズ階層やパラメータ契約がないため、ここには表示されません。",
+      "seedream50Pro": "Seedream 5.0 Pro はリクエストあたり 1 枚のみ生成します (n は常に 1)。ピクセル下限 921,600 (1024×1024 可)、上限 4,624,220。advanced の sequential_image_generation と optimize_prompt_options は PassThrough が必要でデフォルトでは転送されません。このページでは配線済みの契約のみを記載しています。",
+      "seedream50Lite": "Seedream 5.0 Lite は 2K/3K/4K の階層をサポートします (pro は非対応)。3,686,400 ピクセルの下限は 1024×1024 を \"image size must be at least 3686400 pixels\" で拒否します。常に 1 画像/リクエスト。最大 14 枚の参照 (jpeg, png, webp)。",
+      "wan30Video": "Wan 3.0 はトップレベルの `duration` (整数、秒) と `size` (480P / 720P / 1080P のいずれか) を使用します。参照画像は `metadata.input.media` に `{ \"type\": \"reference_image\", \"url\": \"...\" }` として配置します。トップレベルの `image` / `images` には配置しません。スタジオは `duration` のエイリアスとして `seconds` も受け入れますが、マルチ参照モードでは上流がトップレベルの `image` / `images` を拒否します。",
+      "wan30VideoPrime": "Prime は速度最適化の Wan 3.0 兄弟モデル。契約は同じ: トップレベルの `duration` + `size`、参照は `metadata.input.media`。Prime が変わる唯一のこと はアップストリームのレイテンシで、パラメータ契約ではありません。",
+      "minimaxH3": "H3 はトップレベルの `duration` (整数、秒) と `metadata.resolution` (正確に `768P` または `2K`) を使用します。参照画像は `metadata.content` に `{ \"type\": \"image_url\", \"role\": \"reference_image\", \"image_url\": { \"url\": \"...\" } }` として配置します。MiniMax-H3 は 9 枚まで受け付けますが、Vancine は 5 枚に制限し、5 枚を超えると 400 を返します。`ratio` フィールドは省略され、プラグインがドキュメント化されたデフォルトを適用します。",
+      "seedance20": "Seedance 2.0 はトップレベルの `seconds` (文字列 — JSON 数値は拒否) を使用します。解像度は `metadata.resolution` (小文字) に配置します。参照画像は `metadata.content` に `{ \"type\": \"image_url\", \"role\": \"reference_image\", \"image_url\": { \"url\": \"...\" } }` として配置します。参照画像が添付されている場合、上流は `1080p` を拒否し、スタジオは残っている最大値に収束します。",
+      "seedance25": "Seedance 2.5 はトップレベルの `seconds` (文字列) を使用します。解像度は `metadata.resolution` に配置します。参照画像は `metadata.content` に `role: \"reference_image\"` とともに配置します。対応解像度は 480p / 720p / 1080p のみで、Seedance 2.5 の契約には 4k 階層がありません。最大時間 30 秒、最大 30 枚の参照画像。"
+    },
+    "ip": {
+      "model": "正確に \"{{modelId}}\" を指定してください。大文字小文字を区別します。",
+      "prompt": "自由形式のテキストプロンプト。文字数の上限はゲートウェイのボディサイズのみ。モデル固有の注意点はモデルページに記載。",
+      "n": "{{min}}〜{{max}} の整数、デフォルト {{default}}。",
+      "sizeAuto": "Auto がデフォルトです: 上流が最終的な解像度を選択します。",
+      "sizeTiers": "離散階層: {{tiers}}。",
+      "sizeCustom": "{{minPixels}}〜{{maxPixels}} ピクセルのカスタム WIDTHxHEIGHT が可能、アスペクト比 {{minRatio}}〜{{maxRatio}}。",
+      "sizeCustomWithRefs": "参照画像が添付されている場合、ピクセル上限は {{maxPixels}} に低下します。",
+      "image": "image-to-image / 複数画像融合用の参照画像 URL または Base64。1 リクエスト最大 {{max}} 枚。対応 MIME: {{mimes}}。",
+      "seed": "{{min}}〜{{max}} の整数、デフォルト {{default}}。",
+      "noSeed": "このモデルでは未対応。seed フィールドは送信しないでください。",
+      "watermark": "ウォーターマークを埋め込むか。デフォルト {{default}}。",
+      "negativePrompt": "回避内容を記述するテキスト。Qwen 3.x には文書化された上限はなく、ゲートウェイのボディサイズのみが実際の制限です。",
+      "promptExtend": "プロンプト書き換えを有効化。デフォルト {{default}}。",
+      "promptExtendMode": "\"direct\" または \"agent\" を選択。デフォルト {{default}}。",
+      "promptExtendModeAgent": "参照画像が添付されている場合、\"agent\" モードは拒否されます。",
+      "enableThinking": "thinking モードを有効化。デフォルト {{default}}。prompt_extend=true が必要。",
+      "responseFormat": "返却形式: {{formats}}。デフォルト {{default}}。",
+      "outputFormat": "出力形式: {{formats}}。デフォルト {{default}}。"
+    },
+    "in": {
+      "qwen30": {
+        "thinking": "enable_thinking は prompt_extend=true も設定されている場合のみ有効です。",
+        "agentRefs": "参照画像が 1 枚でも添付されている場合、agent モードは拒否されます。"
+      },
+      "qwen30pro": {
+        "sameContract": "qwen-image-3.0-pro と qwen-image-3.0 は同じ公開契約を共有します; 違いはアップストリームの品質であって、リクエストスキーマではありません。"
+      },
+      "wan27pro": {
+        "refsCeiling": "参照画像が添付されている場合、ピクセル上限は 2048×2048 に低下します。4K と参照の組み合わせは上流から 400 を返します。"
+      },
+      "wan27": {
+        "nonProAbsent": "非 Pro の Wan 2.7 画像モデルには上流で公開されたサイズ階層やパラメータ契約がないため、ここには表示されません。"
+      },
+      "seedreamPro": {
+        "singleImage": "Seedream 5.0 Pro はリクエストあたり 1 枚のみ生成します; upstream は n>1 を拒否します。",
+        "minPixels": "ピクセル下限 921,600 (1024×1024 可)。上限 4,624,220。"
+      },
+      "seedreamLite": {
+        "pixelFloor": "ピクセル下限 3,686,400; 1024×1024 は \"image size must be at least 3686400 pixels\" で拒否されます。",
+        "tiers": "Seedream 5.0 Lite は 2K/3K/4K の階層をサポートします; Pro は未対応。"
+      }
+    },
+    "vp": {
+      "model": "正確に \"{{modelId}}\" を指定してください。大文字小文字を区別します。",
+      "prompt": "自由形式のテキストプロンプト。送信前にトリムされ、空はクライアントで拒否されます。",
+      "durationWan3": "トップレベルの整数、{{min}}〜{{max}} 秒。範囲外は上流で拒否されます。",
+      "durationH3": "トップレベルの整数、{{min}}〜{{max}} 秒。範囲外は上流で拒否されます。",
+      "seconds": "トップレベルの文字列、{{min}}〜{{max}}。JSON 数値はゲートウェイで拒否されます (Go の `TaskSubmitReq.Seconds` は文字列)。",
+      "sizeWan3": "トップレベルの解像度: {{list}}。metadata.resolution と等価; スタジオはトップレベルを使用します。",
+      "resolution": "metadata の中: {{list}}。Wan3 / H3 / Seedance の表記は少し異なります; 上記にこのモデルの正確な文字列があります。",
+      "refsWan3": "最大 {{max}} 件の参照メディア、各 { \"type\": \"reference_image\", \"url\": \"...\" }。Wan3 はトップレベルの image/images を受け付けません。このスロットのみ使用してください。",
+      "refsContent": "最大 {{max}} 件の参照画像、各 { \"type\": \"image_url\", \"role\": \"reference_image\", \"image_url\": { \"url\": \"...\" } }。対応 MIME: jpeg, png, webp。"
+    },
+    "vn": {
+      "wan3": {
+        "topLevelSlots": "契約: トップレベル `duration` (整数) + `size`; 参照は `metadata.input.media` に `{ \"type\": \"reference_image\", \"url\": \"...\" }` として配置。",
+        "noTopLevelImages": "トップレベルの `image` / `images` は受け付けられません: Wan3 契約はこれらを拒否します。マルチ参照は `metadata.input.media` を使用してください。"
+      },
+      "wan3Prime": {
+        "sameAsWan3": "Prime は速度最適化の Wan3 兄弟モデル。契約は Wan3 と同じです。"
+      },
+      "h3": {
+        "slots": "契約: トップレベル `duration` (整数) + `metadata.resolution` (正確に `768P` または `2K`) + `metadata.content` の参照項目 (role: \"reference_image\")。",
+        "fiveRefs": "MiniMax-H3 は 9 枚まで受け付けますが、Vancine は 5 枚に制限し、5 枚を超えると 400 を返します。",
+        "ratioOmitted": "`ratio` フィールドは省略され、プラグインがドキュメント化されたデフォルトを適用します (視覚入力は adaptive、テキストのみは 16:9)。"
+      },
+      "seedance": {
+        "secondsString": "契約: トップレベルの `seconds` は文字列です (JSON 数値は Go の `TaskSubmitReq.Seconds` フィールドで拒否されます)。"
+      },
+      "seedance20": {
+        "rejectedWithRefs": "Seedance 2.0 は参照画像が添付されていると 1080p を拒否します; スタジオは残っている最大値に収束します。",
+        "tiers": "対応解像度: 480p / 720p / 1080p / 4k。最大時間 15 秒、最大参照画像 9 枚。"
+      },
+      "seedance25": {
+        "no4k": "Seedance 2.5 には 4k 階層がありません。対応解像度は 480p / 720p / 1080p のみです。",
+        "limits": "最大時間 30 秒、最大参照画像 30 枚。対応解像度: 480p / 720p / 1080p。"
+      }
+    },
+    "sources": {
+      "vancineImage": "Vancine 本番画像契約",
+      "aliyunWanVideo": "Alibaba Wan 動画ドキュメント",
+      "aliyunWanImage": "Alibaba Wan 画像ドキュメント",
+      "minimaxVideoV2": "MiniMax Video Generation V2 ドキュメント",
+      "volcengineSeedance": "Volcengine Seedance ドキュメント",
+      "byteplusVideo": "BytePlus 動画生成ドキュメント",
+      "volcengineSeedream": "Volcengine Seedream ドキュメント",
+      "aliyunQwenImage": "Alibaba Qwen 画像ドキュメント"
+    }
   }
 }

@@ -69,6 +69,7 @@ import { Route as DocsAgentsSplatRouteImport } from './routes/docs/agents/$'
 import { Route as DocsAgentsClineRouteImport } from './routes/docs/agents/cline'
 import { Route as DocsAgentsOpencodeRouteImport } from './routes/docs/agents/opencode'
 import { Route as DocsAgentsRooCodeRouteImport } from './routes/docs/agents/roo-code'
+import { Route as DocsModelsModelRouteImport } from './routes/docs/models/$model'
 import { Route as PricingModelIdIndexRouteImport } from './routes/pricing/$modelId/index'
 import { Route as AuthenticatedSystemSettingsAuthIndexRouteImport } from './routes/_authenticated/system-settings/auth/index'
 import { Route as AuthenticatedSystemSettingsAuthSectionRouteImport } from './routes/_authenticated/system-settings/auth/$section'
@@ -404,6 +405,11 @@ const DocsAgentsRooCodeRoute = DocsAgentsRooCodeRouteImport.update({
   path: '/docs/agents/roo-code',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocsModelsModelRoute = DocsModelsModelRouteImport.update({
+  id: '/docs/models/$model',
+  path: '/docs/models/$model',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PricingModelIdIndexRoute = PricingModelIdIndexRouteImport.update({
   id: '/pricing/$modelId/',
   path: '/pricing/$modelId/',
@@ -538,6 +544,7 @@ export interface FileRoutesByFullPath {
   '/docs/agents/cline': typeof DocsAgentsClineRoute
   '/docs/agents/opencode': typeof DocsAgentsOpencodeRoute
   '/docs/agents/roo-code': typeof DocsAgentsRooCodeRoute
+  '/docs/models/$model': typeof DocsModelsModelRoute
   '/channels/': typeof AuthenticatedChannelsIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/keys/': typeof AuthenticatedKeysIndexRoute
@@ -612,6 +619,7 @@ export interface FileRoutesByTo {
   '/docs/agents/cline': typeof DocsAgentsClineRoute
   '/docs/agents/opencode': typeof DocsAgentsOpencodeRoute
   '/docs/agents/roo-code': typeof DocsAgentsRooCodeRoute
+  '/docs/models/$model': typeof DocsModelsModelRoute
   '/channels': typeof AuthenticatedChannelsIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/keys': typeof AuthenticatedKeysIndexRoute
@@ -690,6 +698,7 @@ export interface FileRoutesById {
   '/docs/agents/cline': typeof DocsAgentsClineRoute
   '/docs/agents/opencode': typeof DocsAgentsOpencodeRoute
   '/docs/agents/roo-code': typeof DocsAgentsRooCodeRoute
+  '/docs/models/$model': typeof DocsModelsModelRoute
   '/_authenticated/channels/': typeof AuthenticatedChannelsIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/keys/': typeof AuthenticatedKeysIndexRoute
@@ -767,6 +776,7 @@ export interface FileRouteTypes {
     | '/docs/agents/cline'
     | '/docs/agents/opencode'
     | '/docs/agents/roo-code'
+    | '/docs/models/$model'
     | '/channels/'
     | '/dashboard/'
     | '/keys/'
@@ -841,6 +851,7 @@ export interface FileRouteTypes {
     | '/docs/agents/cline'
     | '/docs/agents/opencode'
     | '/docs/agents/roo-code'
+    | '/docs/models/$model'
     | '/channels'
     | '/dashboard'
     | '/keys'
@@ -918,6 +929,7 @@ export interface FileRouteTypes {
     | '/docs/agents/cline'
     | '/docs/agents/opencode'
     | '/docs/agents/roo-code'
+    | '/docs/models/$model'
     | '/_authenticated/channels/'
     | '/_authenticated/dashboard/'
     | '/_authenticated/keys/'
@@ -979,6 +991,7 @@ export interface RootRouteChildren {
   DocsAgentsClineRoute: typeof DocsAgentsClineRoute
   DocsAgentsOpencodeRoute: typeof DocsAgentsOpencodeRoute
   DocsAgentsRooCodeRoute: typeof DocsAgentsRooCodeRoute
+  DocsModelsModelRoute: typeof DocsModelsModelRoute
   DocsAgentsIndexRoute: typeof DocsAgentsIndexRoute
   PricingModelIdIndexRoute: typeof PricingModelIdIndexRoute
 }
@@ -1405,6 +1418,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsAgentsRooCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/docs/models/$model': {
+      id: '/docs/models/$model'
+      path: '/docs/models/$model'
+      fullPath: '/docs/models/$model'
+      preLoaderRoute: typeof DocsModelsModelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pricing/$modelId/': {
       id: '/pricing/$modelId/'
       path: '/pricing/$modelId'
@@ -1680,6 +1700,7 @@ const rootRouteChildren: RootRouteChildren = {
   DocsAgentsClineRoute: DocsAgentsClineRoute,
   DocsAgentsOpencodeRoute: DocsAgentsOpencodeRoute,
   DocsAgentsRooCodeRoute: DocsAgentsRooCodeRoute,
+  DocsModelsModelRoute: DocsModelsModelRoute,
   DocsAgentsIndexRoute: DocsAgentsIndexRoute,
   PricingModelIdIndexRoute: PricingModelIdIndexRoute,
 }

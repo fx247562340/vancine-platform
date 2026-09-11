@@ -97,6 +97,13 @@ export function getDocsAgentToolProfile(
  * added here. The templates are language-neutral code and therefore
  * live in TypeScript, not in the i18n bundles.
  *
+ * The recommended model id shown in the configuration example is
+ * passed in by the caller (the agents page), which reads the live
+ * catalog and only falls back to a verified default when the catalog
+ * is unavailable. The placeholder is rendered as
+ * `<RECOMMENDED_MODEL_ID>` so a reader never copies a model that the
+ * upstream admin has retired.
+ *
  * Contract per block:
  * - 'json' blocks are the exact copyable file content and MUST parse
  *   with JSON.parse as-is (no comments, no shell snippets appended).
@@ -112,7 +119,8 @@ export interface DocsAgentConfigBlock {
 
 export function getDocsAgentConfigExample(
   tool: DocsAgentToolKey,
-  baseUrl: string
+  baseUrl: string,
+  recommendedModelId: string
 ): DocsAgentConfigBlock[] {
   switch (tool) {
     case 'opencode':
@@ -130,7 +138,7 @@ export function getDocsAgentConfigExample(
         "apiKey": "{env:VANCINE_API_KEY}"
       },
       "models": {
-        "glm-5.3-flash": {}
+        "${recommendedModelId}": {}
       }
     }
   }
@@ -150,13 +158,13 @@ export function getDocsAgentConfigExample(
 API Provider:  OpenAI Compatible
 Base URL:      ${baseUrl}
 API Key:       sk-your-api-key
-Model ID:      glm-5.1
+Model ID:      ${recommendedModelId}
 
 # or, in Cline's settings JSON:
 # "apiProvider": "openai",
 # "openAiBaseUrl": "${baseUrl}",
 # "openAiApiKey": "$VANCINE_API_KEY",
-# "openAiModelId": "glm-5.1"`,
+# "openAiModelId": "${recommendedModelId}"`,
         },
       ]
     case 'rooCode':
@@ -168,13 +176,13 @@ Model ID:      glm-5.1
 API Provider:  OpenAI Compatible
 Base URL:      ${baseUrl}
 API Key:       sk-your-api-key
-Model ID:      glm-5.1
+Model ID:      ${recommendedModelId}
 
 # or, in Roo Code's provider settings JSON:
 # "apiProvider": "openai",
 # "openAiBaseUrl": "${baseUrl}",
 # "openAiApiKey": "$VANCINE_API_KEY",
-# "openAiModelId": "glm-5.1"`,
+# "openAiModelId": "${recommendedModelId}"`,
         },
       ]
   }

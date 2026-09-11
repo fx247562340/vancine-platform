@@ -225,9 +225,11 @@ describe('OpenCode /connect primary path', () => {
       screen.getByText('Paste your own Vancine API Key.')
     ).toBeInTheDocument()
     expect(screen.getByText('Run /models.')).toBeInTheDocument()
+    // step7 references the live-catalog model via the {{modelId}}
+    // placeholder; the rendered string is "vancine/<modelId>".
     expect(
       screen.getByText(
-        'Choose vancine/glm-5.3-flash, or another model under the vancine Provider, then send a prompt.'
+        /Choose vancine\/[A-Za-z0-9._-]+, or another model under the vancine Provider/
       )
     ).toBeInTheDocument()
 
@@ -237,7 +239,7 @@ describe('OpenCode /connect primary path', () => {
     }
     expect(stepsList.textContent).toContain('/connect')
     expect(stepsList.textContent).toContain('/models')
-    expect(stepsList.textContent).toContain('vancine/glm-5.3-flash')
+    expect(stepsList.textContent).toMatch(/vancine\/[A-Za-z0-9._-]+/)
     expect(stepsList.textContent).not.toContain('opencode.json')
 
     const advanced = screen.getByRole('heading', {
@@ -248,8 +250,15 @@ describe('OpenCode /connect primary path', () => {
         Node.DOCUMENT_POSITION_FOLLOWING
     ).not.toBe(0)
     expect(container.textContent).toContain('"provider"')
-    expect(container.textContent).toContain('glm-5.3-flash')
+    // The model id in the opencode.json block mirrors the live catalog
+    // (or the verified fallback when the catalog is unavailable). The
+    // JSON is pretty-printed and may be HTML-escaped in the rendered
+    // tree, so we look for the two adjacent tokens (`"models"` and the
+    // dynamic model id) rather than for a single contiguous JSON literal.
+    expect(container.textContent).toMatch(/"models"/)
+    expect(container.textContent).toMatch(/"deepseek-v4-flash"/)
     expect(container.textContent).not.toContain('glm-5.1')
+    expect(container.textContent).not.toContain('glm-5.3-flash')
     expect(container.textContent).not.toContain('# shell')
     expect(container.textContent).toContain(
       'export VANCINE_API_KEY="sk-your-api-key"'

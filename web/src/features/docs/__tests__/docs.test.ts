@@ -616,6 +616,13 @@ const SAME_ENGLISH_ALLOWLIST = new Set<string>([
   'common.navigation',
   'common.notes',
   'common.endpoint',
+  // Technical terms that several languages keep as English borrowings
+  // (Image / Video / Endpoint are valid in fr, ru, ja, vi without
+  // obscuring meaning; forcing a translation here would harm clarity
+  // for the technical audience reading the docs).
+  'modelDetail.kind.image',
+  'modelDetail.kind.video',
+  'modelDetail.sections.endpoint',
 ])
 
 describe('OpenCode /connect primary path copy', () => {
@@ -631,8 +638,12 @@ describe('OpenCode /connect primary path copy', () => {
       )
       assert.ok(step6.includes('/models'), `${code} step6 must include /models`)
       assert.ok(
-        step7.includes('vancine/glm-5.3-flash'),
-        `${code} step7 must include vancine/glm-5.3-flash`
+        step7.includes('vancine/'),
+        `${code} step7 must include the vancine Provider prefix`
+      )
+      assert.ok(
+        step7.includes('{{modelId}}'),
+        `${code} step7 must reference the model id via the {{modelId}} placeholder (not a hardcoded model)`
       )
       assert.ok(
         (map.get('agentGuides.opencode.noJsonNote') ?? '').trim(),
@@ -654,6 +665,11 @@ describe('OpenCode /connect primary path copy', () => {
           value.includes('glm-5.1'),
           false,
           `${code} ${key} must not name glm-5.1`
+        )
+        assert.equal(
+          value.includes('glm-5.3-flash'),
+          false,
+          `${code} ${key} must not name glm-5.3-flash`
         )
       }
     }

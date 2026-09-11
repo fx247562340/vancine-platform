@@ -88,7 +88,11 @@ describe('Docs agent config examples', () => {
 
   it('embed the recommended Base URL and only placeholder credentials', () => {
     for (const tool of DOCS_AGENT_TOOLS) {
-      const blocks = getDocsAgentConfigExample(tool.key, baseUrl)
+      const blocks = getDocsAgentConfigExample(
+        tool.key,
+        baseUrl,
+        'deepseek-v4-flash'
+      )
       const code = blocks.map((block) => block.code).join('\n')
       assert.ok(
         code.includes(baseUrl),
@@ -107,7 +111,11 @@ describe('Docs agent config examples', () => {
   })
 
   it('OpenCode json blocks are copy-paste parseable by JSON.parse', () => {
-    const blocks = getDocsAgentConfigExample('opencode', baseUrl)
+    const blocks = getDocsAgentConfigExample(
+      'opencode',
+      baseUrl,
+      'deepseek-v4-flash'
+    )
     const jsonBlocks = blocks.filter((block) => block.language === 'json')
     assert.ok(
       jsonBlocks.length >= 1,
@@ -138,7 +146,11 @@ describe('Docs agent config examples', () => {
   })
 
   it('OpenCode config carries no context/output limits or model claims', () => {
-    const blocks = getDocsAgentConfigExample('opencode', baseUrl)
+    const blocks = getDocsAgentConfigExample(
+      'opencode',
+      baseUrl,
+      'deepseek-v4-flash'
+    )
     const opencodeJson = blocks.find((block) => block.language === 'json')?.code
     assert.ok(opencodeJson, 'opencode json block must exist')
     const parsed = JSON.parse(opencodeJson) as {
@@ -153,8 +165,8 @@ describe('Docs agent config examples', () => {
       'OpenCode example must not use glm-5.1'
     )
     assert.ok(
-      Object.hasOwn(models, 'glm-5.3-flash'),
-      'OpenCode example may only pin a live catalog model such as glm-5.3-flash'
+      Object.hasOwn(models, 'deepseek-v4-flash'),
+      'OpenCode example must reflect the model id passed in by the caller (the live catalog)'
     )
     for (const [modelId, value] of Object.entries(models)) {
       assert.deepEqual(

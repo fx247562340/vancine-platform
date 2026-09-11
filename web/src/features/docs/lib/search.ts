@@ -20,10 +20,13 @@ import { DOCS_AGENT_TOOLS } from '../lib/agents.ts'
 import { ALL_DOCS_SLUGS, SLUG_TO_TITLE_KEY } from '../nav.ts'
 import type {
   AgentSearchIndexEntry,
+  DocsSlug,
+  ModelSearchIndexEntry,
   SearchIndexEntry,
   SearchResult,
   SlugSearchIndexEntry,
 } from '../types.ts'
+import { buildModelSearchIndex } from './model-search-index.ts'
 
 export const MAX_SEARCH_RESULTS = 8
 const SNIPPET_RADIUS = 40
@@ -48,7 +51,10 @@ function flattenValues(obj: unknown, out: string[] = []): string[] {
   return out
 }
 
-export function buildSearchIndex(bundle: DocsBundle): SearchIndexEntry[] {
+export function buildSearchIndex(
+  bundle: DocsBundle,
+  translate?: (key: string, interp?: Record<string, unknown>) => string
+): SearchIndexEntry[] {
   const nav = (bundle.nav ?? {}) as Record<string, string>
   const slugEntries: SlugSearchIndexEntry[] = ALL_DOCS_SLUGS.map((slug) => {
     const titleKey = SLUG_TO_TITLE_KEY[slug] ?? slug
@@ -102,7 +108,18 @@ export function buildSearchIndex(bundle: DocsBundle): SearchIndexEntry[] {
     })
   }
 
-  return [...slugEntries, ...agentEntries]
+  // Model detail pages (/docs/models/<slug>) are indexed with the
+  // CURRENT locale's translations: the localized modality label and
+  // summary make the page findable in the user's language, while the
+  // language-neutral model id and slug keep wire-level lookups
+  // working. When no translate fn is supplied (older callers / tests
+  // without the docs namespace), model entries are skipped rather
+  // than indexed with English fallbacks.
+  const modelEntries: ModelSearchIndexEntry[] = translate
+    ? buildModelSearchIndex(translate)
+    : []
+
+  return [...slugEntries, ...agentEntries, ...modelEntries]
 }
 
 function makeSnippet(text: string, query: string, queryLower: string): string {
@@ -139,8 +156,24 @@ export function searchDocs(
         snippet,
         score,
       })
+    } else if ('kind' in item && item.kind === 'model') {
+      results.push({
+        model: item.slug,
+        title: item.title,
+        snippet,
+        score,
+      })
     } else {
-      results.push({ slug: item.slug, title: item.title, snippet, score })
+      // Remaining branch: a SlugSearchIndexEntry. The cast is safe
+      // because the previous branches have narrowed `item` to the
+      // Docs slug shape (no `agentPath`, no `kind`).
+      const slugEntry = item as { slug: DocsSlug; title: string }
+      results.push({
+        slug: slugEntry.slug,
+        title: slugEntry.title,
+        snippet,
+        score,
+      })
     }
   }
 

@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import {
   createMemoryHistory,
   createRootRoute,
@@ -107,11 +108,20 @@ const testRouteTree = testRootRoute.addChildren([
 ])
 
 function renderDocsRouter(initialPath: string) {
+  // Docs pages now read the live model catalog through useLiveModelCatalog,
+  // so the test tree must include a QueryClientProvider.
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
   const router = createRouter({
     routeTree: testRouteTree,
     history: createMemoryHistory({ initialEntries: [initialPath] }),
   })
-  const rendered = render(<RouterProvider router={router} />)
+  const rendered = render(
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
+  )
   return { router, ...rendered }
 }
 

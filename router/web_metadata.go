@@ -65,10 +65,10 @@ var publicMarketingPages = []publicPageMeta{
 		description: "Access flagship and fast-inference Chinese AI models for " +
 			"reasoning, coding, multimodal workflows, AI agents, and high-throughput " +
 			"applications through one OpenAI-compatible API.",
-		ogTitle:       "Chinese Frontier & Fast AI Models API",
-		ogDescription: "Access flagship and fast-inference Chinese AI models for reasoning, coding, multimodal workflows, AI agents, and high-throughput applications through one OpenAI-compatible API.",
-		twitterTitle:  "Chinese Frontier & Fast AI Models API",
-		twitterDesc:   "Access flagship and fast-inference Chinese AI models for reasoning, coding, multimodal workflows, AI agents, and high-throughput applications through one OpenAI-compatible API.",
+		ogTitle:          "Chinese Frontier & Fast AI Models API",
+		ogDescription:    "Access flagship and fast-inference Chinese AI models for reasoning, coding, multimodal workflows, AI agents, and high-throughput applications through one OpenAI-compatible API.",
+		twitterTitle:     "Chinese Frontier & Fast AI Models API",
+		twitterDesc:      "Access flagship and fast-inference Chinese AI models for reasoning, coding, multimodal workflows, AI agents, and high-throughput applications through one OpenAI-compatible API.",
 		twitterCardValue: "summary",
 	},
 	{
@@ -151,6 +151,112 @@ var publicMarketingPages = []publicPageMeta{
 		ogDescription:    "Configure Roo Code for the Vancine API: OpenAI-compatible Base URL, API key, model ID and fixes for the most common setup errors.",
 		twitterTitle:     "Roo Code Setup Guide for the Vancine API | Vancine",
 		twitterDesc:      "Configure Roo Code for the Vancine API: OpenAI-compatible Base URL, API key, model ID and fixes for the most common setup errors.",
+		twitterCardValue: "summary",
+	},
+	{
+		// Image model detail pages. Each entry mirrors the page-titled
+		// English metadata the SPA's model-detail template uses for the
+		// corresponding /docs/models/<slug> page. Adding them here ensures
+		// the server-rendered HTML carries a model-specific title,
+		// description, canonical and OG pair, so the pages are indexable
+		// by crawlers and LLM agents.
+		path:             "/docs/models/qwen-image-3.0",
+		title:            "qwen-image-3.0 API reference | Vancine",
+		description:      "qwen-image-3.0 image generation: Auto sizing, optional references (jpeg, png, bmp, tiff, webp, gif), prompt_extend and enable_thinking modes. Verified parameter contract and copyable cURL / Python / Node.js examples.",
+		ogTitle:          "qwen-image-3.0 API reference",
+		ogDescription:    "qwen-image-3.0 image generation with Auto sizing, optional references, prompt_extend and enable_thinking modes. Verified parameter contract and copyable examples.",
+		twitterTitle:     "qwen-image-3.0 API reference | Vancine",
+		twitterDesc:      "qwen-image-3.0 image generation with Auto sizing, optional references, prompt_extend and enable_thinking modes.",
+		twitterCardValue: "summary",
+	},
+	{
+		path:             "/docs/models/qwen-image-3.0-pro",
+		title:            "qwen-image-3.0-pro API reference | Vancine",
+		description:      "qwen-image-3.0-pro image generation. Same parameter contract as qwen-image-3.0; the difference is upstream quality, not the request schema. Verified contract and copyable examples.",
+		ogTitle:          "qwen-image-3.0-pro API reference",
+		ogDescription:    "qwen-image-3.0-pro image generation with the same parameter contract as qwen-image-3.0; the difference is upstream quality, not the schema.",
+		twitterTitle:     "qwen-image-3.0-pro API reference | Vancine",
+		twitterDesc:      "qwen-image-3.0-pro image generation with the same parameter contract as qwen-image-3.0.",
+		twitterCardValue: "summary",
+	},
+	{
+		path:             "/docs/models/wan2.7-image-pro",
+		title:            "wan2.7-image-pro API reference | Vancine",
+		description:      "Alibaba Wan 2.7 Pro image generation with 1K / 2K / 4K tiers, up to 9 reference images, and 2048x2048 pixel ceiling with references attached. Verified contract and copyable examples.",
+		ogTitle:          "wan2.7-image-pro API reference",
+		ogDescription:    "Alibaba Wan 2.7 Pro image generation with 1K / 2K / 4K tiers, up to 9 reference images, and 2048x2048 pixel ceiling with references attached.",
+		twitterTitle:     "wan2.7-image-pro API reference | Vancine",
+		twitterDesc:      "Alibaba Wan 2.7 Pro image generation with 1K / 2K / 4K tiers and up to 9 reference images.",
+		twitterCardValue: "summary",
+	},
+	{
+		path:             "/docs/models/doubao-seedream-5.0-pro",
+		title:            "Doubao-Seedream-5.0-pro API reference | Vancine",
+		description:      "ByteDance Seedream 5.0 Pro image generation with 1K / 1.5K / 2K tiers, up to 10 reference images, single-image generation only. Verified contract and copyable examples.",
+		ogTitle:          "Doubao-Seedream-5.0-pro API reference",
+		ogDescription:    "ByteDance Seedream 5.0 Pro image generation with 1K / 1.5K / 2K tiers, up to 10 reference images, single-image generation only.",
+		twitterTitle:     "Doubao-Seedream-5.0-pro API reference | Vancine",
+		twitterDesc:      "ByteDance Seedream 5.0 Pro image generation with 1K / 1.5K / 2K tiers and up to 10 reference images.",
+		twitterCardValue: "summary",
+	},
+	{
+		path:             "/docs/models/doubao-seedream-5.0-lite",
+		title:            "Doubao-Seedream-5.0-lite API reference | Vancine",
+		description:      "ByteDance Seedream 5.0 Lite image generation with 2K / 3K / 4K tiers, up to 14 reference images, 3686400-pixel floor. Verified contract and copyable examples.",
+		ogTitle:          "Doubao-Seedream-5.0-lite API reference",
+		ogDescription:    "ByteDance Seedream 5.0 Lite image generation with 2K / 3K / 4K tiers, up to 14 reference images, 3686400-pixel floor.",
+		twitterTitle:     "Doubao-Seedream-5.0-lite API reference | Vancine",
+		twitterDesc:      "ByteDance Seedream 5.0 Lite image generation with 2K / 3K / 4K tiers and up to 14 reference images.",
+		twitterCardValue: "summary",
+	},
+	{
+		path:             "/docs/models/wan3.0-video",
+		title:            "wan3.0-video API reference | Vancine",
+		description:      "Alibaba Wan 3.0 text-to-video and image-to-video with 2-30 second durations at 480P / 720P / 1080P, up to 10 reference images. Top-level duration + size, references in metadata.input.media. Verified contract and copyable examples.",
+		ogTitle:          "wan3.0-video API reference",
+		ogDescription:    "Alibaba Wan 3.0 text-to-video and image-to-video with 2-30 second durations at 480P / 720P / 1080P, up to 10 reference images. Top-level duration + size, references in metadata.input.media.",
+		twitterTitle:     "wan3.0-video API reference | Vancine",
+		twitterDesc:      "Alibaba Wan 3.0 text-to-video and image-to-video with 2-30 second durations at 480P / 720P / 1080P and up to 10 reference images.",
+		twitterCardValue: "summary",
+	},
+	{
+		path:             "/docs/models/wan3.0-video-prime",
+		title:            "wan3.0-video-prime API reference | Vancine",
+		description:      "Speed-optimised Alibaba Wan 3.0 Prime. Same request contract as wan3.0-video. Verified contract and copyable examples.",
+		ogTitle:          "wan3.0-video-prime API reference",
+		ogDescription:    "Speed-optimised Alibaba Wan 3.0 Prime with the same request contract as wan3.0-video.",
+		twitterTitle:     "wan3.0-video-prime API reference | Vancine",
+		twitterDesc:      "Speed-optimised Alibaba Wan 3.0 Prime with the same request contract as wan3.0-video.",
+		twitterCardValue: "summary",
+	},
+	{
+		path:             "/docs/models/minimax-h3",
+		title:            "MiniMax-H3 API reference | Vancine",
+		description:      "MiniMax H3 video generation with 4-15 second durations at 768P / 2K, up to 5 reference images on Vancine. Top-level duration + metadata.resolution, references in metadata.content. Verified contract and copyable examples.",
+		ogTitle:          "MiniMax-H3 API reference",
+		ogDescription:    "MiniMax H3 video generation with 4-15 second durations at 768P / 2K, up to 5 reference images on Vancine. Top-level duration + metadata.resolution, references in metadata.content.",
+		twitterTitle:     "MiniMax-H3 API reference | Vancine",
+		twitterDesc:      "MiniMax H3 video generation with 4-15 second durations at 768P / 2K and up to 5 reference images on Vancine.",
+		twitterCardValue: "summary",
+	},
+	{
+		path:             "/docs/models/doubao-seedance-2.0",
+		title:            "Doubao-Seedance-2.0 API reference | Vancine",
+		description:      "ByteDance Seedance 2.0 video generation with 4-15 second durations at 480p / 720p / 1080p / 4k, up to 9 reference images. Top-level STRING seconds, resolution in metadata.resolution, references in metadata.content. Verified contract and copyable examples.",
+		ogTitle:          "Doubao-Seedance-2.0 API reference",
+		ogDescription:    "ByteDance Seedance 2.0 video generation with 4-15 second durations at 480p / 720p / 1080p / 4k, up to 9 reference images. Top-level STRING seconds, resolution in metadata.resolution, references in metadata.content.",
+		twitterTitle:     "Doubao-Seedance-2.0 API reference | Vancine",
+		twitterDesc:      "ByteDance Seedance 2.0 video generation with 4-15 second durations at 480p / 720p / 1080p / 4k and up to 9 reference images.",
+		twitterCardValue: "summary",
+	},
+	{
+		path:             "/docs/models/doubao-seedance-2.5",
+		title:            "Doubao-Seedance-2.5 API reference | Vancine",
+		description:      "ByteDance Seedance 2.5 video generation with 4-30 second durations at 480p / 720p / 1080p (no 4k), up to 30 reference images. Top-level STRING seconds, resolution in metadata.resolution, references in metadata.content. Verified contract and copyable examples.",
+		ogTitle:          "Doubao-Seedance-2.5 API reference",
+		ogDescription:    "ByteDance Seedance 2.5 video generation with 4-30 second durations at 480p / 720p / 1080p (no 4k), up to 30 reference images. Top-level STRING seconds, resolution in metadata.resolution, references in metadata.content.",
+		twitterTitle:     "Doubao-Seedance-2.5 API reference | Vancine",
+		twitterDesc:      "ByteDance Seedance 2.5 video generation with 4-30 second durations at 480p / 720p / 1080p (no 4k) and up to 30 reference images.",
 		twitterCardValue: "summary",
 	},
 	{
@@ -248,10 +354,10 @@ var publicMarketingPages = []publicPageMeta{
 		description: "Explore fast-inference Chinese AI models available through " +
 			"Vancine’s OpenAI-compatible API, with live pricing and model " +
 			"capabilities from the current catalog.",
-		ogTitle:       "Fast Chinese AI Models for Coding and High-Throughput Workloads",
-		ogDescription: "Explore fast-inference Chinese AI models available through Vancine’s OpenAI-compatible API, with live pricing and model capabilities from the current catalog.",
-		twitterTitle:  "Fast Chinese AI Models for Coding and High-Throughput Workloads",
-		twitterDesc:   "Explore fast-inference Chinese AI models available through Vancine’s OpenAI-compatible API, with live pricing and model capabilities from the current catalog.",
+		ogTitle:          "Fast Chinese AI Models for Coding and High-Throughput Workloads",
+		ogDescription:    "Explore fast-inference Chinese AI models available through Vancine’s OpenAI-compatible API, with live pricing and model capabilities from the current catalog.",
+		twitterTitle:     "Fast Chinese AI Models for Coding and High-Throughput Workloads",
+		twitterDesc:      "Explore fast-inference Chinese AI models available through Vancine’s OpenAI-compatible API, with live pricing and model capabilities from the current catalog.",
 		twitterCardValue: "summary",
 	},
 }
@@ -267,9 +373,77 @@ const robotsTxtBody = "User-agent: *\n" +
 	"Disallow: /v1/\n" +
 	"Sitemap: https://vancine.com/sitemap.xml\n"
 
+// llmsTxtBody is the LLM-agent index of every public surface. It is
+// served at /llms.txt as text/plain; charset=utf-8 with the same
+// one-hour public cache as robots.txt. The body and every URL are
+// package-level constants — they never reflect request Host,
+// X-Forwarded-Host, Origin, or query parameters. Keep this list in
+// lockstep with publicSitemapPaths: a page that leaves the sitemap
+// must leave llms.txt too, and vice versa.
+const llmsTxtBody = `# Vancine public documentation index for LLM agents.
+# Format: H2 section per public page, with a short summary and a
+# stable absolute URL. The file is content-negotiation friendly
+# (text/plain) and never carries request-derived values; every URL
+# uses the fixed canonical origin and is stable across deployments.
+#
+# Each entry below is a public documentation surface; only routes the
+# web router actively serves are listed, so a /docs/<unknown> path
+# here is a real, addressable page.
+
+## Marketing
+
+- [Vancine — Chinese Frontier & Fast AI Models API](https://vancine.com/): Unified OpenAI-compatible API for Chinese AI models.
+- [Pricing](https://vancine.com/pricing): Live USD pricing for the currently available models.
+- [Docs](https://vancine.com/docs): API reference hub (redirects to /docs/quickstart).
+- [About Vancine](https://vancine.com/about): Brand and product ownership page.
+
+## AI Media API
+
+- [AI Media API: Image & Video](https://vancine.com/ai-media-api): Developer landing page for image and video generation.
+- [Seedance 2.5 API](https://vancine.com/seedance-api): Async Seedance 2.5 video submission and polling reference.
+
+## Coding agents
+
+- [Coding Agent Integration Center](https://vancine.com/docs/agents): Connect Pi, OpenCode, Cline and Roo Code to Vancine.
+- [OpenCode setup guide](https://vancine.com/docs/agents/opencode): Install the Models.dev provider catalog entry, paste the Vancine API key.
+- [Cline setup guide](https://vancine.com/docs/agents/cline): Cline VS Code extension configuration.
+- [Roo Code setup guide](https://vancine.com/docs/agents/roo-code): Roo Code configuration walkthrough.
+
+## Image model detail pages
+
+- [qwen-image-3.0](https://vancine.com/docs/models/qwen-image-3.0): Qwen 3.0 image model API reference.
+- [qwen-image-3.0-pro](https://vancine.com/docs/models/qwen-image-3.0-pro): Qwen 3.0 Pro image model API reference.
+- [wan2.7-image-pro](https://vancine.com/docs/models/wan2.7-image-pro): Wan 2.7 Pro image model API reference.
+- [doubao-seedream-5.0-pro](https://vancine.com/docs/models/doubao-seedream-5.0-pro): Seedream 5.0 Pro image model API reference.
+- [doubao-seedream-5.0-lite](https://vancine.com/docs/models/doubao-seedream-5.0-lite): Seedream 5.0 Lite image model API reference.
+
+## Video model detail pages
+
+- [wan3.0-video](https://vancine.com/docs/models/wan3.0-video): Wan 3.0 text-to-video and image-to-video API reference.
+- [wan3.0-video-prime](https://vancine.com/docs/models/wan3.0-video-prime): Wan 3.0 Prime high-speed video API reference.
+- [minimax-h3](https://vancine.com/docs/models/minimax-h3): MiniMax H3 multimodal video generation API reference.
+- [doubao-seedance-2.0](https://vancine.com/docs/models/doubao-seedance-2.0): Seedance 2.0 video API reference.
+- [doubao-seedance-2.5](https://vancine.com/docs/models/doubao-seedance-2.5): Seedance 2.5 video API reference.
+
+## Other acquisition pages
+
+- [Kimi K3 API pricing & OpenRouter comparison](https://vancine.com/kimi-k3-api)
+- [OpenRouter alternative for Chinese AI models](https://vancine.com/openrouter-alternative)
+- [GLM-5.3 & GLM-5.3 Flash API pricing](https://vancine.com/glm-api)
+- [8 Chinese AI models tested in Pi coding agent](https://vancine.com/coding-agent-benchmark)
+- [Fast Chinese AI models for coding and high-throughput workloads](https://vancine.com/guides/fast-coding-models)
+- [Sign in](https://vancine.com/sign-in)
+- [Sign up](https://vancine.com/sign-up)
+- [User agreement](https://vancine.com/user-agreement)
+- [Privacy policy](https://vancine.com/privacy-policy)
+`
+
+// llmsTxtContentType is the canonical Content-Type for /llms.txt.
+const llmsTxtContentType = "text/plain; charset=utf-8"
+
 // crawlerDocumentCacheControl is the public, one-hour cache directive used
-// for both /robots.txt and /sitemap.xml. Crawlers and CDNs that respect
-// Cache-Control will revalidate at most once per hour.
+// for /robots.txt, /sitemap.xml, and /llms.txt. Crawlers and CDNs that
+// respect Cache-Control will revalidate at most once per hour.
 const crawlerDocumentCacheControl = "public, max-age=3600"
 
 // robotsContentType is the canonical Content-Type for /robots.txt.
@@ -467,7 +641,32 @@ search:
 // silently leaves two title tags in the served HTML. Both outcomes
 // re-introduce the Phase 0 SEO gap without any signal, so the build
 // panics with a clear message rather than shipping bad variants.
-func buildPublicPageVariants(indexPage []byte) (map[string][]byte, []byte) {
+// noindexRobotsTag is the literal <meta name="robots"> tag injected
+// into the noindex variant of IndexPage. The noindex variant is
+// served for paths the SPA cannot reach (e.g. an unknown
+// /docs/models/<slug>), so crawlers must not index the resulting
+// generic Vancine page. Inserting the tag next to the existing
+// primary-meta block keeps the served HTML structurally identical to
+// the canonical one — only one tag is added, all other SEO tags
+// stay single-occurrence.
+const noindexRobotsTag = `<meta name="robots" content="noindex" />`
+
+// withNoindexMeta inserts the noindex robots tag immediately after
+// the primary-meta anchor. The anchor is verified to occur exactly
+// once in indexPage by buildPublicPageVariants, so a single byte
+// replacement with count=1 is correct.
+func withNoindexMeta(indexPage []byte) []byte {
+	anchorBytes := []byte(indexPrimaryMetaAnchor)
+	// Concatenate the anchor with the noindex tag, separated by a
+	// newline and one level of indent so the rendered HTML keeps the
+	// production shape of the primary-meta block. The exact tag
+	// ordering — primary meta first, noindex right after — matches
+	// what the rest of the system already does for `og:` / twitter
+	// tags in rewriteIndexPageWithMeta.
+	return bytes.Replace(indexPage, anchorBytes, []byte(indexPrimaryMetaAnchor+"\n    "+noindexRobotsTag), 1)
+}
+
+func buildPublicPageVariants(indexPage []byte) (map[string][]byte, []byte, []byte) {
 	anchorCount := bytes.Count(indexPage, []byte(indexPrimaryMetaAnchor))
 	if anchorCount == 0 {
 		panic("router: buildPublicPageVariants: indexPage is missing the primary-meta anchor " +
@@ -499,7 +698,7 @@ func buildPublicPageVariants(indexPage []byte) (map[string][]byte, []byte) {
 			variants[page.path+"/"] = variants[page.path]
 		}
 	}
-	return variants, indexPage
+	return variants, indexPage, withNoindexMeta(indexPage)
 }
 
 // rewriteIndexPageWithMeta returns a copy of indexPage with the primary-meta
@@ -587,6 +786,7 @@ func assertPublicMetadataInvariant() {
 	if len(publicMarketingPages) == 0 {
 		panic("router: publicMarketingPages must not be empty")
 	}
+	seen := make(map[string]struct{}, len(publicMarketingPages))
 	for _, page := range publicMarketingPages {
 		if page.path == "" {
 			panic("router: publicPageMeta with empty path is not allowed")
@@ -594,5 +794,9 @@ func assertPublicMetadataInvariant() {
 		if page.title == "" || page.description == "" {
 			panic(fmt.Sprintf("router: publicPageMeta %q has empty title or description", page.path))
 		}
+		if _, dup := seen[page.path]; dup {
+			panic(fmt.Sprintf("router: duplicate publicMarketingPages path %q", page.path))
+		}
+		seen[page.path] = struct{}{}
 	}
 }

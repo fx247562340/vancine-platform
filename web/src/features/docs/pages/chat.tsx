@@ -19,6 +19,8 @@ For commercial licensing, please contact support@quantumnous.com
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { useLiveModelCatalog } from '@/features/live-model-catalog/hooks/use-live-model-catalog'
+
 import { DocsCallout } from '../components/callout'
 import { DocsCodeTabs } from '../components/code-tabs'
 import { DocsEndpoint } from '../components/endpoint'
@@ -26,6 +28,7 @@ import { DocsH2, DocsH3, DocsP } from '../components/headings'
 import { DocsParamTable, type ParamRow } from '../components/param-table'
 import { useRegisterHeadings } from '../components/register-headings'
 import { buildCodeTabItems, type CodeTabSample } from '../lib/code-tabs'
+import { pickDocsTextModel } from '../lib/text-model-choice'
 import type { TocHeading } from '../types'
 
 const CODE_LANGUAGES = {
@@ -40,6 +43,10 @@ const CODE_TAB_ORDER: readonly CodeTab[] = ['curl', 'python', 'node']
 export default function ChatPage(props: { baseUrl: string }) {
   const { t } = useTranslation('docs', { useSuspense: false })
   const baseUrl = props.baseUrl
+  const { catalog } = useLiveModelCatalog()
+
+  // Shared selector: live catalog first, verified fallback next.
+  const exampleModelId = pickDocsTextModel(catalog).modelId
 
   useRegisterHeadings(
     useMemo<TocHeading[]>(
@@ -53,59 +60,9 @@ export default function ChatPage(props: { baseUrl: string }) {
   )
 
   const samples = useMemo<Record<CodeTab, CodeTabSample>>(
-    () => ({
-      curl: {
-        label: 'cURL',
-        code: `curl -X POST ${baseUrl}/chat/completions \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer sk-your-api-key" \\
-  -d '{
-    "model": "glm-5.1",
-    "messages": [
-      { "role": "user", "content": "ping" }
-    ],
-    "max_tokens": 100
-  }'`,
-      },
-      python: {
-        label: 'Python',
-        code: `from openai import OpenAI
-
-client = OpenAI(
-    api_key="sk-your-api-key",
-    base_url="${baseUrl}"
-)
-
-response = client.chat.completions.create(
-    model="glm-5.1",
-    messages=[{"role": "user", "content": "ping"}],
-    max_tokens=100,
-)
-
-print(response.choices[0].message.content)
-# Reasoning models may also return response.choices[0].message.reasoning_content`,
-      },
-      node: {
-        label: 'Node.js',
-        code: `import OpenAI from "openai";
-
-const client = new OpenAI({
-  apiKey: "sk-your-api-key",
-  baseURL: "${baseUrl}",
-});
-
-const response = await client.chat.completions.create({
-  model: "glm-5.1",
-  messages: [{ role: "user", content: "ping" }],
-  max_tokens: 100,
-});
-
-console.log(response.choices[0].message.content);`,
-      },
-    }),
-    [baseUrl]
+    () => buildChatSamples(baseUrl, exampleModelId),
+    [baseUrl, exampleModelId]
   )
-
   const codeTabItems = useMemo(
     () => buildCodeTabItems(samples, CODE_TAB_ORDER, CODE_LANGUAGES),
     [samples]
@@ -162,4 +119,60 @@ console.log(response.choices[0].message.content);`,
       <DocsCallout type='info'>{t('chat.reasoningCallout')}</DocsCallout>
     </div>
   )
+}
+
+function buildChatSamples(
+  baseUrl: string,
+  modelId: string
+): Record<CodeTab, CodeTabSample> {
+  return {
+    curl: {
+      label: 'cURL',
+      code: `curl -X POST ${baseUrl}/chat/completions \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer sk-your-api-key" \\
+  -d '{
+    "model": "${modelId}",
+    "messages": [
+      { "role": "user", "content": "ping" }
+    ],
+    "max_tokens": 100
+  }'`,
+    },
+    python: {
+      label: 'Python',
+      code: `from openai import OpenAI
+
+client = OpenAI(
+    api_key="sk-your-api-key",
+    base_url="${baseUrl}"
+)
+
+response = client.chat.completions.create(
+    model="${modelId}",
+    messages=[{"role": "user", "content": "ping"}],
+    max_tokens=100,
+)
+
+print(response.choices[0].message.content)
+# Reasoning models may also return response.choices[0].message.reasoning_content`,
+    },
+    node: {
+      label: 'Node.js',
+      code: `import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: "sk-your-api-key",
+  baseURL: "${baseUrl}",
+});
+
+const response = await client.chat.completions.create({
+  model: "${modelId}",
+  messages: [{ role: "user", content: "ping" }],
+  max_tokens: 100,
+});
+
+console.log(response.choices[0].message.content);`,
+    },
+  }
 }

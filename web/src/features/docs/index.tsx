@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { notFound } from '@tanstack/react-router'
 import { Suspense, lazy, useMemo, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -36,6 +37,7 @@ import {
   DOCS_MAIN_CLASS,
   DOCS_TOC_CLASS,
 } from './lib/layout-classes'
+import { getModelEntry } from './lib/model-registry'
 import { isDocsSlug } from './nav'
 import { PAGE_REGISTRY } from './registry'
 import type { DocsSlug } from './types'
@@ -116,6 +118,14 @@ function DocsPageSlot(props: { slug: DocsSlug; baseUrl: string }) {
  */
 const LazyDocsAgentDetailPage = lazy(() => import('./pages/agent-detail'))
 
+/**
+ * Lazy-loaded model detail page (/docs/models/<slug>). The slug is
+ * passed through to the page so the page resolves the registry entry
+ * once and never reads the URL again. Model pages are below the
+ * "models" docs slug for sidebar highlighting.
+ */
+const LazyDocsModelDetailPage = lazy(() => import('./pages/model-detail'))
+
 function DocsAgentSlot(props: { tool: DocsAgentToolKey; baseUrl: string }) {
   return (
     <Suspense fallback={<DocsColdLoading />}>
@@ -124,20 +134,52 @@ function DocsAgentSlot(props: { tool: DocsAgentToolKey; baseUrl: string }) {
   )
 }
 
+function DocsModelDetailSlot(props: { slug: string; baseUrl: string }) {
+  return (
+    <Suspense fallback={<DocsColdLoading />}>
+      <LazyDocsModelDetailPage slug={props.slug} baseUrl={props.baseUrl} />
+    </Suspense>
+  )
+}
+
+function resolveActiveSlug(props: {
+  agentTool?: DocsAgentToolKey
+  modelSlug?: string | null
+  slug: DocsSlug | null
+}): DocsSlug | null {
+  if (props.agentTool) return 'agents'
+  if (props.modelSlug) return 'models'
+  return props.slug
+}
+
 function DocsLayoutReady(props: {
   slug: DocsSlug | null
   baseUrl: string
   agentTool?: DocsAgentToolKey
+  modelSlug?: string | null
 }) {
   const { locale } = useDocsI18n()
-  const tocKey = props.agentTool
-    ? `agent-${props.agentTool}-${locale}`
-    : `${props.slug ?? 'none'}-${locale}`
+  let tocKey: string
+  if (props.agentTool) {
+    tocKey = `agent-${props.agentTool}-${locale}`
+  } else if (props.modelSlug) {
+    tocKey = `model-${props.modelSlug}-${locale}`
+  } else {
+    tocKey = `${props.slug ?? 'none'}-${locale}`
+  }
 
   let mainContent: ReactNode
   if (props.agentTool) {
     mainContent = (
       <DocsAgentSlot tool={props.agentTool} baseUrl={props.baseUrl} />
+    )
+  } else if (props.modelSlug) {
+    mainContent = (
+      <>
+        <DocsModelDetailSlot slug={props.modelSlug} baseUrl={props.baseUrl} />
+        <DocsFeedback key={`model-${props.modelSlug}`} slug='models' />
+        <DocsPrevNext slug='models' />
+      </>
     )
   } else if (props.slug) {
     mainContent = (
@@ -160,7 +202,7 @@ function DocsLayoutReady(props: {
               keep the "Agent Integration" parent item group-active while the
               matching child link owns aria-current. */}
           <DocsSidebar
-            activeSlug={props.agentTool ? 'agents' : props.slug}
+            activeSlug={resolveActiveSlug(props)}
             activeAgentTool={props.agentTool ?? null}
           />
 
@@ -180,6 +222,7 @@ function DocsLayoutReady(props: {
 function DocsLayoutInner(props: {
   slugParam: string
   agentTool?: DocsAgentToolKey
+  modelSlug?: string
 }) {
   const { ready, status } = useDocsI18n()
   const { status: systemStatus } = useStatus()
@@ -188,6 +231,18 @@ function DocsLayoutInner(props: {
     const raw = (systemStatus as Record<string, unknown> | null)?.server_address
     return normalizeApiBaseUrl(typeof raw === 'string' ? raw : undefined)
   }, [systemStatus])
+
+  // When the route param carries a model slug, look it up in the
+  // registry. Unknown slugs are routed to the standard notFound() view
+  // (noindex, neutral metadata) instead of rendering an empty detail
+  // shell. The lookup runs before any bundle readiness gate so the
+  // unknown-slug path is identical to the standard docs notFound().
+  if (props.modelSlug !== undefined) {
+    const entry = getModelEntry(props.modelSlug)
+    if (!entry) {
+      throw notFound()
+    }
+  }
 
   const slug: DocsSlug | null = isDocsSlug(props.slugParam)
     ? props.slugParam
@@ -207,6 +262,7 @@ function DocsLayoutInner(props: {
       slug={slug}
       baseUrl={baseUrl}
       agentTool={props.agentTool}
+      modelSlug={props.modelSlug ?? null}
     />
   )
 }
@@ -214,6 +270,7 @@ function DocsLayoutInner(props: {
 export function DocsLayout(props: {
   slugParam: string
   agentTool?: DocsAgentToolKey
+  modelSlug?: string
 }) {
   return (
     <PublicLayout showMainContainer={false}>
@@ -221,6 +278,7 @@ export function DocsLayout(props: {
         <DocsLayoutInner
           slugParam={props.slugParam}
           agentTool={props.agentTool}
+          modelSlug={props.modelSlug}
         />
       </DocsI18nProvider>
     </PublicLayout>

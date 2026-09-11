@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { Alert02Icon, Refresh01Icon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
+import { Link } from '@tanstack/react-router'
 import { useMemo, type ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -35,6 +36,7 @@ import { DocsCodeBlock } from '../components/code-block'
 import { DocsH2, DocsH3, DocsP } from '../components/headings'
 import { useRegisterHeadings } from '../components/register-headings'
 import { getPricingUrl } from '../lib/base-url'
+import { getModelEntryByModelId } from '../lib/model-registry'
 import type { TocHeading } from '../types'
 
 type CatalogStatus = LiveModelCatalog['status']
@@ -67,6 +69,16 @@ export default function ModelsPage(props: { baseUrl: string }): ReactElement {
       {
         id: 'models-video',
         title: t('models.videoModelsTitle', { count: videoCount }),
+        level: 3,
+      },
+      {
+        id: 'models-image-detail',
+        title: t('models.imageLinksTitle'),
+        level: 3,
+      },
+      {
+        id: 'models-video-detail',
+        title: t('models.videoLinksTitle'),
         level: 3,
       },
     ],
@@ -109,6 +121,13 @@ export default function ModelsPage(props: { baseUrl: string }): ReactElement {
         onRetry={handleRetry}
       />
 
+      <DocsH3 id='models-image-detail'>{t('models.imageLinksTitle')}</DocsH3>
+      <MediaDetailLinks
+        kind='image'
+        status={catalog.status}
+        models={catalog.imageModels}
+      />
+
       <DocsH3 id='models-video'>
         {t('models.videoModelsTitle', { count: videoCount })}
       </DocsH3>
@@ -117,6 +136,13 @@ export default function ModelsPage(props: { baseUrl: string }): ReactElement {
         status={catalog.status}
         models={catalog.videoModels}
         onRetry={handleRetry}
+      />
+
+      <DocsH3 id='models-video-detail'>{t('models.videoLinksTitle')}</DocsH3>
+      <MediaDetailLinks
+        kind='video'
+        status={catalog.status}
+        models={catalog.videoModels}
       />
     </div>
   )
@@ -302,5 +328,87 @@ function CategoryEmpty(props: {
     >
       {t(props.emptyKey)}
     </p>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Media detail-page links
+//
+// Each currently online image/video model is also a /docs/models/<slug>
+// detail page. The /docs/models overview exposes a short list of those
+// links alongside the live-catalog section so a reader who lands here
+// first can drill into a specific model without bouncing through the
+// /docs/image or /docs/video pages.
+// ---------------------------------------------------------------------------
+
+function MediaDetailLinks(props: {
+  kind: 'image' | 'video'
+  status: CatalogStatus
+  models: LiveModelSummary[]
+}): ReactElement {
+  const { t } = useTranslation('docs', { useSuspense: false })
+  if (props.status === 'loading') {
+    return (
+      <div
+        data-testid={`docs-models-${props.kind}-detail-loading`}
+        className='mb-6 flex flex-col gap-2'
+      >
+        <Skeleton className='h-9 w-2/3' />
+        <Skeleton className='h-9 w-1/2' />
+      </div>
+    )
+  }
+  // Only show the detail links for models that have a verified contract
+  // in the registry. Online models without a contract (rare) intentionally
+  // do not get a link, so a reader never lands on an empty detail shell.
+  const links = props.models
+    .map((model) => ({
+      entry: getModelEntryByModelId(model.model_name),
+    }))
+    .filter(
+      (
+        item
+      ): item is {
+        entry: NonNullable<ReturnType<typeof getModelEntryByModelId>>
+      } => item.entry !== null
+    )
+  if (links.length === 0) {
+    return (
+      <p
+        data-testid={`docs-models-${props.kind}-detail-empty`}
+        className='text-muted-foreground mb-6 text-sm'
+        role='status'
+      >
+        {props.kind === 'image'
+          ? t('models.emptyImageBody')
+          : t('models.emptyVideoBody')}
+      </p>
+    )
+  }
+  return (
+    <div
+      data-testid={`docs-models-${props.kind}-detail-list`}
+      className='mb-6 flex flex-col gap-2'
+    >
+      {links.map(({ entry }) => (
+        <Link
+          key={entry.slug}
+          to='/docs/models/$model'
+          params={{ model: entry.slug }}
+          data-testid={`docs-models-${props.kind}-detail-${entry.slug}`}
+          className='border-border bg-card hover:border-primary/40 flex items-center justify-between gap-3 rounded-lg border p-3 text-sm transition-colors'
+        >
+          <span className='flex items-center gap-2'>
+            <code className='text-primary font-mono text-[13px]'>
+              {entry.modelId}
+            </code>
+            <Badge variant='outline'>{t('modelDetail.status.live')}</Badge>
+          </span>
+          <span className='text-muted-foreground text-xs font-medium'>
+            {t('models.detailLink')} →
+          </span>
+        </Link>
+      ))}
+    </div>
   )
 }

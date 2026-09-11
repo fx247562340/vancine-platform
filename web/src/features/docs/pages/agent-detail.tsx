@@ -21,6 +21,7 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Badge } from '@/components/ui/badge'
+import { useLiveModelCatalog } from '@/features/live-model-catalog/hooks/use-live-model-catalog'
 import { usePageMetadata, type PageMetadata } from '@/hooks/use-page-metadata'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -36,6 +37,7 @@ import {
   type DocsAgentToolKey,
 } from '../lib/agents'
 import { getDocsAgentToolPageMetadata } from '../lib/agents-metadata'
+import { pickDocsTextModel } from '../lib/text-model-choice'
 import type { TocHeading } from '../types'
 
 /**
@@ -70,13 +72,16 @@ export default function DocsAgentDetailPage(props: {
   // actually changes, never on unrelated auth-store writes.
   const user = useAuthStore((state) => state.auth.user)
   const isAuthenticated = !!user
+  const { catalog } = useLiveModelCatalog()
+  const recommendedModelId = pickDocsTextModel(catalog).modelId
 
   const profile = getDocsAgentToolProfile(props.tool)
   const isOpenCode = props.tool === 'opencode'
   const stepNumbers = isOpenCode ? OPENCODE_STEP_NUMBERS : SHARED_STEP_NUMBERS
   const configBlocks = useMemo(
-    () => getDocsAgentConfigExample(props.tool, props.baseUrl),
-    [props.tool, props.baseUrl]
+    () =>
+      getDocsAgentConfigExample(props.tool, props.baseUrl, recommendedModelId),
+    [props.tool, props.baseUrl, recommendedModelId]
   )
 
   // Public marketing routes: the metadata is owned by this page. The
@@ -180,7 +185,11 @@ export default function DocsAgentDetailPage(props: {
     )
   )
 
-  const interpolation = { tool: profile.displayName, baseUrl: props.baseUrl }
+  const interpolation = {
+    tool: profile.displayName,
+    baseUrl: props.baseUrl,
+    modelId: recommendedModelId,
+  }
   // One unified public status on every guide: "Configuration-ready". The
   // OpenCode-only v1.18.3 fact remains in the Verification evidence section
   // below and never re-enters a badge or status tier.

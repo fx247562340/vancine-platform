@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next'
 import type { BundledLanguage } from 'shiki/bundle/web'
 
 import { Badge } from '@/components/ui/badge'
+import { useLiveModelCatalog } from '@/features/live-model-catalog/hooks/use-live-model-catalog'
 import { usePageMetadata } from '@/hooks/use-page-metadata'
 
 import { DocsCallout } from '../components/callout'
@@ -38,6 +39,7 @@ import {
   VANCINE_PI_PROVIDER_NPM_URL,
 } from '../lib/agents'
 import { getDocsAgentsPageMetadata } from '../lib/agents-metadata'
+import { pickDocsTextModel } from '../lib/text-model-choice'
 import type { TocHeading } from '../types'
 
 /**
@@ -50,7 +52,7 @@ interface AgentCliConfig {
   nameKey: 'codex' | 'openclaw' | 'hermes'
   title: string
   language: BundledLanguage
-  codeTemplate: (baseUrl: string) => string
+  codeTemplate: (baseUrl: string, modelId: string) => string
 }
 
 /**
@@ -63,8 +65,8 @@ const AGENT_CLI_CONFIGS: AgentCliConfig[] = [
     nameKey: 'codex',
     title: 'Codex CLI',
     language: 'bash',
-    codeTemplate: (baseUrl) => `# ~/.codex/config.toml
-model = "glm-5.1"
+    codeTemplate: (baseUrl, modelId) => `# ~/.codex/config.toml
+model = "${modelId}"
 model_provider = "vancine"
 
 [model_providers.vancine]
@@ -80,25 +82,25 @@ wire_api = "responses"
     nameKey: 'openclaw',
     title: 'OpenClaw',
     language: 'bash',
-    codeTemplate: (baseUrl) => `Provider: OpenAI Compatible
+    codeTemplate: (baseUrl, modelId) => `Provider: OpenAI Compatible
 Base URL: ${baseUrl}
 API Key: sk-your-api-key
-Model: glm-5.1
+Model: ${modelId}
 
 # If the tool supports environment variables:
 VANCINE_BASE_URL=${baseUrl}
 VANCINE_API_KEY=sk-your-api-key
-VANCINE_MODEL=glm-5.1`,
+VANCINE_MODEL=${modelId}`,
   },
   {
     nameKey: 'hermes',
     title: 'Hermes Agent',
     language: 'yaml',
-    codeTemplate: (baseUrl) => `# ~/.hermes/config.yaml
+    codeTemplate: (baseUrl, modelId) => `# ~/.hermes/config.yaml
 openai_compatible:
   base_url: "${baseUrl}"
   api_key: "sk-your-api-key"
-  model: "glm-5.1"
+  model: "${modelId}"
 
 # or environment variables
 export OPENAI_COMPATIBLE_BASE_URL="${baseUrl}"
@@ -113,6 +115,9 @@ const GUI_STEPS = [1, 2, 3, 4, 5] as const
 export default function Agents(props: { baseUrl: string }) {
   const baseUrl = props.baseUrl
   const { t } = useTranslation('docs', { useSuspense: false })
+  const { catalog } = useLiveModelCatalog()
+
+  const recommendedModelId = pickDocsTextModel(catalog).modelId
 
   // Public marketing route: the metadata is owned by this page. The
   // `publicMarketingPage: true` flag prevents the system branding
@@ -136,10 +141,10 @@ export default function Agents(props: { baseUrl: string }) {
     () =>
       AGENT_CLI_CONFIGS.map((agent) => ({
         ...agent,
-        code: agent.codeTemplate(baseUrl),
+        code: agent.codeTemplate(baseUrl, recommendedModelId),
         note: t(`agents.cli.${agent.nameKey}`),
       })),
-    [baseUrl, t]
+    [baseUrl, recommendedModelId, t]
   )
 
   return (

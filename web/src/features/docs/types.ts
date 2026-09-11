@@ -72,7 +72,22 @@ export interface AgentSearchResult {
   score: number
 }
 
-export type SearchResult = SlugSearchResult | AgentSearchResult
+/**
+ * A model detail page at `/docs/models/<slug>`. The `model` field
+ * carries the slug the route expects; the page itself resolves the
+ * model id from the registry.
+ */
+export interface ModelSearchResult {
+  model: string
+  title: string
+  snippet: string
+  score: number
+}
+
+export type SearchResult =
+  | SlugSearchResult
+  | AgentSearchResult
+  | ModelSearchResult
 
 export interface SlugSearchIndexEntry {
   slug: DocsSlug
@@ -90,7 +105,19 @@ export interface AgentSearchIndexEntry {
   bodyLower: string
 }
 
-export type SearchIndexEntry = SlugSearchIndexEntry | AgentSearchIndexEntry
+export interface ModelSearchIndexEntry {
+  kind: 'model'
+  slug: string
+  title: string
+  titleLower: string
+  body: string
+  bodyLower: string
+}
+
+export type SearchIndexEntry =
+  | SlugSearchIndexEntry
+  | AgentSearchIndexEntry
+  | ModelSearchIndexEntry
 
 interface DocsPageProps {
   baseUrl: string

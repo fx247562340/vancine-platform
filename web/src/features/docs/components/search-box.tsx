@@ -58,7 +58,13 @@ export function DocsSearchBox() {
   // while the store is unchanged and changes when the provider adds a freshly
   // loaded bundle, so the index rebuilds on first load and on language change.
   const bundle = getDocsBundle(locale)
-  const index = useMemo(() => buildSearchIndex(bundle), [bundle])
+  const index = useMemo(
+    () =>
+      buildSearchIndex(bundle, (key, interp) =>
+        t(key, interp as Record<string, string>)
+      ),
+    [bundle, t]
+  )
 
   useEffect(() => {
     const timer = setTimeout(() => setDebounced(query), DEBOUNCE_MS)
@@ -91,6 +97,11 @@ export function DocsSearchBox() {
   const go = (result: SearchResult) => {
     if ('agentPath' in result) {
       void navigate({ to: result.agentPath })
+    } else if ('model' in result) {
+      void navigate({
+        to: '/docs/models/$model',
+        params: { model: result.model },
+      })
     } else {
       void navigate({ to: '/docs/$slug', params: { slug: result.slug } })
     }
@@ -167,29 +178,39 @@ export function DocsSearchBox() {
               {t('common.searchNoResults')}
             </li>
           ) : (
-            results.map((r, i) => (
-              <li
-                key={'agentPath' in r ? r.agentPath : r.slug}
-                id={searchOptionId(listboxId, i)}
-                role='option'
-                aria-selected={i === activeIndex}
-                onClick={() => go(r)}
-                onMouseEnter={() => setActiveIndex(i)}
-                className={cn(
-                  'border-border block w-full cursor-pointer border-b px-3.5 py-2.5 text-left last:border-b-0',
-                  i === activeIndex && 'bg-muted/70'
-                )}
-              >
-                <span className='text-foreground block text-[13px] font-semibold'>
-                  {r.title}
-                </span>
-                {r.snippet && (
-                  <span className='text-muted-foreground mt-0.5 line-clamp-2 block text-xs leading-snug'>
-                    {r.snippet}
+            results.map((r, i) => {
+              let itemKey: string
+              if ('agentPath' in r) {
+                itemKey = r.agentPath
+              } else if ('model' in r) {
+                itemKey = `model-${r.model}`
+              } else {
+                itemKey = r.slug
+              }
+              return (
+                <li
+                  key={itemKey}
+                  id={searchOptionId(listboxId, i)}
+                  role='option'
+                  aria-selected={i === activeIndex}
+                  onClick={() => go(r)}
+                  onMouseEnter={() => setActiveIndex(i)}
+                  className={cn(
+                    'border-border block w-full cursor-pointer border-b px-3.5 py-2.5 text-left last:border-b-0',
+                    i === activeIndex && 'bg-muted/70'
+                  )}
+                >
+                  <span className='text-foreground block text-[13px] font-semibold'>
+                    {r.title}
                   </span>
-                )}
-              </li>
-            ))
+                  {r.snippet && (
+                    <span className='text-muted-foreground mt-0.5 line-clamp-2 block text-xs leading-snug'>
+                      {r.snippet}
+                    </span>
+                  )}
+                </li>
+              )
+            })
           )}
         </ul>
       )}

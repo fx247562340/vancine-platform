@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"io/fs"
 	"net/http"
+	"strings"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/controller"
@@ -53,6 +54,21 @@ var publicSitemapPaths = []string{
 	"/docs/agents/opencode",
 	"/docs/agents/cline",
 	"/docs/agents/roo-code",
+	// Media model detail pages. The exact set is mirrored in the
+	// /llms.txt handler so crawlers and LLM agents see the same
+	// canonical surface. A retired model is removed from both
+	// simultaneously; an unknown slug is intentionally absent so
+	// unknown subpaths do not pollute the sitemap.
+	"/docs/models/qwen-image-3.0",
+	"/docs/models/qwen-image-3.0-pro",
+	"/docs/models/wan2.7-image-pro",
+	"/docs/models/doubao-seedream-5.0-pro",
+	"/docs/models/doubao-seedream-5.0-lite",
+	"/docs/models/wan3.0-video",
+	"/docs/models/wan3.0-video-prime",
+	"/docs/models/minimax-h3",
+	"/docs/models/doubao-seedance-2.0",
+	"/docs/models/doubao-seedance-2.5",
 	"/about",
 	"/user-agreement",
 	"/privacy-policy",
@@ -116,12 +132,47 @@ func robotsHandler() gin.HandlerFunc {
 	}
 }
 
+// llmsHandler serves the static /llms.txt index. The body and every
+// URL inside it are package-level constants — they never reflect
+// request Host, X-Forwarded-Host, Origin, or query parameters. Both
+// GET and HEAD hit the same handler; gin/Go's net/http will suppress
+// the response body for HEAD automatically.
+func llmsHandler() gin.HandlerFunc {
+	body := []byte(llmsTxtBody)
+	return func(c *gin.Context) {
+		c.Header("Cache-Control", crawlerDocumentCacheControl)
+		c.Data(http.StatusOK, llmsTxtContentType, body)
+	}
+}
+
 // SetWebRouter wires the public web router: gzip, the global web rate
 // limit, the static asset middleware, the explicit robots.txt and
 // sitemap.xml routes, and finally the SPA NoRoute fallback that injects
 // per-route SEO metadata for known marketing paths. pluginDispatcher is the
 // upstream JS task-plugin route dispatcher; it runs first in the NoRoute
 // chain and aborts when a plugin route matched.
+// isUnknownDocsModelPath reports whether `path` is a /docs/models/<...>
+// path that is NOT one of the ten known slugs. The check is path-only
+// (no model registry here — that would create an import cycle with
+// the new-media-docs); the publicSitemapPaths list IS the source of
+// truth, so the comparison is exact-match against the documented set.
+func isUnknownDocsModelPath(path string) bool {
+	const prefix = "/docs/models/"
+	if !strings.HasPrefix(path, prefix) || path == prefix {
+		return false
+	}
+	slug := strings.TrimSuffix(strings.TrimPrefix(path, prefix), "/")
+	if slug == "" {
+		return false
+	}
+	for _, known := range publicSitemapPaths {
+		if known == path {
+			return false
+		}
+	}
+	return true
+}
+
 func SetWebRouter(router *gin.Engine, assets WebAssets, pluginDispatcher gin.HandlerFunc) {
 	// Programmer-error guard. A bad entry in publicMarketingPages must fail
 	// at startup, not at request time.
@@ -131,7 +182,7 @@ func SetWebRouter(router *gin.Engine, assets WebAssets, pluginDispatcher gin.Han
 
 	// Pre-render one HTML variant per public marketing route. The map is
 	// built once at startup so NoRoute is an O(1) lookup + bytes write.
-	publicVariants, originalIndexPage := buildPublicPageVariants(assets.IndexPage)
+	publicVariants, originalIndexPage, noindexIndexPage := buildPublicPageVariants(assets.IndexPage)
 
 	router.Use(gzip.Gzip(gzip.DefaultCompression))
 	router.Use(middleware.GlobalWebRateLimit())
@@ -154,6 +205,11 @@ func SetWebRouter(router *gin.Engine, assets WebAssets, pluginDispatcher gin.Han
 	// response carries the one-hour public cache directive.
 	router.GET("/sitemap.xml", sitemapHandler())
 	router.HEAD("/sitemap.xml", sitemapHandler())
+
+	// llms.txt: the LLM-agent index of every public surface. Same
+	// caching and content-negotiation policy as robots.txt.
+	router.GET("/llms.txt", llmsHandler())
+	router.HEAD("/llms.txt", llmsHandler())
 
 	router.NoRoute(
 		pluginDispatcher,
@@ -185,7 +241,19 @@ func SetWebRouter(router *gin.Engine, assets WebAssets, pluginDispatcher gin.Han
 			// Unknown SPA path: serve the original IndexPage with its default
 			// meta. Client-side routing can recover from a missing SPA route
 			// by reading the shell and rendering the 404 view.
+			//
+			// /docs/models/<slug> is the only family of paths that can
+			// never produce a valid SPA view when the slug is unknown:
+			// the route only has a one-deep dynamic segment, and the
+			// registry has a closed set of valid slugs. For those
+			// non-canonical paths the server returns the noindex variant
+			// so crawlers and LLM agents do not mistake a generic
+			// Vancine shell for an indexable media-model page.
+			body := originalIndexPage
+			if isUnknownDocsModelPath(path) {
+				body = noindexIndexPage
+			}
 			c.Header("Cache-Control", "no-cache")
-			c.Data(http.StatusOK, "text/html; charset=utf-8", originalIndexPage)
+			c.Data(http.StatusOK, "text/html; charset=utf-8", body)
 		})
 }

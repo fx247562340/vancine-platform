@@ -14,103 +14,74 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-For commercial licensing, please contact support@quantumnous.com
+For commercial licensing, please contact support@quantumnous.com.
 */
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import i18n from 'i18next'
-import { I18nextProvider, initReactI18next } from 'react-i18next'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import { TocProvider } from '../components/toc-context'
 import enDocs from '../i18n/locales/en.json'
 import VideoPage from '../pages/video'
+import { renderWithProviders } from './test-utils'
 
-// The original `seedance-2-5.test.tsx` file once mixed two distinct
-// responsibilities: the VideoPage Seedance 2.5 contract (cURL / Python /
-// Node.js minimal request shapes) and the ModelsPage dynamic listing of
-// Doubao-Seedance-2.5. After v2.2.x the ModelsPage switched to a live
-// model catalog projection; pinning a single hardcoded row there no
-// longer makes sense, and dynamic-catalog behaviour now has its own
-// dedicated test file (`models-live-catalog.test.tsx`). This file is
-// therefore reduced to the Seedance 2.5 protocol contract on the
-// VideoPage, which is the only stable, hardcoded, vendor-specific
-// surface that still belongs to the v2.2.x code base.
+// After the media-model docs revamp, the /docs/video overview no
+// longer pins its example to a single vendor-specific model — every
+// model has its own /docs/models/<slug> detail page. The overview
+// sends the minimum legal request (model + prompt) using whichever
+// text-capable model the live catalog returns first. This file
+// therefore focuses on the overview's "minimum legal request"
+// contract and the forbidden-field guard that keeps the overview
+// from silently reverting to a vendor-specific schema.
 
-const TARGET_MODEL = 'Doubao-Seedance-2.5'
-const OLD_MODELS = [
-  'Doubao-Seedance-1.5-pro',
-  'Doubao-Seedance-2.0-fast',
-  'Doubao-Seedance-2.0',
-] as const
 const OLD_PRICES = ['¥0.24', '¥0.55', '¥0.68'] as const
 const BASE_URL = 'https://vancine.com/v1'
 
-// A dedicated i18next instance per suite keeps these tests independent of the
-// shared global instance the rest of the Docs suite mutates, so nothing here
-// can leak into (or be polluted by) other files' language/resource state.
-async function makeDocsI18n() {
-  const instance = i18n.createInstance()
-  await instance.use(initReactI18next).init({
-    resources: {},
-    lng: 'en',
-    fallbackLng: 'en',
-    nsSeparator: false,
-    interpolation: { escapeValue: false },
-    react: { useSuspense: false },
-  })
-  instance.addResourceBundle(
-    'en',
-    'docs',
-    enDocs as unknown as Record<string, unknown>,
-    true,
-    true
-  )
-  return instance
-}
+// Initialize the shared i18next instance so the page's docs bundle
+// (resolved through the global i18n in `DocsI18nProvider`) is found
+// the same way docs.test.ts wires it.
+await i18n.init({
+  resources: {},
+  fallbackLng: 'en',
+  lng: 'en',
+  nsSeparator: false,
+  interpolation: { escapeValue: false },
+})
 
-// Forbidden request fields: the minimal Seedance 2.5 example must not pin
-// size, resolution, duration, or ratio to a fixed value. A field is only
-// recognized at a true field boundary (line start or right after `{` / `,`),
-// with optional quoting and optional whitespace before the colon, so
-// `negative_prompt`, comments, or prose containing the word never satisfy the
-// assertion. Covers JSON/cURL ("key":), Python ('key':), and Node.js (key:)
-// spellings.
-const FORBIDDEN_REQUEST_FIELDS = ['size', 'resolution', 'duration', 'ratio']
+// Fields the overview must NEVER pin: every video model exposes a
+// different wire (duration vs seconds string, size vs
+// metadata.resolution, metadata.content vs metadata.input.media),
+// so an example that fixes any of these silently misrepresents the
+// rest. The overview only sends `model` and `prompt`.
+const FORBIDDEN_REQUEST_FIELDS = [
+  'size',
+  'resolution',
+  'duration',
+  'seconds',
+  'ratio',
+  'metadata',
+]
 
-const TARGET_MODEL_ESCAPED = TARGET_MODEL.replaceAll(
-  /[.*+?^${}()|[\]\\]/g,
-  '\\$&'
-)
-
-// `model` key bound to the exact value `Doubao-Seedance-2.5`. The opening quote
-// is captured and back-referenced so the same quote char closes the value, and
-// a lookahead requires a legal terminator (optional whitespace then `,` or `}`).
-// This rejects `Doubao-Seedance-2.5-preview`, `Doubao-Seedance-2.50`,
-// `Doubao-Seedance-2.5-old`, and any unterminated value.
-const MODEL_FIELD = new RegExp(
-  `(?:^|[,{]\\s*)["']?model["']?\\s*:\\s*(["'])${TARGET_MODEL_ESCAPED}\\1(?=\\s*[,}])`,
-  'm'
-)
+const FIELD_PATTERN = (field: string) =>
+  new RegExp(`(?:^|[,{]\\s*)["']?${field}["']?\\s*:`, 'm')
+const MODEL_FIELD = /(?:^|[,{]\s*)["']?model["']?\s*:/m
 const PROMPT_FIELD = /(?:^|[,{]\s*)["']?prompt["']?\s*:/m
 
-function forbiddenFieldPatterns(): RegExp[] {
-  return FORBIDDEN_REQUEST_FIELDS.map(
-    (field) => new RegExp(`(?:^|[,{]\\s*)["']?${field}["']?\\s*:`, 'm')
-  )
-}
-
-// Each Seedance 2.5 example must carry model (bound to its value) + prompt and
-// nothing that fixes a resolution, duration, or ratio. Asserted per active
-// tabpanel.
-async function expectActivePanelIsMinimalSeedanceRequest() {
+/**
+ * The overview example must always carry model + prompt and must
+ * never pin a per-model field such as duration / size / resolution.
+ * The check is per active tabpanel so a single failing example
+ * never poisons the other tabs' coverage.
+ */
+async function expectActivePanelIsMinimumOverviewRequest() {
   await waitFor(() => {
     const panel = screen.getByRole('tabpanel')
     const text = panel.textContent ?? ''
     expect(text).toMatch(MODEL_FIELD)
     expect(text).toMatch(PROMPT_FIELD)
-    for (const pattern of forbiddenFieldPatterns()) {
-      expect(text).not.toMatch(pattern)
+    for (const field of FORBIDDEN_REQUEST_FIELDS) {
+      expect(text).not.toMatch(FIELD_PATTERN(field))
     }
   })
 }
@@ -127,58 +98,63 @@ async function switchTab(
   )
 }
 
-describe('Docs VideoPage converges to Doubao-Seedance-2.5', () => {
-  it('renders the real page with translated title and async contract copy', async () => {
-    const instance = await makeDocsI18n()
-    render(
-      <I18nextProvider i18n={instance}>
-        <TocProvider>
-          <VideoPage baseUrl={BASE_URL} />
-        </TocProvider>
-      </I18nextProvider>
+describe('Docs VideoPage overview keeps the minimum request shape', () => {
+  beforeEach(() => {
+    // The DocsI18nProvider reads the docs namespace through the
+    // shared global i18n; reset it before each test so order and
+    // prior callers can never affect bundle resolution.
+    i18n.removeResourceBundle('en', 'docs')
+    i18n.addResourceBundle(
+      'en',
+      'docs',
+      enDocs as unknown as Record<string, unknown>,
+      true,
+      true
     )
+  })
 
-    // The page renders its real translated H2, not a raw i18n key.
+  function renderVideo() {
+    return renderWithProviders(
+      <TocProvider>
+        <VideoPage baseUrl={BASE_URL} />
+      </TocProvider>
+    )
+  }
+
+  it('renders the overview with translated title and async endpoint copy', async () => {
+    renderVideo()
+
+    // The VideoPage reads the live model catalog, so the heading and
+    // the endpoint text both resolve asynchronously. `findBy*` waits
+    // for them instead of asserting on a not-yet-rendered DOM.
     expect(
-      screen.getByRole('heading', { name: 'Video Generation' })
+      await screen.findByRole('heading', { name: 'Video Generation' })
     ).toBeInTheDocument()
 
     // Async submit/poll endpoint contract + status vocabulary stay intact.
-    expect(screen.getByText('/v1/video/generations')).toBeInTheDocument()
+    expect(await screen.findByText('/v1/video/generations')).toBeInTheDocument()
     expect(
-      screen.getByText('/v1/video/generations/{task_id}')
+      await screen.findByText('/v1/video/generations/{id}')
     ).toBeInTheDocument()
-    expect(screen.getByText('SUCCESS')).toBeInTheDocument()
-    expect(screen.getByText('FAILURE')).toBeInTheDocument()
-    // result_url / fail_reason live inside the translated status copy.
-    expect(screen.getByText(/result_url/)).toBeInTheDocument()
-    expect(screen.getByText(/fail_reason/)).toBeInTheDocument()
+    expect(await screen.findByText('SUCCESS')).toBeInTheDocument()
+    expect(await screen.findByText('FAILURE')).toBeInTheDocument()
+    expect(await screen.findByText(/result_url/)).toBeInTheDocument()
+    expect(await screen.findByText(/fail_reason/)).toBeInTheDocument()
   })
 
   it('switches cURL / Python / Node.js tabs, each a minimal model + prompt request', async () => {
-    const instance = await makeDocsI18n()
     const user = userEvent.setup()
-    const { container } = render(
-      <I18nextProvider i18n={instance}>
-        <TocProvider>
-          <VideoPage baseUrl={BASE_URL} />
-        </TocProvider>
-      </I18nextProvider>
-    )
+    const { container } = renderVideo()
 
     // Default active tab is cURL.
-    await expectActivePanelIsMinimalSeedanceRequest()
+    await expectActivePanelIsMinimumOverviewRequest()
 
     await switchTab(user, 'Python')
-    await expectActivePanelIsMinimalSeedanceRequest()
+    await expectActivePanelIsMinimumOverviewRequest()
 
     await switchTab(user, 'Node.js')
-    await expectActivePanelIsMinimalSeedanceRequest()
+    await expectActivePanelIsMinimumOverviewRequest()
 
-    // None of the three examples carry a legacy Seedance ID.
-    for (const old of OLD_MODELS) {
-      expect(container.textContent).not.toContain(old)
-    }
     // No fixed pricing leaks into the video examples.
     for (const price of OLD_PRICES) {
       expect(container.textContent).not.toContain(price)
@@ -186,14 +162,7 @@ describe('Docs VideoPage converges to Doubao-Seedance-2.5', () => {
   })
 
   it('uses the canonical v1 endpoint with no fixed price or real secret', async () => {
-    const instance = await makeDocsI18n()
-    const { container } = render(
-      <I18nextProvider i18n={instance}>
-        <TocProvider>
-          <VideoPage baseUrl={BASE_URL} />
-        </TocProvider>
-      </I18nextProvider>
-    )
+    const { container } = renderVideo()
 
     await waitFor(() =>
       expect(screen.getByRole('tabpanel')).toBeInTheDocument()

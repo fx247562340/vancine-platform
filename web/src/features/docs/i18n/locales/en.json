@@ -11,7 +11,8 @@
     "step2": {
       "title": "Choose a model",
       "desc": "We recommend deepseek-v4-flash for your first call — it's fast, affordable, and great for testing.",
-      "viewAll": "View all available models"
+      "viewAll": "View all available models",
+      "dynamicFallback": "Showing the verified default model while the live catalog loads."
     },
     "step3": {
       "title": "Choose your calling method",
@@ -39,6 +40,10 @@
       "image": "Image Generation",
       "video": "Video Generation",
       "migrate": "Migrate from OpenAI"
+    },
+    "recommendedModels": {
+      "dynamic": "Live recommended text models",
+      "dynamicHelp": "The list reflects the live catalog. When the live catalog is unavailable, the page falls back to a verified set of currently online models."
     }
   },
   "migrate": {
@@ -88,9 +93,9 @@
     "desc": "Send an OpenAI-compatible messages array to a language model and receive a synchronous JSON response.",
     "paramsTitle": "Parameters",
     "examplesTitle": "Examples",
-    "reasoningCallout": "deepseek-v4-flash and deepseek-v4-pro are reasoning models. content may be empty while reasoning appears in reasoning_content; finish_reason: length often means the token budget was used by reasoning, not that the API failed.",
+    "reasoningCallout": "Reasoning models may leave `content` empty while `reasoning_content` is populated; `finish_reason: length` often means the token budget was spent on reasoning, not that the API failed. The Models page lists which text models are reasoning-capable.",
     "params": {
-      "model": "Model name, for example glm-5.1",
+      "model": "Model name. Use any currently online text model; see the Models page for the live list.",
       "messages": "Array of message objects",
       "maxTokens": "Maximum generated tokens; use a larger value for reasoning models",
       "stream": "Enable SSE streaming",
@@ -116,11 +121,27 @@
       "image": "Reference image URL or Base64 for image-to-image / multi-image fusion (5.0 pro: max 10, lite: max 14)",
       "watermark": "Whether to add watermark. Seedream defaults to false"
     },
-    "advancedParamsCallout": "Advanced Seedream parameters such as sequential_image_generation (image groups) and optimize_prompt_options (prompt optimization) require PassThrough to be enabled on the channel. They are not forwarded by default."
+    "advancedParamsCallout": "Advanced Seedream parameters such as sequential_image_generation (image groups) and optimize_prompt_options (prompt optimization) require PassThrough to be enabled on the channel. They are not forwarded by default.",
+    "intro": "Image generation is synchronous: POST a request to /v1/images/generations and the response carries the image URL (or base64) in the data array. The models below are the ones the platform currently advertises; each has a dedicated page documenting the exact request schema.",
+    "modelsHeading": "Currently online image models",
+    "modelsIntro": "Each model below is in the live pricing catalog. Each has a dedicated page documenting the exact request schema.",
+    "commonParamsTitle": "Common parameters",
+    "commonParamsDesc": "These fields apply to every currently online image model. Each model page documents its own additional parameters (size tiers, n range, reference limits, advanced features).",
+    "examplesIntro": "The example below uses a currently online image model and sends the minimum legal request (model + prompt + n + size). Each model page documents a model-specific example with the exact request body.",
+    "commonParams": {
+      "model": "Model name. The page lists every currently online image model.",
+      "prompt": "Text prompt. No fixed character cap beyond the gateway body-size limit; per-model notes live on the model page.",
+      "n": "Image count. The legal range is per-model (Qwen 3.x: 1–6; Wan 2.7 Pro: 1–4; Seedream 5.0 pro/lite: always 1). See the model page for the exact range.",
+      "size": "Image size. Each model exposes its own size tiers; the model page lists every legal value, the default, and the per-tier constraints.",
+      "responseFormat": "Return format: `url` (default, temporary link valid 24h) or `b64_json`. All online models accept this.",
+      "watermark": "Whether to embed a watermark. Default is false for every online model; the exact default is documented per model.",
+      "image": "Reference image (URL or Base64) for image-to-image / multi-image fusion. The maximum reference count, accepted MIME types, and per-image size cap are per-model; see the model page."
+    },
+    "advancedParamsNote": "Each model page documents its own advanced parameters. Image models share these common fields; the model page is the source of truth for size tiers, n range, and reference limits."
   },
   "video": {
     "title": "Video Generation",
-    "desc": "Video generation is asynchronous. Save task_id from the submission response, then poll the same /v1/video/generations/{task_id} path.",
+    "desc": "Video generation is asynchronous. Save the top-level id from the submission response, then poll GET /v1/video/generations/{id}.",
     "endpointSubmit": "Submit an async generation task",
     "endpointPoll": "Poll task status and result",
     "paramsTitle": "Parameters",
@@ -135,18 +156,35 @@
       "duration": "Video duration in seconds",
       "metadata": "Extended parameters object (see below)"
     },
-    "metadataCallout": "metadata sub-parameters: resolution (e.g. 1080p), ratio (aspect ratio e.g. 16:9), frames (frame count), seed (random seed), watermark (boolean), camera_fixed (fixed camera, boolean), generate_audio (generate audio, boolean). These are forwarded to the upstream provider.",
+    "metadataCallout": "There is no \"shared metadata block\" — the legal fields inside `metadata` are model-specific. The dedicated model page lists every legal key and value for that model.",
     "status": {
-      "queued": "Task is queued",
-      "inProgress": "Generation is running",
-      "success": "Done; read data.result_url or data.data.content.video_url",
-      "failure": "Failed; inspect data.fail_reason"
+      "queued": "The task is queued (status: QUEUED).",
+      "inProgress": "Generation is running (status: IN_PROGRESS).",
+      "success": "Done (status: SUCCESS). Read `data.result_url` for the result video URL.",
+      "failure": "Failed (status: FAILURE). Read `data.fail_reason`.",
+      "submitHeading": "Submit receipt",
+      "pollHeading": "Poll statuses (GET)",
+      "submitQueued": "The submit receipt reports status queued (lowercase). The task has been accepted and is not yet running.",
+      "notStart": "The task has not started (status: NOT_START).",
+      "submitted": "The task has been submitted (status: SUBMITTED)."
+    },
+    "intro": "Video generation is an async task workflow: submit a request, save the task id, and poll the same path until the status reaches a terminal value, then read the result URL or the failure reason. Each currently online model has a dedicated page documenting its exact wire contract — durations, resolutions, reference-image rules, and the precise JSON shape.",
+    "modelsHeading": "Currently online video models",
+    "modelsIntro": "Each model below is in the live pricing catalog. The exact wire contract (durations, resolutions, reference-image slots) lives on the per-model detail page.",
+    "modelsDiffer": "Video models do not share a single parameter schema. The exact wire contract (top-level `duration` vs STRING `seconds`, `size` vs `metadata.resolution`, `metadata.input.media` vs `metadata.content` for reference images) is documented per model on the model page.",
+    "examplesIntro": "The example below sends the minimum legal request (model + prompt) and then polls the same path until the status is one of the terminal values. Each model page documents a model-specific example with the exact wire contract (duration vs seconds, size vs metadata.resolution, metadata.content vs metadata.input.media).",
+    "commonParamsTitle": "Common task parameters",
+    "commonParamsDesc": "These fields are common to every video model. The model-specific fields (duration vs seconds, size vs metadata.resolution, reference-image slot) are documented on the model page.",
+    "commonParams": {
+      "model": "Video model name. Each online model has a dedicated page listing the exact wire contract.",
+      "prompt": "Text prompt. Trimmed before submit; empty is rejected client-side."
     }
   },
   "auth": {
     "title": "Authentication",
     "desc": "All /v1 requests require an API key in the Authorization header.",
-    "securityWarning": "Do not put API keys in frontend code, public repositories, or client apps. Read the key from server-side environment variables before calling Vancine."
+    "securityWarning": "Do not put API keys in frontend code, public repositories, or client apps. Read the key from server-side environment variables before calling Vancine.",
+    "exampleModel": "Any currently online text model works. See the Models page for the live list."
   },
   "capabilities": {
     "title": "Capabilities",
@@ -179,7 +217,10 @@
     "emptyTextBody": "No text models are currently listed in the live catalog. Please check the live Pricing page for availability.",
     "emptyImageBody": "No image models are currently listed in the live catalog. Please check the live Pricing page for availability.",
     "emptyVideoBody": "No video models are currently listed in the live catalog. Please check the live Pricing page for availability.",
-    "retry": "Retry"
+    "retry": "Retry",
+    "imageLinksTitle": "Image model detail pages",
+    "videoLinksTitle": "Video model detail pages",
+    "detailLink": "Detail"
   },
   "errors": {
     "title": "Error Handling",
@@ -208,7 +249,7 @@
     "title": "Agent Integration",
     "desc": "Before connecting an agent tool, check whether it uses Chat Completions or Responses. Most OpenAI Compatible tools use /v1/chat/completions; Codex CLI official config currently uses /v1/responses.",
     "benchmarkLink": "See the 8-model Pi coding-agent benchmark",
-    "universalTip": "Universal settings: Base URL = {{baseUrl}}, API Key = sk-your-api-key, Model = glm-5.1 or deepseek-v4-flash.",
+    "universalTip": "Universal settings: Base URL = {{baseUrl}}, API Key = sk-your-api-key, Model = any currently online text model (see the Models page).",
     "configExample": "Config example",
     "cliTitle": "CLI tools",
     "guiTitle": "GUI tools",
@@ -245,7 +286,7 @@
         "step2": "Choose OpenAI Compatible or custom OpenAI API",
         "step3": "Set Base URL to {{baseUrl}}",
         "step4": "Enter your Vancine API key",
-        "step5": "Use a text model such as glm-5.1 or deepseek-v4-flash"
+        "step5": "Use a currently online text model; see the Models page for the live list."
       },
       "cherryStudio": {
         "title": "Cherry Studio",
@@ -298,7 +339,7 @@
         },
         "model": {
           "symptom": "model not found / model does not exist.",
-          "fix": "Use an exact model ID from the Vancine model list, for example glm-5.1. Model IDs are case-sensitive."
+          "fix": "Use an exact model ID from the Vancine model list. Model IDs are case-sensitive. The live Models page is the source of truth; copy the id verbatim."
         },
         "protocol": {
           "symptom": "Unexpected responses or unsupported-endpoint errors.",
@@ -315,7 +356,7 @@
     },
     "opencode": {
       "pageTitle": "OpenCode setup guide",
-      "valueProp": "Connect the OpenCode terminal coding agent to Vancine with /connect. OpenCode loads Vancine from the Models.dev provider catalog, so you do not need to create or edit opencode.json for basic setup.",
+      "valueProp": "OpenCode loads Vancine from the Models.dev provider catalog; the dynamic Models page is the source of truth for available model ids.",
       "noJsonNote": "Basic setup does not require creating or editing opencode.json.",
       "step1": "Install or update OpenCode.",
       "step2": "Create a Vancine account and an API Key if you do not have them yet.",
@@ -323,13 +364,13 @@
       "step4": "Search for and select Vancine.",
       "step5": "Paste your own Vancine API Key.",
       "step6": "Run /models.",
-      "step7": "Choose vancine/glm-5.3-flash, or another model under the vancine Provider, then send a prompt.",
+      "step7": "Choose vancine/{{modelId}}, or another model under the vancine Provider, then send a prompt.",
       "advancedTitle": "Advanced configuration (optional)",
       "advancedNote": "Use a project-level opencode.json only to override the Base URL, whitelist or blacklist models, fall back when the live catalog is unavailable, or pin an explicit Provider config. Do not treat this file as part of the basic /connect setup.",
       "notOfficial": "Vancine is an independent OpenAI-compatible API service listed in the Models.dev catalog used by OpenCode. This catalog listing does not imply an official partnership or endorsement by OpenCode.",
       "errors": {
         "model": {
-          "fix": "Use the exact vancine model ID shown by /models, or check the Vancine models page. Model IDs are case-sensitive."
+          "fix": "Use the exact model ID from the Vancine live catalog. Model IDs are case-sensitive. The Models page is the source of truth."
         }
       },
       "benchmarkTitle": "Verification evidence",
@@ -420,5 +461,177 @@
     "status": "Status",
     "type": "Type",
     "yes": "Yes"
+  },
+  "modelDetail": {
+    "contractMissing": "No verified contract is published for this model yet. The page intentionally shows no fabricated parameters.",
+    "image": {
+      "sizes": "Supported sizes: {{sizes}}. Default: {{defaultSize}}.",
+      "nRange": "Image count: integer in [{{min}}, {{max}}], default {{default}}.",
+      "refs": "Reference images: up to {{max}} per request. Accepted MIME types: {{mimes}}."
+    },
+    "kind": {
+      "image": "Image",
+      "video": "Video"
+    },
+    "meta": {
+      "description": "{{summary}} Exact request schema, supported parameters, and verified examples for the Vancine API.",
+      "title": "{{modelId}} API reference | Vancine"
+    },
+    "mode": {
+      "firstLastFrame": "first/last-frame",
+      "imageToImage": "image-to-image",
+      "imageToVideo": "image-to-video",
+      "multiReference": "multi-reference",
+      "textToImage": "text-to-image",
+      "textToVideo": "text-to-video"
+    },
+    "pricingDesc": "Pricing is dynamic and listed on the live Pricing page; availability and tier prices are not duplicated here.",
+    "sections": {
+      "endpoint": "Endpoint",
+      "examples": "Examples",
+      "modes": "Supported call modes",
+      "params": "Parameters",
+      "pricing": "Pricing",
+      "verify": "Verified sources"
+    },
+    "status": {
+      "checking": "Checking availability",
+      "live": "Currently online",
+      "offline": "Currently unavailable",
+      "unconfirmed": "Availability cannot be confirmed"
+    },
+    "verified": "Verified on {{date}} against {{source}}. The request schema is the production contract; a wire change upstream will surface here.",
+    "video": {
+      "bodyLimit": "Request body budget: {{mb}} MB. The studio enforces this limit before submit; going over is rejected client-side.",
+      "paramDuration": "Top-level integer in [{{min}}, {{max}}]. The upstream rejects durations outside this range.",
+      "paramModel": "Must be exactly \"{{modelId}}\". Case-sensitive; the server rejects other strings.",
+      "paramPrompt": "Free-form text prompt. Trimmed before submit; empty is rejected client-side.",
+      "paramRefs": "Up to {{max}} reference image items, each { \"type\": \"image_url\", \"role\": \"reference_image\", \"image_url\": { \"url\": \"...\" } }. Allowed MIME: jpeg, png, webp.",
+      "paramResolution": "One of {{list}}. Wan3 / MiniMax-H3 / Seedance each spell this slightly differently; the doc above shows the exact string for this model.",
+      "paramSecondsString": "Top-level STRING in [{{min}}, {{max}}] (NOT a JSON number — Go types it as a string).",
+      "paramSizeWan3": "Top-level resolution (Wan3 contract). One of {{list}}. Equivalent to setting metadata.resolution; the studio uses the top-level slot.",
+      "paramWan3Refs": "Up to {{max}} reference media items, each { \"type\": \"reference_image\", \"url\": \"...\" }. Wan3 does NOT accept top-level image/images; use this slot only.",
+      "rejectedWithRefs": "Resolutions the upstream rejects when at least one reference image is attached: {{list}}. The form converges to the highest still-legal value automatically.",
+      "wireKey": "Wire field",
+      "wireValue": "Value"
+    },
+    "videoSubmit": "Submit an async generation task",
+    "videoPoll": "Poll task status and result",
+    "videoDesc": "This is an async task. Submit returns a task id; poll the same path until the status is one of the terminal values, then read the result URL or the failure reason.",
+    "imageDesc": "The image endpoint is synchronous: the response carries the image URL (or base64) in the data array.",
+    "verifiedOn": "Last verified on {{date}}.",
+    "summary": {
+      "qwenImage30": "Qwen 3.0 image generation with Auto sizing, optional references, and prompt-extend / thinking modes.",
+      "qwenImage30Pro": "Qwen 3.0 Pro image generation with the same parameter contract as the default 3.0 model.",
+      "wan27ImagePro": "Alibaba Wan 2.7 Pro image generation with 1K/2K/4K discrete tiers and up to 9 reference images.",
+      "seedream50Pro": "ByteDance Seedream 5.0 Pro image generation with 1K/1.5K/2K tiers, up to 10 reference images, and single-image generation only.",
+      "seedream50Lite": "ByteDance Seedream 5.0 Lite image generation with 2K/3K/4K tiers, up to 14 reference images, and a 3,686,400 pixel floor.",
+      "wan30Video": "Alibaba Wan 3.0 text-to-video and image-to-video with 2–30 second durations at 480P / 720P / 1080P and up to 10 reference images.",
+      "wan30VideoPrime": "High-speed Wan 3.0 sibling with the same request contract as the base model.",
+      "minimaxH3": "MiniMax H3 video generation with 4–15 second durations at 768P / 2K and up to 5 reference images on Vancine.",
+      "seedance20": "ByteDance Seedance 2.0 video generation with 4–15 second durations at 480p / 720p / 1080p / 4k and up to 9 reference images.",
+      "seedance25": "ByteDance Seedance 2.5 video generation with 4–30 second durations at 480p / 720p / 1080p (no 4k) and up to 30 reference images."
+    },
+    "description": {
+      "qwenImage30": "Qwen 3.0 is the default Qwen image model. It accepts references (jpeg, png, bmp, tiff, webp, gif) and the same Auto + 4 discrete tier + custom WxH contract as the Pro sibling. agent mode is rejected when references are attached.",
+      "qwenImage30Pro": "Pro sibling of Qwen 3.0. The parameter surface is identical; the difference is upstream quality, not the request contract.",
+      "wan27ImagePro": "Up to 9 reference images (jpeg, png, webp). With any reference attached the upstream caps total pixels at 2048×2048; sending a 4K size with a reference is a 400. The non-Pro Wan 2.7 image model has no published size tier or parameter contract, so it does not appear here.",
+      "seedream50Pro": "Seedream 5.0 Pro only generates a single image per request (n is always 1). Pixel floor 921,600 (1024×1024 works); pixel ceiling 4,624,220. The advanced sequential_image_generation and optimize_prompt_options parameters require PassThrough and are not forwarded by default; this page only documents the wired contract.",
+      "seedream50Lite": "Seedream 5.0 Lite supports 2K, 3K and 4K discrete tiers (pro does not). The 3,686,400 pixel floor rejects 1024×1024 with \"image size must be at least 3686400 pixels\". Always generates a single image per request. Up to 14 reference images, jpeg/png/webp.",
+      "wan30Video": "Wan 3.0 uses top-level `duration` (integer, seconds) and top-level `size` (one of 480P / 720P / 1080P). Reference images go in `metadata.input.media` as `{ \"type\": \"reference_image\", \"url\": \"...\" }` — NOT in top-level `image` or `images`. The studio also accepts top-level `seconds` as an alias of `duration`; the upstream rejects top-level `image` / `images` for multi-reference mode.",
+      "wan30VideoPrime": "Prime is the speed-optimised Wan 3.0 sibling. The wire is identical: top-level `duration` + `size`, references in `metadata.input.media`. The only thing the prime variant changes is upstream latency, not the parameter contract.",
+      "minimaxH3": "H3 uses top-level `duration` (integer, seconds) and `metadata.resolution` (exactly `768P` or `2K`). Reference images go in `metadata.content` as `{ \"type\": \"image_url\", \"role\": \"reference_image\", \"image_url\": { \"url\": \"...\" } }`. Vancine caps reference images at 5 even though MiniMax-H3 itself accepts 9; sending more than 5 is a 400. The `ratio` field is omitted so the plugin applies the documented default.",
+      "seedance20": "Seedance 2.0 uses TOP-LEVEL `seconds` (a STRING — a JSON number is rejected). Resolution goes in `metadata.resolution` (lowercase). Reference images go in `metadata.content` as `{ \"type\": \"image_url\", \"role\": \"reference_image\", \"image_url\": { \"url\": \"...\" } }`. The upstream rejects `1080p` once a reference image is attached; the studio converges to the highest still-legal value.",
+      "seedance25": "Seedance 2.5 uses top-level `seconds` (a STRING). Resolution goes in `metadata.resolution`. Reference images go in `metadata.content` with `role: \"reference_image\"`. The supported resolution set is 480p / 720p / 1080p only; the Seedance 2.5 wire has no 4k tier. Maximum duration is 30 seconds; maximum reference images is 30."
+    },
+    "ip": {
+      "model": "Must be exactly \"{{modelId}}\". Model IDs are case-sensitive.",
+      "prompt": "Free-form text prompt. No fixed character cap beyond the gateway body-size limit; per-model notes live on the model page.",
+      "n": "Integer between {{min}} and {{max}}; default {{default}}.",
+      "sizeAuto": "Auto is the default: the upstream picks the final resolution.",
+      "sizeTiers": "Discrete tiers: {{tiers}}.",
+      "sizeCustom": "Custom WIDTHxHEIGHT allowed between {{minPixels}} and {{maxPixels}} pixels, aspect ratio {{minRatio}} to {{maxRatio}}.",
+      "sizeCustomWithRefs": "With reference images attached the pixel ceiling drops to {{maxPixels}}.",
+      "image": "Reference image URL or Base64 for image-to-image / multi-image fusion. Up to {{max}} per request. Accepted MIME types: {{mimes}}.",
+      "seed": "Integer between {{min}} and {{max}}; default {{default}}.",
+      "noSeed": "Not supported by this model; do not send a seed field.",
+      "watermark": "Whether to draw a watermark. Default {{default}}.",
+      "negativePrompt": "Text describing what to avoid. No documented character cap on Qwen 3.x; the gateway body-size cap is the only practical limit.",
+      "promptExtend": "Enable prompt rewriting. Default {{default}}.",
+      "promptExtendMode": "Choose between \"direct\" and \"agent\". Default {{default}}.",
+      "promptExtendModeAgent": "The \"agent\" mode is rejected when reference images are attached.",
+      "enableThinking": "Enable thinking mode. Default {{default}}. Requires prompt_extend=true.",
+      "responseFormat": "Return format: {{formats}}. Default {{default}}.",
+      "outputFormat": "Output format: {{formats}}. Default {{default}}."
+    },
+    "in": {
+      "qwen30": {
+        "thinking": "enable_thinking is only honored when prompt_extend=true is also set.",
+        "agentRefs": "agent mode is rejected when one or more reference images are attached."
+      },
+      "qwen30pro": {
+        "sameContract": "qwen-image-3.0-pro and qwen-image-3.0 share the same public contract; the difference is upstream quality, not the request schema."
+      },
+      "wan27pro": {
+        "refsCeiling": "Reference images force a 2048×2048 pixel ceiling; sending a 4K size with a reference image is a 400 from the upstream."
+      },
+      "wan27": {
+        "nonProAbsent": "The non-Pro Wan 2.7 image model has no published size tier or parameter contract on the upstream, so it does not appear here."
+      },
+      "seedreamPro": {
+        "singleImage": "Seedream 5.0 Pro only generates a single image per request; the upstream rejects n>1.",
+        "minPixels": "Pixel floor 921,600 (1024×1024 works). Pixel ceiling 4,624,220."
+      },
+      "seedreamLite": {
+        "pixelFloor": "Pixel floor 3,686,400; 1024×1024 is rejected with \"image size must be at least 3686400 pixels\".",
+        "tiers": "Seedream 5.0 Lite supports 2K, 3K and 4K discrete tiers; the Pro model does not."
+      }
+    },
+    "vp": {
+      "model": "Must be exactly \"{{modelId}}\". Model IDs are case-sensitive.",
+      "prompt": "Free-form text prompt. Trimmed before submit; empty is rejected client-side.",
+      "durationWan3": "Top-level integer, {{min}} to {{max}} seconds. The upstream rejects durations outside this range.",
+      "durationH3": "Top-level integer, {{min}} to {{max}} seconds. The upstream rejects durations outside this range.",
+      "seconds": "Top-level STRING, {{min}} to {{max}}. A JSON number is rejected by the gateway (the Go `TaskSubmitReq.Seconds` is a string).",
+      "sizeWan3": "Top-level resolution: {{list}}. Equivalent to setting metadata.resolution; the studio uses the top-level slot.",
+      "resolution": "Inside metadata: {{list}}. The Wan3 / H3 / Seedance wire spellings differ; the page above shows the exact string for this model.",
+      "refsWan3": "Up to {{max}} reference media items, each { \"type\": \"reference_image\", \"url\": \"...\" }. Wan3 does NOT accept top-level image/images; use this slot only.",
+      "refsContent": "Up to {{max}} reference image items, each { \"type\": \"image_url\", \"role\": \"reference_image\", \"image_url\": { \"url\": \"...\" } }. Accepted MIME types: jpeg, png, webp."
+    },
+    "vn": {
+      "wan3": {
+        "topLevelSlots": "Wire contract: top-level `duration` (integer) + `size`; references in `metadata.input.media` as `{ \"type\": \"reference_image\", \"url\": \"...\" }`.",
+        "noTopLevelImages": "Top-level `image` / `images` are NOT accepted: the Wan3 wire rejects them. Multi-reference goes through `metadata.input.media`."
+      },
+      "wan3Prime": {
+        "sameAsWan3": "Prime is the speed-optimised Wan3 sibling. The wire contract is identical to Wan3."
+      },
+      "h3": {
+        "slots": "Wire contract: top-level `duration` (integer) + `metadata.resolution` (exactly `768P` or `2K`) + `metadata.content` reference items with `role: \"reference_image\"`.",
+        "fiveRefs": "Vancine caps H3 reference images at 5 even though MiniMax-H3 itself accepts 9; sending more than 5 is a 400.",
+        "ratioOmitted": "`ratio` is omitted so the plugin applies the documented default (adaptive for visual input, 16:9 for text-only)."
+      },
+      "seedance": {
+        "secondsString": "Wire contract: top-level `seconds` is a STRING (a JSON number is rejected by the Go `TaskSubmitReq.Seconds` field)."
+      },
+      "seedance20": {
+        "rejectedWithRefs": "Seedance 2.0 rejects 1080p once a reference image is attached; the studio converges to the highest still-legal value.",
+        "tiers": "Supported resolutions: 480p / 720p / 1080p / 4k. Maximum duration: 15 seconds. Maximum reference images: 9."
+      },
+      "seedance25": {
+        "no4k": "Seedance 2.5 has no 4k tier. Supported resolutions are exactly 480p / 720p / 1080p.",
+        "limits": "Maximum duration: 30 seconds. Maximum reference images: 30. Supported resolutions: 480p / 720p / 1080p."
+      }
+    },
+    "sources": {
+      "vancineImage": "Vancine production image contract",
+      "aliyunWanVideo": "Alibaba Wan video documentation",
+      "aliyunWanImage": "Alibaba Wan image documentation",
+      "minimaxVideoV2": "MiniMax Video Generation V2 documentation",
+      "volcengineSeedance": "Volcengine Seedance documentation",
+      "byteplusVideo": "BytePlus video generation documentation",
+      "volcengineSeedream": "Volcengine Seedream documentation",
+      "aliyunQwenImage": "Alibaba Qwen image documentation"
+    }
   }
 }

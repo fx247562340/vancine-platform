@@ -20,16 +20,21 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Badge } from '@/components/ui/badge'
+import { useLiveModelCatalog } from '@/features/live-model-catalog/hooks/use-live-model-catalog'
 
 import { DocsCallout } from '../components/callout'
 import { DocsCodeBlock } from '../components/code-block'
 import { DocsH2, DocsP } from '../components/headings'
 import { useRegisterHeadings } from '../components/register-headings'
+import { pickDocsTextModel } from '../lib/text-model-choice'
 import type { TocHeading } from '../types'
 
 export default function Auth(props: { baseUrl: string }) {
   const baseUrl = props.baseUrl
   const { t } = useTranslation('docs', { useSuspense: false })
+  const { catalog } = useLiveModelCatalog()
+
+  const exampleModelId = pickDocsTextModel(catalog).modelId
 
   useRegisterHeadings(
     useMemo<TocHeading[]>(
@@ -42,7 +47,7 @@ export default function Auth(props: { baseUrl: string }) {
   -H "Authorization: Bearer sk-your-api-key" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "model": "glm-5.1",
+    "model": "${exampleModelId}",
     "messages": [{ "role": "user", "content": "Hello" }]
   }'`
 
@@ -50,6 +55,7 @@ export default function Auth(props: { baseUrl: string }) {
     <div>
       <DocsH2 id='auth-title'>{t('auth.title')}</DocsH2>
       <DocsP>{t('auth.desc')}</DocsP>
+      <DocsP>{t('auth.exampleModel')}</DocsP>
 
       <div className='mb-2 flex items-center gap-2'>
         <Badge variant='destructive'>{t('common.required')}</Badge>

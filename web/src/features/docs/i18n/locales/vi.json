@@ -11,7 +11,8 @@
     "step2": {
       "title": "Chọn mô hình",
       "desc": "Chúng tôi khuyên dùng deepseek-v4-flash cho lần gọi đầu tiên — nhanh, rẻ và phù hợp để kiểm thử.",
-      "viewAll": "Xem tất cả mô hình khả dụng"
+      "viewAll": "Xem tất cả mô hình khả dụng",
+      "dynamicFallback": "Đang hiển thị mô hình mặc định đã xác minh trong khi tải danh mục trực tiếp."
     },
     "step3": {
       "title": "Chọn phương thức gọi",
@@ -39,6 +40,10 @@
       "image": "Tạo hình ảnh",
       "video": "Tạo video",
       "migrate": "Chuyển từ OpenAI"
+    },
+    "recommendedModels": {
+      "dynamic": "Mô hình văn bản khuyến nghị đang trực tuyến",
+      "dynamicHelp": "Danh sách phản ánh danh mục hiện tại. Nếu danh mục không khả dụng, trang sẽ dự phòng bằng một bộ mô hình hiện đang trực tuyến đã xác minh."
     }
   },
   "migrate": {
@@ -88,9 +93,9 @@
     "desc": "Gửi mảng messages tương thích OpenAI đến mô hình ngôn ngữ và nhận phản hồi JSON đồng bộ.",
     "paramsTitle": "Tham số",
     "examplesTitle": "Ví dụ",
-    "reasoningCallout": "deepseek-v4-flash và deepseek-v4-pro là mô hình suy luận. content có thể trống trong khi suy luận xuất hiện trong reasoning_content; finish_reason: length thường có nghĩa là ngân sách token đã được sử dụng cho suy luận, không phải API lỗi.",
+    "reasoningCallout": "Mô hình suy luận có thể để trống `content` trong khi `reasoning_content` được điền; `finish_reason: length` thường nghĩa là ngân sách token đã được dùng cho suy luận, không phải API thất bại. Trang Models liệt kê các mô hình văn bản có khả năng suy luận.",
     "params": {
-      "model": "Tên mô hình, ví dụ glm-5.1",
+      "model": "Tên mô hình. Dùng bất kỳ mô hình văn bản nào hiện đang trực tuyến; xem trang Models để có danh sách hiện tại.",
       "messages": "Mảng đối tượng tin nhắn",
       "maxTokens": "Số token tối đa được tạo; dùng giá trị lớn hơn cho mô hình suy luận",
       "stream": "Bật streaming SSE",
@@ -116,11 +121,27 @@
       "image": "URL hoặc Base64 hình ảnh tham chiếu cho hình-đến-hình / hòa trộn đa hình ảnh (5.0 pro: tối đa 10, lite: tối đa 14)",
       "watermark": "Có thêm hình mờ không. Seedream mặc định false"
     },
-    "advancedParamsCallout": "Các tham số nâng cao của Seedream như sequential_image_generation (nhóm ảnh) và optimize_prompt_options (tối ưu prompt) yêu cầu bật PassThrough trên kênh. Mặc định không được chuyển tiếp."
+    "advancedParamsCallout": "Các tham số nâng cao của Seedream như sequential_image_generation (nhóm ảnh) và optimize_prompt_options (tối ưu prompt) yêu cầu bật PassThrough trên kênh. Mặc định không được chuyển tiếp.",
+    "intro": "Tạo ảnh là đồng bộ: POST tới /v1/images/generations, phản hồi mang URL ảnh (hoặc base64) trong mảng data. Các mô hình dưới đây là những mô hình nền tảng hiện đang quảng bá; mỗi mô hình có một trang riêng ghi lại sơ đồ yêu cầu chính xác.",
+    "modelsHeading": "Các mô hình ảnh hiện đang trực tuyến",
+    "modelsIntro": "Mỗi mô hình dưới đây đều có trong danh mục định giá hiện tại. Mỗi mô hình có một trang riêng ghi lại sơ đồ yêu cầu chính xác.",
+    "commonParamsTitle": "Tham số chung",
+    "commonParamsDesc": "Các trường này áp dụng cho mọi mô hình ảnh hiện đang trực tuyến. Trang của mỗi mô hình ghi lại các tham số bổ sung (bậc kích thước, phạm vi n, giới hạn tham chiếu, tính năng nâng cao).",
+    "examplesIntro": "Ví dụ dưới đây dùng mô hình ảnh hiện đang trực tuyến và gửi yêu cầu hợp lệ tối thiểu (model + prompt + n + size). Trang của mỗi mô hình ghi lại một ví dụ riêng với body yêu cầu chính xác.",
+    "commonParams": {
+      "model": "Tên mô hình. Trang liệt kê mọi mô hình ảnh hiện đang trực tuyến.",
+      "prompt": "Lời nhắc văn bản. Không có giới hạn ký tự cố định ngoài giới hạn kích thước body của gateway; ghi chú riêng theo mô hình nằm trên trang mô hình.",
+      "n": "Số lượng ảnh. Phạm vi hợp lệ tùy theo mô hình (Qwen 3.x: 1–6; Wan 2.7 Pro: 1–4; Seedream 5.0 pro/lite: luôn là 1). Xem trang mô hình để có phạm vi chính xác.",
+      "size": "Kích thước ảnh. Mỗi mô hình cung cấp bậc kích thước riêng; trang mô hình liệt kê mọi giá trị hợp lệ, mặc định và ràng buộc theo bậc.",
+      "responseFormat": "Định dạng trả về: `url` (mặc định, liên kết tạm có hiệu lực 24 giờ) hoặc `b64_json`. Tất cả mô hình trực tuyến đều chấp nhận.",
+      "watermark": "Có chèn watermark hay không. Mặc định là false cho mọi mô hình trực tuyến; giá trị mặc định chính xác được ghi theo mô hình.",
+      "image": "Hình tham chiếu (URL hoặc Base64) cho ảnh-sang-ảnh / hợp nhất đa ảnh. Số lượng tối đa, MIME được chấp nhận và giới hạn kích thước mỗi ảnh tùy theo mô hình; xem trang mô hình."
+    },
+    "advancedParamsNote": "Trang của mỗi mô hình ghi lại các tham số nâng cao riêng. Các mô hình ảnh chia sẻ những trường chung này; trang mô hình là nguồn chính xác cho bậc kích thước, phạm vi n và giới hạn tham chiếu."
   },
   "video": {
     "title": "Tạo video",
-    "desc": "Tạo video là tác vụ bất đồng bộ. Lưu task_id từ phản hồi gửi, rồi poll cùng đường dẫn /v1/video/generations/{task_id}.",
+    "desc": "Tạo video là tác vụ bất đồng bộ. Lưu id cấp cao nhất từ phản hồi gửi, rồi poll GET /v1/video/generations/{id}.",
     "endpointSubmit": "Gửi tác vụ tạo bất đồng bộ",
     "endpointPoll": "Poll trạng thái và kết quả tác vụ",
     "paramsTitle": "Tham số",
@@ -135,18 +156,35 @@
       "duration": "Thời lượng video (giây)",
       "metadata": "Đối tượng tham số mở rộng (xem bên dưới)"
     },
-    "metadataCallout": "Tham số con của metadata: resolution (độ phân giải vd 1080p), ratio (tỷ lệ khung vd 16:9), frames (số khung hình), seed (hạt ngẫu nhiên), watermark (hình mờ bool), camera_fixed (camera cố định bool), generate_audio (tạo âm thanh bool). Các tham số này được chuyển tiếp đến nhà cung cấp upstream.",
+    "metadataCallout": "Không có \"khối metadata chung\" — các trường được phép bên trong `metadata` là riêng theo mô hình. Trang mô hình riêng liệt kê mọi khóa và giá trị hợp lệ cho mô hình đó.",
     "status": {
-      "queued": "Tác vụ đang xếp hàng",
-      "inProgress": "Đang tạo",
-      "success": "Hoàn thành; đọc data.result_url hoặc data.data.content.video_url",
-      "failure": "Thất bại; kiểm tra data.fail_reason"
+      "queued": "Tác vụ đang trong hàng đợi (status: QUEUED).",
+      "inProgress": "Đang tạo (status: IN_PROGRESS).",
+      "success": "Hoàn tất (status: SUCCESS). Đọc `data.result_url` để lấy URL video kết quả.",
+      "failure": "Thất bại (status: FAILURE). Đọc `data.fail_reason`.",
+      "submitHeading": "Biên nhận gửi",
+      "pollHeading": "Trạng thái poll (GET)",
+      "submitQueued": "Biên nhận gửi báo status queued (chữ thường). Tác vụ đã được chấp nhận và chưa chạy.",
+      "notStart": "Tác vụ chưa bắt đầu (status: NOT_START).",
+      "submitted": "Tác vụ đã được gửi (status: SUBMITTED)."
+    },
+    "intro": "Tạo video là quy trình tác vụ bất đồng bộ: gửi yêu cầu, lưu task id trả về, hỏi vòng cùng đường dẫn cho đến khi trạng thái đạt giá trị kết thúc, rồi đọc URL kết quả hoặc lý do thất bại. Mỗi mô hình hiện đang trực tuyến có một trang riêng ghi lại hợp đồng chính xác — thời lượng, độ phân giải, quy tắc hình tham chiếu và hình dạng JSON chính xác.",
+    "modelsHeading": "Các mô hình video hiện đang trực tuyến",
+    "modelsIntro": "Mỗi mô hình dưới đây đều có trong danh mục định giá hiện tại. Hợp đồng chính xác (thời lượng, độ phân giải, vị trí hình tham chiếu) nằm trên trang chi tiết của mô hình.",
+    "modelsDiffer": "Các mô hình video không chia sẻ một sơ đồ tham số duy nhất. Hợp đồng chính xác (`duration` cấp cao nhất so với chuỗi `seconds`, `size` so với `metadata.resolution`, `metadata.input.media` so với `metadata.content` cho hình tham chiếu) được ghi theo mô hình trên trang của mô hình.",
+    "examplesIntro": "Ví dụ dưới đây gửi yêu cầu hợp lệ tối thiểu (model + prompt), sau đó hỏi vòng cùng đường dẫn cho đến khi trạng thái đạt giá trị kết thúc. Trang của mỗi mô hình ghi lại một ví dụ riêng với hợp đồng chính xác (duration vs seconds, size vs metadata.resolution, metadata.content vs metadata.input.media).",
+    "commonParamsTitle": "Tham số tác vụ chung",
+    "commonParamsDesc": "Các trường này chung cho mọi mô hình video. Các trường riêng theo mô hình (duration vs seconds, size vs metadata.resolution, vị trí hình tham chiếu) được ghi trên trang mô hình.",
+    "commonParams": {
+      "model": "Tên mô hình video. Mỗi mô hình trực tuyến có một trang riêng liệt kê hợp đồng chính xác.",
+      "prompt": "Lời nhắc văn bản. Được cắt trước khi gửi; giá trị rỗng bị máy khách từ chối."
     }
   },
   "auth": {
     "title": "Xác thực",
     "desc": "Tất cả yêu cầu /v1 đều yêu cầu API key trong header Authorization.",
-    "securityWarning": "Không để lộ API key trong mã frontend, kho công khai hoặc ứng dụng client. Luôn đọc key từ biến môi trường phía máy chủ trước khi gọi Vancine."
+    "securityWarning": "Không để lộ API key trong mã frontend, kho công khai hoặc ứng dụng client. Luôn đọc key từ biến môi trường phía máy chủ trước khi gọi Vancine.",
+    "exampleModel": "Bất kỳ mô hình văn bản nào hiện đang trực tuyến đều hoạt động. Xem trang Models để có danh sách hiện tại."
   },
   "capabilities": {
     "title": "Tổng quan khả năng",
@@ -161,11 +199,11 @@
     }
   },
   "models": {
-    "title": "Mô hình và giá",
-    "desc": "Gọi endpoint giá công khai để đọc tên mô hình, endpoint được hỗ trợ, tỷ lệ và giá.",
-    "fetchPricing": "Lấy giá mô hình",
+    "title": "Mô hình và Định giá",
+    "desc": "Gọi endpoint định giá công khai để đọc tên mô hình, các endpoint được hỗ trợ, tỉ lệ và giá.",
+    "fetchPricing": "Lấy định giá mô hình",
     "textModelsTitle": "Mô hình văn bản ({{count}})",
-    "imageModelsTitle": "Mô hình hình ảnh ({{count}})",
+    "imageModelsTitle": "Mô hình ảnh ({{count}})",
     "videoModelsTitle": "Mô hình video ({{count}})",
     "multimodalTitle": "Mô hình tạo đa phương thức",
     "colType": "Loại",
@@ -174,12 +212,15 @@
     "videoEndpoint": "POST /v1/video/generations (bất đồng bộ)",
     "loading": "Đang tải danh mục mô hình trực tiếp…",
     "loadErrorTitle": "Danh mục mô hình trực tiếp không khả dụng",
-    "loadErrorBody": "Không thể tải danh sách mô hình hiện tại. Endpoint giá trực tiếp vẫn là nguồn chính thức — hãy dùng lệnh curl ở trên để xem tất cả các mô hình khả dụng.",
-    "emptyTitle": "Hiện không có mô hình nào khả dụng",
-    "emptyTextBody": "Danh mục trực tiếp hiện không liệt kê mô hình văn bản. Vui lòng kiểm tra trang Giá trực tiếp để biết tình trạng khả dụng.",
-    "emptyImageBody": "Danh mục trực tiếp hiện không liệt kê mô hình hình ảnh. Vui lòng kiểm tra trang Giá trực tiếp để biết tình trạng khả dụng.",
-    "emptyVideoBody": "Danh mục trực tiếp hiện không liệt kê mô hình video. Vui lòng kiểm tra trang Giá trực tiếp để biết tình trăng khả dụng.",
-    "retry": "Thử lại"
+    "loadErrorBody": "Không thể tải danh sách mô hình hiện tại. Endpoint định giá trực tiếp vẫn là nguồn chính xác — hãy mở nó từ lệnh curl ở trên để kiểm tra mọi mô hình khả dụng.",
+    "emptyTitle": "Hiện không có mô hình khả dụng",
+    "emptyTextBody": "Danh mục hiện tại không liệt kê mô hình văn bản nào. Vui lòng xem trang Định giá để biết khả dụng.",
+    "emptyImageBody": "Danh mục hiện tại không liệt kê mô hình ảnh nào. Vui lòng xem trang Định giá để biết khả dụng.",
+    "emptyVideoBody": "Danh mục hiện tại không liệt kê mô hình video nào. Vui lòng xem trang Định giá để biết khả dụng.",
+    "retry": "Thử lại",
+    "imageLinksTitle": "Trang chi tiết mô hình ảnh",
+    "videoLinksTitle": "Trang chi tiết mô hình video",
+    "detailLink": "Chi tiết"
   },
   "errors": {
     "title": "Xử lý lỗi",
@@ -208,7 +249,7 @@
     "title": "Tích hợp Agent",
     "desc": "Trước khi kết nối công cụ agent, hãy kiểm tra nó dùng Chat Completions hay Responses. Hầu hết công cụ OpenAI Compatible dùng /v1/chat/completions; cấu hình chính thức Codex CLI hiện dùng /v1/responses.",
     "benchmarkLink": "Xem benchmark Pi coding agent với 8 mô hình",
-    "universalTip": "Cài đặt chung: Base URL = {{baseUrl}}, API Key = sk-your-api-key, Model = glm-5.1 hoặc deepseek-v4-flash.",
+    "universalTip": "Thiết lập chung: Base URL = {{baseUrl}}, API Key = sk-your-api-key, Model = bất kỳ mô hình văn bản nào hiện đang trực tuyến (xem trang Models).",
     "configExample": "Ví dụ cấu hình",
     "cliTitle": "Công cụ CLI",
     "guiTitle": "Công cụ GUI",
@@ -245,7 +286,7 @@
         "step2": "Chọn OpenAI Compatible hoặc API OpenAI tùy chỉnh",
         "step3": "Đặt Base URL = {{baseUrl}}",
         "step4": "Nhập API key Vancine",
-        "step5": "Dùng mô hình văn bản như glm-5.1 hoặc deepseek-v4-flash"
+        "step5": "Dùng một mô hình văn bản hiện đang trực tuyến; xem trang Models để có danh sách hiện tại."
       },
       "cherryStudio": {
         "title": "Cherry Studio",
@@ -298,7 +339,7 @@
         },
         "model": {
           "symptom": "Không tìm thấy mô hình / mô hình không tồn tại.",
-          "fix": "Dùng đúng ID mô hình trong danh sách mô hình của Vancine, ví dụ glm-5.1. ID mô hình có phân biệt hoa thường."
+          "fix": "Dùng đúng ID mô hình từ danh sách Vancine. ID phân biệt hoa/thường. Trang Models hiện tại là nguồn chính xác; sao chép nguyên văn."
         },
         "protocol": {
           "symptom": "Phản hồi bất thường hoặc lỗi endpoint không được hỗ trợ.",
@@ -315,7 +356,7 @@
     },
     "opencode": {
       "pageTitle": "Hướng dẫn cài đặt OpenCode",
-      "valueProp": "Kết nối coding agent dòng lệnh OpenCode với Vancine bằng /connect. OpenCode tải Vancine từ catalogue Provider của Models.dev, nên thiết lập cơ bản không cần tạo hoặc sửa opencode.json.",
+      "valueProp": "OpenCode tải Vancine từ danh mục nhà cung cấp Models.dev; trang Models động là nguồn chính xác cho các ID mô hình khả dụng.",
       "noJsonNote": "Thiết lập cơ bản không cần tạo hoặc sửa opencode.json.",
       "step1": "Cài đặt hoặc cập nhật OpenCode.",
       "step2": "Nếu chưa có, hãy tạo tài khoản Vancine và API Key.",
@@ -323,13 +364,13 @@
       "step4": "Tìm và chọn Vancine.",
       "step5": "Dán API Key Vancine của bạn.",
       "step6": "Chạy /models.",
-      "step7": "Chọn vancine/glm-5.3-flash, hoặc mô hình khác trong Provider vancine, rồi gửi prompt.",
+      "step7": "Chọn vancine/{{modelId}}, hoặc mô hình khác trong Provider vancine, rồi gửi prompt.",
       "advancedTitle": "Cấu hình nâng cao (tuỳ chọn)",
       "advancedNote": "Chỉ dùng opencode.json cấp dự án khi cần ghi đè Base URL, đặt whitelist / blacklist mô hình, dự phòng thủ công khi catalogue trực tiếp lỗi, hoặc neo một cấu hình Provider tường minh. Đừng coi tệp này là một phần của thiết lập cơ bản /connect.",
       "notOfficial": "Vancine là dịch vụ API tương thích OpenAI độc lập, được liệt kê trong catalogue Models.dev mà OpenCode sử dụng. Việc được liệt kê không đồng nghĩa với quan hệ hợp tác chính thức, khuyến nghị hay sự chứng thực từ OpenCode.",
       "errors": {
         "model": {
-          "fix": "Dùng đúng ID mô hình vancine hiển thị trong /models, hoặc xem trang mô hình Vancine. ID mô hình phân biệt hoa thường."
+          "fix": "Dùng ID mô hình chính xác từ danh mục trực tiếp Vancine. ID phân biệt hoa/thường. Trang Models là nguồn chính xác."
         }
       },
       "benchmarkTitle": "Bằng chứng xác minh",
@@ -420,5 +461,177 @@
     "status": "Trạng thái",
     "type": "Loại",
     "yes": "Có"
+  },
+  "modelDetail": {
+    "contractMissing": "Chưa có hợp đồng đã xác minh nào được công bố cho mô hình này. Trang cố ý không hiển thị tham số bịa đặt.",
+    "image": {
+      "sizes": "Kích thước được hỗ trợ: {{sizes}}. Mặc định: {{defaultSize}}.",
+      "nRange": "Số lượng ảnh: số nguyên trong [{{min}}, {{max}}], mặc định {{default}}.",
+      "refs": "Hình ảnh tham chiếu: tối đa {{max}} mỗi yêu cầu. MIME được chấp nhận: {{mimes}}."
+    },
+    "kind": {
+      "image": "Hình ảnh",
+      "video": "Video"
+    },
+    "meta": {
+      "description": "{{summary}} Sơ đồ yêu cầu chính xác, tham số được hỗ trợ và ví dụ đã xác minh cho Vancine API.",
+      "title": "Tham chiếu API {{modelId}} | Vancine"
+    },
+    "mode": {
+      "firstLastFrame": "khung đầu/cuối",
+      "imageToImage": "ảnh sang ảnh",
+      "imageToVideo": "ảnh sang video",
+      "multiReference": "đa tham chiếu",
+      "textToImage": "văn bản sang ảnh",
+      "textToVideo": "văn bản sang video"
+    },
+    "pricingDesc": "Giá là động và được liệt kê trên trang Định giá; khả dụng và giá theo bậc không được sao chép tại đây.",
+    "sections": {
+      "endpoint": "Điểm cuối",
+      "examples": "Ví dụ",
+      "modes": "Chế độ gọi được hỗ trợ",
+      "params": "Tham số",
+      "pricing": "Định giá",
+      "verify": "Nguồn đã xác minh"
+    },
+    "status": {
+      "checking": "Đang kiểm tra khả dụng",
+      "live": "Đang trực tuyến",
+      "offline": "Hiện không khả dụng",
+      "unconfirmed": "Không thể xác nhận khả dụng"
+    },
+    "verified": "Đã xác minh ngày {{date}} theo {{source}}. Sơ đồ yêu cầu là hợp đồng sản xuất; thay đổi phía thượng nguồn sẽ xuất hiện ở đây.",
+    "video": {
+      "bodyLimit": "Giới hạn body yêu cầu: {{mb}} MB. Studio thực thi giới hạn này trước khi gửi; vượt quá sẽ bị máy khách từ chối.",
+      "paramDuration": "Số nguyên cấp cao nhất trong [{{min}}, {{max}}]. Ngoài phạm vi sẽ bị thượng nguồn từ chối.",
+      "paramModel": "Phải chính xác là \"{{modelId}}\". Phân biệt hoa/thường; máy chủ sẽ từ chối giá trị khác.",
+      "paramPrompt": "Lời nhắc văn bản tự do. Được cắt trước khi gửi; giá trị rỗng bị máy khách từ chối.",
+      "paramRefs": "Tối đa {{max}} hình tham chiếu, mỗi mục { \"type\": \"image_url\", \"role\": \"reference_image\", \"image_url\": { \"url\": \"...\" } }. MIME: jpeg, png, webp.",
+      "paramResolution": "Một trong {{list}}. Wan3 / MiniMax-H3 / Seedance có cách viết hơi khác; tài liệu phía trên hiển thị chính xác chuỗi cho mô hình này.",
+      "paramSecondsString": "Chuỗi cấp cao nhất trong [{{min}}, {{max}}] (KHÔNG phải số JSON — Go định kiểu là chuỗi).",
+      "paramSizeWan3": "Độ phân giải cấp cao nhất (hợp đồng Wan3). Một trong {{list}}. Tương đương metadata.resolution; studio dùng trường cấp cao nhất.",
+      "paramWan3Refs": "Tối đa {{max}} media tham chiếu, mỗi mục { \"type\": \"reference_image\", \"url\": \"...\" }. Wan3 KHÔNG chấp nhận image/images cấp cao nhất; chỉ dùng trường này.",
+      "rejectedWithRefs": "Các độ phân giải bị thượng nguồn từ chối khi có ít nhất một hình tham chiếu: {{list}}. Form sẽ tự động hội tụ về giá trị hợp lệ cao nhất còn lại.",
+      "wireKey": "Trường hợp đồng",
+      "wireValue": "Giá trị"
+    },
+    "videoSubmit": "Gửi tác vụ tạo bất đồng bộ",
+    "videoPoll": "Hỏi vòng trạng thái và kết quả tác vụ",
+    "videoDesc": "Đây là tác vụ bất đồng bộ. Sau khi gửi, nhận về task id; hỏi vòng cùng đường dẫn cho đến khi trạng thái là giá trị kết thúc, rồi đọc URL kết quả hoặc lý do thất bại.",
+    "imageDesc": "Endpoint ảnh là đồng bộ: phản hồi mang URL ảnh (hoặc base64) trong mảng data.",
+    "verifiedOn": "Xác minh lần cuối vào {{date}}.",
+    "summary": {
+      "qwenImage30": "Tạo ảnh Qwen 3.0 với kích thước Auto, hình tham chiếu tùy chọn và các chế độ prompt_extend / thinking.",
+      "qwenImage30Pro": "Tạo ảnh Qwen 3.0 Pro với cùng hợp đồng tham số như mô hình 3.0 mặc định.",
+      "wan27ImagePro": "Tạo ảnh Alibaba Wan 2.7 Pro với các bậc 1K/2K/4K và tối đa 9 hình tham chiếu.",
+      "seedream50Pro": "Tạo ảnh ByteDance Seedream 5.0 Pro với các bậc 1K/1.5K/2K, tối đa 10 hình tham chiếu và chỉ tạo một ảnh.",
+      "seedream50Lite": "Tạo ảnh ByteDance Seedream 5.0 Lite với các bậc 2K/3K/4K, tối đa 14 hình tham chiếu và sàn pixel 3.686.400.",
+      "wan30Video": "Alibaba Wan 3.0 văn bản sang video và ảnh sang video với thời lượng 2–30 giây ở 480P / 720P / 1080P và tối đa 10 hình tham chiếu.",
+      "wan30VideoPrime": "Wan 3.0 phiên bản tốc độ cao, cùng hợp đồng yêu cầu với mô hình cơ sở.",
+      "minimaxH3": "Tạo video MiniMax H3 với thời lượng 4–15 giây ở 768P / 2K và tối đa 5 hình tham chiếu trên Vancine.",
+      "seedance20": "Tạo video ByteDance Seedance 2.0 với thời lượng 4–15 giây ở 480p / 720p / 1080p / 4k và tối đa 9 hình tham chiếu.",
+      "seedance25": "Tạo video ByteDance Seedance 2.5 với thời lượng 4–30 giây ở 480p / 720p / 1080p (không có 4k) và tối đa 30 hình tham chiếu."
+    },
+    "description": {
+      "qwenImage30": "Qwen 3.0 là mô hình ảnh mặc định của Qwen. Chấp nhận hình tham chiếu (jpeg, png, bmp, tiff, webp, gif) và chia sẻ với Pro hợp đồng Auto + 4 bậc + WxH tùy chỉnh. Chế độ agent bị từ chối khi có hình tham chiếu.",
+      "qwenImage30Pro": "Biến thể Pro của Qwen 3.0. Bộ tham số giống hệt; sự khác biệt nằm ở chất lượng phía upstream, không phải ở hợp đồng yêu cầu.",
+      "wan27ImagePro": "Tối đa 9 hình tham chiếu (jpeg, png, webp). Khi có hình tham chiếu, phía upstream giới hạn tổng pixel ở 2048×2048; gửi kích thước 4K kèm hình tham chiếu trả về 400. Mô hình ảnh Wan 2.7 không phải Pro không có bậc kích thước hoặc hợp đồng tham số công khai, nên không xuất hiện ở đây.",
+      "seedream50Pro": "Seedream 5.0 Pro chỉ tạo một ảnh mỗi yêu cầu (n luôn là 1). Sàn pixel 921.600 (1024×1024 hoạt động); trần 4.624.220. Các tham số advanced sequential_image_generation và optimize_prompt_options yêu cầu PassThrough và không được chuyển tiếp theo mặc định; trang này chỉ ghi lại hợp đồng đã nối dây.",
+      "seedream50Lite": "Seedream 5.0 Lite hỗ trợ các bậc 2K, 3K và 4K (pro thì không). Sàn pixel 3.686.400 từ chối 1024×1024 với thông báo \"image size must be at least 3686400 pixels\". Luôn tạo một ảnh mỗi yêu cầu. Tối đa 14 hình tham chiếu (jpeg, png, webp).",
+      "wan30Video": "Wan 3.0 sử dụng `duration` (số nguyên, giây) và `size` (480P / 720P / 1080P) cấp cao nhất. Hình tham chiếu đặt trong `metadata.input.media` dạng `{ \"type\": \"reference_image\", \"url\": \"...\" }` — KHÔNG đặt ở `image` / `images` cấp cao nhất. Studio cũng chấp nhận `seconds` cấp cao nhất làm bí danh của `duration`; phía upstream từ chối `image` / `images` cấp cao nhất ở chế độ đa tham chiếu.",
+      "wan30VideoPrime": "Prime là biến thể Wan 3.0 được tối ưu về tốc độ. Dây nối giống hệt: `duration` + `size` cấp cao nhất, hình tham chiếu trong `metadata.input.media`. Điều duy nhất Prime thay đổi là độ trễ phía upstream, không phải hợp đồng tham số.",
+      "minimaxH3": "H3 sử dụng `duration` (số nguyên, giây) cấp cao nhất và `metadata.resolution` (chính xác `768P` hoặc `2K`). Hình tham chiếu đặt trong `metadata.content` dạng `{ \"type\": \"image_url\", \"role\": \"reference_image\", \"image_url\": { \"url\": \"...\" } }`. Vancine giới hạn 5 hình tham chiếu dù MiniMax-H3 chấp nhận 9; quá 5 sẽ bị Vancine trả về 400. Trường `ratio` được bỏ qua để plugin áp dụng giá trị mặc định đã ghi nhận.",
+      "seedance20": "Seedance 2.0 sử dụng `seconds` cấp cao nhất (chuỗi — số JSON bị từ chối). Độ phân giải đặt trong `metadata.resolution` (chữ thường). Hình tham chiếu đặt trong `metadata.content` dạng `{ \"type\": \"image_url\", \"role\": \"reference_image\", \"image_url\": { \"url\": \"...\" } }`. Phía upstream từ chối `1080p` khi có hình tham chiếu; studio hội tụ về giá trị hợp lệ cao nhất còn lại.",
+      "seedance25": "Seedance 2.5 sử dụng `seconds` cấp cao nhất (chuỗi). Độ phân giải đặt trong `metadata.resolution`. Hình tham chiếu đặt trong `metadata.content` với `role: \"reference_image\"`. Bộ độ phân giải được hỗ trợ chỉ là 480p / 720p / 1080p; hợp đồng Seedance 2.5 không có bậc 4k. Thời lượng tối đa 30 giây; tối đa 30 hình tham chiếu."
+    },
+    "ip": {
+      "model": "Phải chính xác là \"{{modelId}}\". ID phân biệt hoa/thường.",
+      "prompt": "Lời nhắc văn bản tự do. Không có giới hạn ký tự cố định ngoài giới hạn kích thước body của gateway; ghi chú riêng theo mô hình nằm trên trang mô hình.",
+      "n": "Số nguyên trong khoảng {{min}}–{{max}}, mặc định {{default}}.",
+      "sizeAuto": "Auto là giá trị mặc định: phía upstream chọn độ phân giải cuối cùng.",
+      "sizeTiers": "Các bậc rời rạc: {{tiers}}.",
+      "sizeCustom": "WIDTHxHEIGHT tùy chỉnh được phép từ {{minPixels}} đến {{maxPixels}} pixel, tỉ lệ khung hình {{minRatio}} đến {{maxRatio}}.",
+      "sizeCustomWithRefs": "Khi có hình tham chiếu, trần pixel giảm xuống {{maxPixels}}.",
+      "image": "URL hoặc Base64 hình tham chiếu cho ảnh-sang-ảnh / hợp nhất đa ảnh. Tối đa {{max}} mỗi yêu cầu. MIME được chấp nhận: {{mimes}}.",
+      "seed": "Số nguyên trong khoảng {{min}}–{{max}}, mặc định {{default}}.",
+      "noSeed": "Mô hình này không hỗ trợ; đừng gửi trường seed.",
+      "watermark": "Có chèn watermark hay không. Mặc định {{default}}.",
+      "negativePrompt": "Văn bản mô tả những gì cần tránh. Không có giới hạn ký tự được ghi nhận trên Qwen 3.x; giới hạn body của gateway là rào cản thực tế duy nhất.",
+      "promptExtend": "Bật viết lại prompt. Mặc định {{default}}.",
+      "promptExtendMode": "Chọn giữa \"direct\" và \"agent\". Mặc định {{default}}.",
+      "promptExtendModeAgent": "Chế độ \"agent\" bị từ chối khi có hình tham chiếu.",
+      "enableThinking": "Bật chế độ thinking. Mặc định {{default}}. Yêu cầu prompt_extend=true.",
+      "responseFormat": "Định dạng trả về: {{formats}}. Mặc định {{default}}.",
+      "outputFormat": "Định dạng đầu ra: {{formats}}. Mặc định {{default}}."
+    },
+    "in": {
+      "qwen30": {
+        "thinking": "enable_thinking chỉ được áp dụng khi prompt_extend=true cũng được đặt.",
+        "agentRefs": "chế độ agent bị từ chối khi có ít nhất một hình tham chiếu."
+      },
+      "qwen30pro": {
+        "sameContract": "qwen-image-3.0-pro và qwen-image-3.0 chia sẻ cùng hợp đồng công khai; sự khác biệt nằm ở chất lượng phía upstream, không phải ở sơ đồ yêu cầu."
+      },
+      "wan27pro": {
+        "refsCeiling": "Hình tham chiếu buộc trần pixel xuống 2048×2048; gửi kích thước 4K kèm hình tham chiếu sẽ bị upstream trả về 400."
+      },
+      "wan27": {
+        "nonProAbsent": "Mô hình ảnh Wan 2.7 không phải Pro không có bậc kích thước hoặc hợp đồng tham số công khai phía upstream, nên không xuất hiện ở đây."
+      },
+      "seedreamPro": {
+        "singleImage": "Seedream 5.0 Pro chỉ tạo một ảnh mỗi yêu cầu; phía upstream từ chối n>1.",
+        "minPixels": "Sàn pixel 921.600 (1024×1024 hoạt động). Trần 4.624.220."
+      },
+      "seedreamLite": {
+        "pixelFloor": "Sàn pixel 3.686.400; 1024×1024 bị từ chối với \"image size must be at least 3686400 pixels\".",
+        "tiers": "Seedream 5.0 Lite hỗ trợ các bậc 2K, 3K và 4K; Pro thì không."
+      }
+    },
+    "vp": {
+      "model": "Phải chính xác là \"{{modelId}}\". Phân biệt hoa/thường.",
+      "prompt": "Lời nhắc văn bản tự do. Được cắt trước khi gửi; giá trị rỗng bị máy khách từ chối.",
+      "durationWan3": "Số nguyên cấp cao nhất, {{min}} đến {{max}} giây. Ngoài phạm vi sẽ bị thượng nguồn từ chối.",
+      "durationH3": "Số nguyên cấp cao nhất, {{min}} đến {{max}} giây. Ngoài phạm vi sẽ bị thượng nguồn từ chối.",
+      "seconds": "Chuỗi cấp cao nhất, {{min}} đến {{max}}. Số JSON bị gateway từ chối (Go `TaskSubmitReq.Seconds` là chuỗi).",
+      "sizeWan3": "Độ phân giải cấp cao nhất: {{list}}. Tương đương metadata.resolution; studio dùng trường cấp cao nhất.",
+      "resolution": "Trong metadata: {{list}}. Cách viết Wan3 / H3 / Seedance hơi khác; trang phía trên hiển thị chuỗi chính xác cho mô hình này.",
+      "refsWan3": "Tối đa {{max}} mục tham chiếu, mỗi mục { \"type\": \"reference_image\", \"url\": \"...\" }. Wan3 KHÔNG chấp nhận image/images cấp cao nhất; chỉ dùng trường này.",
+      "refsContent": "Tối đa {{max}} hình tham chiếu, mỗi mục { \"type\": \"image_url\", \"role\": \"reference_image\", \"image_url\": { \"url\": \"...\" } }. MIME được chấp nhận: jpeg, png, webp."
+    },
+    "vn": {
+      "wan3": {
+        "topLevelSlots": "Hợp đồng: `duration` (số nguyên) + `size` cấp cao nhất; hình tham chiếu trong `metadata.input.media` dạng `{ \"type\": \"reference_image\", \"url\": \"...\" }`.",
+        "noTopLevelImages": "`image` / `images` cấp cao nhất KHÔNG được chấp nhận: hợp đồng Wan3 sẽ từ chối chúng. Đa tham chiếu phải đi qua `metadata.input.media`."
+      },
+      "wan3Prime": {
+        "sameAsWan3": "Prime là biến thể Wan3 được tối ưu về tốc độ. Hợp đồng giống hệt Wan3."
+      },
+      "h3": {
+        "slots": "Hợp đồng: `duration` (số nguyên) cấp cao nhất + `metadata.resolution` (chính xác `768P` hoặc `2K`) + các mục tham chiếu trong `metadata.content` với `role: \"reference_image\"`.",
+        "fiveRefs": "Vancine giới hạn H3 ở 5 hình tham chiếu dù MiniMax-H3 chấp nhận 9; quá 5 sẽ bị Vancine trả về 400.",
+        "ratioOmitted": "Trường `ratio` được bỏ qua để plugin áp dụng giá trị mặc định đã ghi nhận (adaptive cho đầu vào hình ảnh, 16:9 cho chỉ văn bản)."
+      },
+      "seedance": {
+        "secondsString": "Hợp đồng: `seconds` cấp cao nhất là chuỗi (số JSON bị trường Go `TaskSubmitReq.Seconds` từ chối)."
+      },
+      "seedance20": {
+        "rejectedWithRefs": "Seedance 2.0 từ chối 1080p khi có hình tham chiếu; studio hội tụ về giá trị hợp lệ cao nhất còn lại.",
+        "tiers": "Độ phân giải được hỗ trợ: 480p / 720p / 1080p / 4k. Thời lượng tối đa 15 giây. Tối đa 9 hình tham chiếu."
+      },
+      "seedance25": {
+        "no4k": "Seedance 2.5 không có bậc 4k. Độ phân giải được hỗ trợ chính xác là 480p / 720p / 1080p.",
+        "limits": "Thời lượng tối đa 30 giây. Tối đa 30 hình tham chiếu. Độ phân giải được hỗ trợ: 480p / 720p / 1080p."
+      }
+    },
+    "sources": {
+      "vancineImage": "Đặc tả hình ảnh đang dùng trong môi trường vận hành của Vancine",
+      "aliyunWanVideo": "Tài liệu video Alibaba Wan",
+      "aliyunWanImage": "Tài liệu hình ảnh Alibaba Wan",
+      "minimaxVideoV2": "Tài liệu MiniMax Video Generation V2",
+      "volcengineSeedance": "Tài liệu Volcengine Seedance",
+      "byteplusVideo": "Tài liệu tạo video BytePlus",
+      "volcengineSeedream": "Tài liệu Volcengine Seedream",
+      "aliyunQwenImage": "Tài liệu hình ảnh Alibaba Qwen"
+    }
   }
 }

@@ -12,9 +12,11 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU Affero General Public License for more details.
 
 You should have received a copy of the GNU Affero General Public License
-along with the Free Software Foundation, Inc., 51 Franklin Street,
-Fifth Floor, Boston, MA 02110-1301 USA.
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
 */
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import {
   createMemoryHistory,
   createRootRoute,
@@ -105,11 +107,20 @@ const testRouteTree = testRootRoute.addChildren([
 ])
 
 function renderDocsRouter(initialPath: string) {
+  // Docs pages now read the live model catalog through useLiveModelCatalog,
+  // so the test tree must include a QueryClientProvider.
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
   const router = createRouter({
     routeTree: testRouteTree,
     history: createMemoryHistory({ initialEntries: [initialPath] }),
   })
-  return render(<RouterProvider router={router} />)
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
+  )
 }
 
 /** Desktop sidebar container (the sticky block, always in the DOM). */

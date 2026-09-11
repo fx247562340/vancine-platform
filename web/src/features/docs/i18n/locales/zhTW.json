@@ -11,7 +11,8 @@
     "step2": {
       "title": "選擇模型",
       "desc": "推薦使用 deepseek-v4-flash 進行首次呼叫——速度快、成本低，適合測試驗證。",
-      "viewAll": "檢視所有可用模型"
+      "viewAll": "檢視所有可用模型",
+      "dynamicFallback": "即時目錄載入中，先展示已核驗的預設模型。"
     },
     "step3": {
       "title": "選擇呼叫方式",
@@ -39,6 +40,10 @@
       "image": "圖片生成",
       "video": "影片生成",
       "migrate": "從 OpenAI 遷移"
+    },
+    "recommendedModels": {
+      "dynamic": "目前線上的推薦文字模型",
+      "dynamicHelp": "下方清單反映即時目錄。若即時目錄不可用，頁面回退到一組已核驗的目前線上模型。"
     }
   },
   "migrate": {
@@ -88,9 +93,9 @@
     "desc": "向語言模型傳送 OpenAI 相容的 messages 陣列並取得同步 JSON 回應。",
     "paramsTitle": "參數",
     "examplesTitle": "範例",
-    "reasoningCallout": "deepseek-v4-flash 和 deepseek-v4-pro 是推理模型。content 可能暫時為空，推理內容會在 reasoning_content 中；finish_reason: length 常表示 token 預算被推理消耗完，不代表 API 不通。",
+    "reasoningCallout": "推理模型可能將 `content` 留空，而 `reasoning_content` 中有內容；`finish_reason: length` 通常表示 token 預算被推理消耗，而非介面失敗。Models 頁列出了哪些文字模型具備推理能力。",
     "params": {
-      "model": "模型名稱，例如 glm-5.1",
+      "model": "模型名。使用任意目前線上的文字模型；完整線上列表見 Models 頁。",
       "messages": "訊息物件陣列",
       "maxTokens": "最大生成 token 數；推理模型建議設定更大",
       "stream": "啟用 SSE 串流輸出",
@@ -116,11 +121,27 @@
       "image": "參考圖 URL 或 Base64，用於圖生圖/多圖融合（5.0 pro 最多 10 張，lite 最多 14 張）",
       "watermark": "是否加浮水印，Seedream 預設 false"
     },
-    "advancedParamsCallout": "組圖（sequential_image_generation）、提示詞最佳化（optimize_prompt_options）等 Seedream 進階參數需在渠道開啟透傳（PassThrough）時可用，預設不透傳。"
+    "advancedParamsCallout": "組圖（sequential_image_generation）、提示詞最佳化（optimize_prompt_options）等 Seedream 進階參數需在渠道開啟透傳（PassThrough）時可用，預設不透傳。",
+    "intro": "圖片生成為同步介面：向 /v1/images/generations 發出 POST 請求，回應的 data 陣列中即回傳圖片連結（或 base64）。下方列出平台目前正在投放的模型，每個模型都有專屬頁面，列出其精確請求結構。",
+    "modelsHeading": "目前線上的圖片模型",
+    "modelsIntro": "下方每個模型都在即時定價目錄中。每個模型都有專屬頁面，列出其精確請求結構。",
+    "commonParamsTitle": "通用參數",
+    "commonParamsDesc": "這些欄位對所有目前線上圖片模型通用。各模型專屬頁列出其額外參數（尺寸檔、n 範圍、參考圖上限、進階特性）。",
+    "examplesIntro": "下方範例使用目前線上的圖片模型，發送最小合法請求（model + prompt + n + size）。各模型專屬頁提供帶精確請求體的模型範例。",
+    "commonParams": {
+      "model": "模型名。本頁列出所有目前線上的圖片模型。",
+      "prompt": "文字提示。無固定字元上限，僅受閘道請求體大小限制；模型特有說明見對應頁面。",
+      "n": "生成圖片數量。合法範圍依模型而定（Qwen 3.x：1–6；Wan 2.7 Pro：1–4；Seedream 5.0 pro/lite：恆為 1）。具體範圍見各模型頁。",
+      "size": "圖片尺寸。各模型支援自己的尺寸檔位；具體合法值、預設值與每檔約束見模型頁。",
+      "responseFormat": "回傳格式：`url`（預設，臨時連結 24 小時內有效）或 `b64_json`。所有線上模型均支援。",
+      "watermark": "是否嵌入浮水印。所有線上模型預設均為 false；各模型的精確預設值見對應頁。",
+      "image": "參考圖（URL 或 Base64），用於圖生圖/多圖融合。最大參考圖數、接受的 MIME 類型、單圖大小上限均依模型而定；詳見各模型頁。"
+    },
+    "advancedParamsNote": "各模型頁列出其進階參數。圖片模型共享這些通用欄位；尺寸檔位、n 範圍和參考圖上限以模型頁為準。"
   },
   "video": {
     "title": "影片生成",
-    "desc": "影片生成是非同步任務。提交後儲存 task_id，然後輪詢同一個 /v1/video/generations/{task_id} 路徑。",
+    "desc": "影片生成是非同步任務。從提交回應中儲存頂層 id，然後輪詢 GET /v1/video/generations/{id}。",
     "endpointSubmit": "提交非同步生成任務",
     "endpointPoll": "輪詢任務狀態和結果",
     "paramsTitle": "參數",
@@ -135,18 +156,35 @@
       "duration": "影片時長（秒）",
       "metadata": "擴充參數物件（見下方說明）"
     },
-    "metadataCallout": "metadata 子參數：resolution（解析度如 1080p）、ratio（寬高比如 16:9）、frames（幀數）、seed（隨機種子）、watermark（浮水印 bool）、camera_fixed（固定鏡頭 bool）、generate_audio（生成音訊 bool）。這些參數會透傳到上游供應商。",
+    "metadataCallout": "並不存在「統一的 metadata 區塊」——`metadata` 內部允許的欄位依模型而定。各模型專屬頁列出該模型允許的鍵與取值。",
     "status": {
-      "queued": "任務已排隊",
-      "inProgress": "生成中",
-      "success": "完成，取 data.result_url 或 data.data.content.video_url",
-      "failure": "失敗，檢視 data.fail_reason"
+      "queued": "任務排隊中（status: QUEUED）。",
+      "inProgress": "生成進行中（status: IN_PROGRESS）。",
+      "success": "完成（status: SUCCESS）。讀取 `data.result_url` 取得結果影片 URL。",
+      "failure": "失敗（status: FAILURE）。讀取 `data.fail_reason`。",
+      "submitHeading": "提交回執",
+      "pollHeading": "輪詢狀態（GET）",
+      "submitQueued": "提交回執的 status 為小寫 queued。任務已被接受，尚未開始產生。",
+      "notStart": "任務尚未開始（status: NOT_START）。",
+      "submitted": "任務已提交（status: SUBMITTED）。"
+    },
+    "intro": "影片生成為非同步任務：提交請求、記錄返回的 task id、輪詢同一路徑直到狀態變為終態值，再讀取結果連結或失敗原因。每個目前線上的模型都有專屬頁面，記錄其精確協定——時長、解析度、參考圖規則以及精確 JSON 結構。",
+    "modelsHeading": "目前線上的影片模型",
+    "modelsIntro": "下方每個模型都在即時定價目錄中。精確協定（時長、解析度、參考圖欄位）在模型專屬頁面。",
+    "modelsDiffer": "影片模型之間不共用單一參數結構。精確協定（頂層 `duration` 還是字串 `seconds`、`size` 還是 `metadata.resolution`、參考圖走 `metadata.input.media` 還是 `metadata.content`）依模型記錄在專屬頁。",
+    "examplesIntro": "下方範例發送最小合法請求（model + prompt），然後輪詢同一路徑直到狀態變為終態值。各模型專屬頁提供使用精確協定的模型範例（duration vs seconds、size vs metadata.resolution、metadata.content vs metadata.input.media）。",
+    "commonParamsTitle": "通用任務參數",
+    "commonParamsDesc": "這些欄位對所有影片模型通用。模型特有欄位（duration vs seconds、size vs metadata.resolution、參考圖欄位）記錄在模型頁。",
+    "commonParams": {
+      "model": "影片模型名。每個線上模型都有專屬頁面，列出其精確協定。",
+      "prompt": "文字提示。提交前會去除首尾空白；空字串會被前端拒絕。"
     }
   },
   "auth": {
     "title": "驗證方式",
     "desc": "所有 /v1 請求都需要在 Authorization 請求頭中攜帶 API Key。",
-    "securityWarning": "不要將 API Key 寫入前端程式碼、公開儲存庫或用戶端應用程式。伺服器端讀取環境變數後再呼叫 Vancine。"
+    "securityWarning": "不要將 API Key 寫入前端程式碼、公開儲存庫或用戶端應用程式。伺服器端讀取環境變數後再呼叫 Vancine。",
+    "exampleModel": "任意目前線上的文字模型均可使用。完整線上列表見 Models 頁。"
   },
   "capabilities": {
     "title": "能力概覽",
@@ -161,25 +199,28 @@
     }
   },
   "models": {
-    "title": "模型與定價",
-    "desc": "呼叫公開定價介面可讀取模型名稱、支援端點、倍率和價格。",
+    "title": "模型與價格",
+    "desc": "呼叫公開定價介面讀取模型名、支援的端點、比例和價格。",
     "fetchPricing": "取得模型價格",
-    "textModelsTitle": "文字模型（{{count}} 個）",
-    "imageModelsTitle": "圖像模型（{{count}} 個）",
-    "videoModelsTitle": "影片模型（{{count}} 個）",
+    "textModelsTitle": "文字模型（{{count}}）",
+    "imageModelsTitle": "圖片模型（{{count}}）",
+    "videoModelsTitle": "影片模型（{{count}}）",
     "multimodalTitle": "多媒體模型",
     "colType": "類型",
     "colUsageNotes": "呼叫說明",
     "imageEndpoint": "POST /v1/images/generations",
     "videoEndpoint": "POST /v1/video/generations（非同步）",
     "loading": "正在載入即時模型目錄…",
-    "loadErrorTitle": "即時模型目錄暫時無法使用",
-    "loadErrorBody": "無法載入目前的模型清單。即時定價介面仍是權威來源——請使用上方的 curl 直接查看所有可用模型。",
-    "emptyTitle": "目前沒有可用的模型",
-    "emptyTextBody": "即時目錄目前未列出文字模型，請查看即時定價頁面以確認可用性。",
-    "emptyImageBody": "即時目錄目前未列出圖像模型，請查看即時定價頁面以確認可用性。",
-    "emptyVideoBody": "即時目錄目前未列出影片模型，請查看即時定價頁面以確認可用性。",
-    "retry": "重試"
+    "loadErrorTitle": "即時模型目錄不可用",
+    "loadErrorBody": "無法載入目前模型清單。即時定價端點仍為唯一來源，可透過上方 curl 開啟以檢查每個可用模型。",
+    "emptyTitle": "目前沒有可用模型",
+    "emptyTextBody": "即時目錄中目前未列出任何文字模型。請查看即時定價頁了解可用性。",
+    "emptyImageBody": "即時目錄中目前未列出任何圖片模型。請查看即時定價頁了解可用性。",
+    "emptyVideoBody": "即時目錄中目前未列出任何影片模型。請查看即時定價頁了解可用性。",
+    "retry": "重試",
+    "imageLinksTitle": "圖片模型詳情頁",
+    "videoLinksTitle": "影片模型詳情頁",
+    "detailLink": "詳情"
   },
   "errors": {
     "title": "錯誤處理",
@@ -208,7 +249,7 @@
     "title": "Agent 接入指南",
     "desc": "Agent 工具接入時先確認它使用的是 Chat Completions 還是 Responses。多數 OpenAI Compatible 工具使用 /v1/chat/completions；Codex CLI 官方設定目前使用 /v1/responses。",
     "benchmarkLink": "查看 Pi 程式設計智能體 8 模型實測",
-    "universalTip": "通用三件套：Base URL = {{baseUrl}}，API Key = sk-your-api-key，Model = glm-5.1 或 deepseek-v4-flash。",
+    "universalTip": "通用設定：Base URL = {{baseUrl}}，API Key = sk-your-api-key，Model = 任意目前線上的文字模型（見 Models 頁）。",
     "configExample": "設定範例",
     "cliTitle": "CLI 工具",
     "guiTitle": "圖形化工具",
@@ -245,7 +286,7 @@
         "step2": "選擇 OpenAI Compatible 或自訂 OpenAI API",
         "step3": "Base URL 填 {{baseUrl}}",
         "step4": "填入 Vancine API Key",
-        "step5": "模型名填寫 glm-5.1、deepseek-v4-flash 等文字模型"
+        "step5": "使用任意目前線上的文字模型；完整線上列表見 Models 頁。"
       },
       "cherryStudio": {
         "title": "Cherry Studio",
@@ -298,7 +339,7 @@
         },
         "model": {
           "symptom": "模型不存在 / model not found。",
-          "fix": "使用 Vancine 模型清單中的準確模型 ID，例如 glm-5.1；模型 ID 區分大小寫。"
+          "fix": "使用 Vancine 模型清單中的精確模型 ID，區分大小寫。目前線上清單以 Models 頁為準，請逐字複製。"
         },
         "protocol": {
           "symptom": "回應異常或端點不支援的錯誤。",
@@ -315,7 +356,7 @@
     },
     "opencode": {
       "pageTitle": "OpenCode 接入指南",
-      "valueProp": "在 OpenCode 中執行 /connect 即可接入 Vancine。OpenCode 會從 Models.dev 的 Provider 目錄載入 Vancine，基礎接入無需建立或修改 opencode.json。",
+      "valueProp": "OpenCode 從 Models.dev 供應商目錄載入 Vancine；動態 Models 頁是可用的模型 id 的唯一來源。",
       "noJsonNote": "基礎接入無需建立或修改 opencode.json。",
       "step1": "安裝或更新 OpenCode。",
       "step2": "如果還沒有，請先建立 Vancine 帳戶與 API Key。",
@@ -323,13 +364,13 @@
       "step4": "搜尋並選擇 Vancine。",
       "step5": "貼上你自己的 Vancine API Key。",
       "step6": "執行 /models。",
-      "step7": "選擇 vancine/glm-5.3-flash，或 vancine Provider 下的其他模型，然後傳送提示詞。",
+      "step7": "選擇 vancine/{{modelId}}，或 vancine Provider 下的其他模型，然後傳送提示詞。",
       "advancedTitle": "進階設定（選用）",
       "advancedNote": "僅在需要覆寫 Base URL、設定模型 whitelist / blacklist、即時目錄異常時手動後援，或其他需要明確覆寫 Provider 設定的情境，才使用專案層級 opencode.json。基礎接入不必同時執行 /connect 並編寫該檔案。",
       "notOfficial": "Vancine 是獨立的 OpenAI 相容 API 服務，已列入 OpenCode 使用的 Models.dev 目錄。該目錄收錄不代表 Vancine 與 OpenCode 存在官方合作或背書關係。",
       "errors": {
         "model": {
-          "fix": "使用 /models 中顯示的準確 vancine 模型 ID，或查看 Vancine 模型頁。模型 ID 區分大小寫。"
+          "fix": "使用 Vancine 即時目錄中的精確模型 ID，區分大小寫。Models 頁是唯一來源。"
         }
       },
       "benchmarkTitle": "驗證證據",
@@ -420,5 +461,177 @@
     "status": "狀態",
     "type": "類型",
     "yes": "是"
+  },
+  "modelDetail": {
+    "contractMissing": "該模型尚無已核驗的協定。本頁不展示臆造的參數。",
+    "image": {
+      "sizes": "支援的尺寸：{{sizes}}。預設：{{defaultSize}}。",
+      "nRange": "生成數量：整數，範圍 [{{min}}, {{max}}]，預設 {{default}}。",
+      "refs": "參考圖：單次請求最多 {{max}} 張。接受的 MIME 類型：{{mimes}}。"
+    },
+    "kind": {
+      "image": "圖片",
+      "video": "影片"
+    },
+    "meta": {
+      "description": "{{summary}} Vancine API 的精確請求結構、支援的參數以及已核驗的範例。",
+      "title": "{{modelId}} API 參考 | Vancine"
+    },
+    "mode": {
+      "firstLastFrame": "首末幀",
+      "imageToImage": "圖生圖",
+      "imageToVideo": "圖生影片",
+      "multiReference": "多參考圖",
+      "textToImage": "文生圖",
+      "textToVideo": "文生影片"
+    },
+    "pricingDesc": "價格為動態，以即時定價頁為準；本頁不重複展示模型可用性與檔位價。",
+    "sections": {
+      "endpoint": "端點",
+      "examples": "範例",
+      "modes": "支援的呼叫模式",
+      "params": "參數",
+      "pricing": "價格",
+      "verify": "核驗來源"
+    },
+    "status": {
+      "checking": "正在檢查可用性",
+      "live": "目前線上",
+      "offline": "目前不可用",
+      "unconfirmed": "暫時無法確認可用性"
+    },
+    "verified": "已核驗日期：{{date}}，來源：{{source}}。本頁請求結構與生產一致，上游改動會反映在此。",
+    "video": {
+      "bodyLimit": "請求體上限：{{mb}} MB。影片操作場在提交前強制校驗，超過將被前端拒絕。",
+      "paramDuration": "頂層整數欄位，範圍 [{{min}}, {{max}}]。超出範圍將被上游拒絕。",
+      "paramModel": "必須為 \"{{modelId}}\"，區分大小寫，其他值會被伺服器拒絕。",
+      "paramPrompt": "自由文字提示。提交前會去除首尾空白；空字串會被前端拒絕。",
+      "paramRefs": "最多 {{max}} 張參考圖，每項 { \"type\": \"image_url\", \"role\": \"reference_image\", \"image_url\": { \"url\": \"...\" } }。允許的 MIME：jpeg、png、webp。",
+      "paramResolution": "取值為 {{list}} 之一。Wan3、MiniMax-H3、Seedance 的拼字略有不同；上方文件列出本模型的精確字串。",
+      "paramSecondsString": "頂層字串欄位，取值 [{{min}}, {{max}}]（注意：必須是字串，Go 端型別為 string，JSON number 會被拒絕）。",
+      "paramSizeWan3": "頂層解析度欄位（Wan3 協議）。取值 {{list}} 之一。與 metadata.resolution 等價；影片操作場使用頂層欄位。",
+      "paramWan3Refs": "最多 {{max}} 張參考圖，每項 { \"type\": \"reference_image\", \"url\": \"...\" }。Wan3 不接受頂層 image/images，請使用本欄位。",
+      "rejectedWithRefs": "當附加至少一張參考圖時，上游會拒絕的解析度：{{list}}。表單會自動收斂到剩餘最高合法值。",
+      "wireKey": "協定欄位",
+      "wireValue": "取值"
+    },
+    "videoSubmit": "提交非同步生成任務",
+    "videoPoll": "輪詢任務狀態與結果",
+    "videoDesc": "本介面為非同步任務。提交後取得 task id；輪詢同一路徑直到狀態變為終態值，再讀取結果連結或失敗原因。",
+    "imageDesc": "圖片介面為同步呼叫：回應的 data 陣列中即回傳圖片連結（或 base64）。",
+    "verifiedOn": "最後核驗日期：{{date}}。",
+    "summary": {
+      "qwenImage30": "Qwen 3.0 圖片生成，支援 Auto 尺寸、可選參考圖以及 prompt_extend / thinking 模式。",
+      "qwenImage30Pro": "Qwen 3.0 Pro 圖片生成，與 3.0 預設模型共享參數協定。",
+      "wan27ImagePro": "阿里 Wan 2.7 Pro 圖片生成，支援 1K/2K/4K 離散檔位與最多 9 張參考圖。",
+      "seedream50Pro": "位元組 Seedream 5.0 Pro 圖片生成，支援 1K/1.5K/2K 檔位、最多 10 張參考圖、僅單圖生成。",
+      "seedream50Lite": "位元組 Seedream 5.0 Lite 圖片生成，支援 2K/3K/4K 檔位、最多 14 張參考圖，像素下限 3,686,400。",
+      "wan30Video": "阿里 Wan 3.0 文生影片與圖生影片，時長 2–30 秒，解析度 480P / 720P / 1080P，最多 10 張參考圖。",
+      "wan30VideoPrime": "Wan 3.0 高速版，與基礎模型使用相同的請求協定。",
+      "minimaxH3": "MiniMax H3 影片生成，時長 4–15 秒，解析度 768P / 2K，在 Vancine 上最多 5 張參考圖。",
+      "seedance20": "位元組 Seedance 2.0 影片生成，時長 4–15 秒，解析度 480p/720p/1080p/4k，最多 9 張參考圖。",
+      "seedance25": "位元組 Seedance 2.5 影片生成，時長 4–30 秒，解析度 480p/720p/1080p（無 4k），最多 30 張參考圖。"
+    },
+    "description": {
+      "qwenImage30": "Qwen 3.0 是 Qwen 圖片的預設模型。支援參考圖（jpeg、png、bmp、tiff、webp、gif），與 Pro 共享 Auto + 4 檔離散 + 自訂 WxH 協定。帶參考圖時 agent 模式會被拒絕。",
+      "qwenImage30Pro": "Qwen 3.0 的 Pro 版本。參數完全一致，差別在生成品質，不在請求結構。",
+      "wan27ImagePro": "最多 9 張參考圖（jpeg、png、webp）。帶參考圖時上游將總像素上限限制為 2048×2048；帶參考圖發送 4K 尺寸會被上游回傳 400。非 Pro 的 Wan 2.7 圖片模型沒有公開的尺寸檔位或參數協定，因此不在此頁面。",
+      "seedream50Pro": "Seedream 5.0 Pro 每次請求只生成一張圖片（n 恆為 1）。像素下限 921,600（1024×1024 可用），上限 4,624,220。advanced 的 sequential_image_generation 與 optimize_prompt_options 需要開啟 PassThrough，Vancine 預設不轉發；本頁僅記錄已連通的協定。",
+      "seedream50Lite": "Seedream 5.0 Lite 支援 2K/3K/4K 檔位（pro 不支援）。像素下限 3,686,400 會以 \"image size must be at least 3686400 pixels\" 拒絕 1024×1024。每次僅生成一張圖，最多 14 張參考圖（jpeg、png、webp）。",
+      "wan30Video": "Wan 3.0 使用頂層 `duration`（整數，秒）與頂層 `size`（取 480P/720P/1080P 之一）。參考圖放在 `metadata.input.media`，每項 `{ \"type\": \"reference_image\", \"url\": \"...\" }` —— 不放在頂層 `image` 或 `images`。操作場也接受頂層 `seconds` 作為 `duration` 的別名；多參考圖模式下上游拒絕頂層 `image`/`images`。",
+      "wan30VideoPrime": "Prime 是 Wan 3.0 的速度最佳化版本。協定完全一致：頂層 `duration` + `size`，參考圖放 `metadata.input.media`。Prime 與基礎版唯一的差別是上游延遲，參數協定不變。",
+      "minimaxH3": "H3 使用頂層 `duration`（整數，秒）和 `metadata.resolution`（僅 `768P` 或 `2K`）。參考圖放 `metadata.content`，每項 `{ \"type\": \"image_url\", \"role\": \"reference_image\", \"image_url\": { \"url\": \"...\" } }`。MiniMax-H3 上游接受 9 張，但 Vancine 將上限限制為 5；超過 5 張會被 Vancine 回傳 400。`ratio` 欄位被省略，讓插件按文件預設值生效。",
+      "seedance20": "Seedance 2.0 使用頂層 `seconds`（字串——JSON 數字會被拒絕）。解析度放 `metadata.resolution`（小寫）。參考圖放 `metadata.content`，每項 `{ \"type\": \"image_url\", \"role\": \"reference_image\", \"image_url\": { \"url\": \"...\" } }`。一旦附加參考圖，上游會拒絕 `1080p`；影片操作場會自動收斂到剩餘的最高合法值。",
+      "seedance25": "Seedance 2.5 使用頂層 `seconds`（字串）。解析度放 `metadata.resolution`。參考圖放 `metadata.content` 並設 `role: \"reference_image\"`。支援的解析度只有 480p/720p/1080p；Seedance 2.5 協定沒有 4k 檔位。最大時長 30 秒，最多 30 張參考圖。"
+    },
+    "ip": {
+      "model": "必須為 \"{{modelId}}\"，區分大小寫。",
+      "prompt": "自由文字提示。無固定字元上限，僅受閘道請求體大小限制；模型特有說明見對應頁面。",
+      "n": "整數，範圍 {{min}}–{{max}}，預設 {{default}}。",
+      "sizeAuto": "Auto 是預設值：上游選擇最終解析度。",
+      "sizeTiers": "離散檔位：{{tiers}}。",
+      "sizeCustom": "支援自訂 WIDTHxHEIGHT，像素範圍 {{minPixels}}–{{maxPixels}}，寬高比 {{minRatio}}–{{maxRatio}}。",
+      "sizeCustomWithRefs": "附加參考圖時，像素上限降至 {{maxPixels}}。",
+      "image": "參考圖 URL 或 Base64，用於圖生圖/多圖融合。單次請求最多 {{max}} 張。接受的 MIME 類型：{{mimes}}。",
+      "seed": "整數，範圍 {{min}}–{{max}}，預設 {{default}}。",
+      "noSeed": "本模型不支援；請勿發送 seed 欄位。",
+      "watermark": "是否嵌入浮水印。預設 {{default}}。",
+      "negativePrompt": "反向提示文字。Qwen 3.x 沒有公開字元上限；唯一實際限制是閘道請求體大小上限。",
+      "promptExtend": "啟用提示改寫。預設 {{default}}。",
+      "promptExtendMode": "在 \"direct\" 與 \"agent\" 之間選擇。預設 {{default}}。",
+      "promptExtendModeAgent": "附加參考圖時，\"agent\" 模式會被拒絕。",
+      "enableThinking": "啟用 thinking 模式。預設 {{default}}，需同時開啟 prompt_extend=true。",
+      "responseFormat": "回傳格式：{{formats}}。預設 {{default}}。",
+      "outputFormat": "輸出格式：{{formats}}。預設 {{default}}。"
+    },
+    "in": {
+      "qwen30": {
+        "thinking": "enable_thinking 僅在同時設定 prompt_extend=true 時生效。",
+        "agentRefs": "附加至少一張參考圖時，agent 模式會被拒絕。"
+      },
+      "qwen30pro": {
+        "sameContract": "qwen-image-3.0-pro 與 qwen-image-3.0 公開協定相同；差別在上游品質，不在請求結構。"
+      },
+      "wan27pro": {
+        "refsCeiling": "附加參考圖時，像素上限降至 2048×2048；帶參考圖發送 4K 尺寸會被上游回傳 400。"
+      },
+      "wan27": {
+        "nonProAbsent": "非 Pro 的 Wan 2.7 圖片模型在上游沒有公開的尺寸檔位或參數協定，因此不在此頁面。"
+      },
+      "seedreamPro": {
+        "singleImage": "Seedream 5.0 Pro 每次請求僅生成一張圖；上游拒絕 n>1。",
+        "minPixels": "像素下限 921,600（1024×1024 可用），上限 4,624,220。"
+      },
+      "seedreamLite": {
+        "pixelFloor": "像素下限 3,686,400；1024×1024 會被 \"image size must be at least 3686400 pixels\" 拒絕。",
+        "tiers": "Seedream 5.0 Lite 支援 2K、3K、4K 檔位；Pro 不支援。"
+      }
+    },
+    "vp": {
+      "model": "必須為 \"{{modelId}}\"，區分大小寫。",
+      "prompt": "自由文字提示。提交前會去除首尾空白；空字串會被前端拒絕。",
+      "durationWan3": "頂層整數欄位，{{min}}–{{max}} 秒。超出範圍將被上游拒絕。",
+      "durationH3": "頂層整數欄位，{{min}}–{{max}} 秒。超出範圍將被上游拒絕。",
+      "seconds": "頂層字串，{{min}}–{{max}}。JSON 數字會被閘道拒絕（Go 的 `TaskSubmitReq.Seconds` 是 string 型別）。",
+      "sizeWan3": "頂層解析度欄位：{{list}}。與 metadata.resolution 等價；影片操作場使用頂層欄位。",
+      "resolution": "解析度放 metadata 中：{{list}}。Wan3 / H3 / Seedance 的拼字略有不同；上方文件列出本模型的精確字串。",
+      "refsWan3": "最多 {{max}} 張參考圖，每項 { \"type\": \"reference_image\", \"url\": \"...\" }。Wan3 不接受頂層 image/images，請使用本欄位。",
+      "refsContent": "最多 {{max}} 張參考圖，每項 { \"type\": \"image_url\", \"role\": \"reference_image\", \"image_url\": { \"url\": \"...\" } }。接受的 MIME 類型：jpeg、png、webp。"
+    },
+    "vn": {
+      "wan3": {
+        "topLevelSlots": "協定：頂層 `duration`（整數）+ `size`；參考圖放 `metadata.input.media`，每項 `{ \"type\": \"reference_image\", \"url\": \"...\" }`。",
+        "noTopLevelImages": "頂層 `image` / `images` 不被接受：Wan3 協定會拒絕它們。多參考圖請走 `metadata.input.media`。"
+      },
+      "wan3Prime": {
+        "sameAsWan3": "Prime 是 Wan3 的速度最佳化版本。協定與 Wan3 完全相同。"
+      },
+      "h3": {
+        "slots": "協定：頂層 `duration`（整數）+ `metadata.resolution`（僅 `768P` 或 `2K`）+ `metadata.content` 參考圖項並設 `role: \"reference_image\"`。",
+        "fiveRefs": "MiniMax-H3 上游接受 9 張參考圖，但 Vancine 將上限限制為 5；超過 5 會被 Vancine 回傳 400。",
+        "ratioOmitted": "`ratio` 欄位被省略，讓插件按文件預設值生效（帶視覺輸入時為 adaptive，純文字時為 16:9）。"
+      },
+      "seedance": {
+        "secondsString": "協定：頂層 `seconds` 是字串（Go `TaskSubmitReq.Seconds` 欄位會拒絕 JSON 數字）。"
+      },
+      "seedance20": {
+        "rejectedWithRefs": "Seedance 2.0 一旦附加參考圖就會拒絕 1080p；影片操作場會自動收斂到剩餘的最高合法值。",
+        "tiers": "支援的解析度：480p / 720p / 1080p / 4k。最大時長 15 秒，最多 9 張參考圖。"
+      },
+      "seedance25": {
+        "no4k": "Seedance 2.5 沒有 4k 檔位。支援的解析度僅 480p / 720p / 1080p。",
+        "limits": "最大時長 30 秒，最多 30 張參考圖。支援的解析度：480p / 720p / 1080p。"
+      }
+    },
+    "sources": {
+      "vancineImage": "Vancine 生產圖片契約",
+      "aliyunWanVideo": "Alibaba Wan 影片文件",
+      "aliyunWanImage": "Alibaba Wan 圖片文件",
+      "minimaxVideoV2": "MiniMax Video Generation V2 文件",
+      "volcengineSeedance": "Volcengine Seedance 文件",
+      "byteplusVideo": "BytePlus 影片生成文件",
+      "volcengineSeedream": "Volcengine Seedream 文件",
+      "aliyunQwenImage": "Alibaba Qwen 圖片文件"
+    }
   }
 }
