@@ -33,10 +33,10 @@ func chatPricing(id string, ratio, completion float64) model.Pricing {
 
 func defaultPriorityPricing() []model.Pricing {
 	return []model.Pricing{
-		chatPricing("glm-5.3-flash", 0.03, 3.333333333333),
+		chatPricing("glm-5.3-flash", 0.06, 3.333333333333),
 		chatPricing("hy4-preview", 0.335, 2.985074626866),
 		chatPricing("qwen3.8-flash", 0.06, 3.166666666667),
-		chatPricing("deepseek-v4-flash-vision-exp", 0.11, 3),
+		chatPricing("deepseek-flash", 0.12, 4),
 	}
 }
 
@@ -82,7 +82,7 @@ func TestPiCatalogModelsSortedByID(t *testing.T) {
 		ids[i] = item.ID
 	}
 	assert.Equal(t, []string{
-		"deepseek-v4-flash-vision-exp",
+		"deepseek-flash",
 		"glm-5.3-flash",
 		"hy4-preview",
 		"qwen3.8-flash",
@@ -115,10 +115,17 @@ func TestPiCatalogPriorityModelFields(t *testing.T) {
 	assert.True(t, hy4.Enabled)
 	assert.True(t, hy4.Available)
 
-	deepseek := byID["deepseek-v4-flash-vision-exp"]
+	deepseek := byID["deepseek-flash"]
+	assert.Equal(t, "DeepSeek V4.1 Flash", deepseek.Name)
 	assert.Equal(t, []string{"text", "image"}, deepseek.Input)
+	assert.True(t, deepseek.Reasoning)
 	assert.Equal(t, 1000000, deepseek.ContextWindow)
 	assert.Equal(t, 384000, deepseek.MaxTokens)
+	assert.Equal(t, "chat", deepseek.Kind)
+	assert.Equal(t, "openai-completions", deepseek.API)
+	assert.Equal(t, "chat.completions", deepseek.Endpoint)
+	require.NotNil(t, deepseek.Compat.SupportsReasoningEffort)
+	assert.True(t, *deepseek.Compat.SupportsReasoningEffort)
 
 	glm := byID["glm-5.3-flash"]
 	assert.Equal(t, "GLM-5.3-Flash", glm.Name)
@@ -188,8 +195,107 @@ func TestPiCatalogCostComesFromLiveRatiosNotRegistry(t *testing.T) {
 	assert.Equal(t, input*2.5, cost.Output)
 	assert.Equal(t, input*0.1, cost.CacheRead)
 	assert.Equal(t, input*0.25, cost.CacheWrite)
-	assert.NotEqual(t, 0.06, cost.Input, "must not use the fallback snapshot input price")
-	assert.NotEqual(t, 0.20, cost.Output, "must not use the fallback snapshot output price")
+	assert.NotEqual(t, 0.12, cost.Input, "must not use the fallback snapshot input price")
+	assert.NotEqual(t, 0.40, cost.Output, "must not use the fallback snapshot output price")
+}
+
+func TestPiCatalogDeepSeekFlashCostFromLiveRatios(t *testing.T) {
+	pricing := []model.Pricing{
+		{
+			ModelName:              "deepseek-flash",
+			QuotaType:              0,
+			ModelRatio:             0.12,
+			CompletionRatio:        4,
+			CacheRatio:             floatPtr(0.02),
+			SupportedEndpointTypes: []constant.EndpointType{constant.EndpointTypeOpenAI},
+		},
+	}
+	svc := catalogService(t, pricing, time.Unix(1, 0).UTC())
+	models, skipped := svc.BuildModels(pricing)
+	require.Empty(t, skipped)
+	require.Len(t, models, 1)
+	require.Equal(t, "deepseek-flash", models[0].ID)
+
+	cost := models[0].Cost
+	input := 0.12 * 2
+	assert.InDelta(t, input, cost.Input, 1e-12)
+	assert.InDelta(t, input*4, cost.Output, 1e-12)
+	assert.InDelta(t, input*0.02, cost.CacheRead, 1e-12)
+	assert.Equal(t, 0.0, cost.CacheWrite)
+	assert.Equal(t, 0.24, cost.Input)
+	assert.Equal(t, 0.96, cost.Output)
+	assert.Equal(t, 0.0048, cost.CacheRead)
+}
+
+func TestPiCatalogGlm53FlashCostFromLiveRatios(t *testing.T) {
+	// Production pricing verified 2026-09-11T02:09:31Z: ModelRatio 0.06,
+	// CompletionRatio 3.333333333333, CacheRatio 0.2 (half-price promo ended).
+	pricing := []model.Pricing{chatPricing("glm-5.3-flash", 0.06, 3.333333333333)}
+	svc := catalogService(t, pricing, time.Unix(1, 0).UTC())
+	models, skipped := svc.BuildModels(pricing)
+	require.Empty(t, skipped)
+	require.Len(t, models, 1)
+	require.Equal(t, "glm-5.3-flash", models[0].ID)
+
+	cost := models[0].Cost
+	assert.InDelta(t, 0.12, cost.Input, 1e-12)
+	assert.InDelta(t, 0.40, cost.Output, 1e-12)
+	assert.InDelta(t, 0.024, cost.CacheRead, 1e-12)
+	assert.Equal(t, 0.0, cost.CacheWrite)
+}
+
+func TestPiCatalogRetiredDeepSeekModelsStayOutOfCatalog(t *testing.T) {
+	retired := []string{
+		"deepseek-v4-flash",
+		"deepseek-v4-pro",
+		"deepseek-v4-flash-vision-exp",
+	}
+	pricing := make([]model.Pricing, 0, len(retired)+1)
+	for _, id := range retired {
+		pricing = append(pricing, chatPricing(id, 0.11, 3))
+	}
+	pricing = append(pricing, chatPricing("deepseek-flash", 0.12, 4))
+
+	svc := catalogService(t, pricing, time.Unix(1, 0).UTC())
+	models, skipped := svc.BuildModels(pricing)
+
+	ids := make([]string, len(models))
+	for i, item := range models {
+		ids[i] = item.ID
+	}
+	assert.Equal(t, []string{"deepseek-flash"}, ids, "retired ids must not enter the Pi catalog")
+	reasons := skipByID(skipped)
+	for _, id := range retired {
+		assert.Equal(t, "missing Pi metadata", reasons[id], "%s stays out of the Pi catalog", id)
+	}
+}
+
+func TestPiCatalogDeepSeekFlashPublishesReasoningEffortSupport(t *testing.T) {
+	svc := catalogService(t, defaultPriorityPricing(), time.Unix(1, 0).UTC())
+	snapshot, err := svc.Snapshot()
+	require.NoError(t, err)
+
+	var payload struct {
+		Models []struct {
+			ID     string `json:"id"`
+			Compat struct {
+				SupportsDeveloperRole   bool  `json:"supportsDeveloperRole"`
+				SupportsReasoningEffort *bool `json:"supportsReasoningEffort"`
+			} `json:"compat"`
+		} `json:"models"`
+	}
+	require.NoError(t, common.Unmarshal(snapshot.Body, &payload))
+
+	for _, item := range payload.Models {
+		if item.ID != "deepseek-flash" {
+			continue
+		}
+		require.NotNil(t, item.Compat.SupportsReasoningEffort, "supportsReasoningEffort must be serialized, not omitted")
+		assert.True(t, *item.Compat.SupportsReasoningEffort)
+		assert.False(t, item.Compat.SupportsDeveloperRole)
+		return
+	}
+	t.Fatalf("deepseek-flash must be present in the published catalog")
 }
 
 func TestPiCatalogOmitsMissingCacheRatiosAsZero(t *testing.T) {
@@ -472,24 +578,24 @@ func TestPiCatalogOmitsInvalidCostAndContext(t *testing.T) {
 		},
 	}
 	brokenRegistry := copyPiCatalogRegistry(piCatalogRegistry)
-	broken := brokenRegistry["deepseek-v4-flash-vision-exp"]
+	broken := brokenRegistry["deepseek-flash"]
 	broken.ContextWindow = 0
-	brokenRegistry["deepseek-v4-flash-vision-exp"] = broken
+	brokenRegistry["deepseek-flash"] = broken
 
 	svc := NewPiCatalogService(PiCatalogOptions{
 		Pricing: func() []model.Pricing {
-			return append(pricing, chatPricing("deepseek-v4-flash-vision-exp", 0.11, 3))
+			return append(pricing, chatPricing("deepseek-flash", 0.12, 4))
 		},
 		Now:      func() time.Time { return time.Unix(1, 0).UTC() },
 		Registry: brokenRegistry,
 	})
-	models, skipped := svc.BuildModels(append(pricing, chatPricing("deepseek-v4-flash-vision-exp", 0.11, 3)))
+	models, skipped := svc.BuildModels(append(pricing, chatPricing("deepseek-flash", 0.12, 4)))
 	assert.Empty(t, models)
 	reasons := skipByID(skipped)
 	assert.Equal(t, "invalid token cost", reasons["hy4-preview"])
 	assert.Equal(t, "invalid token cost", reasons["glm-5.3-flash"])
 	assert.Equal(t, "invalid token cost", reasons["qwen3.8-flash"])
-	assert.Equal(t, "incomplete or invalid Pi metadata", reasons["deepseek-v4-flash-vision-exp"])
+	assert.Equal(t, "incomplete or invalid Pi metadata", reasons["deepseek-flash"])
 }
 
 func TestPiCatalogOmitsInternalFields(t *testing.T) {
@@ -543,7 +649,7 @@ func TestPiCatalogOutputsAllEligibleChatCompletionsModels(t *testing.T) {
 		chatPricing("glm-5.3", 0.56, 3.142857142857),
 		chatPricing("MiniMax-M3", 0.12, 4),
 		chatPricing("kimi-k3", 1.2, 5),
-		chatPricing("deepseek-v4-flash", 0.11, 3),
+		chatPricing("deepseek-flash", 0.11, 3),
 		chatPricing("LongCat-2.0", 0.12, 4),
 	}
 	svc := catalogService(t, pricing, time.Unix(1, 0).UTC())
@@ -557,7 +663,7 @@ func TestPiCatalogOutputsAllEligibleChatCompletionsModels(t *testing.T) {
 	assert.Equal(t, []string{
 		"LongCat-2.0",
 		"MiniMax-M3",
-		"deepseek-v4-flash",
+		"deepseek-flash",
 		"glm-5.3",
 		"kimi-k3",
 		"qwen3.8-max",

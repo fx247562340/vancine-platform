@@ -1,3 +1,13 @@
+## 2.6.0 - 2026-09-11
+
+### Pi Provider 模型目录
+
+- Pi Provider Catalog 下架 `deepseek-v4-flash`、`deepseek-v4-pro` 与 `deepseek-v4-flash-vision-exp`，三个旧 ID 不再进入 `/api/pi/catalog`。
+- 新增 `deepseek-flash`，显示名 DeepSeek V4.1 Flash，支持 text + image 输入与 reasoning，上下文 1,000,000，最大输出 384,000。
+- 目录为该模型明确发布 `supportsReasoningEffort=true`：Chat Completions 请求契约已定义 `reasoning_effort` 与 `thinking` 字段，且 DeepSeek 适配器在模型名无后缀时原样透传请求，显式请求字段不依赖模型名后缀解析。
+- 价格继续由实时 Pricing 配置生成，不写入静态注册表；当前线上配置对应输入 $0.24/MTok、输出 $0.96/MTok、缓存读取 $0.0048/MTok。
+- 旧 ID 的移除只作用于 Pi Provider Catalog，不代表已从平台定价列表或路由层删除。
+
 ## 2.5.0 - 2026-09-11
 
 ### 图片与视频模型文档

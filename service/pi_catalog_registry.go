@@ -2,6 +2,8 @@ package service
 
 import (
 	"strings"
+
+	"github.com/QuantumNous/new-api/common"
 )
 
 const (
@@ -49,18 +51,6 @@ var piCatalogRegistry = loadPiCatalogRegistry([]PiModelMeta{
 		Source:        "VANCINE-ACQ-PI-CATALOG-ENDPOINT-PHASE1 audited facts; pi-provider-vancine docs/model-facts.md (2026-08-31)",
 	},
 	{
-		ID:            "deepseek-v4-flash-vision-exp",
-		Name:          "DeepSeek V4 Flash Vision Exp",
-		Kind:          piCatalogKindChat,
-		API:           piCatalogAPI,
-		Endpoint:      piCatalogEndpoint,
-		Input:         []string{piCatalogInputText, piCatalogInputImage},
-		Reasoning:     true,
-		ContextWindow: 1000000,
-		MaxTokens:     384000,
-		Source:        "VANCINE-ACQ-PI-CATALOG-ENDPOINT-PHASE1 audited facts; pi-provider-vancine docs/model-facts.md (2026-08-31)",
-	},
-	{
 		ID:            "glm-5.3-flash",
 		Name:          "GLM-5.3-Flash",
 		Kind:          piCatalogKindChat,
@@ -85,28 +75,22 @@ var piCatalogRegistry = loadPiCatalogRegistry([]PiModelMeta{
 		Source:        "VANCINE-ACQ-PI-CATALOG-ENDPOINT-PHASE1 audited facts; pi-provider-vancine docs/model-facts.md (2026-08-31)",
 	},
 	{
-		ID:            "deepseek-v4-flash",
-		Name:          "DeepSeek V4 Flash",
+		ID:            "deepseek-flash",
+		Name:          "DeepSeek V4.1 Flash",
 		Kind:          piCatalogKindChat,
 		API:           piCatalogAPI,
 		Endpoint:      piCatalogEndpoint,
-		Input:         []string{piCatalogInputText},
+		Input:         []string{piCatalogInputText, piCatalogInputImage},
 		Reasoning:     true,
 		ContextWindow: 1000000,
 		MaxTokens:     384000,
-		Source:        "vancine-models-dev/models.dev/models/deepseek/deepseek-v4-flash.toml; providers/vancine/models/deepseek-v4-flash.toml (lab limit/modalities/reasoning; overlay accessed 2026-08-02)",
-	},
-	{
-		ID:            "deepseek-v4-pro",
-		Name:          "DeepSeek V4 Pro",
-		Kind:          piCatalogKindChat,
-		API:           piCatalogAPI,
-		Endpoint:      piCatalogEndpoint,
-		Input:         []string{piCatalogInputText},
-		Reasoning:     true,
-		ContextWindow: 1000000,
-		MaxTokens:     384000,
-		Source:        "vancine-models-dev/models.dev/models/deepseek/deepseek-v4-pro.toml; providers/vancine/models/deepseek-v4-pro.toml (lab limit/modalities/reasoning; overlay accessed 2026-08-12)",
+		// Verified explicit request-field support, not suffix behaviour: the
+		// official DeepSeek provider declares toggle + effort for this model,
+		// GeneralOpenAIRequest carries reasoning_effort/thinking, and the
+		// DeepSeek adaptor passes them through untouched for ids without a
+		// deepseek-v4-* suffix.
+		SupportsReasoningEffort: common.GetPointer(true),
+		Source:                  "vancine-models-dev/models.dev/models/deepseek/deepseek-v4.1-flash.toml (accessed 2026-09-11; lab limit context 1000000 / output 384000, modalities input text+image, reasoning true). providers/deepseek/models/deepseek-flash.toml (accessed 2026-09-11) declares the reasoning controls for this model as toggle + effort low/high/max, interleaved field reasoning_content. supportsReasoningEffort=true rests on the request contract, not on suffix parsing: relaykit/dto/openai_request.go GeneralOpenAIRequest defines reasoning_effort and thinking, and relay/channel/deepseek/adaptor.go ConvertOpenAIRequest returns the request unchanged when ParseDeepSeekV4ThinkingSuffix does not match the model id, so an explicitly supplied reasoning_effort reaches the upstream without depending on the deepseek-v4-* suffix path.",
 	},
 	{
 		ID:            "glm-5.3",
