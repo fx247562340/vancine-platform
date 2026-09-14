@@ -67,7 +67,9 @@ import { Route as AuthenticatedWalletIndexRouteImport } from './routes/_authenti
 import { Route as DocsAgentsIndexRouteImport } from './routes/docs/agents/index'
 import { Route as DocsAgentsSplatRouteImport } from './routes/docs/agents/$'
 import { Route as DocsAgentsClineRouteImport } from './routes/docs/agents/cline'
+import { Route as DocsAgentsOpenclawRouteImport } from './routes/docs/agents/openclaw'
 import { Route as DocsAgentsOpencodeRouteImport } from './routes/docs/agents/opencode'
+import { Route as DocsAgentsPiRouteImport } from './routes/docs/agents/pi'
 import { Route as DocsAgentsRooCodeRouteImport } from './routes/docs/agents/roo-code'
 import { Route as DocsModelsModelRouteImport } from './routes/docs/models/$model'
 import { Route as PricingModelIdIndexRouteImport } from './routes/pricing/$modelId/index'
@@ -395,9 +397,19 @@ const DocsAgentsClineRoute = DocsAgentsClineRouteImport.update({
   path: '/docs/agents/cline',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocsAgentsOpenclawRoute = DocsAgentsOpenclawRouteImport.update({
+  id: '/docs/agents/openclaw',
+  path: '/docs/agents/openclaw',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DocsAgentsOpencodeRoute = DocsAgentsOpencodeRouteImport.update({
   id: '/docs/agents/opencode',
   path: '/docs/agents/opencode',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsAgentsPiRoute = DocsAgentsPiRouteImport.update({
+  id: '/docs/agents/pi',
+  path: '/docs/agents/pi',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocsAgentsRooCodeRoute = DocsAgentsRooCodeRouteImport.update({
@@ -542,7 +554,9 @@ export interface FileRoutesByFullPath {
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/docs/agents/$': typeof DocsAgentsSplatRoute
   '/docs/agents/cline': typeof DocsAgentsClineRoute
+  '/docs/agents/openclaw': typeof DocsAgentsOpenclawRoute
   '/docs/agents/opencode': typeof DocsAgentsOpencodeRoute
+  '/docs/agents/pi': typeof DocsAgentsPiRoute
   '/docs/agents/roo-code': typeof DocsAgentsRooCodeRoute
   '/docs/models/$model': typeof DocsModelsModelRoute
   '/channels/': typeof AuthenticatedChannelsIndexRoute
@@ -617,7 +631,9 @@ export interface FileRoutesByTo {
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/docs/agents/$': typeof DocsAgentsSplatRoute
   '/docs/agents/cline': typeof DocsAgentsClineRoute
+  '/docs/agents/openclaw': typeof DocsAgentsOpenclawRoute
   '/docs/agents/opencode': typeof DocsAgentsOpencodeRoute
+  '/docs/agents/pi': typeof DocsAgentsPiRoute
   '/docs/agents/roo-code': typeof DocsAgentsRooCodeRoute
   '/docs/models/$model': typeof DocsModelsModelRoute
   '/channels': typeof AuthenticatedChannelsIndexRoute
@@ -696,7 +712,9 @@ export interface FileRoutesById {
   '/_authenticated/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/docs/agents/$': typeof DocsAgentsSplatRoute
   '/docs/agents/cline': typeof DocsAgentsClineRoute
+  '/docs/agents/openclaw': typeof DocsAgentsOpenclawRoute
   '/docs/agents/opencode': typeof DocsAgentsOpencodeRoute
+  '/docs/agents/pi': typeof DocsAgentsPiRoute
   '/docs/agents/roo-code': typeof DocsAgentsRooCodeRoute
   '/docs/models/$model': typeof DocsModelsModelRoute
   '/_authenticated/channels/': typeof AuthenticatedChannelsIndexRoute
@@ -774,7 +792,9 @@ export interface FileRouteTypes {
     | '/usage-logs/$section'
     | '/docs/agents/$'
     | '/docs/agents/cline'
+    | '/docs/agents/openclaw'
     | '/docs/agents/opencode'
+    | '/docs/agents/pi'
     | '/docs/agents/roo-code'
     | '/docs/models/$model'
     | '/channels/'
@@ -849,7 +869,9 @@ export interface FileRouteTypes {
     | '/usage-logs/$section'
     | '/docs/agents/$'
     | '/docs/agents/cline'
+    | '/docs/agents/openclaw'
     | '/docs/agents/opencode'
+    | '/docs/agents/pi'
     | '/docs/agents/roo-code'
     | '/docs/models/$model'
     | '/channels'
@@ -927,7 +949,9 @@ export interface FileRouteTypes {
     | '/_authenticated/usage-logs/$section'
     | '/docs/agents/$'
     | '/docs/agents/cline'
+    | '/docs/agents/openclaw'
     | '/docs/agents/opencode'
+    | '/docs/agents/pi'
     | '/docs/agents/roo-code'
     | '/docs/models/$model'
     | '/_authenticated/channels/'
@@ -989,7 +1013,9 @@ export interface RootRouteChildren {
   SetupIndexRoute: typeof SetupIndexRoute
   DocsAgentsSplatRoute: typeof DocsAgentsSplatRoute
   DocsAgentsClineRoute: typeof DocsAgentsClineRoute
+  DocsAgentsOpenclawRoute: typeof DocsAgentsOpenclawRoute
   DocsAgentsOpencodeRoute: typeof DocsAgentsOpencodeRoute
+  DocsAgentsPiRoute: typeof DocsAgentsPiRoute
   DocsAgentsRooCodeRoute: typeof DocsAgentsRooCodeRoute
   DocsModelsModelRoute: typeof DocsModelsModelRoute
   DocsAgentsIndexRoute: typeof DocsAgentsIndexRoute
@@ -1404,11 +1430,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsAgentsClineRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/docs/agents/openclaw': {
+      id: '/docs/agents/openclaw'
+      path: '/docs/agents/openclaw'
+      fullPath: '/docs/agents/openclaw'
+      preLoaderRoute: typeof DocsAgentsOpenclawRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/docs/agents/opencode': {
       id: '/docs/agents/opencode'
       path: '/docs/agents/opencode'
       fullPath: '/docs/agents/opencode'
       preLoaderRoute: typeof DocsAgentsOpencodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/agents/pi': {
+      id: '/docs/agents/pi'
+      path: '/docs/agents/pi'
+      fullPath: '/docs/agents/pi'
+      preLoaderRoute: typeof DocsAgentsPiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/docs/agents/roo-code': {
@@ -1698,7 +1738,9 @@ const rootRouteChildren: RootRouteChildren = {
   SetupIndexRoute: SetupIndexRoute,
   DocsAgentsSplatRoute: DocsAgentsSplatRoute,
   DocsAgentsClineRoute: DocsAgentsClineRoute,
+  DocsAgentsOpenclawRoute: DocsAgentsOpenclawRoute,
   DocsAgentsOpencodeRoute: DocsAgentsOpencodeRoute,
+  DocsAgentsPiRoute: DocsAgentsPiRoute,
   DocsAgentsRooCodeRoute: DocsAgentsRooCodeRoute,
   DocsModelsModelRoute: DocsModelsModelRoute,
   DocsAgentsIndexRoute: DocsAgentsIndexRoute,

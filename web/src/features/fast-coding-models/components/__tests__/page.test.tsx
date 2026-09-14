@@ -670,7 +670,7 @@ describe('evidence boundary', () => {
 })
 
 describe('FAQ disclosures', () => {
-  it('answers the four mandatory questions and discloses the non-partner status', async () => {
+  it('answers the three remaining questions and renders no relationship FAQ', async () => {
     renderPage()
     const faqSection = (
       await screen.findByRole('heading', {
@@ -681,13 +681,20 @@ describe('FAQ disclosures', () => {
     for (const question of [
       'How do I switch models?',
       'Where does the live price come from?',
-      'Are these models officially partnered with Vancine?',
       'Where can I configure OpenCode, Cline, or Roo Code?',
     ]) {
       expect(
         within(faqSection).getByRole('button', { name: question })
       ).toBeInTheDocument()
     }
+    // The official-partnership question is gone and was not replaced by any
+    // other relationship copy.
+    expect(
+      within(faqSection).queryByRole('button', {
+        name: 'Are these models officially partnered with Vancine?',
+      })
+    ).not.toBeInTheDocument()
+    expect(faqSection.textContent).not.toMatch(/official/i)
     expect(
       screen.getByTestId('fast-coding-models-disclosure')
     ).toBeInTheDocument()

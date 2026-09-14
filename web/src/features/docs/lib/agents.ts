@@ -26,10 +26,29 @@ For commercial licensing, please contact support@quantumnous.com
  * v1.18.3 boundary) lives only in the dedicated "Verification evidence"
  * section of the OpenCode guide and must never be widened without new
  * evidence or promoted into a status badge.
+ *
+ * Five guides form the Agent guide registry: OpenCode, Cline, Roo Code
+ * (manual OpenAI-compatible configuration) plus Pi and OpenClaw
+ * (community provider plugins with their own install commands).
+ */
+/**
+ * Module doc: Pi and OpenClaw carry community provider-plugin install flows
+ * (/docs/agents/pi, /docs/agents/openclaw). The package-source links below are
+ * the only package provenance facts shown in the UI: for Pi, its public
+ * package-catalog listing page plus the npm and GitHub sources; for OpenClaw,
+ * the npm, ClawHub and GitHub sources. In both cases the package itself is
+ * distributed through npm (or ClawHub for OpenClaw) — a catalog page lists and
+ * links a package, it never hosts it — so install commands always name the real
+ * distribution source and never a catalog.
  */
 import type { DocsAgentGuidePath } from '../types'
 
-export type DocsAgentToolKey = 'opencode' | 'cline' | 'rooCode'
+export type DocsAgentToolKey =
+  | 'opencode'
+  | 'cline'
+  | 'rooCode'
+  | 'pi'
+  | 'openclaw'
 
 export type DocsAgentToolPath = DocsAgentGuidePath
 
@@ -37,22 +56,50 @@ export type DocsAgentToolPath = DocsAgentGuidePath
 export const VANCINE_MODELS_DEV_PROVIDER_URL =
   'https://models.dev/providers/vancine/'
 
+/**
+ * Pi's public package-catalog entry for this extension. Discovery and display
+ * only: Pi's docs state packages are shared through npm or git, so the package
+ * is installed from npm, never "from" this page.
+ */
+export const VANCINE_PI_PROVIDER_CATALOG_URL =
+  'https://pi.dev/packages/pi-provider-vancine'
+
 /** Published Vancine Pi Provider on npm. Always install latest; never pin a version in docs. */
 export const VANCINE_PI_PROVIDER_NPM_URL =
   'https://www.npmjs.com/package/pi-provider-vancine'
 
 /** Public source for the Vancine-maintained Pi community extension. */
 export const VANCINE_PI_PROVIDER_GITHUB_URL =
-  'https://github.com/fx247562340/vancine-pi-provider'
+  'https://github.com/VancineAI/vancine-pi-provider'
 
 export const PI_PROVIDER_INSTALL_COMMAND = 'pi install npm:pi-provider-vancine'
 export const PI_LOGIN_COMMAND = '/login'
 export const PI_MODEL_COMMAND = '/model'
 
+/** Published Vancine OpenClaw provider plugin on npm. Always install latest; never pin a version in docs. */
+export const VANCINE_OPENCLAW_PROVIDER_NPM_URL =
+  'https://www.npmjs.com/package/@vancine/openclaw-provider'
+
+/** Public ClawHub package page for the `clawhub:` install source of this plugin. */
+export const VANCINE_OPENCLAW_PROVIDER_CLAWHUB_URL =
+  'https://clawhub.ai/vancine/plugins/openclaw-provider'
+
+/** Public source for the Vancine-maintained OpenClaw community provider plugin. */
+export const VANCINE_OPENCLAW_PROVIDER_GITHUB_URL =
+  'https://github.com/VancineAI/vancine-openclaw-provider'
+
+export const OPENCLAW_INSTALL_NPM_COMMAND =
+  'openclaw plugins install @vancine/openclaw-provider'
+export const OPENCLAW_INSTALL_CLAWHUB_COMMAND =
+  'openclaw plugins install clawhub:@vancine/openclaw-provider'
+export const OPENCLAW_ONBOARD_COMMAND = 'openclaw onboard'
+export const OPENCLAW_MODELS_COMMAND =
+  'openclaw models list --provider vancine --refresh --json'
+
 export interface DocsAgentToolProfile {
   key: DocsAgentToolKey
   /** Canonical lowercase path segment (also the route suffix). */
-  segment: 'opencode' | 'cline' | 'roo-code'
+  segment: 'opencode' | 'cline' | 'roo-code' | 'pi' | 'openclaw'
   path: DocsAgentToolPath
   /** Language-neutral product name, never translated. */
   displayName: string
@@ -76,6 +123,18 @@ export const DOCS_AGENT_TOOLS: readonly DocsAgentToolProfile[] = [
     segment: 'roo-code',
     path: '/docs/agents/roo-code',
     displayName: 'Roo Code',
+  },
+  {
+    key: 'pi',
+    segment: 'pi',
+    path: '/docs/agents/pi',
+    displayName: 'Pi',
+  },
+  {
+    key: 'openclaw',
+    segment: 'openclaw',
+    path: '/docs/agents/openclaw',
+    displayName: 'OpenClaw',
   },
 ]
 
@@ -185,5 +244,10 @@ Model ID:      ${recommendedModelId}
 # "openAiModelId": "${recommendedModelId}"`,
         },
       ]
+    case 'pi':
+    case 'openclaw':
+      // Provider-plugin guides never show a manual Base URL/config block:
+      // their install + login flow lives in the numbered steps instead.
+      return []
   }
 }

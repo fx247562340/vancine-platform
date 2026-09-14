@@ -373,29 +373,32 @@ describe('evidence boundary', () => {
 })
 
 describe('FAQ and disclosure', () => {
-  test('covers the four mandatory questions', () => {
+  test('covers the three remaining mandatory questions', () => {
     assert.deepEqual(
       FAST_CODING_MODELS_FAQ.map((entry) => entry.questionKey),
       [
         'How do I switch models?',
         'Where does the live price come from?',
-        'Are these models officially partnered with Vancine?',
         'Where can I configure OpenCode, Cline, or Roo Code?',
       ]
     )
   })
 
-  test('the partnership answer discloses the non-partner relationship', () => {
-    const partnership = FAST_CODING_MODELS_FAQ.find(
-      (entry) =>
-        entry.questionKey ===
-        'Are these models officially partnered with Vancine?'
-    )
-    assert.ok(partnership)
-    assert.match(partnership.answerKey, /^No\./)
-    assert.ok(
-      partnership.answerKey.includes('not the official vendor, partner')
-    )
+  test('no FAQ entry raises the official-partnership relationship', () => {
+    for (const entry of FAST_CODING_MODELS_FAQ) {
+      assert.equal(
+        /official|partner|endorse/i.test(entry.questionKey),
+        false,
+        `FAQ question must not raise a relationship claim: ${entry.questionKey}`
+      )
+      assert.equal(
+        /official vendor|official partner|official provider|endorsement/i.test(
+          entry.answerKey
+        ),
+        false,
+        `FAQ answer must not carry distancing copy: ${entry.answerKey}`
+      )
+    }
   })
 
   test('the "how do I switch" answer is generic — never names specific ids', () => {

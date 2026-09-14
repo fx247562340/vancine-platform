@@ -31,12 +31,7 @@ import { DocsH2, DocsH3, DocsP } from '../components/headings'
 import { useRegisterHeadings } from '../components/register-headings'
 import {
   DOCS_AGENT_TOOLS,
-  PI_LOGIN_COMMAND,
-  PI_MODEL_COMMAND,
-  PI_PROVIDER_INSTALL_COMMAND,
   VANCINE_MODELS_DEV_PROVIDER_URL,
-  VANCINE_PI_PROVIDER_GITHUB_URL,
-  VANCINE_PI_PROVIDER_NPM_URL,
 } from '../lib/agents'
 import { getDocsAgentsPageMetadata } from '../lib/agents-metadata'
 import { pickDocsTextModel } from '../lib/text-model-choice'
@@ -49,16 +44,18 @@ import type { TocHeading } from '../types'
 const AGENTS_HUB_METADATA = getDocsAgentsPageMetadata()
 
 interface AgentCliConfig {
-  nameKey: 'codex' | 'openclaw' | 'hermes'
+  nameKey: 'codex' | 'hermes'
   title: string
   language: BundledLanguage
   codeTemplate: (baseUrl: string, modelId: string) => string
 }
 
 /**
- * Generic CLI configurations kept on the hub. OpenCode, Cline and Roo Code
- * have dedicated setup guides under /docs/agents/<tool>; their full
- * configuration is intentionally NOT duplicated here.
+ * Generic CLI configurations kept on the hub. OpenCode, Cline, Roo Code, Pi
+ * and OpenClaw all have dedicated setup guides under /docs/agents/<tool>;
+ * their full configuration is intentionally NOT duplicated here. OpenClaw
+ * connects through its community provider plugin (never a manual Base URL
+ * block) and only links to its guide below.
  */
 const AGENT_CLI_CONFIGS: AgentCliConfig[] = [
   {
@@ -77,20 +74,6 @@ wire_api = "responses"
 
 # shell
 # export VANCINE_API_KEY="sk-your-api-key"`,
-  },
-  {
-    nameKey: 'openclaw',
-    title: 'OpenClaw',
-    language: 'bash',
-    codeTemplate: (baseUrl, modelId) => `Provider: OpenAI Compatible
-Base URL: ${baseUrl}
-API Key: sk-your-api-key
-Model: ${modelId}
-
-# If the tool supports environment variables:
-VANCINE_BASE_URL=${baseUrl}
-VANCINE_API_KEY=sk-your-api-key
-VANCINE_MODEL=${modelId}`,
   },
   {
     nameKey: 'hermes',
@@ -129,7 +112,6 @@ export default function Agents(props: { baseUrl: string }) {
       () => [
         { id: 'agents-title', title: t('agents.title'), level: 2 },
         { id: 'agents-hub', title: t('agents.hub.title'), level: 3 },
-        { id: 'agents-pi', title: t('agents.pi.title'), level: 3 },
         { id: 'agents-cli', title: t('agents.cliTitle'), level: 3 },
         { id: 'agents-gui', title: t('agents.guiTitle'), level: 3 },
       ],
@@ -210,51 +192,6 @@ export default function Agents(props: { baseUrl: string }) {
         })}
       </div>
 
-      <DocsH3 id='agents-pi'>{t('agents.pi.title')}</DocsH3>
-      <DocsP>{t('agents.pi.desc')}</DocsP>
-      <div className='border-border bg-card mb-6 rounded-xl border p-5'>
-        <p className='mb-4 flex flex-wrap gap-x-4 gap-y-2 text-sm'>
-          <a
-            href={VANCINE_PI_PROVIDER_NPM_URL}
-            target='_blank'
-            rel='noopener noreferrer'
-            className='text-primary font-medium underline underline-offset-4'
-          >
-            {t('agents.pi.npmLabel')}
-          </a>
-          <a
-            href={VANCINE_PI_PROVIDER_GITHUB_URL}
-            target='_blank'
-            rel='noopener noreferrer'
-            className='text-primary font-medium underline underline-offset-4'
-          >
-            {t('agents.pi.githubLabel')}
-          </a>
-        </p>
-        <ol className='text-muted-foreground marker:text-primary mb-4 list-decimal space-y-3 pl-5 text-sm leading-relaxed marker:font-semibold'>
-          <li>
-            <div>{t('agents.pi.stepInstall')}</div>
-            <DocsCodeBlock
-              compact
-              code={PI_PROVIDER_INSTALL_COMMAND}
-              language='bash'
-            />
-          </li>
-          <li>
-            <div>{t('agents.pi.stepLogin')}</div>
-            <DocsCodeBlock compact code={PI_LOGIN_COMMAND} language='bash' />
-          </li>
-          <li>{t('agents.pi.stepSelect')}</li>
-          <li>
-            <div>{t('agents.pi.stepModel')}</div>
-            <DocsCodeBlock compact code={PI_MODEL_COMMAND} language='bash' />
-          </li>
-          <li>{t('agents.pi.stepChoose')}</li>
-        </ol>
-        <DocsCallout type='tip'>{t('agents.pi.catalogNote')}</DocsCallout>
-        <DocsCallout type='info'>{t('agents.pi.notOfficial')}</DocsCallout>
-      </div>
-
       <DocsH3 id='agents-cli'>{t('agents.cliTitle')}</DocsH3>
       {agentConfigs.map((agent) => (
         <div
@@ -279,6 +216,18 @@ export default function Agents(props: { baseUrl: string }) {
           </div>
         </div>
       ))}
+
+      {/* OpenClaw has no manual Base URL configuration: it connects through
+          its community provider plugin, so the hub only links the guide. */}
+      <p className='text-muted-foreground mb-6 text-sm leading-relaxed'>
+        {t('agents.cli.openclaw')}{' '}
+        <Link
+          to='/docs/agents/openclaw'
+          className='text-primary font-medium underline underline-offset-4'
+        >
+          {t('agents.cli.openclawGuideLink')}
+        </Link>
+      </p>
 
       <DocsH3 id='agents-gui'>{t('agents.guiTitle')}</DocsH3>
       {AGENT_GUI_TOOLS.map((toolKey) => (

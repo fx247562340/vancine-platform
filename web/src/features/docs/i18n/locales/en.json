@@ -270,14 +270,21 @@
         },
         "rooCode": {
           "protocol": "OpenAI-compatible provider in Roo Code"
+        },
+        "pi": {
+          "protocol": "Provider plugin for the Pi coding agent, installed from npm."
+        },
+        "openclaw": {
+          "protocol": "Community provider plugin for OpenClaw, installed from npm or ClawHub."
         }
       },
       "cardBoundary": "The OpenAI-compatible setup for this tool is ready. Follow its guide to connect it to Vancine."
     },
     "cli": {
       "codex": "Codex official config uses ~/.codex/config.toml. Current docs show the Responses protocol, so set wire_api to responses.",
-      "openclaw": "OpenClaw-style clients usually need the OpenAI-compatible base URL, API key, and model name. Field names vary by distribution; choose OpenAI Compatible when available.",
-      "hermes": "Hermes Agent OpenAI-compatible plugins commonly use config.yaml or environment variables for base_url and api_key. Use the exact fields from the installed plugin."
+      "openclaw": "OpenClaw connects through the Vancine-maintained community provider plugin instead of a manual Base URL configuration. Follow the dedicated guide for installation and authentication.",
+      "hermes": "Hermes Agent OpenAI-compatible plugins commonly use config.yaml or environment variables for base_url and api_key. Use the exact fields from the installed plugin.",
+      "openclawGuideLink": "Open the OpenClaw provider guide"
     },
     "gui": {
       "cursor": {
@@ -396,6 +403,82 @@
       "step3": "Set the Base URL to {{baseUrl}}.",
       "step4": "Enter your Vancine API key.",
       "step5": "Enter a text model ID such as glm-5.1, save, and send a simple message to confirm the connection."
+    },
+    "pi": {
+      "pageTitle": "Pi setup guide",
+      "valueProp": "Use your own Vancine API Key in the Pi coding agent through the pi-provider-vancine extension. No manual model file editing required.",
+      "npmLabel": "npm package",
+      "githubLabel": "GitHub repository",
+      "step1": "Install the provider extension:",
+      "step2": "Start Pi.",
+      "step3": "Log in:",
+      "step4": "Choose Vancine and paste your own Vancine API Key. Pi stores the key in its credential store.",
+      "step5": "Open the model list:",
+      "step6": "Choose a model under the Vancine provider.",
+      "step7": "Send your first request through Vancine.",
+      "catalogNote": "The model list comes from the Vancine catalog. Pi refreshes it at most every 4 hours; on later refresh failures it keeps the last successful cache, including an empty list. A small offline fallback is only possible when the first refresh fails with no cache yet. The catalog is not guaranteed to be realtime, and after a successful refresh, delisted models disappear and are not revived by the fallback.",
+      "notOfficial": "pi-provider-vancine is a community extension published and maintained by Vancine. It does not constitute official cooperation, certification, or endorsement between Pi, Earendil Works, or their maintainers and Vancine.",
+      "errors": {
+        "providerMissing": {
+          "symptom": "The Vancine provider does not appear in /login.",
+          "fix": "Confirm the package is installed with pi list, restart Pi after installing, and check that the extension was not disabled in pi config."
+        },
+        "apiKey": {
+          "symptom": "The API key is rejected (401 / invalid API key).",
+          "fix": "Create or copy a key from your Vancine account, then run /login again and choose Vancine. The extension never prints the full key in errors."
+        },
+        "modelMissing": {
+          "symptom": "A model id is missing or was delisted.",
+          "fix": "The catalog carries the currently available compatible models. After a successful catalog refresh, delisted models disappear and are not revived by fallback. Pick a current id from /model or the Models page."
+        },
+        "catalogUnavailable": {
+          "symptom": "The model catalog is temporarily unavailable or /model stays empty.",
+          "fix": "Pi keeps the last successful catalog, including a cached empty list. A first run without a cache falls back to a small offline snapshot. Retry when the network is available."
+        }
+      },
+      "modelsNote": "Choose only from the Vancine models listed by Pi’s /model. The live Models and Pricing pages are references; a model shown there is not guaranteed to appear in this list.",
+      "catalogLabel": "Pi package catalog"
+    },
+    "openclaw": {
+      "pageTitle": "OpenClaw setup guide",
+      "valueProp": "Use your own Vancine API Key in OpenClaw through the @vancine/openclaw-provider community plugin, with a dynamically verified model list.",
+      "npmLabel": "npm package",
+      "clawhubLabel": "ClawHub registry",
+      "githubLabel": "GitHub repository",
+      "compatNote": "An OpenClaw release compatible with the published plugin: the current release requires OpenClaw 2026.9.4 and is built, tested, and declared compatible against that exact version.",
+      "installChoice": "Two install sources are available. Pick one — npm or ClawHub — and do not install both.",
+      "step1": "Install from the npm registry:",
+      "step2": "Alternatively, install from ClawHub (choose this OR the npm step, not both):",
+      "step3": "Onboard OpenClaw, choose Vancine (vancine-api-key) in the interactive flow, and enter your own Vancine API key at the secret prompt:",
+      "step4": "List and verify the models your key can access:",
+      "step5": "Start a conversation with a verified Vancine model.",
+      "catalogNote": "The model list is not a static full catalog. The plugin fetches the public Vancine catalog, then verifies each candidate against /v1/models with your key and publishes only the intersection your account can actually use.",
+      "notOfficial": "@vancine/openclaw-provider is a Vancine-maintained community provider plugin. It is not an official, built-in, or certified OpenClaw or ClawHub provider, and its listing is not an endorsement by OpenClaw or ClawHub.",
+      "errors": {
+        "pluginMissing": {
+          "symptom": "The plugin is not loaded or no vancine models appear after install.",
+          "fix": "Check the plugin status with openclaw plugins inspect vancine. After installing, restart the OpenClaw CLI process so the new plugin is loaded."
+        },
+        "authFailed": {
+          "symptom": "Authentication fails (401/403) or the key is rejected.",
+          "fix": "Create a fresh key in your Vancine account, then rerun openclaw onboard and enter the new key at the secret prompt instead of placing it on the command line. The key is sent only to vancine.com."
+        },
+        "noModels": {
+          "symptom": "No usable Vancine models appear for your key.",
+          "fix": "The plugin publishes nothing when the catalog fetch or the /v1/models verification fails. Run the models list step again with --refresh once the network or the key works."
+        },
+        "modelRefused": {
+          "symptom": "A delisted or unauthorized model is refused.",
+          "fix": "While the plugin holds verified catalog state for your key, unknown, retired, or other-account model ids are refused instead of being sent upstream. Choose a model from the verified list; a delisted model reappears only if the catalog offers it to your key again."
+        },
+        "doubleInstall": {
+          "symptom": "Both the npm and the ClawHub copies of the plugin are installed.",
+          "fix": "The two sources ship the same plugin. Keep one install, remove the other, and reinstall only if the conflict persists."
+        }
+      },
+      "zeroCredentialNote": "Exact boundary: unknown-model refusal is guaranteed while the plugin holds verified catalog state for the current credential. With no credential at all, an operator-configured model may still be attempted unauthenticated by OpenClaw core and rejected upstream with 401.",
+      "limitationsNote": "Scope note: the published plugin has not yet been exercised across the full range of OpenClaw versions, workflows, or multimodal request types. Check the plugin README for the current compatibility statement.",
+      "modelsNote": "Choose only from the verified models returned by openclaw models list --provider vancine --refresh --json. The live Models and Pricing pages are references; a model shown there is not guaranteed to be verified for your key."
     }
   },
   "faq": {

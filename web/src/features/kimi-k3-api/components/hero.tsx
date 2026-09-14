@@ -147,11 +147,6 @@ export function Hero(props: HeroProps): ReactElement {
           <p className='text-foreground max-w-2xl text-base font-medium md:text-lg'>
             {t('20% lower than OpenRouter on both input and output')}
           </p>
-          <p className='text-muted-foreground max-w-2xl text-base md:text-lg'>
-            {t(
-              'Vancine is an independent third-party API platform, not an official Moonshot AI or Kimi service. This page compares dated public prices, shows OpenAI-compatible examples, and publishes existing test evidence. Rates, availability, and behavior are not guaranteed to match the official service.'
-            )}
-          </p>
           <div className='flex flex-wrap items-center gap-3'>
             <Button
               size='lg'

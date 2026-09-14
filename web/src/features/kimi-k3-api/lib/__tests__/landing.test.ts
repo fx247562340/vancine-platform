@@ -293,14 +293,22 @@ describe('historical evidence semantics', () => {
 
   test('publishes the limiting caveats for the historical run', () => {
     const limitations = [...KIMI_K3_EVIDENCE_LIMITATION_KEYS]
-    assert.equal(limitations.length, 7)
+    assert.equal(limitations.length, 6)
     const joined = limitations.join(' ')
     assert.ok(joined.includes('single historical controlled run'))
     assert.ok(joined.includes('not a current price or credit commitment'))
     assert.ok(joined.includes('No free-tier or credit amount is guaranteed'))
     assert.ok(joined.includes('Upstream provider costs are not shown'))
-    assert.ok(joined.includes('not an official Moonshot AI or Kimi service'))
+    // The remaining caveats are price, token, cost and verification scope.
+    assert.ok(joined.includes('Token usage, latency, and cost vary'))
+    assert.ok(joined.includes('independently live-verified'))
     assert.ok(!joined.includes('$1 free credit'))
+    // No relationship-distancing caveat is published.
+    assert.equal(
+      /not an official|independent third-party/i.test(joined),
+      false,
+      'evidence caveats must not carry relationship-disclaimer copy'
+    )
   })
 })
 
@@ -333,15 +341,22 @@ describe('analytics event enumeration', () => {
     )
   })
 
-  test('FAQ contract covers pricing, comparison, model identity, officiality, evidence, limits, and quickstart', () => {
-    assert.equal(KIMI_K3_FAQ.length, 7)
+  test('FAQ contract covers pricing, comparison, model identity, evidence, limits, and quickstart', () => {
+    assert.equal(KIMI_K3_FAQ.length, 6)
     const questions = KIMI_K3_FAQ.map((entry) => entry.questionKey).join(' ')
     assert.ok(questions.includes('current Kimi K3 pricing'))
     assert.ok(questions.includes('Kimi official and OpenRouter'))
     assert.ok(questions.includes('real kimi-k3 model'))
-    assert.ok(questions.includes('official Moonshot AI or Kimi service'))
     assert.ok(questions.includes('actually been tested'))
     assert.ok(questions.includes('rate limits and availability'))
     assert.ok(questions.includes('OpenAI-compatible request'))
+    // The officiality question was removed and not replaced.
+    assert.equal(
+      /official (?:Moonshot|Kimi service)|officially partnered/i.test(
+        questions
+      ),
+      false,
+      'FAQ must not raise an official-relationship question'
+    )
   })
 })

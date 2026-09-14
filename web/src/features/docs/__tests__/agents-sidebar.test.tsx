@@ -33,7 +33,9 @@ import { Route as DocsSlugRouteImport } from '@/routes/docs/$slug'
 import { Route as DocsAgentsSplatRouteImport } from '@/routes/docs/agents/$'
 import { Route as DocsAgentsClineRouteImport } from '@/routes/docs/agents/cline'
 import { Route as DocsAgentsIndexRouteImport } from '@/routes/docs/agents/index'
+import { Route as DocsAgentsOpenclawRouteImport } from '@/routes/docs/agents/openclaw'
 import { Route as DocsAgentsOpencodeRouteImport } from '@/routes/docs/agents/opencode'
+import { Route as DocsAgentsPiRouteImport } from '@/routes/docs/agents/pi'
 import { Route as DocsAgentsRooCodeRouteImport } from '@/routes/docs/agents/roo-code'
 import { Route as DocsIndexRouteImport } from '@/routes/docs/index'
 
@@ -91,6 +93,16 @@ const TestDocsAgentsRooCodeRoute = DocsAgentsRooCodeRouteImport.update({
   path: '/docs/agents/roo-code',
   getParentRoute: () => testRootRoute,
 } as never)
+const TestDocsAgentsPiRoute = DocsAgentsPiRouteImport.update({
+  id: '/docs/agents/pi',
+  path: '/docs/agents/pi',
+  getParentRoute: () => testRootRoute,
+} as never)
+const TestDocsAgentsOpenclawRoute = DocsAgentsOpenclawRouteImport.update({
+  id: '/docs/agents/openclaw',
+  path: '/docs/agents/openclaw',
+  getParentRoute: () => testRootRoute,
+} as never)
 const TestDocsAgentsSplatRoute = DocsAgentsSplatRouteImport.update({
   id: '/docs/agents/$',
   path: '/docs/agents/$',
@@ -103,6 +115,8 @@ const testRouteTree = testRootRoute.addChildren([
   TestDocsAgentsOpencodeRoute,
   TestDocsAgentsClineRoute,
   TestDocsAgentsRooCodeRoute,
+  TestDocsAgentsPiRoute,
+  TestDocsAgentsOpenclawRoute,
   TestDocsAgentsSplatRoute,
 ])
 
@@ -176,6 +190,8 @@ describe('Docs sidebar Agent submenu (desktop)', () => {
     ['/docs/agents/opencode', 'OpenCode'],
     ['/docs/agents/cline', 'Cline'],
     ['/docs/agents/roo-code', 'Roo Code'],
+    ['/docs/agents/pi', 'Pi'],
+    ['/docs/agents/openclaw', 'OpenClaw'],
   ] as const)(
     '%s: only the matching child is current page; parent keeps group highlight only',
     async (path, activeChild) => {

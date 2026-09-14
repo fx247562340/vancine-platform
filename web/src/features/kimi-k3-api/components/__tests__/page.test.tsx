@@ -257,6 +257,22 @@ describe('kimi-k3-api page structure', () => {
       expect(pageText).not.toContain(needle)
     }
   })
+
+  it('keeps the hero price fact and CTA without any relationship disclaimer paragraph', async () => {
+    renderPage()
+    const [heading] = await screen.findAllByRole('heading', { level: 1 })
+    const hero = heading.closest('section') as HTMLElement
+    expect(hero).not.toBeNull()
+    expect(hero).toHaveTextContent(
+      '20% lower than OpenRouter on both input and output'
+    )
+    expect(
+      within(hero).getByTestId('kimi-k3-hero-primary-cta')
+    ).toBeInTheDocument()
+    expect(hero.textContent).not.toMatch(
+      /independent third-party|not an official|not guaranteed to match the official/
+    )
+  })
 })
 
 describe('CTA destinations and UTM safety', () => {
@@ -791,10 +807,15 @@ describe('evidence hierarchy', () => {
     const pageText = document.body.textContent ?? ''
     expect(pageText).toContain('single historical controlled run')
     expect(pageText).toContain('not a current price or credit commitment')
-    expect(pageText).toContain('not an official Moonshot AI or Kimi service')
     expect(pageText).toContain(
       'Cline and Roo Code configurations are provided in the starter repository but have not been independently live-verified'
     )
+    // The relationship caveat is no longer published, and the page never
+    // claims an official relationship either.
+    expect(pageText).not.toMatch(
+      /not an official Moonshot|independent third-party API/i
+    )
+    expect(pageText).not.toMatch(/is an official (?:Moonshot|Kimi)/i)
     expect(pageText.toLowerCase()).not.toContain('99.9%')
     expect(pageText.toLowerCase()).not.toContain('production sla')
     expect(pageText.toLowerCase()).not.toContain('unlimited rate')

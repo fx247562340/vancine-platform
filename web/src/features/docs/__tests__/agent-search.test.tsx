@@ -92,11 +92,17 @@ describe('DocsSearchBox agent guide navigation', () => {
   )
 
   it.each([
-    ['Pi', 'Agent Integration', '/docs/agents'],
-    ['pi-provider-vancine', 'Agent Integration', '/docs/agents'],
-    ['npm', 'Agent Integration', '/docs/agents'],
+    ['Pi', 'Pi setup guide', '/docs/agents/pi'],
+    ['pi-provider-vancine', 'Pi setup guide', '/docs/agents/pi'],
+    ['OpenClaw', 'OpenClaw setup guide', '/docs/agents/openclaw'],
+    [
+      '@vancine/openclaw-provider',
+      'OpenClaw setup guide',
+      '/docs/agents/openclaw',
+    ],
+    ['ClawHub', 'OpenClaw setup guide', '/docs/agents/openclaw'],
   ] as const)(
-    'searching %s finds the Agent hub and navigates to %s',
+    'searching %s finds the provider guide and navigates to %s',
     async (query, title, path) => {
       const user = userEvent.setup()
       const { router } = renderSearch()
@@ -106,6 +112,7 @@ describe('DocsSearchBox agent guide navigation', () => {
       await user.click(option)
 
       await waitFor(() => expect(router.history.location.pathname).toBe(path))
+      expect(router.history.location.pathname).not.toBe('/docs/agents')
     }
   )
 

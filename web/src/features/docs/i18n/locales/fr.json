@@ -270,14 +270,21 @@
         },
         "rooCode": {
           "protocol": "Provider OpenAI-compatible dans Roo Code"
+        },
+        "pi": {
+          "protocol": "Plugin Provider pour l'agent de codage Pi, installé depuis npm."
+        },
+        "openclaw": {
+          "protocol": "Plugin Provider communautaire pour OpenClaw, installé depuis npm ou ClawHub."
         }
       },
       "cardBoundary": "La configuration OpenAI-compatible de cet outil est prête. Suivez son guide pour le connecter à Vancine."
     },
     "cli": {
       "codex": "La config officielle de Codex utilise ~/.codex/config.toml. La documentation actuelle montre le protocole Responses, donc wire_api doit être responses.",
-      "openclaw": "Les clients de type OpenClaw nécessitent généralement l'URL de base, la clé API et le nom du modèle OpenAI-compatible. Les noms de champs varient ; choisissez OpenAI Compatible si disponible.",
-      "hermes": "Les plugins OpenAI-compatible de Hermes Agent utilisent généralement config.yaml ou des variables d'environnement pour base_url et api_key. Utilisez les champs exacts du plugin installé."
+      "openclaw": "OpenClaw se connecte via le plugin Provider communautaire maintenu par Vancine, sans configuration manuelle de l'URL de base. Suivez le guide dédié pour l'installation et l'authentification.",
+      "hermes": "Les plugins OpenAI-compatible de Hermes Agent utilisent généralement config.yaml ou des variables d'environnement pour base_url et api_key. Utilisez les champs exacts du plugin installé.",
+      "openclawGuideLink": "Ouvrir le guide Provider OpenClaw"
     },
     "gui": {
       "cursor": {
@@ -396,6 +403,82 @@
       "step3": "Définissez la Base URL sur {{baseUrl}}.",
       "step4": "Saisissez votre clé API Vancine.",
       "step5": "Saisissez un ID de modèle texte tel que glm-5.1, enregistrez, puis envoyez un message simple pour confirmer la connexion."
+    },
+    "pi": {
+      "pageTitle": "Guide de configuration de Pi",
+      "valueProp": "Utilisez votre propre clé API Vancine dans l'agent de codage Pi via l'extension pi-provider-vancine, sans modifier de fichier de modèles.",
+      "npmLabel": "paquet npm",
+      "githubLabel": "Dépôt GitHub",
+      "step1": "Installez l'extension Provider :",
+      "step2": "Démarrez Pi.",
+      "step3": "Connectez-vous :",
+      "step4": "Choisissez Vancine et collez votre propre clé API Vancine. Pi conserve la clé dans son magasin d'identifiants.",
+      "step5": "Ouvrez la liste des modèles :",
+      "step6": "Choisissez un modèle sous le Provider Vancine.",
+      "step7": "Envoyez votre première requête via Vancine.",
+      "catalogNote": "La liste des modèles provient du catalogue Vancine. Pi l’actualise au maximum toutes les 4 heures ; en cas d’échec ultérieur, il conserve le dernier cache réussi, y compris une liste vide. Un petit repli hors ligne n’est possible que si la première actualisation échoue sans aucun cache. Le catalogue n’est pas garanti en temps réel ; après une actualisation réussie, les modèles retirés disparaissent et ne sont pas rétablis par le repli.",
+      "notOfficial": "pi-provider-vancine est une extension communautaire publiée et maintenue par Vancine. Elle ne constitue pas une coopération officielle, une certification ou une caution entre Pi, Earendil Works ou leurs mainteneurs et Vancine.",
+      "errors": {
+        "providerMissing": {
+          "symptom": "Le fournisseur Vancine n'apparaît pas dans /login.",
+          "fix": "Vérifiez avec pi list que le paquet est installé, redémarrez Pi après l'installation et vérifiez que l'extension n'est pas désactivée dans pi config."
+        },
+        "apiKey": {
+          "symptom": "La clé API est rejetée (401 / clé API invalide).",
+          "fix": "Créez ou copiez une clé depuis votre compte Vancine, puis relancez /login et choisissez Vancine. L'extension n'affiche jamais la clé complète dans les erreurs."
+        },
+        "modelMissing": {
+          "symptom": "Un identifiant de modèle est absent ou a été retiré.",
+          "fix": "Le catalogue contient les modèles compatibles actuellement disponibles. Après une actualisation réussie, les modèles retirés disparaissent et ne sont pas rétablis par le repli. Choisissez un identifiant actuel dans /model ou sur la page Models."
+        },
+        "catalogUnavailable": {
+          "symptom": "Le catalogue de modèles est temporairement indisponible ou /model reste vide.",
+          "fix": "Pi conserve le dernier catalogue obtenu avec succès, y compris une liste vide en cache. Au premier lancement sans cache, un petit instantané hors ligne sert de repli. Réessayez une fois le réseau disponible."
+        }
+      },
+      "modelsNote": "Choisissez uniquement parmi les modèles Vancine listés par /model dans Pi. Les pages Models et Pricing servent de référence ; un modèle affiché là-bas n’apparaît pas forcément dans cette liste.",
+      "catalogLabel": "Catalogue de paquets Pi"
+    },
+    "openclaw": {
+      "pageTitle": "Guide de configuration OpenClaw",
+      "valueProp": "Utilisez votre propre clé API Vancine dans OpenClaw via le plugin communautaire @vancine/openclaw-provider, avec une liste de modèles vérifiée dynamiquement.",
+      "npmLabel": "paquet npm",
+      "clawhubLabel": "Registre ClawHub",
+      "githubLabel": "Dépôt GitHub",
+      "compatNote": "Une version d’OpenClaw compatible avec le plugin publié : la version actuelle du plugin exige OpenClaw 2026.9.4 et est construite, testée et déclarée compatible pour cette version précise.",
+      "installChoice": "Deux sources d’installation existent : npm ou ClawHub. Choisissez-en une seule et n’installez pas les deux.",
+      "step1": "Installez depuis le registre npm :",
+      "step2": "Ou installez depuis ClawHub (choisissez cette étape OU l’étape npm, pas les deux) :",
+      "step3": "Initialisez OpenClaw, choisissez Vancine (vancine-api-key) dans le flux interactif et saisissez votre propre clé API Vancine à l’invite secrète :",
+      "step4": "Listez et vérifiez les modèles accessibles avec votre clé :",
+      "step5": "Démarrez une conversation avec un modèle Vancine vérifié.",
+      "catalogNote": "La liste des modèles n’est pas un catalogue statique complet. Le plugin récupère le catalogue public Vancine, puis vérifie chaque candidat auprès de /v1/models avec votre clé et ne publie que l’intersection réellement utilisable par votre compte.",
+      "notOfficial": "@vancine/openclaw-provider est un plugin Provider communautaire maintenu par Vancine. Ce n’est pas un Provider officiel, intégré ou certifié d’OpenClaw ou de ClawHub, et sa présence ne constitue pas une caution d’OpenClaw ou de ClawHub.",
+      "errors": {
+        "pluginMissing": {
+          "symptom": "Le plugin n’est pas chargé ou aucun modèle vancine n’apparaît après l’installation.",
+          "fix": "Vérifiez l’état du plugin avec openclaw plugins inspect vancine. Après l’installation, redémarrez le processus CLI OpenClaw pour que le nouveau plugin soit chargé."
+        },
+        "authFailed": {
+          "symptom": "L’authentification échoue (401/403) ou la clé est rejetée.",
+          "fix": "Créez une nouvelle clé dans votre compte Vancine, puis relancez openclaw onboard et saisissez la nouvelle clé à l’invite secrète au lieu de la placer en ligne de commande. La clé n’est envoyée qu’à vancine.com."
+        },
+        "noModels": {
+          "symptom": "Aucun modèle Vancine utilisable n’apparaît pour votre clé.",
+          "fix": "Le plugin ne publie rien lorsque la récupération du catalogue ou la vérification /v1/models échoue. Relancez l’étape de liste des modèles avec --refresh une fois le réseau ou la clé fonctionnels."
+        },
+        "modelRefused": {
+          "symptom": "Un modèle retiré ou non autorisé est refusé.",
+          "fix": "Tant que le plugin dispose d’un état de catalogue vérifié pour votre clé, les identifiants de modèles inconnus, retirés ou appartenant à un autre compte sont refusés au lieu d’être envoyés en amont. Choisissez un modèle dans la liste vérifiée ; un modèle retiré ne réapparaît que si le catalogue le propose à nouveau à votre clé."
+        },
+        "doubleInstall": {
+          "symptom": "Les copies npm et ClawHub du plugin sont toutes deux installées.",
+          "fix": "Les deux sources livrent le même plugin. Gardez une seule installation, supprimez l’autre, et réinstallez uniquement si le conflit persiste."
+        }
+      },
+      "zeroCredentialNote": "Limite exacte : le refus des modèles inconnus est garanti tant que le plugin dispose d’un état de catalogue vérifié pour l’identifiant actuel. Sans aucun identifiant, un modèle configuré manuellement peut encore être tenté sans authentification par le noyau OpenClaw et rejeté en amont avec un 401.",
+      "limitationsNote": "Périmètre : le plugin publié n’a pas encore été éprouvé sur l’ensemble des versions d’OpenClaw, des flux de travail ni des types de requêtes multimodales. Consultez le README du plugin pour la déclaration de compatibilité actuelle.",
+      "modelsNote": "Choisissez uniquement parmi les modèles vérifiés renvoyés par openclaw models list --provider vancine --refresh --json. Les pages Models et Pricing servent de référence ; un modèle affiché là-bas n’est pas forcément vérifié pour votre clé."
     }
   },
   "faq": {

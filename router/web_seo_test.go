@@ -196,13 +196,13 @@ var seoPublicRouteCases = []seoPublicRouteCase{
 		// getDocsAgentsPageMetadata() must stay byte-identical to it.
 		path:                 "/docs/agents",
 		wantTitle:            "Coding Agent Integration Center | Vancine",
-		wantDescription:      "Connect Pi, OpenCode, Cline and Roo Code to the Vancine API. Install the Vancine Pi Provider from npm or follow tool-specific setup guides.",
+		wantDescription:      "Connect Pi, OpenCode, Cline, Roo Code and OpenClaw to the Vancine API. Install provider plugins from npm or ClawHub, or follow tool-specific setup guides.",
 		wantCanonical:        "https://vancine.com/docs/agents",
 		wantOGTitle:          "Coding Agent Integration Center",
-		wantOGDescription:    "Connect Pi, OpenCode, Cline and Roo Code to the Vancine API. Install the Vancine Pi Provider from npm or follow tool-specific setup guides.",
+		wantOGDescription:    "Connect Pi, OpenCode, Cline, Roo Code and OpenClaw to the Vancine API. Install provider plugins from npm or ClawHub, or follow tool-specific setup guides.",
 		wantOGURL:            "https://vancine.com/docs/agents",
 		wantTwitterTitle:     "Coding Agent Integration Center | Vancine",
-		wantTwitterDesc:      "Connect Pi, OpenCode, Cline and Roo Code to the Vancine API. Install the Vancine Pi Provider from npm or follow tool-specific setup guides.",
+		wantTwitterDesc:      "Connect Pi, OpenCode, Cline, Roo Code and OpenClaw to the Vancine API. Install provider plugins from npm or ClawHub, or follow tool-specific setup guides.",
 		wantTwitterCardValue: "summary",
 	},
 	{
@@ -248,6 +248,35 @@ var seoPublicRouteCases = []seoPublicRouteCase{
 		wantOGURL:            "https://vancine.com/docs/agents/roo-code",
 		wantTwitterTitle:     "Roo Code Setup Guide for the Vancine API | Vancine",
 		wantTwitterDesc:      "Configure Roo Code for the Vancine API: OpenAI-compatible Base URL, API key, model ID and fixes for the most common setup errors.",
+		wantTwitterCardValue: "summary",
+	},
+	{
+		// Pi setup guide. The SPA's getDocsAgentToolPageMetadata('pi')
+		// must stay byte-identical to this block.
+		path:                 "/docs/agents/pi",
+		wantTitle:            "Pi Setup Guide for the Vancine API | Vancine",
+		wantDescription:      "Connect Pi to Vancine with the pi-provider-vancine extension: install from npm, sign in with /login using your own API key, then pick a model with /model.",
+		wantCanonical:        "https://vancine.com/docs/agents/pi",
+		wantOGTitle:          "Pi Setup Guide for the Vancine API",
+		wantOGDescription:    "Connect Pi to Vancine with the pi-provider-vancine extension: install from npm, sign in with /login using your own API key, then pick a model with /model.",
+		wantOGURL:            "https://vancine.com/docs/agents/pi",
+		wantTwitterTitle:     "Pi Setup Guide for the Vancine API | Vancine",
+		wantTwitterDesc:      "Connect Pi to Vancine with the pi-provider-vancine extension: install from npm, sign in with /login using your own API key, then pick a model with /model.",
+		wantTwitterCardValue: "summary",
+	},
+	{
+		// OpenClaw setup guide. The SPA's
+		// getDocsAgentToolPageMetadata('openclaw') must stay
+		// byte-identical to this block.
+		path:                 "/docs/agents/openclaw",
+		wantTitle:            "OpenClaw Setup Guide for the Vancine API | Vancine",
+		wantDescription:      "Install the @vancine/openclaw-provider plugin from npm or ClawHub, onboard with your own Vancine API key, and use a dynamically verified model list.",
+		wantCanonical:        "https://vancine.com/docs/agents/openclaw",
+		wantOGTitle:          "OpenClaw Setup Guide for the Vancine API",
+		wantOGDescription:    "Install the @vancine/openclaw-provider plugin from npm or ClawHub, onboard with your own Vancine API key, and use a dynamically verified model list.",
+		wantOGURL:            "https://vancine.com/docs/agents/openclaw",
+		wantTwitterTitle:     "OpenClaw Setup Guide for the Vancine API | Vancine",
+		wantTwitterDesc:      "Install the @vancine/openclaw-provider plugin from npm or ClawHub, onboard with your own Vancine API key, and use a dynamically verified model list.",
 		wantTwitterCardValue: "summary",
 	},
 	{
@@ -922,6 +951,8 @@ func TestDocsAgentGuidesCanonicalIsPollutionProof(t *testing.T) {
 		"/docs/agents/opencode": "https://vancine.com/docs/agents/opencode",
 		"/docs/agents/cline":    "https://vancine.com/docs/agents/cline",
 		"/docs/agents/roo-code": "https://vancine.com/docs/agents/roo-code",
+		"/docs/agents/pi":       "https://vancine.com/docs/agents/pi",
+		"/docs/agents/openclaw": "https://vancine.com/docs/agents/openclaw",
 	}
 	for path, canonical := range cases {
 		path, canonical := path, canonical
@@ -967,6 +998,12 @@ func TestUnknownDocsAgentPathsServeNoMarketingMetadata(t *testing.T) {
 		"/docs/agents/roo",
 		"/docs/agents/roo-code-v2",
 		"/docs/agents/opencode/v1",
+		// Case variants of the new provider guides must keep the same
+		// unknown-path contract: no Pi/OpenClaw metadata, no canonical.
+		"/docs/agents/Pi",
+		"/docs/agents/OpenClaw",
+		"/docs/agents/pi-provider",
+		"/docs/agents/pi/v2",
 	} {
 		p := p
 		t.Run("GET "+p, func(t *testing.T) {

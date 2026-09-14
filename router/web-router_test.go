@@ -30,6 +30,8 @@ var expectedSitemapLocs = []string{
 	"https://vancine.com/docs/agents/opencode",
 	"https://vancine.com/docs/agents/cline",
 	"https://vancine.com/docs/agents/roo-code",
+	"https://vancine.com/docs/agents/pi",
+	"https://vancine.com/docs/agents/openclaw",
 	// Media model detail pages. Image models first, then video models,
 	// matching publicSitemapPaths. A retired model is removed from
 	// BOTH the sitemap and /llms.txt simultaneously so the two
@@ -166,13 +168,14 @@ func TestSitemapListsExactlyTheApprovedPublicPages(t *testing.T) {
 	// both retired version-specific paths appear zero times.
 	// SEO-5: sitemap grows with /coding-agent-benchmark appearing
 	// exactly once and no model-version alias routes. The Agent
-	// Integration Center adds four more canonicals (hub + three setup
-	// guides). The fast coding models acquisition guide adds one more
-	// canonical (/guides/fast-coding-models) for a total of 19.
-	// Media-model docs task: 19 marketing + agent + acquisition entries
-	// PLUS 10 media model detail pages = 29 URLs.
-	assert.Len(t, locs, 29,
-		"sitemap must contain exactly 29 URLs (19 marketing/agent/acquisition + 10 media model detail pages)")
+	// Integration Center adds six canonicals (hub + five setup
+	// guides, including the Pi and OpenClaw provider guides). The
+	// fast coding models acquisition guide adds one more canonical
+	// (/guides/fast-coding-models). Media-model docs task: 21
+	// marketing + agent + acquisition entries PLUS 10 media model
+	// detail pages = 31 URLs.
+	assert.Len(t, locs, 31,
+		"sitemap must contain exactly 31 URLs (21 marketing/agent/acquisition + 10 media model detail pages)")
 	glmEvergreenCount := 0
 	benchmarkCount := 0
 	agentsHubCount := 0

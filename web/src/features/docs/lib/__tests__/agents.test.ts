@@ -23,10 +23,16 @@ import { describe, it } from 'vitest'
 import {
   DOCS_AGENT_TOOLS,
   getDocsAgentConfigExample,
+  OPENCLAW_INSTALL_CLAWHUB_COMMAND,
+  OPENCLAW_INSTALL_NPM_COMMAND,
   PI_LOGIN_COMMAND,
   PI_MODEL_COMMAND,
   PI_PROVIDER_INSTALL_COMMAND,
   VANCINE_MODELS_DEV_PROVIDER_URL,
+  VANCINE_OPENCLAW_PROVIDER_CLAWHUB_URL,
+  VANCINE_OPENCLAW_PROVIDER_GITHUB_URL,
+  VANCINE_OPENCLAW_PROVIDER_NPM_URL,
+  VANCINE_PI_PROVIDER_CATALOG_URL,
   VANCINE_PI_PROVIDER_GITHUB_URL,
   VANCINE_PI_PROVIDER_NPM_URL,
 } from '../agents.ts'
@@ -36,13 +42,26 @@ import {
 const REAL_KEY_PATTERN = /sk-[A-Za-z0-9]{20,}/
 
 describe('Docs agent tool profiles', () => {
-  it('declares exactly the three first-batch tools with canonical paths', () => {
+  it('declares exactly the five agent tools with canonical lowercase paths', () => {
+    assert.deepEqual(
+      DOCS_AGENT_TOOLS.map((tool) => tool.key),
+      ['opencode', 'cline', 'rooCode', 'pi', 'openclaw']
+    )
     assert.deepEqual(
       DOCS_AGENT_TOOLS.map((tool) => tool.path),
-      ['/docs/agents/opencode', '/docs/agents/cline', '/docs/agents/roo-code']
+      [
+        '/docs/agents/opencode',
+        '/docs/agents/cline',
+        '/docs/agents/roo-code',
+        '/docs/agents/pi',
+        '/docs/agents/openclaw',
+      ]
     )
     for (const tool of DOCS_AGENT_TOOLS) {
       assert.equal(tool.path, `/docs/agents/${tool.segment}`)
+      // Lowercase, no aliases: the segment must never carry uppercase,
+      // versions or abbreviations.
+      assert.equal(tool.segment, tool.segment.toLowerCase())
     }
   })
 
@@ -70,7 +89,14 @@ describe('Docs agent tool profiles', () => {
     )
     assert.equal(
       VANCINE_PI_PROVIDER_GITHUB_URL,
-      'https://github.com/fx247562340/vancine-pi-provider'
+      'https://github.com/VancineAI/vancine-pi-provider'
+    )
+    // Pi's package catalog is a discovery listing that links the npm
+    // package; it is not a distribution source, so the URL carries no
+    // version either.
+    assert.equal(
+      VANCINE_PI_PROVIDER_CATALOG_URL,
+      'https://pi.dev/packages/pi-provider-vancine'
     )
     assert.equal(
       PI_PROVIDER_INSTALL_COMMAND,
@@ -78,34 +104,88 @@ describe('Docs agent tool profiles', () => {
     )
     assert.equal(PI_LOGIN_COMMAND, '/login')
     assert.equal(PI_MODEL_COMMAND, '/model')
+    assert.equal(PI_PROVIDER_INSTALL_COMMAND.includes('@0.'), false)
     assert.equal(PI_PROVIDER_INSTALL_COMMAND.includes('0.1.1'), false)
-    assert.equal(PI_PROVIDER_INSTALL_COMMAND.includes('@'), false)
+    assert.equal(PI_PROVIDER_INSTALL_COMMAND.includes('0.1.3'), false)
+    for (const url of [
+      VANCINE_PI_PROVIDER_CATALOG_URL,
+      VANCINE_PI_PROVIDER_NPM_URL,
+      VANCINE_PI_PROVIDER_GITHUB_URL,
+    ]) {
+      assert.equal(/0\.1\.\d/.test(url), false, `${url} must not pin a version`)
+    }
+  })
+
+  it('pins the Vancine OpenClaw provider npm, ClawHub and GitHub sources and both install commands', () => {
+    assert.equal(
+      VANCINE_OPENCLAW_PROVIDER_NPM_URL,
+      'https://www.npmjs.com/package/@vancine/openclaw-provider'
+    )
+    assert.equal(
+      VANCINE_OPENCLAW_PROVIDER_GITHUB_URL,
+      'https://github.com/VancineAI/vancine-openclaw-provider'
+    )
+    assert.equal(
+      VANCINE_OPENCLAW_PROVIDER_CLAWHUB_URL,
+      'https://clawhub.ai/vancine/plugins/openclaw-provider'
+    )
+    assert.equal(
+      OPENCLAW_INSTALL_NPM_COMMAND,
+      'openclaw plugins install @vancine/openclaw-provider'
+    )
+    assert.equal(
+      OPENCLAW_INSTALL_CLAWHUB_COMMAND,
+      'openclaw plugins install clawhub:@vancine/openclaw-provider'
+    )
+    // No version pin may enter either published install command.
+    for (const command of [
+      OPENCLAW_INSTALL_NPM_COMMAND,
+      OPENCLAW_INSTALL_CLAWHUB_COMMAND,
+    ]) {
+      assert.equal(command.includes('@0.1.0'), false)
+      assert.equal(command.includes('2026.9.4'), false)
+    }
   })
 })
 
 describe('Docs agent config examples', () => {
   const baseUrl = 'https://vancine.com/v1'
 
-  it('embed the recommended Base URL and only placeholder credentials', () => {
-    for (const tool of DOCS_AGENT_TOOLS) {
+  it('embed the recommended Base URL and only placeholder credentials for manual-config tools', () => {
+    for (const tool of ['opencode', 'cline', 'rooCode'] as const) {
       const blocks = getDocsAgentConfigExample(
-        tool.key,
+        tool,
         baseUrl,
         'deepseek-v4-flash'
       )
       const code = blocks.map((block) => block.code).join('\n')
       assert.ok(
         code.includes(baseUrl),
-        `${tool.key} example must embed the Base URL`
+        `${tool} example must embed the Base URL`
       )
       assert.ok(
         code.includes('sk-your-api-key') || code.includes('VANCINE_API_KEY'),
-        `${tool.key} example must use obvious placeholders`
+        `${tool} example must use obvious placeholders`
       )
       assert.doesNotMatch(
         code,
         REAL_KEY_PATTERN,
-        `${tool.key} example must never contain a real-looking key`
+        `${tool} example must never contain a real-looking key`
+      )
+    }
+  })
+
+  it('provider-plugin guides carry no manual Base URL/config blocks', () => {
+    for (const tool of ['pi', 'openclaw'] as const) {
+      const blocks = getDocsAgentConfigExample(
+        tool,
+        baseUrl,
+        'deepseek-v4-flash'
+      )
+      assert.deepEqual(
+        blocks,
+        [],
+        `${tool} connects through its published provider plugin, not a manual config block`
       )
     }
   })

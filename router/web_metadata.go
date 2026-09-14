@@ -99,13 +99,13 @@ var publicMarketingPages = []publicPageMeta{
 		// stay byte-identical to it.
 		path:  "/docs/agents",
 		title: "Coding Agent Integration Center | Vancine",
-		description: "Connect Pi, OpenCode, Cline and Roo Code to the Vancine " +
-			"API. Install the Vancine Pi Provider from npm or follow " +
-			"tool-specific setup guides.",
+		description: "Connect Pi, OpenCode, Cline, Roo Code and OpenClaw to the " +
+			"Vancine API. Install provider plugins from npm or ClawHub, or " +
+			"follow tool-specific setup guides.",
 		ogTitle:          "Coding Agent Integration Center",
-		ogDescription:    "Connect Pi, OpenCode, Cline and Roo Code to the Vancine API. Install the Vancine Pi Provider from npm or follow tool-specific setup guides.",
+		ogDescription:    "Connect Pi, OpenCode, Cline, Roo Code and OpenClaw to the Vancine API. Install provider plugins from npm or ClawHub, or follow tool-specific setup guides.",
 		twitterTitle:     "Coding Agent Integration Center | Vancine",
-		twitterDesc:      "Connect Pi, OpenCode, Cline and Roo Code to the Vancine API. Install the Vancine Pi Provider from npm or follow tool-specific setup guides.",
+		twitterDesc:      "Connect Pi, OpenCode, Cline, Roo Code and OpenClaw to the Vancine API. Install provider plugins from npm or ClawHub, or follow tool-specific setup guides.",
 		twitterCardValue: "summary",
 	},
 	{
@@ -151,6 +151,36 @@ var publicMarketingPages = []publicPageMeta{
 		ogDescription:    "Configure Roo Code for the Vancine API: OpenAI-compatible Base URL, API key, model ID and fixes for the most common setup errors.",
 		twitterTitle:     "Roo Code Setup Guide for the Vancine API | Vancine",
 		twitterDesc:      "Configure Roo Code for the Vancine API: OpenAI-compatible Base URL, API key, model ID and fixes for the most common setup errors.",
+		twitterCardValue: "summary",
+	},
+	{
+		// Pi setup guide. The English values here are mirrored from
+		// the SPA's getDocsAgentToolPageMetadata('pi') and must stay
+		// byte-identical to it.
+		path:  "/docs/agents/pi",
+		title: "Pi Setup Guide for the Vancine API | Vancine",
+		description: "Connect Pi to Vancine with the pi-provider-vancine " +
+			"extension: install from npm, sign in with /login using your " +
+			"own API key, then pick a model with /model.",
+		ogTitle:          "Pi Setup Guide for the Vancine API",
+		ogDescription:    "Connect Pi to Vancine with the pi-provider-vancine extension: install from npm, sign in with /login using your own API key, then pick a model with /model.",
+		twitterTitle:     "Pi Setup Guide for the Vancine API | Vancine",
+		twitterDesc:      "Connect Pi to Vancine with the pi-provider-vancine extension: install from npm, sign in with /login using your own API key, then pick a model with /model.",
+		twitterCardValue: "summary",
+	},
+	{
+		// OpenClaw setup guide. The English values here are mirrored
+		// from the SPA's getDocsAgentToolPageMetadata('openclaw') and
+		// must stay byte-identical to it.
+		path:  "/docs/agents/openclaw",
+		title: "OpenClaw Setup Guide for the Vancine API | Vancine",
+		description: "Install the @vancine/openclaw-provider plugin from npm " +
+			"or ClawHub, onboard with your own Vancine API key, and use a " +
+			"dynamically verified model list.",
+		ogTitle:          "OpenClaw Setup Guide for the Vancine API",
+		ogDescription:    "Install the @vancine/openclaw-provider plugin from npm or ClawHub, onboard with your own Vancine API key, and use a dynamically verified model list.",
+		twitterTitle:     "OpenClaw Setup Guide for the Vancine API | Vancine",
+		twitterDesc:      "Install the @vancine/openclaw-provider plugin from npm or ClawHub, onboard with your own Vancine API key, and use a dynamically verified model list.",
 		twitterCardValue: "summary",
 	},
 	{
@@ -404,10 +434,12 @@ const llmsTxtBody = `# Vancine public documentation index for LLM agents.
 
 ## Coding agents
 
-- [Coding Agent Integration Center](https://vancine.com/docs/agents): Connect Pi, OpenCode, Cline and Roo Code to Vancine.
+- [Coding Agent Integration Center](https://vancine.com/docs/agents): Connect Pi, OpenCode, Cline, Roo Code and OpenClaw to Vancine.
 - [OpenCode setup guide](https://vancine.com/docs/agents/opencode): Install the Models.dev provider catalog entry, paste the Vancine API key.
 - [Cline setup guide](https://vancine.com/docs/agents/cline): Cline VS Code extension configuration.
 - [Roo Code setup guide](https://vancine.com/docs/agents/roo-code): Roo Code configuration walkthrough.
+- [Pi setup guide](https://vancine.com/docs/agents/pi): Install the pi-provider-vancine community extension from npm, sign in with /login, pick a model with /model.
+- [OpenClaw setup guide](https://vancine.com/docs/agents/openclaw): Install the @vancine/openclaw-provider plugin from npm or ClawHub and onboard with your Vancine API key.
 
 ## Image model detail pages
 

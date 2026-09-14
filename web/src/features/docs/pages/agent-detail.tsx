@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Link } from '@tanstack/react-router'
-import { useMemo } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Badge } from '@/components/ui/badge'
@@ -33,7 +33,20 @@ import { DOCS_NS } from '../i18n/loader'
 import {
   getDocsAgentConfigExample,
   getDocsAgentToolProfile,
+  OPENCLAW_INSTALL_CLAWHUB_COMMAND,
+  OPENCLAW_INSTALL_NPM_COMMAND,
+  OPENCLAW_MODELS_COMMAND,
+  OPENCLAW_ONBOARD_COMMAND,
+  PI_LOGIN_COMMAND,
+  PI_MODEL_COMMAND,
+  PI_PROVIDER_INSTALL_COMMAND,
   VANCINE_MODELS_DEV_PROVIDER_URL,
+  VANCINE_OPENCLAW_PROVIDER_CLAWHUB_URL,
+  VANCINE_OPENCLAW_PROVIDER_GITHUB_URL,
+  VANCINE_OPENCLAW_PROVIDER_NPM_URL,
+  VANCINE_PI_PROVIDER_CATALOG_URL,
+  VANCINE_PI_PROVIDER_GITHUB_URL,
+  VANCINE_PI_PROVIDER_NPM_URL,
   type DocsAgentToolKey,
 } from '../lib/agents'
 import { getDocsAgentToolPageMetadata } from '../lib/agents-metadata'
@@ -48,6 +61,8 @@ const AGENT_TOOL_METADATA: Record<DocsAgentToolKey, PageMetadata> = {
   opencode: getDocsAgentToolPageMetadata('opencode'),
   cline: getDocsAgentToolPageMetadata('cline'),
   rooCode: getDocsAgentToolPageMetadata('rooCode'),
+  pi: getDocsAgentToolPageMetadata('pi'),
+  openclaw: getDocsAgentToolPageMetadata('openclaw'),
 }
 
 const SHARED_STEP_NUMBERS = [1, 2, 3, 4, 5] as const
@@ -58,10 +73,91 @@ const OPENCODE_MODELS_COMMAND = '/models'
 const ERROR_KEYS = ['baseUrl', 'apiKey', 'model', 'protocol'] as const
 
 /**
- * Shared layout for the three nested agent setup guides
- * (/docs/agents/opencode, /docs/agents/cline, /docs/agents/roo-code).
- * All copy comes from the Docs i18n bundle; configuration examples are
- * language-neutral code templates with placeholder credentials only.
+ * Community provider-plugin guides (Pi, OpenClaw) install an extension and
+ * sign in inside the tool; they never show the manual Base URL / config
+ * sections shared by Cline and Roo Code. The install commands below are
+ * language-neutral code from the published packages and always install the
+ * latest version (never a pinned version number).
+ */
+const PROVIDER_TOOL_KEYS = ['pi', 'openclaw'] as const
+type ProviderToolKey = (typeof PROVIDER_TOOL_KEYS)[number]
+
+/** Code blocks rendered under the numbered setup steps of a provider guide. */
+const PROVIDER_STEP_CODES: Record<ProviderToolKey, Record<number, string>> = {
+  pi: {
+    1: PI_PROVIDER_INSTALL_COMMAND,
+    3: PI_LOGIN_COMMAND,
+    5: PI_MODEL_COMMAND,
+  },
+  openclaw: {
+    1: OPENCLAW_INSTALL_NPM_COMMAND,
+    2: OPENCLAW_INSTALL_CLAWHUB_COMMAND,
+    3: OPENCLAW_ONBOARD_COMMAND,
+    4: OPENCLAW_MODELS_COMMAND,
+  },
+}
+
+const PROVIDER_STEP_COUNTS: Record<ProviderToolKey, number> = {
+  pi: 7,
+  openclaw: 5,
+}
+
+/** Public package sources shown as links on each provider guide. */
+const PROVIDER_SOURCE_LINKS: Record<
+  ProviderToolKey,
+  { href: string; labelKey: string }[]
+> = {
+  pi: [
+    // Pi's own catalog entry first (discovery), then the real distribution
+    // source (npm) and the public repository.
+    {
+      href: VANCINE_PI_PROVIDER_CATALOG_URL,
+      labelKey: 'agentGuides.pi.catalogLabel',
+    },
+    { href: VANCINE_PI_PROVIDER_NPM_URL, labelKey: 'agentGuides.pi.npmLabel' },
+    {
+      href: VANCINE_PI_PROVIDER_GITHUB_URL,
+      labelKey: 'agentGuides.pi.githubLabel',
+    },
+  ],
+  openclaw: [
+    {
+      href: VANCINE_OPENCLAW_PROVIDER_NPM_URL,
+      labelKey: 'agentGuides.openclaw.npmLabel',
+    },
+    {
+      href: VANCINE_OPENCLAW_PROVIDER_CLAWHUB_URL,
+      labelKey: 'agentGuides.openclaw.clawhubLabel',
+    },
+    {
+      href: VANCINE_OPENCLAW_PROVIDER_GITHUB_URL,
+      labelKey: 'agentGuides.openclaw.githubLabel',
+    },
+  ],
+}
+
+/** Provider-specific troubleshooting entries (under agentGuides.<tool>.errors). */
+const PROVIDER_ERROR_KEYS: Record<ProviderToolKey, readonly string[]> = {
+  pi: ['providerMissing', 'apiKey', 'modelMissing', 'catalogUnavailable'],
+  openclaw: [
+    'pluginMissing',
+    'authFailed',
+    'noModels',
+    'modelRefused',
+    'doubleInstall',
+  ],
+}
+
+function isProviderTool(tool: DocsAgentToolKey): tool is ProviderToolKey {
+  return (PROVIDER_TOOL_KEYS as readonly string[]).includes(tool)
+}
+
+/**
+ * Shared layout for the five nested agent setup guides (/docs/agents/opencode,
+ * /docs/agents/cline, /docs/agents/roo-code, /docs/agents/pi,
+ * /docs/agents/openclaw). All copy comes from the Docs i18n bundle;
+ * configuration examples are language-neutral code templates with
+ * placeholder credentials only.
  */
 export default function DocsAgentDetailPage(props: {
   tool: DocsAgentToolKey
@@ -77,6 +173,13 @@ export default function DocsAgentDetailPage(props: {
 
   const profile = getDocsAgentToolProfile(props.tool)
   const isOpenCode = props.tool === 'opencode'
+  // Community provider-plugin guides own their layout branch; Cline and Roo
+  // Code share the manual Base URL/configuration branch. A single narrowed
+  // const keeps every branch below type-safe without repeated casts.
+  const providerTool: ProviderToolKey | null = isProviderTool(props.tool)
+    ? props.tool
+    : null
+  const isProvider = providerTool !== null
   const stepNumbers = isOpenCode ? OPENCODE_STEP_NUMBERS : SHARED_STEP_NUMBERS
   const configBlocks = useMemo(
     () =>
@@ -133,6 +236,24 @@ export default function DocsAgentDetailPage(props: {
         {
           id: 'agent-opencode-evidence',
           titleKey: 'agentGuides.opencode.benchmarkTitle',
+          level: 3,
+        }
+      )
+    } else if (isProviderTool(props.tool)) {
+      keys.push(
+        {
+          id: `agent-${profile.segment}-steps`,
+          titleKey: 'agentGuides.common.stepsTitle',
+          level: 3,
+        },
+        {
+          id: `agent-${profile.segment}-models`,
+          titleKey: 'agentGuides.common.modelsTitle',
+          level: 3,
+        },
+        {
+          id: `agent-${profile.segment}-errors`,
+          titleKey: 'agentGuides.common.troubleshootingTitle',
           level: 3,
         }
       )
@@ -194,6 +315,54 @@ export default function DocsAgentDetailPage(props: {
   // OpenCode-only v1.18.3 fact remains in the Verification evidence section
   // below and never re-enters a badge or status tier.
   const statusLabel = t('agents.hub.status.configurationReady')
+  // The numbered steps list is computed once per render (no single-use
+  // nested render function): one branch per guide family.
+  let renderedSteps: ReactNode[]
+  if (isOpenCode) {
+    renderedSteps = stepNumbers.map((step) => (
+      <li key={step}>
+        <div>{t(`agentGuides.${props.tool}.step${step}`, interpolation)}</div>
+        {step === 3 ? (
+          <DocsCodeBlock
+            compact
+            code={OPENCODE_CONNECT_COMMAND}
+            language='bash'
+          />
+        ) : null}
+        {step === 6 ? (
+          <DocsCodeBlock
+            compact
+            code={OPENCODE_MODELS_COMMAND}
+            language='bash'
+          />
+        ) : null}
+      </li>
+    ))
+  } else if (providerTool !== null) {
+    renderedSteps = Array.from(
+      { length: PROVIDER_STEP_COUNTS[providerTool] },
+      (_, index) => index + 1
+    ).map((step) => {
+      const code = PROVIDER_STEP_CODES[providerTool][step]
+      return (
+        <li key={step}>
+          <div>
+            {t(`agentGuides.${providerTool}.step${step}`, interpolation)}
+          </div>
+          {code ? <DocsCodeBlock compact code={code} language='bash' /> : null}
+        </li>
+      )
+    })
+  } else {
+    renderedSteps = stepNumbers.map((step) => (
+      <li key={step}>
+        {t(`agentGuides.${props.tool}.step${step}`, interpolation)}
+      </li>
+    ))
+  }
+  // Which troubleshooting entries the guide lists.
+  const errorKeys =
+    providerTool !== null ? PROVIDER_ERROR_KEYS[providerTool] : ERROR_KEYS
 
   return (
     <div>
@@ -216,6 +385,21 @@ export default function DocsAgentDetailPage(props: {
         </p>
       ) : null}
       <DocsP>{t(`agentGuides.${props.tool}.valueProp`)}</DocsP>
+      {providerTool !== null ? (
+        <p className='mb-4 flex flex-wrap gap-x-4 gap-y-2 text-sm'>
+          {PROVIDER_SOURCE_LINKS[providerTool].map((source) => (
+            <a
+              key={source.href}
+              href={source.href}
+              target='_blank'
+              rel='noopener noreferrer'
+              className='text-primary font-medium underline underline-offset-4'
+            >
+              {t(source.labelKey)}
+            </a>
+          ))}
+        </p>
+      ) : null}
       {props.tool === 'opencode' ? (
         <div className='border-border bg-card mb-6 rounded-xl border p-4'>
           <p className='text-muted-foreground text-sm leading-relaxed'>
@@ -242,9 +426,12 @@ export default function DocsAgentDetailPage(props: {
         <li>{t('agentGuides.common.prereqAccount')}</li>
         <li>{t('agentGuides.common.prereqKey')}</li>
         <li>{t('agentGuides.common.prereqTool', interpolation)}</li>
+        {props.tool === 'openclaw' ? (
+          <li>{t('agentGuides.openclaw.compatNote')}</li>
+        ) : null}
       </ul>
 
-      {isOpenCode ? null : (
+      {isOpenCode || isProvider ? null : (
         <>
           <DocsH3 id={`agent-${profile.segment}-base-url`}>
             {t('agentGuides.common.baseUrlTitle')}
@@ -279,39 +466,43 @@ export default function DocsAgentDetailPage(props: {
           {t('agentGuides.opencode.noJsonNote')}
         </DocsCallout>
       ) : null}
+      {props.tool === 'openclaw' ? (
+        <DocsCallout type='tip'>
+          {t('agentGuides.openclaw.installChoice')}
+        </DocsCallout>
+      ) : null}
       <ol className='text-muted-foreground marker:text-primary mb-6 list-decimal space-y-3 pl-6 text-sm leading-relaxed marker:font-semibold'>
-        {stepNumbers.map((step) => (
-          <li key={step}>
-            <div>
-              {t(`agentGuides.${props.tool}.step${step}`, interpolation)}
-            </div>
-            {isOpenCode && step === 3 ? (
-              <DocsCodeBlock
-                compact
-                code={OPENCODE_CONNECT_COMMAND}
-                language='bash'
-              />
-            ) : null}
-            {isOpenCode && step === 6 ? (
-              <DocsCodeBlock
-                compact
-                code={OPENCODE_MODELS_COMMAND}
-                language='bash'
-              />
-            ) : null}
-          </li>
-        ))}
+        {renderedSteps}
       </ol>
 
       <DocsH3 id={`agent-${profile.segment}-models`}>
         {t('agentGuides.common.modelsTitle')}
       </DocsH3>
-      <DocsP>{t('agentGuides.common.modelsDesc')}</DocsP>
+      {providerTool !== null ? (
+        <DocsCallout type='tip'>
+          {t(`agentGuides.${providerTool}.catalogNote`)}
+        </DocsCallout>
+      ) : null}
+      {/* Provider guides scope model choice to their own verified list;
+          the generic all-models line stays manual-config only here. */}
+      {providerTool !== null ? (
+        <DocsP>{t(`agentGuides.${providerTool}.modelsNote`)}</DocsP>
+      ) : (
+        <DocsP>{t('agentGuides.common.modelsDesc')}</DocsP>
+      )}
       <p className='mb-6 flex flex-wrap gap-3'>
+        {/* Models/Pricing are reference links. Manual-config guides keep
+            their existing primary-styled Models button; provider-plugin
+            guides stay auxiliary so the page keeps exactly one visual
+            conversion CTA in the footer. */}
         <Link
           to='/docs/$slug'
           params={{ slug: 'models' }}
-          className='bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium transition-opacity hover:opacity-90'
+          className={
+            isProvider
+              ? 'border-border bg-card text-foreground hover:bg-muted/50 rounded-lg border px-4 py-2 text-sm font-medium transition-colors'
+              : 'bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium transition-opacity hover:opacity-90'
+          }
         >
           {t('agentGuides.common.modelsDocsLink')}
         </Link>
@@ -327,21 +518,27 @@ export default function DocsAgentDetailPage(props: {
         {t('agentGuides.common.troubleshootingTitle')}
       </DocsH3>
       <div className='mb-6 space-y-3'>
-        {ERROR_KEYS.map((errorKey) => (
-          <div
-            key={errorKey}
-            className='border-border bg-card rounded-xl border p-4'
-          >
-            <p className='text-foreground mb-1 text-sm font-semibold'>
-              {t(`agentGuides.common.errors.${errorKey}.symptom`)}
-            </p>
-            <p className='text-muted-foreground text-sm leading-relaxed'>
-              {errorKey === 'model' && isOpenCode
-                ? t('agentGuides.opencode.errors.model.fix')
-                : t(`agentGuides.common.errors.${errorKey}.fix`, interpolation)}
-            </p>
-          </div>
-        ))}
+        {errorKeys.map((errorKey) => {
+          const errorBase =
+            providerTool !== null
+              ? `agentGuides.${providerTool}.errors`
+              : 'agentGuides.common.errors'
+          return (
+            <div
+              key={errorKey}
+              className='border-border bg-card rounded-xl border p-4'
+            >
+              <p className='text-foreground mb-1 text-sm font-semibold'>
+                {t(`${errorBase}.${errorKey}.symptom`)}
+              </p>
+              <p className='text-muted-foreground text-sm leading-relaxed'>
+                {!isProvider && errorKey === 'model' && isOpenCode
+                  ? t('agentGuides.opencode.errors.model.fix')
+                  : t(`${errorBase}.${errorKey}.fix`, interpolation)}
+              </p>
+            </div>
+          )
+        })}
       </div>
 
       {isOpenCode ? (
@@ -374,11 +571,16 @@ export default function DocsAgentDetailPage(props: {
         </>
       ) : null}
 
-      <DocsCallout type='info'>
-        {isOpenCode
-          ? t('agentGuides.opencode.notOfficial')
-          : t('agentGuides.common.notOfficial', interpolation)}
-      </DocsCallout>
+      {props.tool === 'openclaw' ? (
+        <>
+          <DocsCallout type='info'>
+            {t('agentGuides.openclaw.zeroCredentialNote')}
+          </DocsCallout>
+          <DocsCallout type='info'>
+            {t('agentGuides.openclaw.limitationsNote')}
+          </DocsCallout>
+        </>
+      ) : null}
 
       <DocsH3 id={`agent-${profile.segment}-cta`}>
         {t('agentGuides.common.ctaTitle')}

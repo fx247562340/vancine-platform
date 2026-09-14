@@ -118,7 +118,7 @@ afterEach(() => {
 })
 
 describe('ToolsAndAccess', () => {
-  it('renders the five universal-access chips, the OpenCode/Pi guide rows, and the disclosure line', () => {
+  it('renders the five universal-access chips, the OpenCode/Pi guide rows, and no relationship-disclosure line', () => {
     renderSection({})
 
     const section = screen.getByTestId('homepage-tools-access-section')
@@ -145,12 +145,14 @@ describe('ToolsAndAccess', () => {
     expect(within(guides).getByText('Pi Agent')).toBeInTheDocument()
     expect(within(guides).getByText('More tools')).toBeInTheDocument()
 
-    // Disclosure line: OpenCode is in the provider catalog, Pi is a
-    // community extension, no partnership is implied.
-    const disclosure = within(section).getByTestId('tools-disclosure')
-    expect(disclosure.textContent).toContain('OpenCode')
-    expect(disclosure.textContent).toContain('Pi')
-    expect(disclosure.textContent).toContain('No official partnership')
+    // The relationship-disclosure line is gone by product decision: the
+    // section must not render any "no official partnership" style copy, and
+    // it must not be replaced by another disclaimer paragraph.
+    expect(
+      within(section).queryByTestId('tools-disclosure')
+    ).not.toBeInTheDocument()
+    expect(section.textContent).not.toMatch(/official partnership/i)
+    expect(section.textContent).not.toMatch(/no official|not an official/i)
   })
 
   it('renders the active-vendor count from the stats endpoint when it is ready', () => {

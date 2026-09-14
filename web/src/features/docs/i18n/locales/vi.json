@@ -270,14 +270,21 @@
         },
         "rooCode": {
           "protocol": "Provider OpenAI-compatible trong Roo Code"
+        },
+        "pi": {
+          "protocol": "Plugin nhà cung cấp cho tác nhân lập trình Pi, cài từ npm."
+        },
+        "openclaw": {
+          "protocol": "Plugin nhà cung cấp cộng đồng cho OpenClaw, cài từ npm hoặc ClawHub."
         }
       },
       "cardBoundary": "Cấu hình tương thích OpenAI của công cụ này đã sẵn sàng. Hãy làm theo hướng dẫn riêng của công cụ để kết nối với Vancine."
     },
     "cli": {
       "codex": "Cấu hình chính thức Codex dùng ~/.codex/config.toml. Tài liệu hiện tại hiển thị giao thức Responses, nên đặt wire_api thành responses.",
-      "openclaw": "Client kiểu OpenClaw thường cần base URL, API key và tên mô hình tương thích OpenAI. Tên trường khác nhau tùy bản phân phối; chọn OpenAI Compatible nếu có.",
-      "hermes": "Plugin tương thích OpenAI của Hermes Agent thường dùng config.yaml hoặc biến môi trường cho base_url và api_key. Dùng các trường chính xác từ plugin đã cài."
+      "openclaw": "OpenClaw kết nối qua plugin nhà cung cấp cộng đồng do Vancine duy trì thay vì cấu hình Base URL thủ công. Xem hướng dẫn chuyên biệt để cài đặt và xác thực.",
+      "hermes": "Plugin tương thích OpenAI của Hermes Agent thường dùng config.yaml hoặc biến môi trường cho base_url và api_key. Dùng các trường chính xác từ plugin đã cài.",
+      "openclawGuideLink": "Mở hướng dẫn nhà cung cấp OpenClaw"
     },
     "gui": {
       "cursor": {
@@ -396,6 +403,82 @@
       "step3": "Đặt Base URL là {{baseUrl}}.",
       "step4": "Nhập API key Vancine của bạn.",
       "step5": "Nhập ID mô hình văn bản như glm-5.1, lưu lại và gửi một tin nhắn đơn giản để xác nhận kết nối."
+    },
+    "pi": {
+      "pageTitle": "Hướng dẫn thiết lập Pi",
+      "valueProp": "Sử dụng Vancine API Key của riêng bạn trong tác nhân lập trình Pi qua tiện ích mở rộng pi-provider-vancine, không cần chỉnh sửa tệp mô hình thủ công.",
+      "npmLabel": "gói npm",
+      "githubLabel": "Kho lưu trữ GitHub",
+      "step1": "Cài đặt tiện ích Provider:",
+      "step2": "Khởi động Pi.",
+      "step3": "Đăng nhập:",
+      "step4": "Chọn Vancine và dán Vancine API Key của riêng bạn. Pi lưu khóa trong kho thông tin xác thực của nó.",
+      "step5": "Mở danh sách mô hình:",
+      "step6": "Chọn một mô hình bên dưới nhà cung cấp Vancine.",
+      "step7": "Gửi yêu cầu đầu tiên của bạn qua Vancine.",
+      "catalogNote": "Danh sách mô hình lấy từ danh mục Vancine. Pi làm mới nhiều nhất mỗi 4 giờ; khi các lần làm mới sau thất bại, nó giữ bộ nhớ đệm thành công gần nhất, kể cả danh sách trống. Danh sách dự phòng ngoại tuyến nhỏ chỉ có thể được dùng khi lần làm mới đầu tiên thất bại và chưa có bộ nhớ đệm. Danh mục không được đảm bảo theo thời gian thực; sau khi làm mới thành công, các mô hình đã gỡ biến mất và không được danh sách dự phòng khôi phục.",
+      "notOfficial": "pi-provider-vancine là tiện ích cộng đồng do Vancine phát hành và duy trì. Nó không cấu thành hợp tác chính thức, chứng nhận hay sự chứng thực giữa Pi, Earendil Works hoặc những người bảo trì của họ với Vancine.",
+      "errors": {
+        "providerMissing": {
+          "symptom": "Nhà cung cấp Vancine không xuất hiện trong /login.",
+          "fix": "Xác nhận gói đã được cài bằng pi list, khởi động lại Pi sau khi cài và kiểm tra tiện ích chưa bị tắt trong pi config."
+        },
+        "apiKey": {
+          "symptom": "API Key bị từ chối (401 / API Key không hợp lệ).",
+          "fix": "Tạo hoặc sao chép khóa từ tài khoản Vancine của bạn, rồi chạy lại /login và chọn Vancine. Tiện ích không bao giờ in toàn bộ khóa trong lỗi."
+        },
+        "modelMissing": {
+          "symptom": "Một mã mô hình bị thiếu hoặc đã bị gỡ.",
+          "fix": "Danh mục chứa các mô hình tương thích hiện có. Sau khi danh mục được làm mới thành công, mô hình đã gỡ sẽ biến mất và không được khôi phục bằng danh sách dự phòng. Hãy chọn mã hiện có từ /model hoặc trang Models."
+        },
+        "catalogUnavailable": {
+          "symptom": "Danh mục mô hình tạm thời không khả dụng hoặc /model vẫn trống.",
+          "fix": "Pi giữ danh mục thành công gần nhất, kể cả danh sách trống đã lưu cache. Lần chạy đầu không có cache sẽ dùng một ảnh chụp ngoại tuyến nhỏ. Thử lại khi mạng khả dụng."
+        }
+      },
+      "modelsNote": "Chỉ chọn trong số các mô hình Vancine mà /model của Pi liệt kê. Các trang Models và Pricing chỉ để tham khảo; một mô hình hiển thị ở đó không chắc xuất hiện trong danh sách này.",
+      "catalogLabel": "Danh mục gói Pi"
+    },
+    "openclaw": {
+      "pageTitle": "Hướng dẫn thiết lập OpenClaw",
+      "valueProp": "Sử dụng Vancine API Key của riêng bạn trong OpenClaw qua plugin cộng đồng @vancine/openclaw-provider, với danh sách mô hình được xác thực động.",
+      "npmLabel": "gói npm",
+      "clawhubLabel": "Kho ClawHub",
+      "githubLabel": "Kho lưu trữ GitHub",
+      "compatNote": "Một bản phát hành OpenClaw tương thích với plugin đã xuất bản: bản phát hành plugin hiện tại yêu cầu OpenClaw 2026.9.4 và được xây dựng, kiểm thử, tuyên bố tương thích cho đúng phiên bản đó.",
+      "installChoice": "Có hai nguồn cài đặt: npm hoặc ClawHub. Chọn một trong hai, không cài cả hai.",
+      "step1": "Cài đặt từ npm registry:",
+      "step2": "Hoặc cài từ ClawHub (chọn bước này HOẶC bước npm, không chọn cả hai):",
+      "step3": "Khởi tạo OpenClaw, chọn Vancine (vancine-api-key) trong luồng tương tác và nhập Vancine API Key của riêng bạn tại lời nhắc bảo mật:",
+      "step4": "Liệt kê và xác thực các mô hình mà khóa của bạn có thể truy cập:",
+      "step5": "Bắt đầu hội thoại với một mô hình Vancine đã xác thực.",
+      "catalogNote": "Danh sách mô hình không phải danh mục đầy đủ tĩnh. Plugin tải danh mục công khai của Vancine, rồi xác thực từng ứng viên qua /v1/models bằng khóa của bạn và chỉ công bố phần giao nhau mà tài khoản bạn thực sự dùng được.",
+      "notOfficial": "@vancine/openclaw-provider là plugin nhà cung cấp cộng đồng do Vancine duy trì. Đây không phải nhà cung cấp chính thức, tích hợp sẵn hay được chứng nhận của OpenClaw hoặc ClawHub, và việc được liệt kê cũng không phải sự chứng thực của OpenClaw hay ClawHub.",
+      "errors": {
+        "pluginMissing": {
+          "symptom": "Plugin chưa được tải hoặc không thấy mô hình vancine nào sau khi cài.",
+          "fix": "Kiểm tra trạng thái plugin bằng openclaw plugins inspect vancine. Sau khi cài, hãy khởi động lại tiến trình OpenClaw CLI để plugin mới được tải."
+        },
+        "authFailed": {
+          "symptom": "Xác thực thất bại (401/403) hoặc khóa bị từ chối.",
+          "fix": "Tạo khóa mới trong tài khoản Vancine của bạn, rồi chạy lại openclaw onboard và nhập khóa mới tại lời nhắc bảo mật thay vì đặt nó trên dòng lệnh. Khóa chỉ được gửi tới vancine.com."
+        },
+        "noModels": {
+          "symptom": "Không thấy mô hình Vancine nào dùng được cho khóa của bạn.",
+          "fix": "Plugin không công bố mô hình nào khi tải danh mục hoặc xác thực /v1/models thất bại. Chạy lại bước danh sách mô hình với --refresh khi mạng hoặc khóa hoạt động trở lại."
+        },
+        "modelRefused": {
+          "symptom": "Một mô hình đã gỡ hoặc chưa được ủy quyền bị từ chối.",
+          "fix": "Trong khi plugin giữ trạng thái danh mục đã xác thực cho khóa của bạn, các mã mô hình không rõ ràng, đã gỡ hoặc của tài khoản khác sẽ bị từ chối thay vì gửi lên thượng nguồn. Hãy chọn mô hình từ danh sách đã xác thực; mô hình đã gỡ chỉ xuất hiện lại nếu danh mục cung cấp lại cho khóa của bạn."
+        },
+        "doubleInstall": {
+          "symptom": "Cả bản plugin từ npm và ClawHub đều đã được cài.",
+          "fix": "Hai nguồn cung cấp cùng một plugin. Giữ một bản cài, gỡ bản còn lại và chỉ cài lại nếu xung đột vẫn còn."
+        }
+      },
+      "zeroCredentialNote": "Ranh giới chính xác: việc từ chối mô hình không rõ ràng được đảm bảo khi plugin giữ trạng thái danh mục đã xác thực cho thông tin xác thực hiện tại. Khi hoàn toàn không có thông tin xác thực, lõi OpenClaw vẫn có thể thử một mô hình cấu hình thủ công mà không xác thực và bị thượng nguồn từ chối với mã 401.",
+      "limitationsNote": "Lưu ý phạm vi: plugin đã xuất bản chưa được kiểm chứng trên toàn bộ phạm vi phiên bản OpenClaw, quy trình làm việc hay loại yêu cầu đa phương thức. Xem README của plugin để biết tuyên bố tương thích hiện tại.",
+      "modelsNote": "Chỉ chọn trong số các mô hình đã xác thực được trả về bởi openclaw models list --provider vancine --refresh --json. Các trang Models và Pricing chỉ để tham khảo; một mô hình hiển thị ở đó không chắc được xác thực cho khóa của bạn."
     }
   },
   "faq": {

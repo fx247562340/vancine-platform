@@ -270,14 +270,21 @@
         },
         "rooCode": {
           "protocol": "Roo Code 中的 OpenAI 兼容 provider"
+        },
+        "pi": {
+          "protocol": "Pi 编码代理的 Provider 插件，从 npm 安装。"
+        },
+        "openclaw": {
+          "protocol": "OpenClaw 的社区 Provider 插件，从 npm 或 ClawHub 安装。"
         }
       },
       "cardBoundary": "该工具的 OpenAI 兼容接入配置已准备就绪，可按其专属指南完成接入。"
     },
     "cli": {
       "codex": "Codex 官方配置使用 ~/.codex/config.toml。它当前文档示例使用 Responses 协议，所以 wire_api 写 responses。",
-      "openclaw": "OpenClaw 生态里常见的是 OpenAI-compatible base URL、API Key、模型名三件套。不同发行版字段名可能不同，优先在 Provider 里选择 OpenAI Compatible。",
-      "hermes": "Hermes Agent 的 OpenAI-compatible 插件常用 config.yaml 或环境变量配置 base_url / api_key。字段以所安装插件为准。"
+      "openclaw": "OpenClaw 通过 Vancine 维护的社区 Provider 插件连接，而非手动配置 Base URL。安装与鉴权步骤请查看专门的指南。",
+      "hermes": "Hermes Agent 的 OpenAI-compatible 插件常用 config.yaml 或环境变量配置 base_url / api_key。字段以所安装插件为准。",
+      "openclawGuideLink": "打开 OpenClaw Provider 指南"
     },
     "gui": {
       "cursor": {
@@ -396,6 +403,82 @@
       "step3": "将 Base URL 设置为 {{baseUrl}}。",
       "step4": "填入你的 Vancine API Key。",
       "step5": "填入文本模型 ID（如 glm-5.1），保存并发送一条简单消息确认连接。"
+    },
+    "pi": {
+      "pageTitle": "Pi 设置指南",
+      "valueProp": "通过 pi-provider-vancine 扩展，在 Pi 编码代理中使用自己的 Vancine API Key，无需手动编辑模型文件。",
+      "npmLabel": "npm 包",
+      "githubLabel": "GitHub 仓库",
+      "step1": "安装 Provider 扩展：",
+      "step2": "启动 Pi。",
+      "step3": "登录：",
+      "step4": "选择 Vancine 并粘贴你自己的 Vancine API Key。Pi 会将密钥保存在其凭据存储中。",
+      "step5": "打开模型列表：",
+      "step6": "在 Vancine Provider 下选择一个模型。",
+      "step7": "通过 Vancine 发出第一次请求。",
+      "catalogNote": "模型列表来自 Vancine 目录。Pi 最多每 4 小时刷新一次；后续刷新失败时会保留最近一次成功的缓存（包括空列表）。只有首次刷新失败且尚无缓存时，才可能使用小型离线回退列表。目录不保证实时；刷新成功后，已下架的模型会消失，且不会被回退列表恢复。",
+      "notOfficial": "pi-provider-vancine 是由 Vancine 发布和维护的社区扩展。它不构成 Pi、Earendil Works 或其维护者与 Vancine 之间的官方合作、认证或背书。",
+      "errors": {
+        "providerMissing": {
+          "symptom": "在 /login 中看不到 Vancine Provider。",
+          "fix": "先用 pi list 确认包已安装，安装后重启 Pi，并检查扩展是否在 pi config 中被禁用。"
+        },
+        "apiKey": {
+          "symptom": "API Key 被拒绝（401 / 无效 API Key）。",
+          "fix": "在 Vancine 账号中创建或复制密钥，然后重新运行 /login 并选择 Vancine。扩展不会在错误信息中输出完整密钥。"
+        },
+        "modelMissing": {
+          "symptom": "某个模型 ID 不存在或已下架。",
+          "fix": "目录包含当前可用的兼容模型。目录刷新成功后，已下架的模型会消失，且不会被回退列表恢复。请从 /model 或 Models 页面选择当前可用的 ID。"
+        },
+        "catalogUnavailable": {
+          "symptom": "模型目录暂时不可用，或 /model 一直为空。",
+          "fix": "Pi 会保留最近一次成功的目录（包括缓存的空列表）。首次运行且无缓存时，会回退到少量离线快照模型。等网络恢复后重试。"
+        }
+      },
+      "modelsNote": "只从 Pi 的 /model 列出的 Vancine 模型中选择。Models 与 Pricing 页面仅供参考；其中展示的模型不保证出现在该列表中。",
+      "catalogLabel": "Pi 插件目录"
+    },
+    "openclaw": {
+      "pageTitle": "OpenClaw 设置指南",
+      "valueProp": "通过 @vancine/openclaw-provider 社区插件在 OpenClaw 中使用自己的 Vancine API Key，模型列表经过动态验证。",
+      "npmLabel": "npm 包",
+      "clawhubLabel": "ClawHub 仓库",
+      "githubLabel": "GitHub 仓库",
+      "compatNote": "与已发布插件兼容的 OpenClaw 版本：当前发布的插件要求 OpenClaw 2026.9.4，并针对该精确版本构建、测试并声明兼容。",
+      "installChoice": "有两种安装来源：npm 或 ClawHub。二选一，不要重复安装。",
+      "step1": "从 npm 仓库安装：",
+      "step2": "或者从 ClawHub 安装（与上一步二选一，不要同时安装）：",
+      "step3": "初始化 OpenClaw，在交互流程中选择 Vancine（vancine-api-key），并在密钥提示中输入你自己的 Vancine API Key：",
+      "step4": "列出并验证你的密钥可访问的模型：",
+      "step5": "使用已验证的 Vancine 模型开始对话。",
+      "catalogNote": "模型列表不是静态全量目录。插件会先获取公开的 Vancine 目录，再用你的密钥对 /v1/models 逐一验证，只发布你的账号实际可用的交集。",
+      "notOfficial": "@vancine/openclaw-provider 是由 Vancine 维护的社区 Provider 插件。它不是 OpenClaw 或 ClawHub 的官方、内置或认证 Provider，其收录也不代表 OpenClaw 或 ClawHub 的背书。",
+      "errors": {
+        "pluginMissing": {
+          "symptom": "插件未加载，或安装后没有出现 Vancine 模型。",
+          "fix": "使用 openclaw plugins inspect vancine 检查插件状态。安装后请重启 OpenClaw CLI 进程，让新插件被加载。"
+        },
+        "authFailed": {
+          "symptom": "鉴权失败（401/403）或密钥被拒绝。",
+          "fix": "在 Vancine 账号中重新生成密钥，然后重新运行 openclaw onboard，在密钥提示中输入新密钥，不要把密钥写在命令行里。密钥只会发送到 vancine.com。"
+        },
+        "noModels": {
+          "symptom": "你的密钥没有出现可用的 Vancine 模型。",
+          "fix": "当目录获取或 /v1/models 验证失败时，插件不会发布任何模型。等网络或密钥正常后，使用 --refresh 重新执行模型列表步骤。"
+        },
+        "modelRefused": {
+          "symptom": "已下架或未授权的模型被拒绝。",
+          "fix": "只要插件持有你的密钥的已验证目录状态，未知、已下架或其他账号的模型 ID 都会被拒绝，而不会发送到上游。请从已验证列表中选择模型；已下架的模型只有在目录再次向你的密钥提供时才会出现。"
+        },
+        "doubleInstall": {
+          "symptom": "npm 与 ClawHub 两个来源的插件同时被安装。",
+          "fix": "两个来源是同一个插件。保留其中一个安装，移除另一个；如冲突仍存在再重新安装。"
+        }
+      },
+      "zeroCredentialNote": "准确边界：在插件持有当前凭据的已验证目录状态时，未知模型一定会被拒绝。在完全没有凭据的情况下，OpenClaw 核心仍可能以未认证方式尝试使用手动配置的模型，并被上游以 401 拒绝。",
+      "limitationsNote": "范围说明：已发布的插件尚未在完整的 OpenClaw 版本、工作流或多模态请求类型范围内验证。当前兼容性声明请查看插件 README。",
+      "modelsNote": "只从 openclaw models list --provider vancine --refresh --json 返回的已验证模型中选择。Models 与 Pricing 页面仅供参考；其中展示的模型不保证对你的密钥通过验证。"
     }
   },
   "faq": {

@@ -21,10 +21,11 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { DocsI18nProvider } from '../i18n/docs-i18n'
 import {
-  PI_LOGIN_COMMAND,
-  PI_MODEL_COMMAND,
-  PI_PROVIDER_INSTALL_COMMAND,
+  DOCS_AGENT_TOOLS,
+  OPENCLAW_INSTALL_CLAWHUB_COMMAND,
+  OPENCLAW_INSTALL_NPM_COMMAND,
   VANCINE_MODELS_DEV_PROVIDER_URL,
+  VANCINE_PI_PROVIDER_CATALOG_URL,
   VANCINE_PI_PROVIDER_GITHUB_URL,
   VANCINE_PI_PROVIDER_NPM_URL,
 } from '../lib/agents'
@@ -57,7 +58,7 @@ afterEach(() => {
 })
 
 describe('Agent Integration hub cards', () => {
-  it('shows one card per first-batch tool with the correct guide link', async () => {
+  it('shows one card per registered tool with the correct guide link', async () => {
     renderHub()
 
     // Wait on an i18n-bound element so the lazily loaded Docs bundle is up.
@@ -69,19 +70,17 @@ describe('Agent Integration hub cards', () => {
     expect(
       screen.getByRole('heading', { name: 'Roo Code' })
     ).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Pi' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: 'OpenClaw' })
+    ).toBeInTheDocument()
 
     const guideLinks = screen.getAllByRole('link', {
       name: 'View setup guide',
     })
-    expect(guideLinks).toHaveLength(3)
+    expect(guideLinks).toHaveLength(5)
     const hrefs = guideLinks.map((link) => link.getAttribute('href'))
-    expect(hrefs).toEqual(
-      expect.arrayContaining([
-        '/docs/agents/opencode',
-        '/docs/agents/cline',
-        '/docs/agents/roo-code',
-      ])
-    )
+    expect(hrefs).toEqual(DOCS_AGENT_TOOLS.map((tool) => tool.path))
   })
 
   it('shows the protocol line per card', async () => {
@@ -99,19 +98,29 @@ describe('Agent Integration hub cards', () => {
     expect(
       screen.getByText('OpenAI-compatible provider in Roo Code')
     ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'Provider plugin for the Pi coding agent, installed from npm.'
+      )
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'Community provider plugin for OpenClaw, installed from npm or ClawHub.'
+      )
+    ).toBeInTheDocument()
   })
 
-  it('shows the unified Configuration-ready status on all three cards', async () => {
+  it('shows the unified Configuration-ready status on all five cards', async () => {
     const { container } = renderHub()
 
     await screen.findAllByRole('link', { name: 'View setup guide' })
     // One unified public status: same copy on every card.
     const badges = screen.getAllByText('Configuration-ready')
-    expect(badges).toHaveLength(3)
+    expect(badges).toHaveLength(5)
     // The former two-tier status vocabulary is gone from the public UI.
     expect(container.textContent).not.toContain('Live-verified')
     expect(container.textContent).not.toContain('live-verified')
-    // Identical visual variant on all three badges.
+    // Identical visual variant on all five badges.
     const classNames = badges.map((badge) => badge.className)
     expect(new Set(classNames).size).toBe(1)
     // One neutral, shared boundary sentence per card (no per-tool
@@ -120,7 +129,7 @@ describe('Agent Integration hub cards', () => {
       screen.getAllByText(
         'The OpenAI-compatible setup for this tool is ready. Follow its guide to connect it to Vancine.'
       )
-    ).toHaveLength(3)
+    ).toHaveLength(5)
   })
 
   it('shows the Models.dev catalog proof only on the OpenCode card', async () => {
@@ -139,12 +148,12 @@ describe('Agent Integration hub cards', () => {
       })
     ).toHaveLength(1)
     // Catalog proof is not a status and does not replace Configuration-ready.
-    expect(screen.getAllByText('Configuration-ready')).toHaveLength(3)
+    expect(screen.getAllByText('Configuration-ready')).toHaveLength(5)
     expect(container.textContent).not.toContain('official partner')
     expect(container.textContent).not.toContain('official supplier')
   })
 
-  it('keeps the benchmark link and the non-first-batch configurations', async () => {
+  it('keeps the benchmark link, Codex and Hermes configurations, and the OpenClaw plugin pointer', async () => {
     renderHub()
 
     const benchmarkLink = await screen.findByRole('link', {
@@ -157,18 +166,20 @@ describe('Agent Integration hub cards', () => {
       screen.getByRole('heading', { name: 'Codex CLI' })
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('heading', { name: 'OpenClaw' })
-    ).toBeInTheDocument()
-    expect(
       screen.getByRole('heading', { name: 'Hermes Agent' })
     ).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Cursor' })).toBeInTheDocument()
     expect(
       screen.getByRole('heading', { name: 'Cherry Studio' })
     ).toBeInTheDocument()
+    // OpenClaw keeps a CLI-section pointer that links its dedicated guide.
+    const openclawPointer = screen.getByRole('link', {
+      name: 'Open the OpenClaw provider guide',
+    })
+    expect(openclawPointer).toHaveAttribute('href', '/docs/agents/openclaw')
   })
 
-  it('no longer duplicates the full OpenCode/Cline/Roo Code configurations', async () => {
+  it('no longer duplicates full configurations nor any manual OpenClaw Base URL block', async () => {
     const { container } = renderHub()
 
     await screen.findAllByRole('link', { name: 'View setup guide' })
@@ -176,51 +187,79 @@ describe('Agent Integration hub cards', () => {
     expect(container.textContent).not.toContain('opencode.ai/config.json')
     // The combined "Cline / Roo Code" GUI block was replaced by the guides.
     expect(screen.queryByText('Cline / Roo Code')).not.toBeInTheDocument()
-    // Codex (not first-batch) keeps its full configuration on the hub.
+    // The old generic OpenClaw manual configuration is gone: no Base URL,
+    // no VANCINE_MODEL env template. OpenClaw connects via its plugin guide.
+    expect(container.textContent).not.toContain('VANCINE_MODEL')
+    expect(container.textContent).not.toContain('VANCINE_BASE_URL')
+    expect(container.textContent).not.toContain('Provider: OpenAI Compatible')
+    // Codex (no dedicated guide) keeps its full configuration on the hub.
     expect(container.textContent).toContain('model_provider = "vancine"')
   })
 
-  it('shows the Pi Provider quick-start with install, login and model commands', async () => {
+  it('links the OpenClaw CLI card to the dedicated provider guide, not a config block', async () => {
+    renderHub()
+
+    await screen.findAllByRole('link', { name: 'View setup guide' })
+    const openclawPointer = screen.getByRole('link', {
+      name: 'Open the OpenClaw provider guide',
+    })
+    expect(openclawPointer).toHaveAttribute('href', '/docs/agents/openclaw')
+    // OpenClaw install commands belong on the guide page, not the hub.
+    expect(
+      screen.queryByText(OPENCLAW_INSTALL_NPM_COMMAND)
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByText(OPENCLAW_INSTALL_CLAWHUB_COMMAND)
+    ).not.toBeInTheDocument()
+  })
+
+  it('migrates the Pi quick-start into the dedicated guide card and drops the hub section', async () => {
+    renderHub()
+
+    await screen.findAllByRole('link', { name: 'View setup guide' })
+    // The standalone Pi section is gone: Pi is now a registry card.
+    expect(
+      screen.queryByRole('heading', { name: 'Pi Coding Agent' })
+    ).not.toBeInTheDocument()
+    expect(document.querySelector('#agents-pi')).toBeNull()
+    // The Pi card links the dedicated guide with the Pi displayName.
+    const piCard = screen.getByRole('heading', { name: 'Pi' })
+    expect(piCard).toBeInTheDocument()
+  })
+
+  it('exposes the Pi npm and GitHub sources only via the dedicated guide card links', async () => {
     const { container } = renderHub()
 
+    await screen.findAllByRole('link', { name: 'View setup guide' })
+    // The hub no longer carries its own npm/GitHub source row; those links
+    // (and the Pi catalog entry) moved to the dedicated /docs/agents/pi guide
+    // page.
     expect(
-      await screen.findByRole('heading', { name: 'Pi Coding Agent' })
-    ).toBeInTheDocument()
-    expect(document.querySelector('#agents-pi')).not.toBeNull()
-    expect(screen.getByText(PI_PROVIDER_INSTALL_COMMAND)).toBeInTheDocument()
-    expect(screen.getByText(PI_LOGIN_COMMAND)).toBeInTheDocument()
-    expect(screen.getByText(PI_MODEL_COMMAND)).toBeInTheDocument()
-    expect(container.textContent).not.toContain('0.1.1')
+      container.querySelector(`a[href="${VANCINE_PI_PROVIDER_NPM_URL}"]`)
+    ).toBeNull()
+    expect(
+      container.querySelector(`a[href="${VANCINE_PI_PROVIDER_GITHUB_URL}"]`)
+    ).toBeNull()
+    expect(
+      container.querySelector(`a[href="${VANCINE_PI_PROVIDER_CATALOG_URL}"]`)
+    ).toBeNull()
   })
 
-  it('exposes the npm and GitHub sources as safe external links', async () => {
-    renderHub()
+  it('renders no relationship disclaimer on the hub', async () => {
+    const { container } = renderHub()
 
-    await screen.findByRole('heading', { name: 'Pi Coding Agent' })
-    const npmLink = screen.getByRole('link', { name: 'npm package' })
-    expect(npmLink).toHaveAttribute('href', VANCINE_PI_PROVIDER_NPM_URL)
-    expect(npmLink).toHaveAttribute('target', '_blank')
-    expect(npmLink).toHaveAttribute('rel', 'noopener noreferrer')
-    const githubLink = screen.getByRole('link', { name: 'GitHub' })
-    expect(githubLink).toHaveAttribute('href', VANCINE_PI_PROVIDER_GITHUB_URL)
-    expect(githubLink).toHaveAttribute('target', '_blank')
-    expect(githubLink).toHaveAttribute('rel', 'noopener noreferrer')
-  })
-
-  it('states the community-extension disclaimer independently of the setup steps', async () => {
-    renderHub()
-
-    await screen.findByRole('heading', { name: 'Pi Coding Agent' })
+    await screen.findAllByRole('link', { name: 'View setup guide' })
+    // Product decision: the hub cards carry only the neutral shared boundary
+    // sentence; no distancing copy is rendered anywhere.
     expect(
-      screen.getByText(
+      screen.queryByText(
         'pi-provider-vancine is a community extension published and maintained by Vancine. It does not constitute official cooperation, certification, or endorsement between Pi, Earendil Works, or their maintainers and Vancine.'
       )
-    ).toBeInTheDocument()
-    expect(
-      screen.getByText(
-        'The model catalog is provided dynamically by Vancine. The extension caches and revalidates it, so you do not maintain a model whitelist.'
-      )
-    ).toBeInTheDocument()
+    ).not.toBeInTheDocument()
+    expect(container.textContent).not.toContain('Earendil Works')
+    expect(container.textContent).not.toContain('ClawHub provider')
+    expect(container.textContent).not.toMatch(/official cooperation/)
+    expect(container.textContent).not.toMatch(/official partner/i)
   })
 
   it('applies the /docs/agents page metadata while mounted', async () => {

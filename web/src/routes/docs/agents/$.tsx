@@ -38,9 +38,9 @@ const AGENT_NOT_FOUND_METADATA = getDocsAgentNotFoundPageMetadata()
  * The metadata owner below deliberately takes over the head: the guide
  * pages own tool-specific metadata while mounted, and an SPA navigation
  * from a guide to an unknown subpath must never leave a stale OpenCode /
- * Cline / Roo Code title, description or canonical behind. The takeover
- * block is the neutral /docs metadata, matching what the server renders
- * for the /docs route.
+ * Cline / Roo Code / Pi / OpenClaw title, description or canonical behind.
+ * The takeover block is the neutral /docs metadata, matching what the
+ * server renders for the /docs route.
  */
 function DocsAgentUnknownPathPage() {
   usePageMetadata(AGENT_NOT_FOUND_METADATA, { publicMarketingPage: true })

@@ -295,16 +295,6 @@ export function ToolsAndAccess(props: ToolsAndAccessProps) {
               <VendorCountStat stats={props.stats} />
             </div>
           </div>
-
-          <div aria-hidden className='border-border/30 mt-7 border-t pt-4' />
-          <p
-            className='text-muted-foreground/60 text-center text-xs'
-            data-testid='tools-disclosure'
-          >
-            {t(
-              'OpenCode provider catalog · Pi community extension. No official partnership is implied.'
-            )}
-          </p>
         </AnimateInView>
       </div>
     </section>

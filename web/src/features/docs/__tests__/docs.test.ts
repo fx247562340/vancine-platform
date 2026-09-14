@@ -653,12 +653,6 @@ describe('OpenCode /connect primary path copy', () => {
         (map.get('agentGuides.opencode.advancedTitle') ?? '').trim(),
         `${code} missing advancedTitle`
       )
-      assert.ok(
-        (map.get('agentGuides.opencode.notOfficial') ?? '').includes(
-          'Models.dev'
-        ),
-        `${code} OpenCode disclaimer must name Models.dev`
-      )
       for (const [key, value] of map) {
         if (!key.startsWith('agentGuides.opencode.')) continue
         assert.equal(
@@ -722,53 +716,205 @@ describe('OpenCode Models.dev catalog copy', () => {
   })
 })
 
-describe('Pi Provider hub copy', () => {
-  it('keeps npm install semantics, dynamic catalog wording, and the community-extension disclaimer in all seven locales', () => {
+describe('Pi Provider guide copy', () => {
+  it('keeps npm install semantics and dynamic catalog wording in all seven locales', () => {
     for (const code of LOCALE_CODES) {
       const map = flattenToMap(readJson(path.join(LOCALES_DIR, `${code}.json`)))
       for (const key of [
-        'agents.pi.title',
-        'agents.pi.desc',
-        'agents.pi.npmLabel',
-        'agents.pi.githubLabel',
-        'agents.pi.stepInstall',
-        'agents.pi.stepLogin',
-        'agents.pi.stepSelect',
-        'agents.pi.stepModel',
-        'agents.pi.stepChoose',
-        'agents.pi.catalogNote',
-        'agents.pi.notOfficial',
+        'agentGuides.pi.pageTitle',
+        'agentGuides.pi.valueProp',
+        'agentGuides.pi.catalogLabel',
+        'agentGuides.pi.npmLabel',
+        'agentGuides.pi.githubLabel',
+        'agentGuides.pi.step1',
+        'agentGuides.pi.step2',
+        'agentGuides.pi.step3',
+        'agentGuides.pi.step4',
+        'agentGuides.pi.step5',
+        'agentGuides.pi.step6',
+        'agentGuides.pi.step7',
+        'agentGuides.pi.catalogNote',
       ]) {
         assert.ok(map.get(key)?.trim(), `${code} missing/empty ${key}`)
       }
-      const notOfficial = map.get('agents.pi.notOfficial') ?? ''
+      const catalogNote = map.get('agentGuides.pi.catalogNote') ?? ''
       assert.ok(
-        notOfficial.includes('pi-provider-vancine'),
-        `${code} disclaimer must name pi-provider-vancine`
+        /4\s*(hours|小时|小時|heures|時間|часа|giờ)/.test(catalogNote),
+        `${code} catalogNote must state the at-most-4-hour refresh interval`
       )
       assert.ok(
-        notOfficial.includes('Earendil Works'),
-        `${code} disclaimer must name Earendil Works`
+        /fallback|回退|离线|離線|フォールバック|резерв|автономн|dự phòng|hors ligne/i.test(
+          catalogNote
+        ),
+        `${code} catalogNote must describe the offline fallback condition`
       )
-      const desc = map.get('agents.pi.desc') ?? ''
-      const npmLabel = map.get('agents.pi.npmLabel') ?? ''
+      // No over-promise: the catalog is not realtime and models are not
+      // always the currently-available set.
+      for (const banned of [
+        'always choose from',
+        '始终从当前可用',
+        '實時同步',
+        '实时同步',
+        '永远最新',
+        'real-time sync',
+      ]) {
+        assert.equal(
+          catalogNote.toLowerCase().includes(banned.toLowerCase()),
+          false,
+          `${code} catalogNote must not contain over-promise "${banned}"`
+        )
+      }
+      const valueProp = map.get('agentGuides.pi.valueProp') ?? ''
+      const npmLabel = map.get('agentGuides.pi.npmLabel') ?? ''
       assert.ok(
-        desc.toLowerCase().includes('npm') ||
+        valueProp.toLowerCase().includes('npm') ||
           npmLabel.toLowerCase().includes('npm'),
         `${code} must mention npm in the Pi copy`
       )
+      // The catalog entry is a third, distinct source label: it may not
+      // duplicate the npm or GitHub source labels.
+      const catalogLabel = map.get('agentGuides.pi.catalogLabel') ?? ''
+      assert.ok(catalogLabel.trim(), `${code} catalogLabel must be non-empty`)
+      assert.notEqual(
+        catalogLabel,
+        map.get('agentGuides.pi.npmLabel'),
+        `${code} catalogLabel must differ from the npm source label`
+      )
+      assert.notEqual(
+        catalogLabel,
+        map.get('agentGuides.pi.githubLabel'),
+        `${code} catalogLabel must differ from the GitHub source label`
+      )
       for (const [key, value] of map) {
-        if (!key.startsWith('agents.pi.')) continue
+        if (!key.startsWith('agentGuides.pi.')) continue
         assert.equal(
-          value.includes('0.1.1'),
+          /pi-provider-vancine@|\b0\.1\.\d/.test(value),
           false,
-          `${code} ${key} must not pin 0.1.1`
+          `${code} ${key} must not pin a package version`
+        )
+        // Ban only positive real-time claims: first strip the required
+        // negated statements ("not guaranteed…"), then look for over-promises.
+        const negationStripped = value.replaceAll(
+          /not guaranteed|不保证|不保證|保証されず|не гарантируется|n’est pas garanti|không được đảm bảo/gi,
+          'negated'
         )
         assert.equal(
-          /real[- ]?time|absolutely live/i.test(value),
+          /guaranteed (?:to be )?real[- ]?time|real[- ]?time sync|absolutely live|always live|永远最新|实时同步/i.test(
+            negationStripped
+          ),
           false,
-          `${code} ${key} must not claim absolute real-time catalog fetches`
+          `${code} ${key} must not claim guaranteed real-time catalog fetches`
         )
+      }
+    }
+  })
+})
+
+describe('OpenClaw provider guide copy', () => {
+  it('keeps both install sources and dynamic verification wording in all seven locales', () => {
+    for (const code of LOCALE_CODES) {
+      const map = flattenToMap(readJson(path.join(LOCALES_DIR, `${code}.json`)))
+      for (const key of [
+        'agentGuides.openclaw.pageTitle',
+        'agentGuides.openclaw.valueProp',
+        'agentGuides.openclaw.npmLabel',
+        'agentGuides.openclaw.clawhubLabel',
+        'agentGuides.openclaw.githubLabel',
+        'agentGuides.openclaw.compatNote',
+        'agentGuides.openclaw.installChoice',
+        'agentGuides.openclaw.step1',
+        'agentGuides.openclaw.step2',
+        'agentGuides.openclaw.step3',
+        'agentGuides.openclaw.step4',
+        'agentGuides.openclaw.step5',
+        'agentGuides.openclaw.catalogNote',
+        'agentGuides.openclaw.zeroCredentialNote',
+        'agentGuides.openclaw.limitationsNote',
+        'agents.cli.openclaw',
+        'agents.cli.openclawGuideLink',
+        'agents.hub.cards.pi.protocol',
+        'agents.hub.cards.openclaw.protocol',
+      ]) {
+        assert.ok(map.get(key)?.trim(), `${code} missing/empty ${key}`)
+      }
+      const installChoice = map.get('agentGuides.openclaw.installChoice') ?? ''
+      assert.ok(
+        installChoice.includes('ClawHub'),
+        `${code} installChoice must name ClawHub`
+      )
+      // The compatibility note must pin the exact required OpenClaw version
+      // in every locale.
+      const compatNote = map.get('agentGuides.openclaw.compatNote') ?? ''
+      assert.ok(
+        compatNote.includes('2026.9.4'),
+        `${code} compatNote must name OpenClaw 2026.9.4`
+      )
+      // Onboarding: the key is entered at the interactive secret prompt, not
+      // through a CLI flag or the command line.
+      const step3 = map.get('agentGuides.openclaw.step3') ?? ''
+      // The command name is language-neutral in the English source; other
+      // locales translate the sentence while the code block carries the
+      // literal `openclaw onboard` command.
+      if (code === 'en') {
+        assert.ok(
+          step3.toLowerCase().includes('onboard'),
+          `en step3 must reference the onboard command`
+        )
+      }
+      assert.ok(
+        step3.includes('vancine-api-key'),
+        `${code} step3 must name the vancine-api-key auth choice`
+      )
+      assert.equal(
+        step3.includes('--vancine-api-key'),
+        false,
+        `${code} step3 must not instruct placing the key on the command line`
+      )
+      const authFix =
+        map.get('agentGuides.openclaw.errors.authFailed.fix') ?? ''
+      if (code === 'en') {
+        assert.ok(
+          authFix.toLowerCase().includes('onboard'),
+          'en auth fix must rerun onboard'
+        )
+      }
+      assert.equal(
+        authFix.includes('--vancine-api-key'),
+        false,
+        `${code} auth fix must not instruct placing the key on the command line`
+      )
+      // Provider model selection is scoped to each provider's own list, and
+      // the legacy manual env config must never reappear.
+      for (const key of [
+        'agentGuides.pi.modelsNote',
+        'agentGuides.openclaw.modelsNote',
+      ]) {
+        assert.ok(map.get(key)?.trim(), `${code} missing/empty ${key}`)
+      }
+      for (const [key, value] of map) {
+        if (!key.startsWith('agentGuides.openclaw.')) continue
+        assert.equal(
+          /openclaw-provider@|\b0\.1\.\d/.test(value),
+          false,
+          `${code} ${key} must not pin a package version`
+        )
+        assert.equal(
+          value.includes('VANCINE_MODEL') || value.includes('VANCINE_BASE_URL'),
+          false,
+          `${code} ${key} must not carry the legacy manual env config`
+        )
+        for (const banned of [
+          'official OpenClaw provider',
+          'official Pi provider',
+          'permanently free',
+          'guaranteed cheapest',
+        ]) {
+          assert.equal(
+            value.toLowerCase().includes(banned),
+            false,
+            `${code} ${key} must not claim "${banned}"`
+          )
+        }
       }
     }
   })

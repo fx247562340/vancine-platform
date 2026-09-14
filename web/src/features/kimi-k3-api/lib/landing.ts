@@ -574,7 +574,7 @@ export const KIMI_K3_MEASURED_USAGE_EVIDENCE: KimiK3MeasuredUsageEvidence = {
  * i18n keys of the mandatory public caveats shown alongside the evidence.
  * They bound what the historical run may be read as: a single controlled
  * run, no future prediction, no price or credit commitment, no upstream
- * cost disclosure, and no official-provider claim.
+ * cost disclosure, and the live verification scope.
  */
 export const KIMI_K3_EVIDENCE_LIMITATION_KEYS = [
   'This is a single historical controlled run. It does not predict the outcome of future requests.',
@@ -583,7 +583,6 @@ export const KIMI_K3_EVIDENCE_LIMITATION_KEYS = [
   'No free-tier or credit amount is guaranteed to complete the same task.',
   'Upstream provider costs are not shown or implied.',
   'Only OpenCode v1.18.3 has a live coding-agent verification so far. Cline and Roo Code configurations are provided in the starter repository but have not been independently live-verified.',
-  'Vancine is an independent third-party API aggregation platform, not an official Moonshot AI or Kimi service.',
 ] as const
 
 // ---------------------------------------------------------------------------
@@ -615,11 +614,6 @@ export const KIMI_K3_FAQ: readonly KimiK3FaqEntry[] = [
       'The published API probe requested kimi-k3 and received kimi-k3 with HTTP 200. That is a single historical check, not a guarantee for every future request.',
   },
   {
-    questionKey: 'Is Vancine an official Moonshot AI or Kimi service?',
-    answerKey:
-      'Vancine is an independent third-party API aggregation platform, not an official Moonshot AI or Kimi service.',
-  },
-  {
     questionKey: 'What has actually been tested?',
     answerKey:
       'A compatibility probe returned HTTP 200 for kimi-k3, and one controlled OpenCode v1.18.3 run completed tool calls and passed tests. Cline and Roo Code have configuration notes only, not independent live evidence. The run does not predict future requests.',
@@ -647,7 +641,6 @@ export const KIMI_K3_FAQ: readonly KimiK3FaqEntry[] = [
  */
 export const KIMI_K3_I18N_KEYS = [
   'Kimi K3 API pricing and OpenRouter comparison',
-  'Vancine is an independent third-party API platform, not an official Moonshot AI or Kimi service. This page compares dated public prices, shows OpenAI-compatible examples, and publishes existing test evidence. Rates, availability, and behavior are not guaranteed to match the official service.',
   'Create an API key',
   'Open Playground',
   'Compare prices',

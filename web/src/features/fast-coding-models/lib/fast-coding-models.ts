@@ -426,11 +426,6 @@ export const FAST_CODING_MODELS_FAQ: readonly FastCodingModelsFaqEntry[] = [
       'Prices and capabilities on this page are read live from the Vancine pricing API, the same source as the model square. Prices can change at any time.',
   },
   {
-    questionKey: 'Are these models officially partnered with Vancine?',
-    answerKey:
-      'No. Vancine is not the official vendor, partner, or built-in provider of these model labs or of coding-agent tools such as OpenCode, Cline, or Roo Code. Vancine provides access through one OpenAI-compatible API.',
-  },
-  {
     questionKey: 'Where can I configure OpenCode, Cline, or Roo Code?',
     answerKey:
       'Follow the Coding Agent Integration Center for the Base URL, API key, and model setup of each tool.',

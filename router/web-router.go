@@ -47,13 +47,15 @@ var publicSitemapPaths = []string{
 	"/pricing",
 	"/docs",
 	// Agent Integration Center: the hub plus one canonical setup guide
-	// per first-batch coding agent. Lowercase paths only; no case,
-	// version or tool aliases may be added without an explicit product
-	// decision.
+	// per coding agent (OpenCode, Cline, Roo Code, Pi, OpenClaw).
+	// Lowercase paths only; no case, version or tool aliases may be
+	// added without an explicit product decision.
 	"/docs/agents",
 	"/docs/agents/opencode",
 	"/docs/agents/cline",
 	"/docs/agents/roo-code",
+	"/docs/agents/pi",
+	"/docs/agents/openclaw",
 	// Media model detail pages. The exact set is mirrored in the
 	// /llms.txt handler so crawlers and LLM agents see the same
 	// canonical surface. A retired model is removed from both

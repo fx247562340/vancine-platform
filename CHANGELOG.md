@@ -1,3 +1,22 @@
+## 2.8.0 - 2026-09-14
+
+### Provider 接入指南
+
+- 为 Pi 和 OpenClaw 增加独立接入指南，提供准确的安装、鉴权、模型选择和常见错误处理流程。
+- Pi 指南说明目录刷新、缓存与首次失败回退边界；OpenClaw 指南说明动态验证模型交集、精确兼容版本和零凭据限制。
+- 统一公开的 npm、GitHub 与 ClawHub 发布入口，并明确两个 Provider 均为 Vancine 维护的社区插件。
+
+### 文档发现与转化
+
+- 将 Pi 和 OpenClaw 指南加入 Agent Integration、文档侧栏、站内搜索、服务端 metadata、sitemap 和 llms.txt。
+- 每个 Provider 指南保留一个主要注册或 API Key 转化入口，并复用现有全局 first-touch 获客归因。
+- 为新页面补充固定 canonical、Open Graph、Twitter metadata 和未知路径 noindex 契约。
+
+### 国际化与验证
+
+- 完成简体中文、繁体中文、英语、法语、俄语、日语和越南语内容。
+- 增加安装命令、目录边界、CTA 层级、路由、SEO、搜索和归因回归测试。
+
 ## 2.7.1 - 2026-09-11
 
 ### GLM-5.3 Flash 价格对比

@@ -270,14 +270,21 @@
         },
         "rooCode": {
           "protocol": "Roo Code 内の OpenAI 互換プロバイダー"
+        },
+        "pi": {
+          "protocol": "Pi コーディングエージェント用の Provider プラグイン。npm からインストールします。"
+        },
+        "openclaw": {
+          "protocol": "OpenClaw 用のコミュニティ Provider プラグイン。npm または ClawHub からインストールします。"
         }
       },
       "cardBoundary": "このツールの OpenAI 互換接続設定は準備完了です。専用ガイドの手順で Vancine に接続できます。"
     },
     "cli": {
       "codex": "Codex公式設定は~/.codex/config.tomlを使用します。現在のドキュメントはResponsesプロトコルを示しているため、wire_apiをresponsesに設定します。",
-      "openclaw": "OpenClawスタイルのクライアントは通常、OpenAI互換のベースURL、APIキー、モデル名が必要です。フィールド名はディストリビューションによって異なります。OpenAI Compatibleを選択してください。",
-      "hermes": "Hermes AgentのOpenAI互換プラグインは通常、config.yamlまたは環境変数でbase_urlとapi_keyを設定します。インストール済みプラグインのフィールドを使用してください。"
+      "openclaw": "OpenClaw は手動のベース URL 設定ではなく、Vancine が保守するコミュニティ Provider プラグイン経由で接続します。インストールと認証は専用ガイドを参照してください。",
+      "hermes": "Hermes AgentのOpenAI互換プラグインは通常、config.yamlまたは環境変数でbase_urlとapi_keyを設定します。インストール済みプラグインのフィールドを使用してください。",
+      "openclawGuideLink": "OpenClaw プロバイダーガイドを開く"
     },
     "gui": {
       "cursor": {
@@ -396,6 +403,82 @@
       "step3": "Base URL に {{baseUrl}} を設定します。",
       "step4": "Vancine API キーを入力します。",
       "step5": "glm-5.1 などのテキストモデル ID を入力して保存し、簡単なメッセージを送って接続を確認します。"
+    },
+    "pi": {
+      "pageTitle": "Pi セットアップガイド",
+      "valueProp": "pi-provider-vancine 拡張機能で Pi コーディングエージェントからご自身の Vancine API Key を利用します。モデルファイルの手動編集は不要です。",
+      "npmLabel": "npm パッケージ",
+      "githubLabel": "GitHub リポジトリ",
+      "step1": "Provider 拡張機能をインストールします：",
+      "step2": "Pi を起動します。",
+      "step3": "ログインします：",
+      "step4": "Vancine を選択し、ご自身の Vancine API Key を貼り付けます。キーは Pi の資格情報ストアに保存されます。",
+      "step5": "モデル一覧を開きます：",
+      "step6": "Vancine プロバイダー配下のモデルを選びます。",
+      "step7": "Vancine を通じて最初のリクエストを送信します。",
+      "catalogNote": "モデル一覧は Vancine カタログから提供されます。Pi は最大 4 時間ごとに更新し、以降の更新に失敗した場合は最新の成功キャッシュ（空の一覧を含む）を保持します。小さなオフラインフォールバックが使われるのは、初回の更新に失敗してキャッシュがまだない場合のみです。カタログはリアルタイムを保証せず、更新が成功すると提供終了モデルは消え、フォールバックでは復活しません。",
+      "notOfficial": "pi-provider-vancine は Vancine が公開・保守するコミュニティ拡張です。Pi、Earendil Works、またはそのメンテナーと Vancine との公式な協力、認証、承認を意味しません。",
+      "errors": {
+        "providerMissing": {
+          "symptom": "/login に Vancine プロバイダーが表示されません。",
+          "fix": "pi list でパッケージのインストールを確認し、インストール後に Pi を再起動し、pi config で拡張機能が無効化されていないか確認してください。"
+        },
+        "apiKey": {
+          "symptom": "API キーが拒否されます（401 / 無効な API キー）。",
+          "fix": "Vancine アカウントでキーを作成またはコピーし、/login を再実行して Vancine を選択してください。拡張機能がエラーにキー全体を表示することはありません。"
+        },
+        "modelMissing": {
+          "symptom": "モデル ID が存在しないか、提供終了になりました。",
+          "fix": "カタログには現在利用可能な互換モデルが載っています。カタログの更新に成功すると、提供終了モデルは消え、フォールバックで復活しません。/model または Models ページから現在の ID を選んでください。"
+        },
+        "catalogUnavailable": {
+          "symptom": "モデルカタログが一時的に利用できないか、/model が空のままです。",
+          "fix": "Pi は最後に成功したカタログ（キャッシュされた空の一覧を含む）を保持します。キャッシュがない初回起動では少数のオフラインスナップショットにフォールバックします。ネットワークが復旧したら再試行してください。"
+        }
+      },
+      "modelsNote": "Pi の /model に表示される Vancine モデルからのみ選択してください。Models と Pricing のページは参考情報であり、そこに表示されるモデルがこの一覧に現れるとは限りません。",
+      "catalogLabel": "Pi パッケージカタログ"
+    },
+    "openclaw": {
+      "pageTitle": "OpenClaw セットアップガイド",
+      "valueProp": "@vancine/openclaw-provider コミュニティプラグインで OpenClaw からご自身の Vancine API Key を利用し、動的に検証されたモデル一覧を使えます。",
+      "npmLabel": "npm パッケージ",
+      "clawhubLabel": "ClawHub レジストリ",
+      "githubLabel": "GitHub リポジトリ",
+      "compatNote": "公開済みプラグインと互換性のある OpenClaw リリース：現在リリースされているプラグインは OpenClaw 2026.9.4 を要求し、その正確なバージョンに対してビルド・テスト・互換性を宣言しています。",
+      "installChoice": "インストール元は npm と ClawHub の 2 種類あります。どちらか一方だけを選び、両方は入れないでください。",
+      "step1": "npm レジストリからインストールします：",
+      "step2": "または ClawHub からインストールします（npm 手順とどちらか一方のみを選びます）：",
+      "step3": "OpenClaw を初期化し、対話フローで Vancine（vancine-api-key）を選び、シークレットの入力指示でご自身の Vancine API Key を入力します：",
+      "step4": "キーがアクセスできるモデルを一覧して検証します：",
+      "step5": "検証済みの Vancine モデルで会話を始めます。",
+      "catalogNote": "モデル一覧は静的な全カタログではありません。プラグインは公開 Vancine カタログを取得した後、各候補を /v1/models でキーと照合して検証し、アカウントが実際に利用できるものだけを公開します。",
+      "notOfficial": "@vancine/openclaw-provider は Vancine が保守するコミュニティ Provider プラグインです。OpenClaw や ClawHub の公式・内蔵・認証済みプロバイダーではなく、収録されていることも OpenClaw や ClawHub の承認を意味しません。",
+      "errors": {
+        "pluginMissing": {
+          "symptom": "プラグインが読み込まれていないか、インストール後に vancine モデルが表示されません。",
+          "fix": "openclaw plugins inspect vancine でプラグインの状態を確認します。インストール後は OpenClaw CLI プロセスを再起動して、新しいプラグインを読み込ませてください。"
+        },
+        "authFailed": {
+          "symptom": "認証に失敗する（401/403）、またはキーが拒否されます。",
+          "fix": "Vancine アカウントで新しいキーを作成し、openclaw onboard を再実行して、シークレットの入力指示で新しいキーを入力してください。キーをコマンドラインに置かないでください。キーは vancine.com にのみ送信されます。"
+        },
+        "noModels": {
+          "symptom": "キーで利用できる Vancine モデルが表示されません。",
+          "fix": "カタログ取得や /v1/models 検証が失敗した場合、プラグインは何も公開しません。ネットワークやキーが復旧したら --refresh を付けてモデル一覧手順を再実行してください。"
+        },
+        "modelRefused": {
+          "symptom": "提供終了または未認可のモデルが拒否されます。",
+          "fix": "プラグインがキーの検証済みカタログ状態を持っている間、不明・提供終了・他アカウントのモデル ID は上流に送られずに拒否されます。検証済みリストからモデルを選んでください。提供終了モデルは、カタログが再びキーに提供した場合にのみ再表示されます。"
+        },
+        "doubleInstall": {
+          "symptom": "npm と ClawHub の両方からプラグインがインストールされています。",
+          "fix": "2 つのソースは同じプラグインです。どちらか一方を残してもう一方を削除し、競合が続く場合のみ再インストールしてください。"
+        }
+      },
+      "zeroCredentialNote": "正確な境界：プラグインが現在の資格情報の検証済みカタログ状態を持っている間、未知のモデルは確実に拒否されます。資格情報がまったくない場合、OpenClaw コアが手動設定のモデルを未認証のまま試行し、上流で 401 で拒否される可能性があります。",
+      "limitationsNote": "範囲の注記：公開済みプラグインは、OpenClaw の全バージョン・ワークフロー・マルチモーダルリクエスト種別にわたってはまだ検証されていません。最新の互換性についてはプラグインの README を参照してください。",
+      "modelsNote": "openclaw models list --provider vancine --refresh --json が返す検証済みモデルからのみ選択してください。Models と Pricing のページは参考情報であり、そこに表示されるモデルがキーに対して検証されるとは限りません。"
     }
   },
   "faq": {

@@ -31,7 +31,16 @@ import viDocs from '../i18n/locales/vi.json'
 import zhCNDocs from '../i18n/locales/zhCN.json'
 import zhTWDocs from '../i18n/locales/zhTW.json'
 import {
+  OPENCLAW_INSTALL_CLAWHUB_COMMAND,
+  OPENCLAW_INSTALL_NPM_COMMAND,
+  PI_PROVIDER_INSTALL_COMMAND,
   VANCINE_MODELS_DEV_PROVIDER_URL,
+  VANCINE_OPENCLAW_PROVIDER_CLAWHUB_URL,
+  VANCINE_OPENCLAW_PROVIDER_GITHUB_URL,
+  VANCINE_OPENCLAW_PROVIDER_NPM_URL,
+  VANCINE_PI_PROVIDER_CATALOG_URL,
+  VANCINE_PI_PROVIDER_GITHUB_URL,
+  VANCINE_PI_PROVIDER_NPM_URL,
   type DocsAgentToolKey,
 } from '../lib/agents'
 import DocsAgentDetailPage from '../pages/agent-detail'
@@ -157,8 +166,11 @@ describe('OpenCode Models.dev catalog proof', () => {
     ).toBeInTheDocument()
     expect(container.textContent).not.toContain('official supplier')
     expect(container.textContent).not.toMatch(/is an official partner/)
-    expect(container.textContent).toContain(
-      'does not imply an official partnership or endorsement by OpenCode'
+    // Models.dev stays presented as the real catalog source; the OpenCode
+    // relationship disclaimer itself is no longer rendered.
+    expect(container.textContent).toContain('Models.dev')
+    expect(container.textContent).not.toMatch(
+      /does not imply an official partnership or endorsement/
     )
   })
 
@@ -265,11 +277,6 @@ describe('OpenCode /connect primary path', () => {
     )
     expect(container.textContent).not.toContain('"limit"')
     expect(container.textContent).not.toContain('"context"')
-    expect(
-      screen.getByText(
-        /does not imply an official partnership or endorsement by OpenCode/
-      )
-    ).toBeInTheDocument()
     expect(container.textContent).not.toContain(
       'built-in integration of OpenCode'
     )
@@ -404,15 +411,380 @@ describe('Guide models, troubleshooting and CTAs', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('states that Vancine is not an official provider or partner', async () => {
-    renderGuide('cline')
+  it.each(['opencode', 'cline', 'rooCode', 'pi', 'openclaw'] as const)(
+    '%s guide renders no relationship disclaimer and no false official claim',
+    async (tool) => {
+      const { container } = renderGuide(tool)
 
-    await waitForHeading(/Cline setup guide/)
-    expect(
-      screen.getByText(
-        /not an official provider, partner or built-in integration of Cline/
+      await waitForHeading(/setup guide/)
+      const text = container.textContent ?? ''
+      // The removed relationship-disclaimer sentences: the product decision is
+      // to publish no distancing copy at all and simply never assert a false
+      // relationship.
+      expect(text).not.toMatch(
+        /not an official provider, partner or built-in integration/
       )
+      expect(text).not.toMatch(
+        /does not imply an official partnership or endorsement/
+      )
+      expect(text).not.toMatch(/does not constitute official cooperation/)
+      expect(text).not.toMatch(/is not an official, built-in, or certified/)
+      // No replacement distancing wording may appear either, in any language.
+      expect(text).not.toMatch(/不构成官方|不構成官方|官方合作|官方背書/)
+      // And the page still must never claim a relationship it does not have.
+      expect(text).not.toMatch(/is an official partner/i)
+      expect(text).not.toMatch(/official supplier/i)
+      expect(text).not.toMatch(
+        /official (?:Pi|OpenClaw|OpenCode|Cline|Roo Code) provider/i
+      )
+    }
+  )
+
+  it('keeps the OpenClaw technical boundary callouts without any relationship disclaimer', async () => {
+    const { container } = renderGuide('openclaw')
+
+    await waitForHeading(/OpenClaw setup guide/)
+    const text = container.textContent ?? ''
+    // Zero-credential boundary and compatibility-scope notes stay public.
+    expect(text).toContain('verified catalog state for the current credential')
+    expect(text).toContain(
+      'has not yet been exercised across the full range of OpenClaw versions'
+    )
+    expect(text).not.toMatch(/is not an official, built-in, or certified/)
+  })
+})
+
+describe('Provider plugin guides (Pi, OpenClaw)', () => {
+  it.each([
+    ['pi', 'Pi setup guide'],
+    ['openclaw', 'OpenClaw setup guide'],
+  ] as const)(
+    '%s renders prerequisites, steps, models, errors and the CTA sections',
+    async (tool, title) => {
+      renderGuide(tool)
+
+      await waitForHeading(new RegExp(title))
+      expect(screen.getByText('Prerequisites')).toBeInTheDocument()
+      expect(screen.getByText('Step-by-step setup')).toBeInTheDocument()
+      expect(screen.getByText('Recommended models')).toBeInTheDocument()
+      expect(screen.getByText('Common errors')).toBeInTheDocument()
+      expect(screen.getByText('Get started')).toBeInTheDocument()
+      // Provider guides never show the manual Base URL / config sections.
+      expect(
+        screen.queryByRole('heading', { name: 'Vancine Base URL' })
+      ).not.toBeInTheDocument()
+      expect(
+        screen.queryByRole('heading', { name: 'Configuration example' })
+      ).not.toBeInTheDocument()
+    }
+  )
+
+  it('pi shows the exact unversioned install command and login/model flow', async () => {
+    const { container } = renderGuide('pi')
+
+    await waitForHeading(/Pi setup guide/)
+    expect(screen.getByText(PI_PROVIDER_INSTALL_COMMAND)).toBeInTheDocument()
+    // The published flow: install → /login → choose Vancine → /model.
+    const stepsList = container.querySelector('ol')
+    expect(stepsList?.textContent).toContain('/login')
+    expect(stepsList?.textContent).toContain('/model')
+    expect(stepsList?.textContent).toContain('Choose Vancine')
+    expect(screen.getAllByText('Prerequisites').length).toBeGreaterThan(0)
+    // Never a pinned version in the displayed install command.
+    expect(container.textContent).not.toContain('pi-provider-vancine@')
+  })
+
+  it('openclaw shows both install sources, onboarding and the verified-list step', async () => {
+    const { container } = renderGuide('openclaw')
+
+    await waitForHeading(/OpenClaw setup guide/)
+    expect(screen.getByText(OPENCLAW_INSTALL_NPM_COMMAND)).toBeInTheDocument()
+    expect(
+      screen.getByText(OPENCLAW_INSTALL_CLAWHUB_COMMAND)
     ).toBeInTheDocument()
+    const stepsList = container.querySelector('ol')
+    expect(stepsList?.textContent).toContain('openclaw onboard')
+    expect(stepsList?.textContent).toContain('openclaw models list')
+    // Onboarding enters the key at the interactive secret prompt; no CLI
+    // flag may put the key on the command line.
+    expect(stepsList?.textContent).not.toContain('--vancine-api-key')
+    // The legacy manual env config must never reappear on the guide.
+    expect(container.textContent).not.toContain('VANCINE_MODEL')
+    expect(container.textContent).not.toContain('VANCINE_BASE_URL')
+    // The compatibility requirement names the exact required OpenClaw
+    // version on the page.
+    expect(container.textContent).toContain('2026.9.4')
+  })
+
+  it.each([
+    ['pi', VANCINE_PI_PROVIDER_NPM_URL, VANCINE_PI_PROVIDER_GITHUB_URL],
+    [
+      'openclaw',
+      VANCINE_OPENCLAW_PROVIDER_NPM_URL,
+      VANCINE_OPENCLAW_PROVIDER_GITHUB_URL,
+    ],
+  ] as const)(
+    '%s links its npm, GitHub (and the exact ClawHub package page) as external links',
+    async (tool, npmUrl, githubUrl) => {
+      const { container } = renderGuide(tool)
+
+      await waitForHeading(
+        new RegExp(`${tool === 'pi' ? 'Pi' : 'OpenClaw'} setup guide`)
+      )
+      const links = [...container.querySelectorAll('a')].map((a) =>
+        a.getAttribute('href')
+      )
+      expect(links).toContain(npmUrl)
+      expect(links).toContain(githubUrl)
+      if (tool === 'pi') {
+        // Pi's own catalog page is a third, discovery-only source.
+        expect(links).toContain(VANCINE_PI_PROVIDER_CATALOG_URL)
+      }
+      if (tool === 'openclaw') {
+        // The exact package page, never the bare ClawHub homepage.
+        expect(links).toContain(VANCINE_OPENCLAW_PROVIDER_CLAWHUB_URL)
+        expect(VANCINE_OPENCLAW_PROVIDER_CLAWHUB_URL).toBe(
+          'https://clawhub.ai/vancine/plugins/openclaw-provider'
+        )
+        expect(links).not.toContain('https://clawhub.ai/')
+      }
+    }
+  )
+
+  it('orders the Pi package sources catalog, npm, then GitHub, and keeps the npm install command', async () => {
+    const { container } = renderGuide('pi')
+
+    await waitForHeading(/Pi setup guide/)
+    // The three source links render as one paragraph in this order: Pi's
+    // catalog entry first, then the actual npm distribution, then the repo.
+    const sourceRow = container.querySelector(
+      `a[href="${VANCINE_PI_PROVIDER_CATALOG_URL}"]`
+    )?.parentElement
+    expect(sourceRow).not.toBeNull()
+    expect(
+      [...(sourceRow?.querySelectorAll('a') ?? [])].map((a) =>
+        a.getAttribute('href')
+      )
+    ).toEqual([
+      VANCINE_PI_PROVIDER_CATALOG_URL,
+      VANCINE_PI_PROVIDER_NPM_URL,
+      VANCINE_PI_PROVIDER_GITHUB_URL,
+    ])
+    // The catalog lists the package; installation still comes from npm, so the
+    // published command must stay the unversioned npm: form.
+    expect(PI_PROVIDER_INSTALL_COMMAND).toBe(
+      'pi install npm:pi-provider-vancine'
+    )
+    expect(screen.getByText(PI_PROVIDER_INSTALL_COMMAND)).toBeInTheDocument()
+    // No fixed package version may be advertised anywhere on the guide.
+    expect(container.textContent).not.toMatch(/\b0\.1\.\d/)
+  })
+
+  it('keeps the OpenClaw source links unchanged: npm, ClawHub, then GitHub', async () => {
+    const { container } = renderGuide('openclaw')
+
+    await waitForHeading(/OpenClaw setup guide/)
+    const sourceRow = container.querySelector(
+      `a[href="${VANCINE_OPENCLAW_PROVIDER_NPM_URL}"]`
+    )?.parentElement
+    expect(sourceRow).not.toBeNull()
+    expect(
+      [...(sourceRow?.querySelectorAll('a') ?? [])].map((a) =>
+        a.getAttribute('href')
+      )
+    ).toEqual([
+      VANCINE_OPENCLAW_PROVIDER_NPM_URL,
+      VANCINE_OPENCLAW_PROVIDER_CLAWHUB_URL,
+      VANCINE_OPENCLAW_PROVIDER_GITHUB_URL,
+    ])
+    // OpenClaw has no Pi catalog entry and must not gain one.
+    expect(
+      container.querySelector(`a[href="${VANCINE_PI_PROVIDER_CATALOG_URL}"]`)
+    ).toBeNull()
+  })
+
+  it.each(['pi', 'openclaw'] as const)(
+    '%s scopes model choice to its own list instead of the generic all-models line',
+    async (tool) => {
+      const { container } = renderGuide(tool)
+
+      await waitForHeading('Recommended models')
+      // The shared "use any Vancine text (chat) model" line must not render
+      // on provider guides.
+      expect(container.textContent).not.toContain(
+        'Use any Vancine text (chat) model'
+      )
+      if (tool === 'pi') {
+        expect(container.textContent).toContain('/model')
+      } else {
+        expect(container.textContent).toContain(
+          'openclaw models list --provider vancine --refresh --json'
+        )
+      }
+    }
+  )
+
+  it.each(['pi', 'openclaw'] as const)(
+    '%s shows exactly one primary-colored CTA (anonymous → /sign-up) and reference links stay secondary',
+    async (tool) => {
+      const { container } = renderGuide(tool)
+
+      await waitForHeading('Get started')
+      // Visual hierarchy: exactly ONE bg-primary anchor on the whole page.
+      const primaryLinks = [...container.querySelectorAll('a.bg-primary')]
+      expect(primaryLinks).toHaveLength(1)
+      expect(primaryLinks[0]?.getAttribute('href')).toBe('/sign-up')
+      // Models and Pricing are plain secondary links without bg-primary.
+      for (const href of ['/docs/models', '/pricing']) {
+        for (const link of container.querySelectorAll(`a[href="${href}"]`)) {
+          expect(link.className).not.toContain('bg-primary')
+        }
+      }
+    }
+  )
+
+  it.each(['pi', 'openclaw'] as const)(
+    '%s shows exactly one primary-colored CTA when logged in (→ /keys)',
+    async (tool) => {
+      useAuthStore.setState({
+        auth: {
+          ...useAuthStore.getState().auth,
+          user: { id: 1, username: 'dev', role: 1 },
+        },
+      })
+      const { container } = renderGuide(tool)
+
+      await waitForHeading('Get started')
+      const primaryLinks = [...container.querySelectorAll('a.bg-primary')]
+      expect(primaryLinks).toHaveLength(1)
+      expect(primaryLinks[0]?.getAttribute('href')).toBe('/keys')
+      expect(
+        screen.queryByRole('link', { name: 'Create a free account' })
+      ).not.toBeInTheDocument()
+    }
+  )
+
+  it.each(['opencode', 'cline', 'rooCode'] as const)(
+    '%s keeps its primary-styled Models button and auxiliary Pricing link',
+    async (tool) => {
+      const { container } = renderGuide(tool)
+
+      await waitForHeading('Recommended models')
+      // Manual-config guides keep the pre-existing primary-styled Models
+      // button visible to users.
+      const modelsLink = [
+        ...container.querySelectorAll('a[href="/docs/models"]'),
+      ]
+      expect(modelsLink.length).toBeGreaterThanOrEqual(1)
+      for (const link of modelsLink) {
+        expect(link.className).toContain('bg-primary')
+      }
+      // Pricing stays auxiliary.
+      for (const link of container.querySelectorAll('a[href="/pricing"]')) {
+        expect(link.className).not.toContain('bg-primary')
+      }
+    }
+  )
+
+  it('logged-in users get the keys CTA on the OpenClaw guide', async () => {
+    useAuthStore.setState({
+      auth: {
+        ...useAuthStore.getState().auth,
+        user: { id: 1, username: 'dev', role: 1 },
+      },
+    })
+    renderGuide('openclaw')
+
+    await waitForHeading('Get started')
+    expect(
+      screen.getByRole('link', { name: 'Manage your API keys' })
+    ).toHaveAttribute('href', '/keys')
+    expect(
+      screen.queryByRole('link', { name: 'Create a free account' })
+    ).not.toBeInTheDocument()
+  })
+
+  it.each(['pi', 'openclaw'] as const)(
+    '%s keeps the technical boundaries and shows no official/built-in claim',
+    async (tool) => {
+      const { container } = renderGuide(tool)
+
+      await waitForHeading(/setup guide/)
+      const text = container.textContent ?? ''
+      if (tool === 'openclaw') {
+        // The accurate zero-credential boundary must be present.
+        expect(text).toContain(
+          'verified catalog state for the current credential'
+        )
+      }
+      // Banned claims must never appear.
+      expect(text).not.toMatch(/official Pi provider/i)
+      expect(text).not.toMatch(/official OpenClaw provider/i)
+      expect(text).not.toMatch(/permanently free/i)
+      expect(text).not.toMatch(/Live-verified/)
+      expect(text).not.toMatch(/all models/i)
+    }
+  )
+
+  it.each(['pi', 'openclaw'] as const)(
+    '%s covers provider-specific troubleshooting entries',
+    async (tool) => {
+      renderGuide(tool)
+
+      await waitForHeading('Common errors')
+      if (tool === 'pi') {
+        expect(
+          screen.getByText('The Vancine provider does not appear in /login.')
+        ).toBeInTheDocument()
+        expect(
+          screen.getByText('The API key is rejected (401 / invalid API key).')
+        ).toBeInTheDocument()
+        expect(
+          screen.getByText('A model id is missing or was delisted.')
+        ).toBeInTheDocument()
+        expect(
+          screen.getByText(
+            'The model catalog is temporarily unavailable or /model stays empty.'
+          )
+        ).toBeInTheDocument()
+      } else {
+        expect(
+          screen.getByText(
+            'The plugin is not loaded or no vancine models appear after install.'
+          )
+        ).toBeInTheDocument()
+        expect(
+          screen.getByText(
+            'Authentication fails (401/403) or the key is rejected.'
+          )
+        ).toBeInTheDocument()
+        expect(
+          screen.getByText('No usable Vancine models appear for your key.')
+        ).toBeInTheDocument()
+        expect(
+          screen.getByText('A delisted or unauthorized model is refused.')
+        ).toBeInTheDocument()
+        expect(
+          screen.getByText(
+            'Both the npm and the ClawHub copies of the plugin are installed.'
+          )
+        ).toBeInTheDocument()
+      }
+    }
+  )
+
+  it('provider guide pages keep the fixed query-free metadata while mounted', async () => {
+    renderGuide('pi')
+
+    await waitForHeading(/Pi setup guide/)
+    await waitFor(() =>
+      expect(document.title).toBe(
+        'Pi Setup Guide for the Vancine API | Vancine'
+      )
+    )
+    expect(
+      document.head.querySelector('link[rel="canonical"]')?.getAttribute('href')
+    ).toBe('https://vancine.com/docs/agents/pi')
   })
 })
 

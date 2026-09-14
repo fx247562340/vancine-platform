@@ -32,11 +32,24 @@ import { Route as DocsSlugRouteImport } from '@/routes/docs/$slug'
 import { Route as DocsAgentsSplatRouteImport } from '@/routes/docs/agents/$'
 import { Route as DocsAgentsClineRouteImport } from '@/routes/docs/agents/cline'
 import { Route as DocsAgentsIndexRouteImport } from '@/routes/docs/agents/index'
+import { Route as DocsAgentsOpenclawRouteImport } from '@/routes/docs/agents/openclaw'
 import { Route as DocsAgentsOpencodeRouteImport } from '@/routes/docs/agents/opencode'
+import { Route as DocsAgentsPiRouteImport } from '@/routes/docs/agents/pi'
 import { Route as DocsAgentsRooCodeRouteImport } from '@/routes/docs/agents/roo-code'
 import { Route as DocsIndexRouteImport } from '@/routes/docs/index'
 
 import { initTestI18n } from './test-i18n'
+
+// The acquisition module is mocked so the test can prove the guide pages
+// never issue their own page-level attribution call: landing_view is owned
+// by the global AcquisitionBootstrap in __root.tsx (not mounted here).
+vi.mock('@/lib/acquisition', async (importActual) => {
+  const actual = await importActual<typeof import('@/lib/acquisition')>()
+  return {
+    ...actual,
+    captureLandingView: vi.fn().mockResolvedValue(undefined),
+  }
+})
 
 // Isolate the Docs layout from the full site header/footer.
 vi.mock('@/components/layout', async (importActual) => {
@@ -92,6 +105,16 @@ const TestDocsAgentsRooCodeRoute = DocsAgentsRooCodeRouteImport.update({
   path: '/docs/agents/roo-code',
   getParentRoute: () => testRootRoute,
 } as never)
+const TestDocsAgentsPiRoute = DocsAgentsPiRouteImport.update({
+  id: '/docs/agents/pi',
+  path: '/docs/agents/pi',
+  getParentRoute: () => testRootRoute,
+} as never)
+const TestDocsAgentsOpenclawRoute = DocsAgentsOpenclawRouteImport.update({
+  id: '/docs/agents/openclaw',
+  path: '/docs/agents/openclaw',
+  getParentRoute: () => testRootRoute,
+} as never)
 const TestDocsAgentsSplatRoute = DocsAgentsSplatRouteImport.update({
   id: '/docs/agents/$',
   path: '/docs/agents/$',
@@ -104,6 +127,8 @@ const testRouteTree = testRootRoute.addChildren([
   TestDocsAgentsOpencodeRoute,
   TestDocsAgentsClineRoute,
   TestDocsAgentsRooCodeRoute,
+  TestDocsAgentsPiRoute,
+  TestDocsAgentsOpenclawRoute,
   TestDocsAgentsSplatRoute,
 ])
 
@@ -182,9 +207,17 @@ describe('Agent guide nested routes', () => {
       () =>
         expect(
           screen.getAllByRole('link', { name: 'View setup guide' })
-        ).toHaveLength(3),
+        ).toHaveLength(5),
       { timeout: 3000 }
     )
+  })
+
+  it.each([
+    ['/docs/agents/pi', /Pi setup guide/],
+    ['/docs/agents/openclaw', /OpenClaw setup guide/],
+  ] as const)('%s renders its own provider guide page', async (path, title) => {
+    renderDocsRouter(path)
+    await expectGuideFullyRendered(title)
   })
 
   it.each([
@@ -255,9 +288,12 @@ describe('Agent guide nested routes', () => {
       'opencode',
       'cline',
       'roo-code',
+      'pi',
+      'openclaw',
       'OpenCode',
       'Cline',
       'Roo Code',
+      'OpenClaw',
     ]) {
       expect(document.title).not.toContain(tool)
       expect(description ?? '').not.toContain(tool)
@@ -267,5 +303,56 @@ describe('Agent guide nested routes', () => {
         ?.getAttribute('content')
       expect(ogUrl ?? '').not.toContain(tool)
     }
+  })
+
+  it.each([
+    '/docs/agents/pi?utm_source=x&utm_medium=founder_post&utm_campaign=agent_provider_launch_202609&utm_content=openclaw_provider',
+    '/docs/agents/openclaw?utm_source=x&utm_medium=founder_post&utm_campaign=agent_provider_launch_202609&utm_content=openclaw_provider',
+  ])(
+    '%s keeps the query-free canonical while rendering the guide',
+    async (path) => {
+      renderDocsRouter(path)
+
+      // The page renders (UTM does not block the route)…
+      await waitFor(
+        () =>
+          expect(
+            document.querySelector('link[rel="canonical"]')
+          ).not.toBeNull(),
+        { timeout: 3000 }
+      )
+
+      // …and the canonical/og:url stay the fixed query-free URLs.
+      const canonicalPath = path.split('?')[0]
+      const wantCanonical = `https://vancine.com${canonicalPath}`
+      expect(
+        document.head
+          .querySelector('link[rel="canonical"]')
+          ?.getAttribute('href')
+      ).toBe(wantCanonical)
+      expect(
+        document.head
+          .querySelector('meta[property="og:url"]')
+          ?.getAttribute('content')
+      ).toBe(wantCanonical)
+      expect(document.title).not.toContain('utm_')
+    }
+  )
+
+  it('provider guide pages never issue a page-level acquisition touch', async () => {
+    const { captureLandingView: mockedTouch } =
+      await import('@/lib/acquisition')
+    const touchMock = mockedTouch as unknown as ReturnType<typeof vi.fn>
+    touchMock.mockClear()
+
+    const first = renderDocsRouter('/docs/agents/pi')
+    await expectGuideFullyRendered(/Pi setup guide/)
+    expect(touchMock).not.toHaveBeenCalled()
+    first.unmount()
+
+    const second = renderDocsRouter('/docs/agents/openclaw')
+    await expectGuideFullyRendered(/OpenClaw setup guide/)
+    expect(touchMock).not.toHaveBeenCalled()
+    second.unmount()
   })
 })
