@@ -30,8 +30,14 @@ import {
   SEEDANCE_CODE_EXAMPLES,
   SEEDANCE_CTA_EVENT,
   SEEDANCE_CTA_LOCATIONS,
+  SEEDANCE_DEVELOPER_GITHUB_URL,
+  SEEDANCE_DEVELOPER_N8N_URL,
+  SEEDANCE_DEVELOPER_POSTMAN_URL,
+  SEEDANCE_DEVELOPER_RESOURCES,
   SEEDANCE_FAQ,
   SEEDANCE_MODEL_ID,
+  SEEDANCE_RESOURCE_LOCATIONS,
+  SEEDANCE_RESOURCE_VALUES,
   SEEDANCE_SUBMIT_ENDPOINT,
 } from '../landing'
 
@@ -344,5 +350,115 @@ describe('analytics event enumeration', () => {
     assert.ok(questions.includes('async video generation work'))
     assert.ok(questions.includes('pricing work for video generation'))
     assert.ok(questions.includes('API key'))
+  })
+})
+
+describe('developer resource contract', () => {
+  test('exposes exactly github, postman and n8n as resource values', () => {
+    for (const value of ['github', 'postman', 'n8n'] as const) {
+      assert.ok(
+        (SEEDANCE_RESOURCE_VALUES as readonly string[]).includes(value),
+        `resource value ${value} must be enumerable`
+      )
+    }
+    assert.ok(
+      (SEEDANCE_RESOURCE_LOCATIONS as readonly string[]).includes(
+        'seedance_developer_resources'
+      )
+    )
+  })
+
+  test('ships the three verified destinations, in order, with stable ids', () => {
+    assert.deepEqual(
+      SEEDANCE_DEVELOPER_RESOURCES.map((resource) => [
+        resource.id,
+        resource.url,
+      ]),
+      [
+        ['github', SEEDANCE_DEVELOPER_GITHUB_URL],
+        ['postman', SEEDANCE_DEVELOPER_POSTMAN_URL],
+        ['n8n', SEEDANCE_DEVELOPER_N8N_URL],
+      ]
+    )
+  })
+
+  test('the destinations are the exact public artifacts', () => {
+    assert.equal(
+      SEEDANCE_DEVELOPER_GITHUB_URL,
+      'https://github.com/VancineAI/seedance-api-starter'
+    )
+    assert.equal(
+      SEEDANCE_DEVELOPER_POSTMAN_URL,
+      'https://documenter.getpostman.com/view/56666133/2sBY4Mv2Nf'
+    )
+    assert.equal(
+      SEEDANCE_DEVELOPER_N8N_URL,
+      'https://n8n.io/workflows/17157-generate-seedance-videos-with-the-vancine-doubao-api-using-polling/'
+    )
+  })
+
+  test('n8n copy only claims the public workflow page, not import or polling gates', () => {
+    const n8n = SEEDANCE_DEVELOPER_RESOURCES.find((r) => r.id === 'n8n')
+    assert.equal(n8n?.titleKey, 'n8n workflow template')
+    assert.equal(
+      n8n?.descriptionKey,
+      'Public n8n workflow page for generating Seedance videos with the Vancine Doubao API.'
+    )
+    const n8nCopy = `${n8n?.titleKey} ${n8n?.descriptionKey}`
+    assert.equal(
+      /importable/i.test(n8nCopy),
+      false,
+      'n8n copy must not claim importable'
+    )
+    assert.equal(
+      /bounded/i.test(n8nCopy),
+      false,
+      'n8n copy must not claim bounded polling'
+    )
+    assert.equal(
+      /explicit failure handling/i.test(n8nCopy),
+      false,
+      'n8n copy must not claim explicit failure handling'
+    )
+    assert.equal(/\breviewed\b/i.test(n8nCopy), false)
+    assert.equal(/\bapproved\b/i.test(n8nCopy), false)
+    assert.equal(/\blatest\b/i.test(n8nCopy), false)
+    assert.equal(/\bupdated\b/i.test(n8nCopy), false)
+  })
+
+  test('Postman points at documentation because the public Collection is gone', () => {
+    // Read-only audit: the old browse URL renders Postman's "Collection not
+    // found" state, so no runnable Collection link may be published here.
+    assert.ok(SEEDANCE_DEVELOPER_POSTMAN_URL.includes('/view/'))
+    assert.ok(!SEEDANCE_DEVELOPER_POSTMAN_URL.includes('/collection/'))
+    const postman = SEEDANCE_DEVELOPER_RESOURCES.find((r) => r.id === 'postman')
+    assert.equal(postman?.titleKey, 'Postman documentation')
+    assert.ok(!/collection/i.test(String(postman?.titleKey)))
+    assert.ok(
+      !/collection/i.test(String(postman?.descriptionKey)),
+      'Postman copy must not promise a runnable Collection'
+    )
+  })
+
+  test('every resource carries a title and description key, and no URL in the id', () => {
+    for (const resource of SEEDANCE_DEVELOPER_RESOURCES) {
+      assert.ok(resource.titleKey.length > 0)
+      assert.ok(resource.descriptionKey.length > 0)
+      assert.ok(!resource.id.includes('http'), 'analytics id must not be a URL')
+      assert.match(resource.url, /^https:\/\//)
+      assert.ok(
+        !resource.url.includes('?'),
+        'platform-side links stay free of query strings'
+      )
+    }
+  })
+
+  test('the model id the resources document is the page model id', () => {
+    // The starter kit and this page must not drift onto different defaults.
+    assert.equal(SEEDANCE_MODEL_ID, 'Doubao-Seedance-2.5')
+    assert.equal(
+      SEEDANCE_SUBMIT_ENDPOINT,
+      'https://vancine.com/v1/video/generations'
+    )
   })
 })

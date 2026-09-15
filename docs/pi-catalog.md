@@ -89,13 +89,15 @@ refresh. A brand-new model ID still needs trusted Pi metadata
 - Registry: verified Chat Completions metadata for current live candidates
   plus the original validation set (`hy4-preview`, `glm-5.3-flash`,
   `qwen3.8-flash`). Those are not a maximum; they are omitted when they are
-  not live. Three retired Pi catalog IDs are no longer in the registry, so
-  they stay out of the Pi catalog even while platform pricing still lists
-  them: `deepseek-v4-flash`, `deepseek-v4-pro`, and
-  `deepseek-v4-flash-vision-exp`. Their removal is scoped to this Pi agent
-  provider catalog; it does not mean the IDs were deleted from the platform,
-  its pricing list, or the routing layer.
-  `deepseek-flash` (display name `DeepSeek V4.1 Flash`) replaces them.
+  not live. Retired Pi catalog IDs are no longer in the registry, so they
+  stay out of the Pi catalog even while platform pricing still lists them:
+  `deepseek-v4-flash`, `deepseek-v4-pro`, `deepseek-v4-flash-vision-exp`,
+  and `deepseek-flash`. Their removal is scoped to this Pi agent provider
+  catalog; it does not mean the IDs were deleted from the platform, its
+  pricing list, or the routing layer.
+  The current Vancine Pi catalog ID is `deepseek-v4.1-flash` (display name
+  `DeepSeek V4.1 Flash`). `deepseek-flash` is a retired former ID and is
+  not a current alias.
 - Runtime output is every registry model that is currently enabled,
   token-priced, and advertised with a live OpenAI Chat Completions
   endpoint. Media, per-request, tiered/dynamic, and unverified rows are

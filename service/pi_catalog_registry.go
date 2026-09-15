@@ -75,7 +75,7 @@ var piCatalogRegistry = loadPiCatalogRegistry([]PiModelMeta{
 		Source:        "VANCINE-ACQ-PI-CATALOG-ENDPOINT-PHASE1 audited facts; pi-provider-vancine docs/model-facts.md (2026-08-31)",
 	},
 	{
-		ID:            "deepseek-flash",
+		ID:            "deepseek-v4.1-flash",
 		Name:          "DeepSeek V4.1 Flash",
 		Kind:          piCatalogKindChat,
 		API:           piCatalogAPI,
@@ -90,7 +90,7 @@ var piCatalogRegistry = loadPiCatalogRegistry([]PiModelMeta{
 		// DeepSeek adaptor passes them through untouched for ids without a
 		// deepseek-v4-* suffix.
 		SupportsReasoningEffort: common.GetPointer(true),
-		Source:                  "vancine-models-dev/models.dev/models/deepseek/deepseek-v4.1-flash.toml (accessed 2026-09-11; lab limit context 1000000 / output 384000, modalities input text+image, reasoning true). providers/deepseek/models/deepseek-flash.toml (accessed 2026-09-11) declares the reasoning controls for this model as toggle + effort low/high/max, interleaved field reasoning_content. supportsReasoningEffort=true rests on the request contract, not on suffix parsing: relaykit/dto/openai_request.go GeneralOpenAIRequest defines reasoning_effort and thinking, and relay/channel/deepseek/adaptor.go ConvertOpenAIRequest returns the request unchanged when ParseDeepSeekV4ThinkingSuffix does not match the model id, so an explicitly supplied reasoning_effort reaches the upstream without depending on the deepseek-v4-* suffix path.",
+		Source:                  "Lab base model remains deepseek/deepseek-v4.1-flash (vancine-models-dev/models.dev/models/deepseek/deepseek-v4.1-flash.toml, accessed 2026-09-11; lab limit context 1000000 / output 384000, modalities input text+image, reasoning true). Official DeepSeek host providers/deepseek/models/deepseek-flash.toml and DeepSeek API reasoning docs (accessed 2026-09-11) declare the reasoning controls for this lab model as toggle + effort low/high/max, interleaved field reasoning_content. Vancine current platform ID deepseek-v4.1-flash, live ModelRatio/CompletionRatio/CacheRatio, and openai Chat Completions endpoint were confirmed from production GET https://vancine.com/api/pricing at 2026-09-15T07:51:35Z. Planned Vancine Models.dev provider entry providers/vancine/models/deepseek-v4.1-flash.toml is local preparation only and is not yet in the public Models.dev API. supportsReasoningEffort=true rests on the request contract, not on suffix parsing: relaykit/dto/openai_request.go GeneralOpenAIRequest defines reasoning_effort and thinking, and relay/channel/deepseek/adaptor.go ConvertOpenAIRequest returns the request unchanged when ParseDeepSeekV4ThinkingSuffix does not match the model id, so an explicitly supplied reasoning_effort reaches the upstream without depending on the deepseek-v4-* suffix path.",
 	},
 	{
 		ID:            "glm-5.3",

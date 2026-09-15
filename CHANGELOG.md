@@ -1,3 +1,17 @@
+## 2.8.1 - 2026-09-15
+
+### 开发者资源入口
+
+- 在 Seedance API 页面增加 GitHub Starter、Postman 文档和 n8n 工作流三个开发者资源入口，集中提供同一异步视频工作流的代码、请求参考与自动化模板。
+- 为资源链接增加稳定的资源类型和页面位置归因字段，并保持站外目标地址不携带平台侧查询参数。
+- 完成简体中文、繁体中文、英语、法语、俄语、日语和越南语文案及组件、链接和归因契约测试。
+
+### Pi Provider 模型目录
+
+- 将 DeepSeek V4.1 Flash 的当前平台模型 ID 从已退役的 `deepseek-flash` 更新为 `deepseek-v4.1-flash`，旧 ID 不作为别名继续发布。
+- 保持 text + image、reasoning、1,000,000 上下文、384,000 最大输出和 `supportsReasoningEffort=true` 能力声明不变。
+- 模型价格继续由实时 Pricing 配置生成；当前公开配置对应输入 $0.24/MTok、输出 $0.96/MTok、缓存读取 $0.0048/MTok。
+
 ## 2.8.0 - 2026-09-14
 
 ### Provider 接入指南

@@ -49,7 +49,13 @@ export type SeedanceCtaLocation = (typeof SEEDANCE_CTA_LOCATIONS)[number]
 
 export const SEEDANCE_RESOURCE_EVENT = 'developer_resource_clicked'
 
-export const SEEDANCE_RESOURCE_VALUES = ['docs', 'pricing'] as const
+export const SEEDANCE_RESOURCE_VALUES = [
+  'docs',
+  'pricing',
+  'github',
+  'postman',
+  'n8n',
+] as const
 
 export type SeedanceResourceValue = (typeof SEEDANCE_RESOURCE_VALUES)[number]
 
@@ -58,6 +64,7 @@ export const SEEDANCE_RESOURCE_LOCATIONS = [
   'async_workflow',
   'quickstart',
   'final_cta',
+  'seedance_developer_resources',
 ] as const
 
 export type SeedanceResourceLocation =
@@ -450,6 +457,62 @@ export const SEEDANCE_FAQ: readonly SeedanceFaqEntry[] = [
 ]
 
 // ---------------------------------------------------------------------------
+// Developer resources (next step after the API example)
+// ---------------------------------------------------------------------------
+
+/**
+ * Outbound developer resources for the async video workflow. Every entry is a
+ * verifiable fact about an artifact that exists today: no partnership,
+ * certification, or built-in claim is made anywhere in the copy.
+ *
+ * The Postman entry is the published *documentation*, not a Collection. The
+ * public Collection behind the former "Run in Postman" button was unpublished
+ * (verified read-only: the rendered browse page returns Postman's "Collection
+ * not found" state), so the entry must not promise a runnable import.
+ */
+export const SEEDANCE_DEVELOPER_GITHUB_URL =
+  'https://github.com/VancineAI/seedance-api-starter'
+
+export const SEEDANCE_DEVELOPER_POSTMAN_URL =
+  'https://documenter.getpostman.com/view/56666133/2sBY4Mv2Nf'
+
+export const SEEDANCE_DEVELOPER_N8N_URL =
+  'https://n8n.io/workflows/17157-generate-seedance-videos-with-the-vancine-doubao-api-using-polling/'
+
+export interface SeedanceDeveloperResource {
+  /** Stable analytics discriminator; never a URL. */
+  id: Extract<SeedanceResourceValue, 'github' | 'postman' | 'n8n'>
+  url: string
+  titleKey: string
+  descriptionKey: string
+}
+
+export const SEEDANCE_DEVELOPER_RESOURCES: readonly SeedanceDeveloperResource[] =
+  [
+    {
+      id: 'github',
+      url: SEEDANCE_DEVELOPER_GITHUB_URL,
+      titleKey: 'GitHub starter',
+      descriptionKey:
+        'Copy-ready cURL, Node.js, Python, Postman, and n8n examples in one repository.',
+    },
+    {
+      id: 'postman',
+      url: SEEDANCE_DEVELOPER_POSTMAN_URL,
+      titleKey: 'Postman documentation',
+      descriptionKey:
+        'Published request and response reference for the submit and poll calls.',
+    },
+    {
+      id: 'n8n',
+      url: SEEDANCE_DEVELOPER_N8N_URL,
+      titleKey: 'n8n workflow template',
+      descriptionKey:
+        'Public n8n workflow page for generating Seedance videos with the Vancine Doubao API.',
+    },
+  ]
+
+// ---------------------------------------------------------------------------
 // i18n key registry for this page
 // ---------------------------------------------------------------------------
 
@@ -482,6 +545,14 @@ export const SEEDANCE_I18N_KEYS = [
   'Code copied',
   'Unable to copy code',
   'Copy example code to clipboard',
+  'Developer resources',
+  'Ready to wire this into your own tooling? These are the published assets for the same async video workflow.',
+  'GitHub starter',
+  'Copy-ready cURL, Node.js, Python, Postman, and n8n examples in one repository.',
+  'Postman documentation',
+  'Published request and response reference for the submit and poll calls.',
+  'n8n workflow template',
+  'Public n8n workflow page for generating Seedance videos with the Vancine Doubao API.',
   'View live pricing and availability',
   'Browse the Docs model catalog',
   ...SEEDANCE_FAQ.flatMap((entry) => [entry.questionKey, entry.answerKey]),

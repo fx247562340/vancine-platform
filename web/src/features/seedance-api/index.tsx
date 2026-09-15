@@ -26,6 +26,7 @@ import { usePageMetadata } from '@/hooks/use-page-metadata'
 import { useAuthStore } from '@/stores/auth-store'
 
 import { AsyncWorkflow } from './components/async-workflow'
+import { DeveloperResources } from './components/developer-resources'
 import { Faq } from './components/faq'
 import { FinalCta } from './components/final-cta'
 import { Hero } from './components/hero'
@@ -60,6 +61,7 @@ export function SeedanceApiPage(): ReactElement {
         <Hero isAuthenticated={isAuthenticated} search={search} />
         <AsyncWorkflow />
         <Quickstart isAuthenticated={isAuthenticated} search={search} />
+        <DeveloperResources />
         <Faq />
         <FinalCta isAuthenticated={isAuthenticated} search={search} />
       </main>
