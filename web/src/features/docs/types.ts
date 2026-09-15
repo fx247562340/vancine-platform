@@ -48,8 +48,8 @@ export interface TocHeading {
 
 /**
  * Canonical lowercase route paths of the nested agent setup guides.
- * Cline / Roo Code configure a manual OpenAI-compatible Base URL; Pi and
- * OpenClaw install a Vancine community provider plugin.
+ * Cline / Roo Code configure a manual OpenAI-compatible Base URL; Pi,
+ * OpenClaw and Hermes install a Vancine provider plugin.
  */
 export type DocsAgentGuidePath =
   | '/docs/agents/opencode'
@@ -57,6 +57,7 @@ export type DocsAgentGuidePath =
   | '/docs/agents/roo-code'
   | '/docs/agents/pi'
   | '/docs/agents/openclaw'
+  | '/docs/agents/hermes'
 
 /**
  * Searchable Docs targets form a discriminated union so the type system

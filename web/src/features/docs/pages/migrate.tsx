@@ -21,6 +21,8 @@ import { ArrowRight } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { useLiveModelCatalog } from '@/features/live-model-catalog/hooks/use-live-model-catalog'
+
 import { DocsCallout } from '../components/callout'
 import { DocsCodeBlock } from '../components/code-block'
 import { DocsCodeTabs } from '../components/code-tabs'
@@ -28,6 +30,7 @@ import { DocsH2, DocsP } from '../components/headings'
 import { DocsTable, DocsTd, DocsTr } from '../components/primitives'
 import { useRegisterHeadings } from '../components/register-headings'
 import { buildCodeTabItems, type CodeTabSample } from '../lib/code-tabs'
+import { pickDocsTextModel } from '../lib/text-model-choice'
 import type { TocHeading } from '../types'
 
 const CODE_LANGUAGES = {
@@ -42,6 +45,11 @@ const CODE_TAB_ORDER: readonly CodeTab[] = ['python', 'node', 'curl']
 export default function MigratePage(props: { baseUrl: string }) {
   const { t } = useTranslation('docs', { useSuspense: false })
   const baseUrl = props.baseUrl
+
+  // The same live catalog every other docs page reads; the example
+  // model id is never pinned to a possibly retired literal.
+  const { catalog } = useLiveModelCatalog()
+  const exampleModelId = pickDocsTextModel(catalog).modelId
 
   useRegisterHeadings(
     useMemo<TocHeading[]>(
@@ -70,7 +78,8 @@ export default function MigratePage(props: { baseUrl: string }) {
   )
 
   // Minimal "only 2 changes" Python example
-  const minimalExample = `from openai import OpenAI
+  const minimalExample = useMemo(
+    () => `from openai import OpenAI
 
 client = OpenAI(
     api_key="sk-your-api-key",       # ← Change to your Vancine API key
@@ -78,10 +87,12 @@ client = OpenAI(
 )
 
 resp = client.chat.completions.create(
-    model="deepseek-v4-flash",
+    model="${exampleModelId}",
     messages=[{"role": "user", "content": "Hello!"}]
 )
-print(resp.choices[0].message.content)`
+print(resp.choices[0].message.content)`,
+    [baseUrl, exampleModelId]
+  )
 
   const samples = useMemo<Record<CodeTab, CodeTabSample>>(
     () => ({
@@ -95,7 +106,7 @@ client = OpenAI(
 )
 
 response = client.chat.completions.create(
-    model="deepseek-v4-flash",
+    model="${exampleModelId}",
     messages=[{"role": "user", "content": "Hello!"}],
     max_tokens=100,
 )
@@ -112,7 +123,7 @@ const client = new OpenAI({
 });
 
 const response = await client.chat.completions.create({
-  model: "deepseek-v4-flash",
+  model: "${exampleModelId}",
   messages: [{ role: "user", content: "Hello!" }],
   max_tokens: 100,
 });
@@ -125,7 +136,7 @@ console.log(response.choices[0].message.content);`,
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer sk-your-api-key" \\
   -d '{
-    "model": "deepseek-v4-flash",
+    "model": "${exampleModelId}",
     "messages": [
       { "role": "user", "content": "Hello!" }
     ],
@@ -133,7 +144,7 @@ console.log(response.choices[0].message.content);`,
   }'`,
       },
     }),
-    [baseUrl]
+    [baseUrl, exampleModelId]
   )
 
   const codeTabItems = useMemo(
@@ -171,11 +182,11 @@ console.log(response.choices[0].message.content);`,
       {
         field: 'model',
         openai: t('migrate.comparison.modelOpenai'),
-        vancine: 'deepseek-v4-flash',
+        vancine: exampleModelId,
         note: t('migrate.comparison.modelNote'),
       },
     ],
-    [t, baseUrl]
+    [t, baseUrl, exampleModelId]
   )
 
   const nextSteps = useMemo<

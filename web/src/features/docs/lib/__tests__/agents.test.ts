@@ -23,11 +23,16 @@ import { describe, it } from 'vitest'
 import {
   DOCS_AGENT_TOOLS,
   getDocsAgentConfigExample,
+  getHermesChatCommand,
+  HERMES_API_KEY_COMMAND,
+  HERMES_MODEL_COMMAND,
+  HERMES_PROVIDER_INSTALL_COMMAND,
   OPENCLAW_INSTALL_CLAWHUB_COMMAND,
   OPENCLAW_INSTALL_NPM_COMMAND,
   PI_LOGIN_COMMAND,
   PI_MODEL_COMMAND,
   PI_PROVIDER_INSTALL_COMMAND,
+  VANCINE_HERMES_PROVIDER_GITHUB_URL,
   VANCINE_MODELS_DEV_PROVIDER_URL,
   VANCINE_OPENCLAW_PROVIDER_CLAWHUB_URL,
   VANCINE_OPENCLAW_PROVIDER_GITHUB_URL,
@@ -42,10 +47,10 @@ import {
 const REAL_KEY_PATTERN = /sk-[A-Za-z0-9]{20,}/
 
 describe('Docs agent tool profiles', () => {
-  it('declares exactly the five agent tools with canonical lowercase paths', () => {
+  it('declares exactly the six agent tools with canonical lowercase paths', () => {
     assert.deepEqual(
       DOCS_AGENT_TOOLS.map((tool) => tool.key),
-      ['opencode', 'cline', 'rooCode', 'pi', 'openclaw']
+      ['opencode', 'cline', 'rooCode', 'pi', 'openclaw', 'hermes']
     )
     assert.deepEqual(
       DOCS_AGENT_TOOLS.map((tool) => tool.path),
@@ -55,6 +60,7 @@ describe('Docs agent tool profiles', () => {
         '/docs/agents/roo-code',
         '/docs/agents/pi',
         '/docs/agents/openclaw',
+        '/docs/agents/hermes',
       ]
     )
     for (const tool of DOCS_AGENT_TOOLS) {
@@ -63,6 +69,10 @@ describe('Docs agent tool profiles', () => {
       // versions or abbreviations.
       assert.equal(tool.segment, tool.segment.toLowerCase())
     }
+    // Hermes is its own guide, at the same level as the other five.
+    const hermes = DOCS_AGENT_TOOLS.find((tool) => tool.key === 'hermes')
+    assert.ok(hermes, 'Hermes must be a registered agent guide')
+    assert.equal(hermes.displayName, 'Hermes')
   })
 
   it('carries no per-tool verification status in the public registry', () => {
@@ -146,6 +156,42 @@ describe('Docs agent tool profiles', () => {
       assert.equal(command.includes('2026.9.4'), false)
     }
   })
+
+  it('pins the Vancine Hermes provider GitHub source as its only distribution source', () => {
+    assert.equal(
+      VANCINE_HERMES_PROVIDER_GITHUB_URL,
+      'https://github.com/fx247562340/vancine-hermes-provider'
+    )
+    assert.equal(
+      HERMES_PROVIDER_INSTALL_COMMAND,
+      'hermes plugins install fx247562340/vancine-hermes-provider'
+    )
+    assert.equal(
+      HERMES_API_KEY_COMMAND,
+      'export VANCINE_API_KEY="sk-your-api-key"'
+    )
+    assert.equal(HERMES_MODEL_COMMAND, 'hermes model')
+    // No version pin may enter the published install command.
+    for (const banned of ['@0.', '0.1.0', 'v0.1']) {
+      assert.equal(
+        HERMES_PROVIDER_INSTALL_COMMAND.includes(banned),
+        false,
+        `the Hermes install command must not pin a version (${banned})`
+      )
+    }
+  })
+
+  it('builds the Hermes call form from the caller-supplied live-catalog model id', () => {
+    assert.equal(
+      getHermesChatCommand('deepseek-v4.1-flash'),
+      'hermes chat --provider vancine -m deepseek-v4.1-flash'
+    )
+    assert.equal(
+      getHermesChatCommand('glm-5.3-flash'),
+      'hermes chat --provider vancine -m glm-5.3-flash'
+    )
+    assert.ok(getHermesChatCommand('x').includes('--provider vancine'))
+  })
 })
 
 describe('Docs agent config examples', () => {
@@ -156,7 +202,7 @@ describe('Docs agent config examples', () => {
       const blocks = getDocsAgentConfigExample(
         tool,
         baseUrl,
-        'deepseek-v4-flash'
+        'deepseek-v4.1-flash'
       )
       const code = blocks.map((block) => block.code).join('\n')
       assert.ok(
@@ -176,11 +222,11 @@ describe('Docs agent config examples', () => {
   })
 
   it('provider-plugin guides carry no manual Base URL/config blocks', () => {
-    for (const tool of ['pi', 'openclaw'] as const) {
+    for (const tool of ['pi', 'openclaw', 'hermes'] as const) {
       const blocks = getDocsAgentConfigExample(
         tool,
         baseUrl,
-        'deepseek-v4-flash'
+        'deepseek-v4.1-flash'
       )
       assert.deepEqual(
         blocks,
@@ -194,7 +240,7 @@ describe('Docs agent config examples', () => {
     const blocks = getDocsAgentConfigExample(
       'opencode',
       baseUrl,
-      'deepseek-v4-flash'
+      'deepseek-v4.1-flash'
     )
     const jsonBlocks = blocks.filter((block) => block.language === 'json')
     assert.ok(
@@ -229,7 +275,7 @@ describe('Docs agent config examples', () => {
     const blocks = getDocsAgentConfigExample(
       'opencode',
       baseUrl,
-      'deepseek-v4-flash'
+      'deepseek-v4.1-flash'
     )
     const opencodeJson = blocks.find((block) => block.language === 'json')?.code
     assert.ok(opencodeJson, 'opencode json block must exist')
@@ -245,7 +291,7 @@ describe('Docs agent config examples', () => {
       'OpenCode example must not use glm-5.1'
     )
     assert.ok(
-      Object.hasOwn(models, 'deepseek-v4-flash'),
+      Object.hasOwn(models, 'deepseek-v4.1-flash'),
       'OpenCode example must reflect the model id passed in by the caller (the live catalog)'
     )
     for (const [modelId, value] of Object.entries(models)) {

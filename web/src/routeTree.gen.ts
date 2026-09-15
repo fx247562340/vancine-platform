@@ -67,6 +67,7 @@ import { Route as AuthenticatedWalletIndexRouteImport } from './routes/_authenti
 import { Route as DocsAgentsIndexRouteImport } from './routes/docs/agents/index'
 import { Route as DocsAgentsSplatRouteImport } from './routes/docs/agents/$'
 import { Route as DocsAgentsClineRouteImport } from './routes/docs/agents/cline'
+import { Route as DocsAgentsHermesRouteImport } from './routes/docs/agents/hermes'
 import { Route as DocsAgentsOpenclawRouteImport } from './routes/docs/agents/openclaw'
 import { Route as DocsAgentsOpencodeRouteImport } from './routes/docs/agents/opencode'
 import { Route as DocsAgentsPiRouteImport } from './routes/docs/agents/pi'
@@ -397,6 +398,11 @@ const DocsAgentsClineRoute = DocsAgentsClineRouteImport.update({
   path: '/docs/agents/cline',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocsAgentsHermesRoute = DocsAgentsHermesRouteImport.update({
+  id: '/docs/agents/hermes',
+  path: '/docs/agents/hermes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DocsAgentsOpenclawRoute = DocsAgentsOpenclawRouteImport.update({
   id: '/docs/agents/openclaw',
   path: '/docs/agents/openclaw',
@@ -554,6 +560,7 @@ export interface FileRoutesByFullPath {
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/docs/agents/$': typeof DocsAgentsSplatRoute
   '/docs/agents/cline': typeof DocsAgentsClineRoute
+  '/docs/agents/hermes': typeof DocsAgentsHermesRoute
   '/docs/agents/openclaw': typeof DocsAgentsOpenclawRoute
   '/docs/agents/opencode': typeof DocsAgentsOpencodeRoute
   '/docs/agents/pi': typeof DocsAgentsPiRoute
@@ -631,6 +638,7 @@ export interface FileRoutesByTo {
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/docs/agents/$': typeof DocsAgentsSplatRoute
   '/docs/agents/cline': typeof DocsAgentsClineRoute
+  '/docs/agents/hermes': typeof DocsAgentsHermesRoute
   '/docs/agents/openclaw': typeof DocsAgentsOpenclawRoute
   '/docs/agents/opencode': typeof DocsAgentsOpencodeRoute
   '/docs/agents/pi': typeof DocsAgentsPiRoute
@@ -712,6 +720,7 @@ export interface FileRoutesById {
   '/_authenticated/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/docs/agents/$': typeof DocsAgentsSplatRoute
   '/docs/agents/cline': typeof DocsAgentsClineRoute
+  '/docs/agents/hermes': typeof DocsAgentsHermesRoute
   '/docs/agents/openclaw': typeof DocsAgentsOpenclawRoute
   '/docs/agents/opencode': typeof DocsAgentsOpencodeRoute
   '/docs/agents/pi': typeof DocsAgentsPiRoute
@@ -792,6 +801,7 @@ export interface FileRouteTypes {
     | '/usage-logs/$section'
     | '/docs/agents/$'
     | '/docs/agents/cline'
+    | '/docs/agents/hermes'
     | '/docs/agents/openclaw'
     | '/docs/agents/opencode'
     | '/docs/agents/pi'
@@ -869,6 +879,7 @@ export interface FileRouteTypes {
     | '/usage-logs/$section'
     | '/docs/agents/$'
     | '/docs/agents/cline'
+    | '/docs/agents/hermes'
     | '/docs/agents/openclaw'
     | '/docs/agents/opencode'
     | '/docs/agents/pi'
@@ -949,6 +960,7 @@ export interface FileRouteTypes {
     | '/_authenticated/usage-logs/$section'
     | '/docs/agents/$'
     | '/docs/agents/cline'
+    | '/docs/agents/hermes'
     | '/docs/agents/openclaw'
     | '/docs/agents/opencode'
     | '/docs/agents/pi'
@@ -1013,6 +1025,7 @@ export interface RootRouteChildren {
   SetupIndexRoute: typeof SetupIndexRoute
   DocsAgentsSplatRoute: typeof DocsAgentsSplatRoute
   DocsAgentsClineRoute: typeof DocsAgentsClineRoute
+  DocsAgentsHermesRoute: typeof DocsAgentsHermesRoute
   DocsAgentsOpenclawRoute: typeof DocsAgentsOpenclawRoute
   DocsAgentsOpencodeRoute: typeof DocsAgentsOpencodeRoute
   DocsAgentsPiRoute: typeof DocsAgentsPiRoute
@@ -1430,6 +1443,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsAgentsClineRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/docs/agents/hermes': {
+      id: '/docs/agents/hermes'
+      path: '/docs/agents/hermes'
+      fullPath: '/docs/agents/hermes'
+      preLoaderRoute: typeof DocsAgentsHermesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/docs/agents/openclaw': {
       id: '/docs/agents/openclaw'
       path: '/docs/agents/openclaw'
@@ -1738,6 +1758,7 @@ const rootRouteChildren: RootRouteChildren = {
   SetupIndexRoute: SetupIndexRoute,
   DocsAgentsSplatRoute: DocsAgentsSplatRoute,
   DocsAgentsClineRoute: DocsAgentsClineRoute,
+  DocsAgentsHermesRoute: DocsAgentsHermesRoute,
   DocsAgentsOpenclawRoute: DocsAgentsOpenclawRoute,
   DocsAgentsOpencodeRoute: DocsAgentsOpencodeRoute,
   DocsAgentsPiRoute: DocsAgentsPiRoute,

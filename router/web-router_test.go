@@ -23,8 +23,8 @@ var expectedSitemapLocs = []string{
 	"https://vancine.com/",
 	"https://vancine.com/pricing",
 	"https://vancine.com/docs",
-	// Agent Integration Center hub and the three first-batch agent
-	// setup guides. Each canonical appears exactly once, in this order,
+	// Agent Integration Center hub and the canonical agent setup
+	// guides. Each canonical appears exactly once, in this order,
 	// directly after /docs.
 	"https://vancine.com/docs/agents",
 	"https://vancine.com/docs/agents/opencode",
@@ -32,6 +32,7 @@ var expectedSitemapLocs = []string{
 	"https://vancine.com/docs/agents/roo-code",
 	"https://vancine.com/docs/agents/pi",
 	"https://vancine.com/docs/agents/openclaw",
+	"https://vancine.com/docs/agents/hermes",
 	// Media model detail pages. Image models first, then video models,
 	// matching publicSitemapPaths. A retired model is removed from
 	// BOTH the sitemap and /llms.txt simultaneously so the two
@@ -168,14 +169,14 @@ func TestSitemapListsExactlyTheApprovedPublicPages(t *testing.T) {
 	// both retired version-specific paths appear zero times.
 	// SEO-5: sitemap grows with /coding-agent-benchmark appearing
 	// exactly once and no model-version alias routes. The Agent
-	// Integration Center adds six canonicals (hub + five setup
-	// guides, including the Pi and OpenClaw provider guides). The
-	// fast coding models acquisition guide adds one more canonical
-	// (/guides/fast-coding-models). Media-model docs task: 21
+	// Integration Center adds seven canonicals (hub + six setup
+	// guides, including the Pi, OpenClaw and Hermes provider guides).
+	// The fast coding models acquisition guide adds one more canonical
+	// (/guides/fast-coding-models). Media-model docs task: 22
 	// marketing + agent + acquisition entries PLUS 10 media model
-	// detail pages = 31 URLs.
-	assert.Len(t, locs, 31,
-		"sitemap must contain exactly 31 URLs (21 marketing/agent/acquisition + 10 media model detail pages)")
+	// detail pages = 32 URLs.
+	assert.Len(t, locs, 32,
+		"sitemap must contain exactly 32 URLs (22 marketing/agent/acquisition + 10 media model detail pages)")
 	glmEvergreenCount := 0
 	benchmarkCount := 0
 	agentsHubCount := 0
@@ -194,7 +195,9 @@ func TestSitemapListsExactlyTheApprovedPublicPages(t *testing.T) {
 		if strings.HasSuffix(loc, "/guides/fast-coding-models") {
 			fastCodingModelsGuideCount++
 		}
-		for _, tool := range []string{"opencode", "cline", "roo-code"} {
+		for _, tool := range []string{
+			"opencode", "cline", "roo-code", "pi", "openclaw", "hermes",
+		} {
 			if strings.HasSuffix(loc, "/docs/agents/"+tool) {
 				agentsGuideCounts[tool]++
 			}
@@ -216,7 +219,9 @@ func TestSitemapListsExactlyTheApprovedPublicPages(t *testing.T) {
 		"/docs/agents must appear exactly once in the sitemap")
 	assert.Equal(t, 1, fastCodingModelsGuideCount,
 		"/guides/fast-coding-models must appear exactly once in the sitemap")
-	for _, tool := range []string{"opencode", "cline", "roo-code"} {
+	for _, tool := range []string{
+		"opencode", "cline", "roo-code", "pi", "openclaw", "hermes",
+	} {
 		assert.Equal(t, 1, agentsGuideCounts[tool],
 			"/docs/agents/%s must appear exactly once in the sitemap", tool)
 	}

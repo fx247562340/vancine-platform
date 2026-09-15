@@ -1,3 +1,21 @@
+## 2.8.2 - 2026-09-16
+
+### Hermes Agent 接入
+
+- 为 Hermes Agent 增加独立的 Vancine 接入指南，覆盖从公开 GitHub 源安装 vancine-hermes-provider、配置 VANCINE_API_KEY、选择模型和发起聊天。
+- 将 Hermes 加入 Agent Integration 页面、文档侧栏和站内搜索，并保持安装命令、Provider 标识和实时模型目录行为一致。
+- 指南依据 Hermes 固定上游版本完成 Provider registry、目录、Desktop 模型选项和插件安全兼容验证。
+
+### 文档模型一致性
+
+- 将共享文档的文本模型回退 ID 更新为 deepseek-v4.1-flash，防止已退役的 DeepSeek 示例重新出现。
+- Quick Start、迁移指南和 Agent 示例统一从实时模型目录选择当前文本模型，并保持请求与示例响应中的模型 ID 一致。
+
+### 搜索、SEO 与国际化
+
+- 将 Hermes 指南加入服务端 metadata、canonical、sitemap 和 llms.txt，并补充路由、未知路径、搜索和目录契约测试。
+- 完成简体中文、繁体中文、英语、法语、俄语、日语和越南语内容及回归验证。
+
 ## 2.8.1 - 2026-09-15
 
 ### 开发者资源入口

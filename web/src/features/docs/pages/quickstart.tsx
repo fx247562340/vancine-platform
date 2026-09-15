@@ -46,27 +46,6 @@ const CODE_LANGUAGES = {
 type CodeTab = keyof typeof CODE_LANGUAGES
 const CODE_TAB_ORDER: readonly CodeTab[] = ['curl', 'python', 'node']
 
-const EXPECTED_RESPONSE = `{
-  "id": "chatcmpl-xxxxx",
-  "object": "chat.completion",
-  "model": "deepseek-v4-flash",
-  "choices": [
-    {
-      "index": 0,
-      "message": {
-        "role": "assistant",
-        "content": "Hello! How can I help you today?"
-      },
-      "finish_reason": "stop"
-    }
-  ],
-  "usage": {
-    "prompt_tokens": 12,
-    "completion_tokens": 8,
-    "total_tokens": 20
-  }
-}`
-
 export default function QuickStartPage(props: { baseUrl: string }) {
   const { t } = useTranslation('docs', { useSuspense: false })
   const baseUrl = props.baseUrl
@@ -110,6 +89,33 @@ export default function QuickStartPage(props: { baseUrl: string }) {
   const samples = useMemo<Record<CodeTab, CodeTabSample>>(
     () => buildChatSamples(baseUrl, exampleModelId),
     [baseUrl, exampleModelId]
+  )
+  // The expected response echoes the same example model the request
+  // samples send, so the sample pair can never disagree — and the model
+  // id is never pinned to a possibly retired literal.
+  const expectedResponse = useMemo(
+    () =>
+      `{
+  "id": "chatcmpl-xxxxx",
+  "object": "chat.completion",
+  "model": "${exampleModelId}",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Hello! How can I help you today?"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 12,
+    "completion_tokens": 8,
+    "total_tokens": 20
+  }
+}`,
+    [exampleModelId]
   )
   const codeTabItems = useMemo(
     () => buildCodeTabItems(samples, CODE_TAB_ORDER, CODE_LANGUAGES),
@@ -248,7 +254,7 @@ export default function QuickStartPage(props: { baseUrl: string }) {
       <DocsH3 id='expected-response'>
         {t('quickstart.step4.expectedResponse')}
       </DocsH3>
-      <DocsCodeBlock code={EXPECTED_RESPONSE} language='json' title='JSON' />
+      <DocsCodeBlock code={expectedResponse} language='json' title='JSON' />
 
       {/* Info table */}
       <DocsH2 id='info-table'>{t('quickstart.infoTable.title')}</DocsH2>

@@ -33,15 +33,6 @@ const SNIPPET_RADIUS = 40
 
 type DocsBundle = Record<string, unknown>
 
-/**
- * Copy fields that must never enter the search index. `notOfficial` is a
- * historical Docs locale field whose rendering was removed from the guide
- * pages: the search index must not expose text the product no longer shows,
- * because a matching query would surface it as a visible result snippet.
- * Filtered by locale key only — never by translated content.
- */
-const NON_SEARCHABLE_COPY_KEYS = new Set(['notOfficial'])
-
 function flattenValues(obj: unknown, out: string[] = []): string[] {
   if (obj == null) return out
   if (typeof obj === 'string') {
@@ -53,8 +44,7 @@ function flattenValues(obj: unknown, out: string[] = []): string[] {
     return out
   }
   if (typeof obj === 'object') {
-    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
-      if (NON_SEARCHABLE_COPY_KEYS.has(key)) continue
+    for (const value of Object.values(obj as Record<string, unknown>)) {
       flattenValues(value, out)
     }
   }

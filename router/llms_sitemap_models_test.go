@@ -104,8 +104,9 @@ func TestLlmsTxtIncludesAllTenModelDetailPages(t *testing.T) {
 }
 
 // TestAgentProviderGuidesIndexedExactlyOnce pins the acquisition contract
-// for the Pi and OpenClaw provider guide URLs: each appears exactly once in
-// BOTH the sitemap and llms.txt, and case/alias variants appear nowhere.
+// for the Pi, OpenClaw and Hermes provider guide URLs: each appears exactly
+// once in BOTH the sitemap and llms.txt, and case/alias variants appear
+// nowhere.
 func TestAgentProviderGuidesIndexedExactlyOnce(t *testing.T) {
 	engine := newWebRouterSEOFixture(t)
 	sitemapRec := serveSEO(engine, httptest.NewRequest(http.MethodGet, "/sitemap.xml", nil))
@@ -116,6 +117,7 @@ func TestAgentProviderGuidesIndexedExactlyOnce(t *testing.T) {
 	newURLs := []string{
 		"https://vancine.com/docs/agents/pi",
 		"https://vancine.com/docs/agents/openclaw",
+		"https://vancine.com/docs/agents/hermes",
 	}
 	for _, doc := range []string{sitemapRec.Body.String(), llmsRec.Body.String()} {
 		for _, url := range newURLs {
@@ -126,6 +128,8 @@ func TestAgentProviderGuidesIndexedExactlyOnce(t *testing.T) {
 			"https://vancine.com/docs/agents/Pi",
 			"https://vancine.com/docs/agents/OpenClaw",
 			"https://vancine.com/docs/agents/pi-provider",
+			"https://vancine.com/docs/agents/Hermes",
+			"https://vancine.com/docs/agents/hermes-agent",
 		} {
 			assert.NotContains(t, doc, alias,
 				"alias %s must never appear in the crawler surfaces", alias)

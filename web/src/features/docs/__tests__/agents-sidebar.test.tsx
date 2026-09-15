@@ -32,6 +32,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Route as DocsSlugRouteImport } from '@/routes/docs/$slug'
 import { Route as DocsAgentsSplatRouteImport } from '@/routes/docs/agents/$'
 import { Route as DocsAgentsClineRouteImport } from '@/routes/docs/agents/cline'
+import { Route as DocsAgentsHermesRouteImport } from '@/routes/docs/agents/hermes'
 import { Route as DocsAgentsIndexRouteImport } from '@/routes/docs/agents/index'
 import { Route as DocsAgentsOpenclawRouteImport } from '@/routes/docs/agents/openclaw'
 import { Route as DocsAgentsOpencodeRouteImport } from '@/routes/docs/agents/opencode'
@@ -103,6 +104,11 @@ const TestDocsAgentsOpenclawRoute = DocsAgentsOpenclawRouteImport.update({
   path: '/docs/agents/openclaw',
   getParentRoute: () => testRootRoute,
 } as never)
+const TestDocsAgentsHermesRoute = DocsAgentsHermesRouteImport.update({
+  id: '/docs/agents/hermes',
+  path: '/docs/agents/hermes',
+  getParentRoute: () => testRootRoute,
+} as never)
 const TestDocsAgentsSplatRoute = DocsAgentsSplatRouteImport.update({
   id: '/docs/agents/$',
   path: '/docs/agents/$',
@@ -117,6 +123,7 @@ const testRouteTree = testRootRoute.addChildren([
   TestDocsAgentsRooCodeRoute,
   TestDocsAgentsPiRoute,
   TestDocsAgentsOpenclawRoute,
+  TestDocsAgentsHermesRoute,
   TestDocsAgentsSplatRoute,
 ])
 
@@ -158,7 +165,7 @@ beforeEach(async () => {
 })
 
 describe('Docs sidebar Agent submenu (desktop)', () => {
-  it('hub: parent is current page and the three tool children are listed without aria-current', async () => {
+  it('hub: parent is current page and the six tool children are listed without aria-current', async () => {
     renderDocsRouter('/docs/agents')
     await waitForSidebarReady()
 
@@ -192,6 +199,7 @@ describe('Docs sidebar Agent submenu (desktop)', () => {
     ['/docs/agents/roo-code', 'Roo Code'],
     ['/docs/agents/pi', 'Pi'],
     ['/docs/agents/openclaw', 'OpenClaw'],
+    ['/docs/agents/hermes', 'Hermes'],
   ] as const)(
     '%s: only the matching child is current page; parent keeps group highlight only',
     async (path, activeChild) => {

@@ -74,13 +74,16 @@ describe('Agent Integration hub cards', () => {
     expect(
       screen.getByRole('heading', { name: 'OpenClaw' })
     ).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Hermes' })).toBeInTheDocument()
 
     const guideLinks = screen.getAllByRole('link', {
       name: 'View setup guide',
     })
-    expect(guideLinks).toHaveLength(5)
+    expect(guideLinks).toHaveLength(6)
     const hrefs = guideLinks.map((link) => link.getAttribute('href'))
     expect(hrefs).toEqual(DOCS_AGENT_TOOLS.map((tool) => tool.path))
+    // The Hermes card links the dedicated Hermes guide.
+    expect(hrefs).toContain('/docs/agents/hermes')
   })
 
   it('shows the protocol line per card', async () => {
@@ -108,19 +111,24 @@ describe('Agent Integration hub cards', () => {
         'Community provider plugin for OpenClaw, installed from npm or ClawHub.'
       )
     ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'Provider plugin for Hermes Agent, installed from its public GitHub source.'
+      )
+    ).toBeInTheDocument()
   })
 
-  it('shows the unified Configuration-ready status on all five cards', async () => {
+  it('shows the unified Configuration-ready status on all six cards', async () => {
     const { container } = renderHub()
 
     await screen.findAllByRole('link', { name: 'View setup guide' })
     // One unified public status: same copy on every card.
     const badges = screen.getAllByText('Configuration-ready')
-    expect(badges).toHaveLength(5)
+    expect(badges).toHaveLength(6)
     // The former two-tier status vocabulary is gone from the public UI.
     expect(container.textContent).not.toContain('Live-verified')
     expect(container.textContent).not.toContain('live-verified')
-    // Identical visual variant on all five badges.
+    // Identical visual variant on all six badges.
     const classNames = badges.map((badge) => badge.className)
     expect(new Set(classNames).size).toBe(1)
     // One neutral, shared boundary sentence per card (no per-tool
@@ -129,7 +137,7 @@ describe('Agent Integration hub cards', () => {
       screen.getAllByText(
         'The OpenAI-compatible setup for this tool is ready. Follow its guide to connect it to Vancine.'
       )
-    ).toHaveLength(5)
+    ).toHaveLength(6)
   })
 
   it('shows the Models.dev catalog proof only on the OpenCode card', async () => {
@@ -148,12 +156,12 @@ describe('Agent Integration hub cards', () => {
       })
     ).toHaveLength(1)
     // Catalog proof is not a status and does not replace Configuration-ready.
-    expect(screen.getAllByText('Configuration-ready')).toHaveLength(5)
+    expect(screen.getAllByText('Configuration-ready')).toHaveLength(6)
     expect(container.textContent).not.toContain('official partner')
     expect(container.textContent).not.toContain('official supplier')
   })
 
-  it('keeps the benchmark link, Codex and Hermes configurations, and the OpenClaw plugin pointer', async () => {
+  it('keeps the benchmark link, the Codex configuration, and the plugin pointers', async () => {
     renderHub()
 
     const benchmarkLink = await screen.findByRole('link', {
@@ -165,18 +173,42 @@ describe('Agent Integration hub cards', () => {
     expect(
       screen.getByRole('heading', { name: 'Codex CLI' })
     ).toBeInTheDocument()
-    expect(
-      screen.getByRole('heading', { name: 'Hermes Agent' })
-    ).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Cursor' })).toBeInTheDocument()
     expect(
       screen.getByRole('heading', { name: 'Cherry Studio' })
     ).toBeInTheDocument()
-    // OpenClaw keeps a CLI-section pointer that links its dedicated guide.
-    const openclawPointer = screen.getByRole('link', {
-      name: 'Open the OpenClaw provider guide',
-    })
-    expect(openclawPointer).toHaveAttribute('href', '/docs/agents/openclaw')
+    // Hermes and OpenClaw each keep a CLI-section pointer that links their
+    // dedicated guide instead of a manual configuration block.
+    expect(
+      screen.getByRole('link', { name: 'Open the Hermes provider guide' })
+    ).toHaveAttribute('href', '/docs/agents/hermes')
+    expect(
+      screen.getByRole('link', { name: 'Open the OpenClaw provider guide' })
+    ).toHaveAttribute('href', '/docs/agents/openclaw')
+  })
+
+  it('drops the legacy Hermes Agent config.yaml card and its manual env template', async () => {
+    const { container } = renderHub()
+
+    await screen.findAllByRole('link', { name: 'View setup guide' })
+    // The old generic Hermes card showed a manual config.yaml block plus
+    // OPENAI_COMPATIBLE_* environment variables. Both are gone: Hermes is a
+    // provider-plugin guide now.
+    expect(
+      screen.queryByRole('heading', { name: 'Hermes Agent' })
+    ).not.toBeInTheDocument()
+    expect(container.textContent).not.toContain('~/.hermes/config.yaml')
+    expect(container.textContent).not.toContain('OPENAI_COMPATIBLE_BASE_URL')
+    expect(container.textContent).not.toContain('OPENAI_COMPATIBLE_API_KEY')
+    expect(container.textContent).not.toContain('openai_compatible')
+    // The Codex CLI card (no dedicated guide) keeps its full configuration.
+    expect(container.textContent).toContain('model_provider = "vancine"')
+    // The Hermes install command belongs on the guide page, not on the hub.
+    expect(
+      screen.queryByText(
+        'hermes plugins install fx247562340/vancine-hermes-provider'
+      )
+    ).not.toBeInTheDocument()
   })
 
   it('no longer duplicates full configurations nor any manual OpenClaw Base URL block', async () => {

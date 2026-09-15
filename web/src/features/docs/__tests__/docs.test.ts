@@ -920,6 +920,198 @@ describe('OpenClaw provider guide copy', () => {
   })
 })
 
+describe('Hermes provider guide copy', () => {
+  const hermesKeys = [
+    'agents.hub.cards.hermes.protocol',
+    'agents.cli.hermes',
+    'agents.cli.hermesGuideLink',
+    'agentGuides.hermes.pageTitle',
+    'agentGuides.hermes.valueProp',
+    'agentGuides.hermes.githubLabel',
+    'agentGuides.hermes.step1',
+    'agentGuides.hermes.step2',
+    'agentGuides.hermes.step3',
+    'agentGuides.hermes.step4',
+    'agentGuides.hermes.step5',
+    'agentGuides.hermes.step6',
+    'agentGuides.hermes.installNote',
+    'agentGuides.hermes.surfacesTitle',
+    'agentGuides.hermes.surfaces.cli',
+    'agentGuides.hermes.surfaces.gateway',
+    'agentGuides.hermes.surfaces.desktopLocal',
+    'agentGuides.hermes.surfaces.desktopRemote',
+    'agentGuides.hermes.catalogNote',
+    'agentGuides.hermes.modelsNote',
+    'agentGuides.hermes.errors.pluginMissing.symptom',
+    'agentGuides.hermes.errors.pluginMissing.fix',
+    'agentGuides.hermes.errors.apiKey.symptom',
+    'agentGuides.hermes.errors.apiKey.fix',
+    'agentGuides.hermes.errors.modelMissing.symptom',
+    'agentGuides.hermes.errors.modelMissing.fix',
+    'agentGuides.hermes.errors.wrongHost.symptom',
+    'agentGuides.hermes.errors.wrongHost.fix',
+    'agentGuides.hermes.errors.modelRetired.symptom',
+    'agentGuides.hermes.errors.modelRetired.fix',
+  ]
+
+  it('has every Hermes key translated in all seven locales', () => {
+    for (const code of LOCALE_CODES) {
+      const map = flattenToMap(readJson(path.join(LOCALES_DIR, `${code}.json`)))
+      for (const key of hermesKeys) {
+        assert.ok(map.get(key)?.trim(), `${code} missing/empty ${key}`)
+      }
+    }
+  })
+
+  it('keeps the real provider id, commands, env vars and GitHub source in every locale', () => {
+    for (const code of LOCALE_CODES) {
+      const map = flattenToMap(readJson(path.join(LOCALES_DIR, `${code}.json`)))
+      const step1 = map.get('agentGuides.hermes.step1') ?? ''
+      const valueProp = map.get('agentGuides.hermes.valueProp') ?? ''
+      const step2 = map.get('agentGuides.hermes.step2') ?? ''
+      const step3 = map.get('agentGuides.hermes.step3') ?? ''
+      const step6 = map.get('agentGuides.hermes.step6') ?? ''
+      const installNote = map.get('agentGuides.hermes.installNote') ?? ''
+
+      // Provider id and the plugin package name stay verbatim.
+      assert.ok(
+        valueProp.includes('vancine-hermes-provider'),
+        `${code} valueProp must name vancine-hermes-provider`
+      )
+      assert.ok(
+        step1.includes('fx247562340/vancine-hermes-provider'),
+        `${code} step1 must name the published GitHub source`
+      )
+      // The install-time enable prompt is the literal upstream string.
+      assert.ok(
+        step2.includes("Enable 'vancine-provider' now?"),
+        `${code} step2 must carry the literal enable prompt`
+      )
+      assert.ok(
+        step2.includes('vancine-provider'),
+        `${code} step2 must name vancine-provider`
+      )
+      assert.ok(
+        installNote.includes('vancine-provider'),
+        `${code} installNote must name vancine-provider`
+      )
+      // The credential is always the environment variable, never a flag.
+      assert.ok(
+        step3.includes('VANCINE_API_KEY'),
+        `${code} step3 must name VANCINE_API_KEY`
+      )
+      assert.ok(
+        map.get('agentGuides.hermes.modelsNote')?.includes('hermes model'),
+        `${code} modelsNote must name the hermes model command`
+      )
+      assert.ok(
+        step6.includes('provider/model'),
+        `${code} step6 must name the provider/model call form`
+      )
+      // Every locale keeps the surface-specific install locations.
+      for (const key of [
+        'agentGuides.hermes.surfaces.cli',
+        'agentGuides.hermes.surfaces.gateway',
+        'agentGuides.hermes.surfaces.desktopLocal',
+        'agentGuides.hermes.surfaces.desktopRemote',
+      ]) {
+        assert.ok(
+          (map.get(key) ?? '').includes('HERMES_HOME'),
+          `${code} ${key} must name HERMES_HOME`
+        )
+      }
+    }
+  })
+
+  it('advertises no install source other than the public GitHub repository', () => {
+    for (const code of LOCALE_CODES) {
+      const map = flattenToMap(readJson(path.join(LOCALES_DIR, `${code}.json`)))
+      for (const [key, value] of map) {
+        if (!key.startsWith('agentGuides.hermes.')) continue
+        for (const banned of [
+          'npmjs.com',
+          'pypi.org',
+          'clawhub.ai',
+          'pi.dev',
+          'models.dev',
+        ]) {
+          assert.equal(
+            value.includes(banned),
+            false,
+            `${code} ${key} must not advertise ${banned}`
+          )
+        }
+        // The plugin is not published to a registry or a Hermes catalog.
+        assert.equal(
+          value.includes('official plugin catalog'),
+          false,
+          `${code} ${key} must not claim a Hermes plugin-catalog listing`
+        )
+      }
+    }
+  })
+
+  it('pins no package version and names no retired model id', () => {
+    for (const code of LOCALE_CODES) {
+      const map = flattenToMap(readJson(path.join(LOCALES_DIR, `${code}.json`)))
+      for (const [key, value] of map) {
+        if (!key.startsWith('agentGuides.hermes.')) continue
+        assert.equal(
+          /vancine-hermes-provider@|\b0\.1\.\d/.test(value),
+          false,
+          `${code} ${key} must not pin a package version`
+        )
+        for (const model of [
+          'deepseek-flash',
+          'hy4-preview',
+          'glm-5.3-flash',
+          'qwen3.8-flash',
+        ]) {
+          assert.equal(
+            value.includes(model),
+            false,
+            `${code} ${key} must not hardcode the model id ${model}`
+          )
+        }
+      }
+    }
+  })
+
+  it('claims no official relationship, certification or guaranteed real-time catalog', () => {
+    for (const code of LOCALE_CODES) {
+      const map = flattenToMap(readJson(path.join(LOCALES_DIR, `${code}.json`)))
+      for (const [key, value] of map) {
+        if (!key.startsWith('agentGuides.hermes.')) continue
+        for (const banned of [
+          'official Hermes provider',
+          'official Nous Research',
+          'official plugin catalog',
+          'permanently free',
+          'guaranteed cheapest',
+          'all models',
+        ]) {
+          assert.equal(
+            value.toLowerCase().includes(banned.toLowerCase()),
+            false,
+            `${code} ${key} must not claim "${banned}"`
+          )
+        }
+        const negationStripped = value.replaceAll(
+          /not guaranteed|不保证|不保證|保証されず|не гарантируется|n’est pas garanti|không được đảm bảo/gi,
+          'negated'
+        )
+        assert.equal(
+          /guaranteed (?:to be )?real[- ]?time|real[- ]?time sync|always live|永远最新|实时同步/i.test(
+            negationStripped
+          ),
+          false,
+          `${code} ${key} must not claim a guaranteed real-time catalog`
+        )
+      }
+    }
+  })
+})
+
 describe('Same-English values', () => {
   it('asserts zero un-allowlisted same-English values (and no stale allowlist)', () => {
     const enMap = flattenToMap(readJson(path.join(LOCALES_DIR, 'en.json')))
@@ -1118,5 +1310,70 @@ describe('Code tabs builder', () => {
     }
     assert.equal(defaultCodeTabValue(items), 'curl')
     assert.equal(defaultCodeTabValue([]), '')
+  })
+})
+
+describe('Retired docs fallback model id migration', () => {
+  // deepseek-v4.1-flash replaced the retired deepseek-v4-flash in the
+  // live Vancine Pi catalog. The two are distinct catalog entries, so the
+  // old id must not resurface anywhere in the user-visible Docs runtime:
+  // locale copy, page sources, or the shared fallback constant.
+  const PAGES_DIR = path.resolve(import.meta.dirname, '../pages')
+
+  it('pins the shared fallback text model to deepseek-v4.1-flash', async () => {
+    const { DOCS_FALLBACK_TEXT_MODEL } =
+      await import('../lib/example-generation')
+    assert.equal(DOCS_FALLBACK_TEXT_MODEL, 'deepseek-v4.1-flash')
+  })
+
+  it('keeps the retired deepseek-v4-flash out of every docs locale', () => {
+    for (const code of LOCALE_CODES) {
+      const raw = fs.readFileSync(
+        path.join(LOCALES_DIR, `${code}.json`),
+        'utf8'
+      )
+      assert.equal(
+        raw.includes('deepseek-v4-flash'),
+        false,
+        `${code} docs locale still references the retired deepseek-v4-flash`
+      )
+    }
+  })
+
+  it('keeps the retired deepseek-v4-flash out of the docs page sources', () => {
+    const sources = [
+      ...fs
+        .readdirSync(PAGES_DIR)
+        .map((name) => fs.readFileSync(path.join(PAGES_DIR, name), 'utf8')),
+      fs.readFileSync(
+        path.resolve(import.meta.dirname, '../lib/example-generation.ts'),
+        'utf8'
+      ),
+    ]
+    for (const source of sources) {
+      assert.equal(
+        source.includes('deepseek-v4-flash'),
+        false,
+        'a docs page still hardcodes the retired deepseek-v4-flash'
+      )
+    }
+  })
+
+  it('recommends deepseek-v4.1-flash by name in quickstart and migrate copy', () => {
+    for (const code of LOCALE_CODES) {
+      const map = flattenToMap(readJson(path.join(LOCALES_DIR, `${code}.json`)))
+      assert.ok(
+        (map.get('quickstart.step2.desc') ?? '').includes(
+          'deepseek-v4.1-flash'
+        ),
+        `${code} quickstart.step2.desc must name the current fallback id`
+      )
+      assert.ok(
+        (map.get('migrate.comparison.modelNote') ?? '').includes(
+          'deepseek-v4.1-flash'
+        ),
+        `${code} migrate.comparison.modelNote must name the current fallback id`
+      )
+    }
   })
 })

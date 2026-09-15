@@ -44,18 +44,18 @@ import type { TocHeading } from '../types'
 const AGENTS_HUB_METADATA = getDocsAgentsPageMetadata()
 
 interface AgentCliConfig {
-  nameKey: 'codex' | 'hermes'
+  nameKey: 'codex'
   title: string
   language: BundledLanguage
   codeTemplate: (baseUrl: string, modelId: string) => string
 }
 
 /**
- * Generic CLI configurations kept on the hub. OpenCode, Cline, Roo Code, Pi
- * and OpenClaw all have dedicated setup guides under /docs/agents/<tool>;
- * their full configuration is intentionally NOT duplicated here. OpenClaw
- * connects through its community provider plugin (never a manual Base URL
- * block) and only links to its guide below.
+ * Generic CLI configurations kept on the hub. OpenCode, Cline, Roo Code, Pi,
+ * OpenClaw and Hermes all have dedicated setup guides under
+ * /docs/agents/<tool>; their full configuration is intentionally NOT
+ * duplicated here. Hermes connects through its provider plugin (never a
+ * manual Base URL / config.yaml block) and only links to its guide below.
  */
 const AGENT_CLI_CONFIGS: AgentCliConfig[] = [
   {
@@ -75,21 +75,27 @@ wire_api = "responses"
 # shell
 # export VANCINE_API_KEY="sk-your-api-key"`,
   },
-  {
-    nameKey: 'hermes',
-    title: 'Hermes Agent',
-    language: 'yaml',
-    codeTemplate: (baseUrl, modelId) => `# ~/.hermes/config.yaml
-openai_compatible:
-  base_url: "${baseUrl}"
-  api_key: "sk-your-api-key"
-  model: "${modelId}"
-
-# or environment variables
-export OPENAI_COMPATIBLE_BASE_URL="${baseUrl}"
-export OPENAI_COMPATIBLE_API_KEY="sk-your-api-key"`,
-  },
 ]
+
+/**
+ * CLI tools whose connection runs entirely through a provider plugin: the hub
+ * keeps only a pointer to the dedicated guide, never a manual configuration
+ * block. Both entries share one rendering branch.
+ */
+const AGENT_PLUGIN_POINTERS = [
+  {
+    tool: 'hermes',
+    to: '/docs/agents/hermes',
+    noteKey: 'agents.cli.hermes',
+    linkKey: 'agents.cli.hermesGuideLink',
+  },
+  {
+    tool: 'openclaw',
+    to: '/docs/agents/openclaw',
+    noteKey: 'agents.cli.openclaw',
+    linkKey: 'agents.cli.openclawGuideLink',
+  },
+] as const
 
 const AGENT_GUI_TOOLS = ['cursor', 'cherryStudio'] as const
 
@@ -217,17 +223,22 @@ export default function Agents(props: { baseUrl: string }) {
         </div>
       ))}
 
-      {/* OpenClaw has no manual Base URL configuration: it connects through
-          its community provider plugin, so the hub only links the guide. */}
-      <p className='text-muted-foreground mb-6 text-sm leading-relaxed'>
-        {t('agents.cli.openclaw')}{' '}
-        <Link
-          to='/docs/agents/openclaw'
-          className='text-primary font-medium underline underline-offset-4'
+      {/* Hermes and OpenClaw have no manual Base URL configuration: both
+          connect through a provider plugin, so the hub only links the guide. */}
+      {AGENT_PLUGIN_POINTERS.map((pointer) => (
+        <p
+          key={pointer.tool}
+          className='text-muted-foreground mb-6 text-sm leading-relaxed'
         >
-          {t('agents.cli.openclawGuideLink')}
-        </Link>
-      </p>
+          {t(pointer.noteKey)}{' '}
+          <Link
+            to={pointer.to}
+            className='text-primary font-medium underline underline-offset-4'
+          >
+            {t(pointer.linkKey)}
+          </Link>
+        </p>
+      ))}
 
       <DocsH3 id='agents-gui'>{t('agents.guiTitle')}</DocsH3>
       {AGENT_GUI_TOOLS.map((toolKey) => (

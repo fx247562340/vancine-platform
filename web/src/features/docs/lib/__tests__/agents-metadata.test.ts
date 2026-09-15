@@ -22,6 +22,7 @@ import { describe, it } from 'vitest'
 
 import {
   DOCS_AGENT_CLINE_CANONICAL,
+  DOCS_AGENT_HERMES_CANONICAL,
   DOCS_AGENT_OPENCLAW_CANONICAL,
   DOCS_AGENT_OPENCODE_CANONICAL,
   DOCS_AGENT_PI_CANONICAL,
@@ -60,6 +61,10 @@ describe('Agent Integration Center canonicals', () => {
       DOCS_AGENT_OPENCLAW_CANONICAL,
       'https://vancine.com/docs/agents/openclaw'
     )
+    assert.equal(
+      DOCS_AGENT_HERMES_CANONICAL,
+      'https://vancine.com/docs/agents/hermes'
+    )
     assert.equal(DOCS_CANONICAL, 'https://vancine.com/docs')
   })
 })
@@ -69,13 +74,13 @@ describe('Agent Integration Center metadata contract', () => {
     assert.deepEqual(getDocsAgentsPageMetadata(), {
       title: 'Coding Agent Integration Center | Vancine',
       description:
-        'Connect Pi, OpenCode, Cline, Roo Code and OpenClaw to the Vancine API. Install provider plugins from npm or ClawHub, or follow tool-specific setup guides.',
+        'Connect Pi, OpenCode, Cline, Roo Code, OpenClaw and Hermes to the Vancine API. Install provider plugins from npm, ClawHub or a public GitHub source, or follow tool-specific setup guides.',
       ogTitle: 'Coding Agent Integration Center',
       ogDescription:
-        'Connect Pi, OpenCode, Cline, Roo Code and OpenClaw to the Vancine API. Install provider plugins from npm or ClawHub, or follow tool-specific setup guides.',
+        'Connect Pi, OpenCode, Cline, Roo Code, OpenClaw and Hermes to the Vancine API. Install provider plugins from npm, ClawHub or a public GitHub source, or follow tool-specific setup guides.',
       twitterTitle: 'Coding Agent Integration Center | Vancine',
       twitterDescription:
-        'Connect Pi, OpenCode, Cline, Roo Code and OpenClaw to the Vancine API. Install provider plugins from npm or ClawHub, or follow tool-specific setup guides.',
+        'Connect Pi, OpenCode, Cline, Roo Code, OpenClaw and Hermes to the Vancine API. Install provider plugins from npm, ClawHub or a public GitHub source, or follow tool-specific setup guides.',
       ogUrl: 'https://vancine.com/docs/agents',
       canonical: 'https://vancine.com/docs/agents',
     })
@@ -158,6 +163,22 @@ describe('Agent Integration Center metadata contract', () => {
         'Install the @vancine/openclaw-provider plugin from npm or ClawHub, onboard with your own Vancine API key, and use a dynamically verified model list.',
       ogUrl: 'https://vancine.com/docs/agents/openclaw',
       canonical: 'https://vancine.com/docs/agents/openclaw',
+    })
+  })
+
+  it('hermes metadata matches the approved English copy byte-for-byte', () => {
+    assert.deepEqual(getDocsAgentToolPageMetadata('hermes'), {
+      title: 'Hermes Agent Setup Guide for the Vancine API | Vancine',
+      description:
+        'Connect Hermes Agent to Vancine with the vancine-hermes-provider plugin: install it from its public GitHub source, set VANCINE_API_KEY, then choose a model with hermes model.',
+      ogTitle: 'Hermes Agent Setup Guide for the Vancine API',
+      ogDescription:
+        'Connect Hermes Agent to Vancine with the vancine-hermes-provider plugin: install it from its public GitHub source, set VANCINE_API_KEY, then choose a model with hermes model.',
+      twitterTitle: 'Hermes Agent Setup Guide for the Vancine API | Vancine',
+      twitterDescription:
+        'Connect Hermes Agent to Vancine with the vancine-hermes-provider plugin: install it from its public GitHub source, set VANCINE_API_KEY, then choose a model with hermes model.',
+      ogUrl: 'https://vancine.com/docs/agents/hermes',
+      canonical: 'https://vancine.com/docs/agents/hermes',
     })
   })
 

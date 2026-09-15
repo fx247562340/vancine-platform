@@ -31,6 +31,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Route as DocsSlugRouteImport } from '@/routes/docs/$slug'
 import { Route as DocsAgentsSplatRouteImport } from '@/routes/docs/agents/$'
 import { Route as DocsAgentsClineRouteImport } from '@/routes/docs/agents/cline'
+import { Route as DocsAgentsHermesRouteImport } from '@/routes/docs/agents/hermes'
 import { Route as DocsAgentsIndexRouteImport } from '@/routes/docs/agents/index'
 import { Route as DocsAgentsOpenclawRouteImport } from '@/routes/docs/agents/openclaw'
 import { Route as DocsAgentsOpencodeRouteImport } from '@/routes/docs/agents/opencode'
@@ -115,6 +116,11 @@ const TestDocsAgentsOpenclawRoute = DocsAgentsOpenclawRouteImport.update({
   path: '/docs/agents/openclaw',
   getParentRoute: () => testRootRoute,
 } as never)
+const TestDocsAgentsHermesRoute = DocsAgentsHermesRouteImport.update({
+  id: '/docs/agents/hermes',
+  path: '/docs/agents/hermes',
+  getParentRoute: () => testRootRoute,
+} as never)
 const TestDocsAgentsSplatRoute = DocsAgentsSplatRouteImport.update({
   id: '/docs/agents/$',
   path: '/docs/agents/$',
@@ -129,6 +135,7 @@ const testRouteTree = testRootRoute.addChildren([
   TestDocsAgentsRooCodeRoute,
   TestDocsAgentsPiRoute,
   TestDocsAgentsOpenclawRoute,
+  TestDocsAgentsHermesRoute,
   TestDocsAgentsSplatRoute,
 ])
 
@@ -207,7 +214,7 @@ describe('Agent guide nested routes', () => {
       () =>
         expect(
           screen.getAllByRole('link', { name: 'View setup guide' })
-        ).toHaveLength(5),
+        ).toHaveLength(6),
       { timeout: 3000 }
     )
   })
@@ -215,6 +222,7 @@ describe('Agent guide nested routes', () => {
   it.each([
     ['/docs/agents/pi', /Pi setup guide/],
     ['/docs/agents/openclaw', /OpenClaw setup guide/],
+    ['/docs/agents/hermes', /Hermes Agent setup guide/],
   ] as const)('%s renders its own provider guide page', async (path, title) => {
     renderDocsRouter(path)
     await expectGuideFullyRendered(title)
@@ -225,6 +233,7 @@ describe('Agent guide nested routes', () => {
     '/docs/agents/roo',
     '/docs/agents/roo-code-v2',
     '/docs/agents/opencode/v1',
+    '/docs/agents/hermes-agent',
   ])('unknown nested path %s reaches the localized Docs 404', async (path) => {
     renderDocsRouter(path)
 
@@ -290,10 +299,12 @@ describe('Agent guide nested routes', () => {
       'roo-code',
       'pi',
       'openclaw',
+      'hermes',
       'OpenCode',
       'Cline',
       'Roo Code',
       'OpenClaw',
+      'Hermes',
     ]) {
       expect(document.title).not.toContain(tool)
       expect(description ?? '').not.toContain(tool)
@@ -308,6 +319,7 @@ describe('Agent guide nested routes', () => {
   it.each([
     '/docs/agents/pi?utm_source=x&utm_medium=founder_post&utm_campaign=agent_provider_launch_202609&utm_content=openclaw_provider',
     '/docs/agents/openclaw?utm_source=x&utm_medium=founder_post&utm_campaign=agent_provider_launch_202609&utm_content=openclaw_provider',
+    '/docs/agents/hermes?utm_source=x&utm_medium=founder_post&utm_campaign=agent_provider_launch_202609&utm_content=hermes_provider',
   ])(
     '%s keeps the query-free canonical while rendering the guide',
     async (path) => {
@@ -354,5 +366,10 @@ describe('Agent guide nested routes', () => {
     await expectGuideFullyRendered(/OpenClaw setup guide/)
     expect(touchMock).not.toHaveBeenCalled()
     second.unmount()
+
+    const third = renderDocsRouter('/docs/agents/hermes')
+    await expectGuideFullyRendered(/Hermes Agent setup guide/)
+    expect(touchMock).not.toHaveBeenCalled()
+    third.unmount()
   })
 })

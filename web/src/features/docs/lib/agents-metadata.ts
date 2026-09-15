@@ -26,7 +26,7 @@ import type { DocsAgentToolKey } from './agents'
  * These English values are the SPA mirror of the server-rendered blocks
  * in router/web_metadata.go (publicMarketingPages entries /docs/agents,
  * /docs/agents/opencode, /docs/agents/cline, /docs/agents/roo-code,
- * /docs/agents/pi and /docs/agents/openclaw).
+ * /docs/agents/pi, /docs/agents/openclaw and /docs/agents/hermes).
  * Both sides must stay byte-identical; the Go SEO tests and the
  * frontend agents-metadata tests each pin their own copy so a drift on
  * either side fails its own suite.
@@ -46,6 +46,8 @@ export const DOCS_AGENT_ROO_CODE_CANONICAL =
 export const DOCS_AGENT_PI_CANONICAL = 'https://vancine.com/docs/agents/pi'
 export const DOCS_AGENT_OPENCLAW_CANONICAL =
   'https://vancine.com/docs/agents/openclaw'
+export const DOCS_AGENT_HERMES_CANONICAL =
+  'https://vancine.com/docs/agents/hermes'
 export const DOCS_CANONICAL = 'https://vancine.com/docs'
 
 /**
@@ -77,13 +79,13 @@ export function getDocsAgentsPageMetadata(): PageMetadata {
   return {
     title: 'Coding Agent Integration Center | Vancine',
     description:
-      'Connect Pi, OpenCode, Cline, Roo Code and OpenClaw to the Vancine API. Install provider plugins from npm or ClawHub, or follow tool-specific setup guides.',
+      'Connect Pi, OpenCode, Cline, Roo Code, OpenClaw and Hermes to the Vancine API. Install provider plugins from npm, ClawHub or a public GitHub source, or follow tool-specific setup guides.',
     ogTitle: 'Coding Agent Integration Center',
     ogDescription:
-      'Connect Pi, OpenCode, Cline, Roo Code and OpenClaw to the Vancine API. Install provider plugins from npm or ClawHub, or follow tool-specific setup guides.',
+      'Connect Pi, OpenCode, Cline, Roo Code, OpenClaw and Hermes to the Vancine API. Install provider plugins from npm, ClawHub or a public GitHub source, or follow tool-specific setup guides.',
     twitterTitle: 'Coding Agent Integration Center | Vancine',
     twitterDescription:
-      'Connect Pi, OpenCode, Cline, Roo Code and OpenClaw to the Vancine API. Install provider plugins from npm or ClawHub, or follow tool-specific setup guides.',
+      'Connect Pi, OpenCode, Cline, Roo Code, OpenClaw and Hermes to the Vancine API. Install provider plugins from npm, ClawHub or a public GitHub source, or follow tool-specific setup guides.',
     ogUrl: DOCS_AGENTS_CANONICAL,
     canonical: DOCS_AGENTS_CANONICAL,
   }
@@ -162,6 +164,20 @@ export function getDocsAgentToolPageMetadata(
           'Install the @vancine/openclaw-provider plugin from npm or ClawHub, onboard with your own Vancine API key, and use a dynamically verified model list.',
         ogUrl: DOCS_AGENT_OPENCLAW_CANONICAL,
         canonical: DOCS_AGENT_OPENCLAW_CANONICAL,
+      }
+    case 'hermes':
+      return {
+        title: 'Hermes Agent Setup Guide for the Vancine API | Vancine',
+        description:
+          'Connect Hermes Agent to Vancine with the vancine-hermes-provider plugin: install it from its public GitHub source, set VANCINE_API_KEY, then choose a model with hermes model.',
+        ogTitle: 'Hermes Agent Setup Guide for the Vancine API',
+        ogDescription:
+          'Connect Hermes Agent to Vancine with the vancine-hermes-provider plugin: install it from its public GitHub source, set VANCINE_API_KEY, then choose a model with hermes model.',
+        twitterTitle: 'Hermes Agent Setup Guide for the Vancine API | Vancine',
+        twitterDescription:
+          'Connect Hermes Agent to Vancine with the vancine-hermes-provider plugin: install it from its public GitHub source, set VANCINE_API_KEY, then choose a model with hermes model.',
+        ogUrl: DOCS_AGENT_HERMES_CANONICAL,
+        canonical: DOCS_AGENT_HERMES_CANONICAL,
       }
   }
 }

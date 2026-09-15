@@ -33,6 +33,10 @@ import { DOCS_NS } from '../i18n/loader'
 import {
   getDocsAgentConfigExample,
   getDocsAgentToolProfile,
+  getHermesChatCommand,
+  HERMES_API_KEY_COMMAND,
+  HERMES_MODEL_COMMAND,
+  HERMES_PROVIDER_INSTALL_COMMAND,
   OPENCLAW_INSTALL_CLAWHUB_COMMAND,
   OPENCLAW_INSTALL_NPM_COMMAND,
   OPENCLAW_MODELS_COMMAND,
@@ -40,6 +44,7 @@ import {
   PI_LOGIN_COMMAND,
   PI_MODEL_COMMAND,
   PI_PROVIDER_INSTALL_COMMAND,
+  VANCINE_HERMES_PROVIDER_GITHUB_URL,
   VANCINE_MODELS_DEV_PROVIDER_URL,
   VANCINE_OPENCLAW_PROVIDER_CLAWHUB_URL,
   VANCINE_OPENCLAW_PROVIDER_GITHUB_URL,
@@ -63,6 +68,7 @@ const AGENT_TOOL_METADATA: Record<DocsAgentToolKey, PageMetadata> = {
   rooCode: getDocsAgentToolPageMetadata('rooCode'),
   pi: getDocsAgentToolPageMetadata('pi'),
   openclaw: getDocsAgentToolPageMetadata('openclaw'),
+  hermes: getDocsAgentToolPageMetadata('hermes'),
 }
 
 const SHARED_STEP_NUMBERS = [1, 2, 3, 4, 5] as const
@@ -70,20 +76,37 @@ const OPENCODE_STEP_NUMBERS = [1, 2, 3, 4, 5, 6, 7] as const
 const OPENCODE_CONNECT_COMMAND = '/connect'
 const OPENCODE_MODELS_COMMAND = '/models'
 
+/** Hermes install-location entries, one per Hermes surface. */
+const HERMES_SURFACE_KEYS = [
+  'cli',
+  'gateway',
+  'desktopLocal',
+  'desktopRemote',
+] as const
+
 const ERROR_KEYS = ['baseUrl', 'apiKey', 'model', 'protocol'] as const
 
 /**
- * Community provider-plugin guides (Pi, OpenClaw) install an extension and
- * sign in inside the tool; they never show the manual Base URL / config
- * sections shared by Cline and Roo Code. The install commands below are
- * language-neutral code from the published packages and always install the
+ * Provider-plugin guides (Pi, OpenClaw, Hermes) install a plugin and sign in
+ * inside the tool; they never show the manual Base URL / config sections
+ * shared by Cline and Roo Code. The install commands below are
+ * language-neutral code from the published sources and always install the
  * latest version (never a pinned version number).
  */
-const PROVIDER_TOOL_KEYS = ['pi', 'openclaw'] as const
+const PROVIDER_TOOL_KEYS = ['pi', 'openclaw', 'hermes'] as const
 type ProviderToolKey = (typeof PROVIDER_TOOL_KEYS)[number]
 
-/** Code blocks rendered under the numbered setup steps of a provider guide. */
-const PROVIDER_STEP_CODES: Record<ProviderToolKey, Record<number, string>> = {
+/**
+ * Code blocks rendered under the numbered setup steps of a provider guide.
+ * A step that embeds the live-catalog model id is a function of it, so a
+ * retired model id can never be frozen into the page.
+ */
+type ProviderStepCode = string | ((modelId: string) => string)
+
+const PROVIDER_STEP_CODES: Record<
+  ProviderToolKey,
+  Record<number, ProviderStepCode>
+> = {
   pi: {
     1: PI_PROVIDER_INSTALL_COMMAND,
     3: PI_LOGIN_COMMAND,
@@ -95,11 +118,18 @@ const PROVIDER_STEP_CODES: Record<ProviderToolKey, Record<number, string>> = {
     3: OPENCLAW_ONBOARD_COMMAND,
     4: OPENCLAW_MODELS_COMMAND,
   },
+  hermes: {
+    1: HERMES_PROVIDER_INSTALL_COMMAND,
+    3: HERMES_API_KEY_COMMAND,
+    5: HERMES_MODEL_COMMAND,
+    6: getHermesChatCommand,
+  },
 }
 
 const PROVIDER_STEP_COUNTS: Record<ProviderToolKey, number> = {
   pi: 7,
   openclaw: 5,
+  hermes: 6,
 }
 
 /** Public package sources shown as links on each provider guide. */
@@ -134,6 +164,15 @@ const PROVIDER_SOURCE_LINKS: Record<
       labelKey: 'agentGuides.openclaw.githubLabel',
     },
   ],
+  // Hermes has exactly one provenance source: the public GitHub repository.
+  // There is deliberately no npm, PyPI or Hermes plugin-catalog link here,
+  // because no such distribution exists.
+  hermes: [
+    {
+      href: VANCINE_HERMES_PROVIDER_GITHUB_URL,
+      labelKey: 'agentGuides.hermes.githubLabel',
+    },
+  ],
 }
 
 /** Provider-specific troubleshooting entries (under agentGuides.<tool>.errors). */
@@ -146,6 +185,13 @@ const PROVIDER_ERROR_KEYS: Record<ProviderToolKey, readonly string[]> = {
     'modelRefused',
     'doubleInstall',
   ],
+  hermes: [
+    'pluginMissing',
+    'apiKey',
+    'modelMissing',
+    'wrongHost',
+    'modelRetired',
+  ],
 }
 
 function isProviderTool(tool: DocsAgentToolKey): tool is ProviderToolKey {
@@ -153,10 +199,10 @@ function isProviderTool(tool: DocsAgentToolKey): tool is ProviderToolKey {
 }
 
 /**
- * Shared layout for the five nested agent setup guides (/docs/agents/opencode,
+ * Shared layout for the six nested agent setup guides (/docs/agents/opencode,
  * /docs/agents/cline, /docs/agents/roo-code, /docs/agents/pi,
- * /docs/agents/openclaw). All copy comes from the Docs i18n bundle;
- * configuration examples are language-neutral code templates with
+ * /docs/agents/openclaw, /docs/agents/hermes). All copy comes from the Docs
+ * i18n bundle; configuration examples are language-neutral code templates with
  * placeholder credentials only.
  */
 export default function DocsAgentDetailPage(props: {
@@ -343,7 +389,11 @@ export default function DocsAgentDetailPage(props: {
       { length: PROVIDER_STEP_COUNTS[providerTool] },
       (_, index) => index + 1
     ).map((step) => {
-      const code = PROVIDER_STEP_CODES[providerTool][step]
+      const stepCode = PROVIDER_STEP_CODES[providerTool][step]
+      // A step code that depends on the live catalog is resolved here, once
+      // per render, so the rendered command carries the current model id.
+      const code =
+        typeof stepCode === 'function' ? stepCode(recommendedModelId) : stepCode
       return (
         <li key={step}>
           <div>
@@ -471,9 +521,28 @@ export default function DocsAgentDetailPage(props: {
           {t('agentGuides.openclaw.installChoice')}
         </DocsCallout>
       ) : null}
+      {props.tool === 'hermes' ? (
+        <DocsCallout type='tip'>
+          {t('agentGuides.hermes.installNote')}
+        </DocsCallout>
+      ) : null}
       <ol className='text-muted-foreground marker:text-primary mb-6 list-decimal space-y-3 pl-6 text-sm leading-relaxed marker:font-semibold'>
         {renderedSteps}
       </ol>
+      {props.tool === 'hermes' ? (
+        <div className='border-border bg-card mb-6 rounded-xl border p-4'>
+          <p className='text-foreground mb-2 text-sm font-semibold'>
+            {t('agentGuides.hermes.surfacesTitle')}
+          </p>
+          <ul className='text-muted-foreground list-disc space-y-1.5 pl-5 text-sm leading-relaxed'>
+            {HERMES_SURFACE_KEYS.map((surfaceKey) => (
+              <li key={surfaceKey}>
+                {t(`agentGuides.hermes.surfaces.${surfaceKey}`)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <DocsH3 id={`agent-${profile.segment}-models`}>
         {t('agentGuides.common.modelsTitle')}

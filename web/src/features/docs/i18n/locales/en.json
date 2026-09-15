@@ -10,7 +10,7 @@
     },
     "step2": {
       "title": "Choose a model",
-      "desc": "We recommend deepseek-v4-flash for your first call — it's fast, affordable, and great for testing.",
+      "desc": "We recommend deepseek-v4.1-flash for your first call — it's fast, affordable, and great for testing.",
       "viewAll": "View all available models",
       "dynamicFallback": "Showing the verified default model while the live catalog loads."
     },
@@ -79,7 +79,7 @@
       "apiKeyOpenai": "sk-xxx (OpenAI key)",
       "apiKeyNote": "Use your Vancine token from Console → Tokens",
       "modelOpenai": "gpt-4o, gpt-4o-mini, etc.",
-      "modelNote": "Use a Vancine-supported model (e.g. deepseek-v4-flash)"
+      "modelNote": "Use a Vancine-supported model (e.g. deepseek-v4.1-flash)"
     },
     "nextSteps": {
       "title": "Next steps",
@@ -276,6 +276,9 @@
         },
         "openclaw": {
           "protocol": "Community provider plugin for OpenClaw, installed from npm or ClawHub."
+        },
+        "hermes": {
+          "protocol": "Provider plugin for Hermes Agent, installed from its public GitHub source."
         }
       },
       "cardBoundary": "The OpenAI-compatible setup for this tool is ready. Follow its guide to connect it to Vancine."
@@ -283,8 +286,9 @@
     "cli": {
       "codex": "Codex official config uses ~/.codex/config.toml. Current docs show the Responses protocol, so set wire_api to responses.",
       "openclaw": "OpenClaw connects through the Vancine-maintained community provider plugin instead of a manual Base URL configuration. Follow the dedicated guide for installation and authentication.",
-      "hermes": "Hermes Agent OpenAI-compatible plugins commonly use config.yaml or environment variables for base_url and api_key. Use the exact fields from the installed plugin.",
-      "openclawGuideLink": "Open the OpenClaw provider guide"
+      "hermes": "Hermes Agent connects through the vancine-hermes-provider plugin instead of a manual Base URL or config.yaml. Follow the dedicated guide for installation, credentials and model selection.",
+      "openclawGuideLink": "Open the OpenClaw provider guide",
+      "hermesGuideLink": "Open the Hermes provider guide"
     },
     "gui": {
       "cursor": {
@@ -314,8 +318,7 @@
       "stepSelect": "Select Vancine and paste your own Vancine API Key.",
       "stepModel": "Run:",
       "stepChoose": "Choose a model under the Vancine Provider and start using it.",
-      "catalogNote": "The model catalog is provided dynamically by Vancine. The extension caches and revalidates it, so you do not maintain a model whitelist.",
-      "notOfficial": "pi-provider-vancine is a community extension published and maintained by Vancine. It does not constitute official cooperation, certification, or endorsement between Pi, Earendil Works, or their maintainers and Vancine."
+      "catalogNote": "The model catalog is provided dynamically by Vancine. The extension caches and revalidates it, so you do not maintain a model whitelist."
     }
   },
   "agentGuides": {
@@ -358,7 +361,6 @@
       "ctaKeys": "Manage your API keys",
       "ctaPricing": "Compare models and pricing",
       "ctaDocs": "Read the Chat Completions API",
-      "notOfficial": "Vancine is an independent OpenAI-compatible API service. It is not an official provider, partner or built-in integration of {{tool}}.",
       "statusCallout": "The OpenAI-compatible setup for this tool is ready. Follow this guide to connect it to Vancine."
     },
     "opencode": {
@@ -374,7 +376,6 @@
       "step7": "Choose vancine/{{modelId}}, or another model under the vancine Provider, then send a prompt.",
       "advancedTitle": "Advanced configuration (optional)",
       "advancedNote": "Use a project-level opencode.json only to override the Base URL, whitelist or blacklist models, fall back when the live catalog is unavailable, or pin an explicit Provider config. Do not treat this file as part of the basic /connect setup.",
-      "notOfficial": "Vancine is an independent OpenAI-compatible API service listed in the Models.dev catalog used by OpenCode. This catalog listing does not imply an official partnership or endorsement by OpenCode.",
       "errors": {
         "model": {
           "fix": "Use the exact model ID from the Vancine live catalog. Model IDs are case-sensitive. The Models page is the source of truth."
@@ -417,7 +418,6 @@
       "step6": "Choose a model under the Vancine provider.",
       "step7": "Send your first request through Vancine.",
       "catalogNote": "The model list comes from the Vancine catalog. Pi refreshes it at most every 4 hours; on later refresh failures it keeps the last successful cache, including an empty list. A small offline fallback is only possible when the first refresh fails with no cache yet. The catalog is not guaranteed to be realtime, and after a successful refresh, delisted models disappear and are not revived by the fallback.",
-      "notOfficial": "pi-provider-vancine is a community extension published and maintained by Vancine. It does not constitute official cooperation, certification, or endorsement between Pi, Earendil Works, or their maintainers and Vancine.",
       "errors": {
         "providerMissing": {
           "symptom": "The Vancine provider does not appear in /login.",
@@ -453,7 +453,6 @@
       "step4": "List and verify the models your key can access:",
       "step5": "Start a conversation with a verified Vancine model.",
       "catalogNote": "The model list is not a static full catalog. The plugin fetches the public Vancine catalog, then verifies each candidate against /v1/models with your key and publishes only the intersection your account can actually use.",
-      "notOfficial": "@vancine/openclaw-provider is a Vancine-maintained community provider plugin. It is not an official, built-in, or certified OpenClaw or ClawHub provider, and its listing is not an endorsement by OpenClaw or ClawHub.",
       "errors": {
         "pluginMissing": {
           "symptom": "The plugin is not loaded or no vancine models appear after install.",
@@ -479,6 +478,49 @@
       "zeroCredentialNote": "Exact boundary: unknown-model refusal is guaranteed while the plugin holds verified catalog state for the current credential. With no credential at all, an operator-configured model may still be attempted unauthenticated by OpenClaw core and rejected upstream with 401.",
       "limitationsNote": "Scope note: the published plugin has not yet been exercised across the full range of OpenClaw versions, workflows, or multimodal request types. Check the plugin README for the current compatibility statement.",
       "modelsNote": "Choose only from the verified models returned by openclaw models list --provider vancine --refresh --json. The live Models and Pricing pages are references; a model shown there is not guaranteed to be verified for your key."
+    },
+    "hermes": {
+      "pageTitle": "Hermes Agent setup guide",
+      "valueProp": "Use your own Vancine API Key in Hermes Agent through the vancine-hermes-provider plugin, installed from its public GitHub source. The same provider works in the Hermes CLI, the Hermes Gateway, and Hermes Desktop.",
+      "githubLabel": "GitHub repository",
+      "step1": "Install the provider plugin from its published public source (fx247562340/vancine-hermes-provider):",
+      "step2": "Hermes treats this as a custom source and asks Enable 'vancine-provider' now? — answer y so the provider is enabled after install.",
+      "step3": "Set VANCINE_API_KEY for your Vancine API key in the environment Hermes reads:",
+      "step4": "Restart the Hermes CLI, Gateway, or Desktop backend so the new provider is loaded.",
+      "step5": "List the Vancine chat models the provider currently resolves or caches and pick one — the list is not a per-key permission set:",
+      "step6": "Or call a model directly with the provider/model form:",
+      "installNote": "Hermes installs the vancine-provider plugin from a custom (unreviewed) GitHub source, not from a plugin catalog. It is a Hermes model-provider plugin, so there is no separate Desktop plugin: one install on the Hermes Agent backend serves the CLI, the Gateway, and Desktop.",
+      "surfacesTitle": "Where to install the plugin",
+      "surfaces": {
+        "cli": "Hermes CLI: install it in the HERMES_HOME that the CLI process uses.",
+        "gateway": "Hermes Gateway: install it in the Gateway host's HERMES_HOME. The Gateway and the CLI share the same Hermes Agent backend.",
+        "desktopLocal": "Hermes Desktop with a local backend: install it in the same HERMES_HOME the local Hermes runtime uses. Desktop loads no second plugin list.",
+        "desktopRemote": "Hermes Desktop with a remote Gateway: install it in the remote Gateway host's HERMES_HOME, not only on the machine showing the Desktop UI. A plugin that exists only on the laptop will not appear."
+      },
+      "catalogNote": "The plugin ships no hardcoded full model list. Hermes loads the currently available Chat Completions models from the Vancine catalog, so this page never maintains a static model whitelist. The catalog is not guaranteed to be realtime. A successful refresh replaces the provider's own list, but Hermes core keeps a disk cache of provider model ids (about an hour, up to 7 days stale), so a model delisted upstream can stay visible in the picker for a while and only fail at call time — if that happens, run hermes model again and pick a current id.",
+      "errors": {
+        "pluginMissing": {
+          "symptom": "The vancine provider does not appear in Hermes after installing.",
+          "fix": "Confirm the plugin was cloned and enabled, then restart the Hermes CLI / Gateway / Desktop backend. If Desktop connects to a remote Gateway, install the plugin on that Gateway host."
+        },
+        "apiKey": {
+          "symptom": "The API key is rejected (401 / invalid API key).",
+          "fix": "Create or copy a key from your Vancine account, set VANCINE_API_KEY in the environment Hermes reads (the process environment or that HERMES_HOME's .env), then restart the backend."
+        },
+        "modelMissing": {
+          "symptom": "No Vancine models appear in the model list.",
+          "fix": "The picker lists the Chat Completions models the plugin could resolve. Check that the provider is enabled and the catalog is reachable, then run hermes model again."
+        },
+        "wrongHost": {
+          "symptom": "Hermes Desktop shows no Vancine provider while the CLI on another machine works.",
+          "fix": "Hermes Desktop talks to an Agent backend. With a remote Gateway, install the plugin in the remote Gateway host's HERMES_HOME, not only on the machine showing the Desktop UI."
+        },
+        "modelRetired": {
+          "symptom": "model not found, or the model id is rejected.",
+          "fix": "Model ids are case-sensitive and can be retired upstream, and the Hermes picker can briefly keep showing a retired id from its own cache. If a call is rejected, pick a current id from hermes model or the live Models page and copy it verbatim."
+        }
+      },
+      "modelsNote": "Pick from the models hermes model currently lists — what the provider resolved or cached from the Vancine catalog, not a per-key permission set. If a call is rejected, run hermes model again and pick a current id. The live Models and Pricing pages are references; a model shown there is not guaranteed to appear in the Hermes picker."
     }
   },
   "faq": {

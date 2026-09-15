@@ -25,7 +25,7 @@ import zhCNBundle from '../../i18n/locales/zhCN.json'
 import type { AgentSearchIndexEntry } from '../../types.ts'
 
 /**
- * Search contract for the nested agent setup guides: the three guides are
+ * Search contract for the nested agent setup guides: each guide is
  * independently indexable and each result carries the nested route path,
  * never the hub path or a slug.
  */
@@ -68,23 +68,36 @@ const AGENT_BUNDLE = {
       valueProp:
         'Use your own Vancine API Key in OpenClaw through the @vancine/openclaw-provider community plugin, installed from npm or ClawHub.',
     },
+    hermes: {
+      pageTitle: 'Hermes Agent setup guide',
+      valueProp:
+        'Use your own Vancine API Key in Hermes Agent through the vancine-hermes-provider plugin, installed from its public GitHub source.',
+      step1:
+        'Install the provider plugin from its published public source (fx247562340/vancine-hermes-provider):',
+    },
   },
 }
 
+const EXPECTED_AGENT_PATHS = [
+  '/docs/agents/cline',
+  '/docs/agents/hermes',
+  '/docs/agents/openclaw',
+  '/docs/agents/opencode',
+  '/docs/agents/pi',
+  '/docs/agents/roo-code',
+]
+
 describe('Docs search agent guide entries', () => {
-  it('indexes the five guides with their nested route paths', async () => {
+  it('indexes the six guides with their nested route paths', async () => {
     const { buildSearchIndex } = await import('../search.ts')
     const index = buildSearchIndex(AGENT_BUNDLE)
     const agentEntries = index.filter(
       (entry): entry is AgentSearchIndexEntry => 'agentPath' in entry
     )
-    assert.deepEqual(agentEntries.map((entry) => entry.agentPath).sort(), [
-      '/docs/agents/cline',
-      '/docs/agents/openclaw',
-      '/docs/agents/opencode',
-      '/docs/agents/pi',
-      '/docs/agents/roo-code',
-    ])
+    assert.deepEqual(
+      agentEntries.map((entry) => entry.agentPath).sort(),
+      EXPECTED_AGENT_PATHS
+    )
     for (const entry of agentEntries) {
       assert.ok(entry.title.trim().length > 0)
       // Discriminated union: agent entries never carry a slug.
@@ -123,6 +136,15 @@ describe('Docs search agent guide entries', () => {
       pi.some((r) => 'agentPath' in r && r.agentPath === '/docs/agents/pi'),
       true
     )
+
+    const hermes = searchDocs(index, 'Hermes')
+    assert.ok(hermes.length >= 1)
+    assert.equal(
+      hermes.some(
+        (r) => 'agentPath' in r && r.agentPath === '/docs/agents/hermes'
+      ),
+      true
+    )
   })
 
   it('finds the provider guides by package name and install source', async () => {
@@ -153,6 +175,21 @@ describe('Docs search agent guide entries', () => {
       ),
       'ClawHub must find the OpenClaw guide'
     )
+
+    // The Hermes plugin name and its install command's repository slug
+    // reach the Hermes guide, not just the hub.
+    for (const query of [
+      'vancine-hermes-provider',
+      'fx247562340/vancine-hermes-provider',
+    ]) {
+      const hermesPackage = searchDocs(index, query)
+      assert.ok(
+        hermesPackage.some(
+          (r) => 'agentPath' in r && r.agentPath === '/docs/agents/hermes'
+        ),
+        `${query} must find the Hermes guide`
+      )
+    }
   })
 
   it('shared troubleshooting copy is searchable on every guide, not just the hub', async () => {
@@ -164,14 +201,8 @@ describe('Docs search agent guide entries', () => {
       const agentHits = results.filter((r) => 'agentPath' in r)
       assert.deepEqual(
         agentHits.map((r) => ('agentPath' in r ? r.agentPath : '')).sort(),
-        [
-          '/docs/agents/cline',
-          '/docs/agents/openclaw',
-          '/docs/agents/opencode',
-          '/docs/agents/pi',
-          '/docs/agents/roo-code',
-        ],
-        `query "${query}" must reach all five guide pages via merged common copy`
+        EXPECTED_AGENT_PATHS,
+        `query "${query}" must reach all six guide pages via merged common copy`
       )
       // The shared snippet context comes with each hit.
       for (const hit of agentHits) {
@@ -207,16 +238,38 @@ describe('Docs search agent guide entries', () => {
 })
 
 /**
- * What the search box must never surface: the `notOfficial` locale fields
- * stopped rendering on every guide page, so their copy may not come back as a
- * searchable result or snippet. Uses the real shipped Docs bundles.
+ * The relationship-disclaimer copy (`notOfficial`) was deleted from every
+ * Docs locale: the product shows no distancing copy at all. This suite keeps
+ * the discipline in place — the key must not exist in the shipped bundles, and
+ * a relationship query must therefore surface nothing. Uses the real shipped
+ * Docs bundles.
  */
-describe('Docs search never indexes unrendered relationship copy', () => {
+describe('Docs bundles carry no unrendered relationship copy', () => {
+  function collectKeys(obj: unknown, prefix = ''): string[] {
+    if (typeof obj !== 'object' || obj === null) return [prefix]
+    const keys: string[] = []
+    for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+      const fullKey = prefix ? `${prefix}.${k}` : k
+      if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
+        keys.push(...collectKeys(v, fullKey))
+      } else {
+        keys.push(fullKey)
+      }
+    }
+    return keys
+  }
+
   for (const [locale, bundle] of [
     ['en', enBundle],
     ['zhCN', zhCNBundle],
   ] as const) {
-    it(`${locale}: relationship queries return no result`, async () => {
+    it(`${locale}: no notOfficial key exists and relationship queries return no result`, async () => {
+      assert.deepEqual(
+        collectKeys(bundle).filter((key) => key.endsWith('.notOfficial')),
+        [],
+        `${locale} must not ship a notOfficial relationship-disclaimer key`
+      )
+
       const { buildSearchIndex, searchDocs } = await import('../search.ts')
       const index = buildSearchIndex(bundle)
       const queries =
@@ -267,6 +320,13 @@ describe('Docs search never indexes unrendered relationship copy', () => {
       ),
       'OpenCode must find the OpenCode guide'
     )
+    const hermesResults = searchDocs(enIndex, 'vancine-hermes-provider')
+    assert.ok(
+      hermesResults.some(
+        (r) => 'agentPath' in r && r.agentPath === '/docs/agents/hermes'
+      ),
+      'vancine-hermes-provider must find the Hermes guide'
+    )
     // Shared troubleshooting copy stays reachable on every guide.
     const apiKeyHits = searchDocs(enIndex, 'invalid API key')
     assert.deepEqual(
@@ -274,14 +334,8 @@ describe('Docs search never indexes unrendered relationship copy', () => {
         .filter((r) => 'agentPath' in r)
         .map((r) => ('agentPath' in r ? r.agentPath : ''))
         .sort(),
-      [
-        '/docs/agents/cline',
-        '/docs/agents/openclaw',
-        '/docs/agents/opencode',
-        '/docs/agents/pi',
-        '/docs/agents/roo-code',
-      ],
-      'invalid API key must still reach all five guides'
+      EXPECTED_AGENT_PATHS,
+      'invalid API key must still reach all six guides'
     )
 
     // Chinese bundle: same package names, plus the localized install copy.
@@ -297,11 +351,33 @@ describe('Docs search never indexes unrendered relationship copy', () => {
       ),
       '@vancine/openclaw-provider must find the OpenClaw guide in zhCN'
     )
-    const installZh = searchDocs(zhIndex, '安装')
-    assert.equal(
-      installZh.filter((r) => 'agentPath' in r).length,
-      5,
-      'the localized install copy must still reach all five guides'
+    const hermesZh = searchDocs(zhIndex, 'vancine-hermes-provider')
+    assert.ok(
+      hermesZh.some(
+        (r) => 'agentPath' in r && r.agentPath === '/docs/agents/hermes'
+      ),
+      'vancine-hermes-provider must find the Hermes guide in zhCN'
     )
+
+    // Every guide stays findable through its own localized page title, which
+    // is what a reader actually types into the search box.
+    for (const [locale, bundle, index] of [
+      ['en', enBundle, enIndex],
+      ['zhCN', zhCNBundle, zhIndex],
+    ] as const) {
+      const guides = (bundle as { agentGuides: Record<string, unknown> })
+        .agentGuides
+      for (const path of EXPECTED_AGENT_PATHS) {
+        const key = path.replace('/docs/agents/', '')
+        const toolKey = key === 'roo-code' ? 'rooCode' : key
+        const title = (guides[toolKey] as { pageTitle: string }).pageTitle
+        assert.ok(
+          searchDocs(index, title).some(
+            (r) => 'agentPath' in r && r.agentPath === path
+          ),
+          `${locale}: "${title}" must find ${path}`
+        )
+      }
+    }
   })
 })

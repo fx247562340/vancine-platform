@@ -45,8 +45,13 @@ import {
  *    detail template.
  */
 
-/** Fallback text model used across chat/quickstart/auth/agents docs. */
-export const DOCS_FALLBACK_TEXT_MODEL = 'deepseek-v4-flash'
+/**
+ * Fallback text model used across chat/quickstart/auth/agents docs.
+ * Verified against the live Pi catalog: deepseek-v4.1-flash is the current
+ * entry that replaced its retired predecessor — two distinct catalog ids,
+ * so docs examples must not let the old id resurface.
+ */
+export const DOCS_FALLBACK_TEXT_MODEL = 'deepseek-v4.1-flash'
 
 /** Fallback image model used by /docs/image when the catalog is down. */
 export const DOCS_FALLBACK_IMAGE_MODEL = 'qwen-image-3.0'

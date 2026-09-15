@@ -101,6 +101,17 @@ describe('DocsSearchBox agent guide navigation', () => {
       '/docs/agents/openclaw',
     ],
     ['ClawHub', 'OpenClaw setup guide', '/docs/agents/openclaw'],
+    ['Hermes', 'Hermes Agent setup guide', '/docs/agents/hermes'],
+    [
+      'vancine-hermes-provider',
+      'Hermes Agent setup guide',
+      '/docs/agents/hermes',
+    ],
+    [
+      'fx247562340/vancine-hermes-provider',
+      'Hermes Agent setup guide',
+      '/docs/agents/hermes',
+    ],
   ] as const)(
     'searching %s finds the provider guide and navigates to %s',
     async (query, title, path) => {

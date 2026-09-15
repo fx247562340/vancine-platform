@@ -196,13 +196,13 @@ var seoPublicRouteCases = []seoPublicRouteCase{
 		// getDocsAgentsPageMetadata() must stay byte-identical to it.
 		path:                 "/docs/agents",
 		wantTitle:            "Coding Agent Integration Center | Vancine",
-		wantDescription:      "Connect Pi, OpenCode, Cline, Roo Code and OpenClaw to the Vancine API. Install provider plugins from npm or ClawHub, or follow tool-specific setup guides.",
+		wantDescription:      "Connect Pi, OpenCode, Cline, Roo Code, OpenClaw and Hermes to the Vancine API. Install provider plugins from npm, ClawHub or a public GitHub source, or follow tool-specific setup guides.",
 		wantCanonical:        "https://vancine.com/docs/agents",
 		wantOGTitle:          "Coding Agent Integration Center",
-		wantOGDescription:    "Connect Pi, OpenCode, Cline, Roo Code and OpenClaw to the Vancine API. Install provider plugins from npm or ClawHub, or follow tool-specific setup guides.",
+		wantOGDescription:    "Connect Pi, OpenCode, Cline, Roo Code, OpenClaw and Hermes to the Vancine API. Install provider plugins from npm, ClawHub or a public GitHub source, or follow tool-specific setup guides.",
 		wantOGURL:            "https://vancine.com/docs/agents",
 		wantTwitterTitle:     "Coding Agent Integration Center | Vancine",
-		wantTwitterDesc:      "Connect Pi, OpenCode, Cline, Roo Code and OpenClaw to the Vancine API. Install provider plugins from npm or ClawHub, or follow tool-specific setup guides.",
+		wantTwitterDesc:      "Connect Pi, OpenCode, Cline, Roo Code, OpenClaw and Hermes to the Vancine API. Install provider plugins from npm, ClawHub or a public GitHub source, or follow tool-specific setup guides.",
 		wantTwitterCardValue: "summary",
 	},
 	{
@@ -277,6 +277,21 @@ var seoPublicRouteCases = []seoPublicRouteCase{
 		wantOGURL:            "https://vancine.com/docs/agents/openclaw",
 		wantTwitterTitle:     "OpenClaw Setup Guide for the Vancine API | Vancine",
 		wantTwitterDesc:      "Install the @vancine/openclaw-provider plugin from npm or ClawHub, onboard with your own Vancine API key, and use a dynamically verified model list.",
+		wantTwitterCardValue: "summary",
+	},
+	{
+		// Hermes setup guide. The SPA's
+		// getDocsAgentToolPageMetadata('hermes') must stay
+		// byte-identical to this block.
+		path:                 "/docs/agents/hermes",
+		wantTitle:            "Hermes Agent Setup Guide for the Vancine API | Vancine",
+		wantDescription:      "Connect Hermes Agent to Vancine with the vancine-hermes-provider plugin: install it from its public GitHub source, set VANCINE_API_KEY, then choose a model with hermes model.",
+		wantCanonical:        "https://vancine.com/docs/agents/hermes",
+		wantOGTitle:          "Hermes Agent Setup Guide for the Vancine API",
+		wantOGDescription:    "Connect Hermes Agent to Vancine with the vancine-hermes-provider plugin: install it from its public GitHub source, set VANCINE_API_KEY, then choose a model with hermes model.",
+		wantOGURL:            "https://vancine.com/docs/agents/hermes",
+		wantTwitterTitle:     "Hermes Agent Setup Guide for the Vancine API | Vancine",
+		wantTwitterDesc:      "Connect Hermes Agent to Vancine with the vancine-hermes-provider plugin: install it from its public GitHub source, set VANCINE_API_KEY, then choose a model with hermes model.",
 		wantTwitterCardValue: "summary",
 	},
 	{
@@ -953,6 +968,7 @@ func TestDocsAgentGuidesCanonicalIsPollutionProof(t *testing.T) {
 		"/docs/agents/roo-code": "https://vancine.com/docs/agents/roo-code",
 		"/docs/agents/pi":       "https://vancine.com/docs/agents/pi",
 		"/docs/agents/openclaw": "https://vancine.com/docs/agents/openclaw",
+		"/docs/agents/hermes":   "https://vancine.com/docs/agents/hermes",
 	}
 	for path, canonical := range cases {
 		path, canonical := path, canonical
@@ -998,12 +1014,18 @@ func TestUnknownDocsAgentPathsServeNoMarketingMetadata(t *testing.T) {
 		"/docs/agents/roo",
 		"/docs/agents/roo-code-v2",
 		"/docs/agents/opencode/v1",
-		// Case variants of the new provider guides must keep the same
-		// unknown-path contract: no Pi/OpenClaw metadata, no canonical.
+		// Case variants of the provider guides must keep the same
+		// unknown-path contract: no Pi/OpenClaw/Hermes metadata, no
+		// canonical.
 		"/docs/agents/Pi",
 		"/docs/agents/OpenClaw",
 		"/docs/agents/pi-provider",
 		"/docs/agents/pi/v2",
+		"/docs/agents/Hermes",
+		"/docs/agents/Hermes-Agent",
+		"/docs/agents/hermes-agent",
+		"/docs/agents/vancine-hermes-provider",
+		"/docs/agents/hermes/v1",
 	} {
 		p := p
 		t.Run("GET "+p, func(t *testing.T) {

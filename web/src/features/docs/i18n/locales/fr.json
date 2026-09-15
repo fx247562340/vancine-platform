@@ -10,7 +10,7 @@
     },
     "step2": {
       "title": "Choisissez un modèle",
-      "desc": "Nous recommandons deepseek-v4-flash pour votre premier appel — il est rapide, abordable et idéal pour les tests.",
+      "desc": "Nous recommandons deepseek-v4.1-flash pour votre premier appel — il est rapide, abordable et idéal pour les tests.",
       "viewAll": "Voir tous les modèles disponibles",
       "dynamicFallback": "Affichage du modèle par défaut vérifié pendant le chargement du catalogue en direct."
     },
@@ -79,7 +79,7 @@
       "apiKeyOpenai": "sk-xxx (clé OpenAI)",
       "apiKeyNote": "Utilisez votre jeton Vancine depuis Console → Jetons",
       "modelOpenai": "gpt-4o, gpt-4o-mini, etc.",
-      "modelNote": "Utilisez un modèle pris en charge par Vancine (ex. deepseek-v4-flash)"
+      "modelNote": "Utilisez un modèle pris en charge par Vancine (ex. deepseek-v4.1-flash)"
     },
     "nextSteps": {
       "title": "Prochaines étapes",
@@ -276,6 +276,9 @@
         },
         "openclaw": {
           "protocol": "Plugin Provider communautaire pour OpenClaw, installé depuis npm ou ClawHub."
+        },
+        "hermes": {
+          "protocol": "Plugin Provider pour Hermes Agent, installé depuis sa source GitHub publique."
         }
       },
       "cardBoundary": "La configuration OpenAI-compatible de cet outil est prête. Suivez son guide pour le connecter à Vancine."
@@ -283,8 +286,9 @@
     "cli": {
       "codex": "La config officielle de Codex utilise ~/.codex/config.toml. La documentation actuelle montre le protocole Responses, donc wire_api doit être responses.",
       "openclaw": "OpenClaw se connecte via le plugin Provider communautaire maintenu par Vancine, sans configuration manuelle de l'URL de base. Suivez le guide dédié pour l'installation et l'authentification.",
-      "hermes": "Les plugins OpenAI-compatible de Hermes Agent utilisent généralement config.yaml ou des variables d'environnement pour base_url et api_key. Utilisez les champs exacts du plugin installé.",
-      "openclawGuideLink": "Ouvrir le guide Provider OpenClaw"
+      "hermes": "Hermes Agent se connecte via le plugin vancine-hermes-provider, sans Base URL ni config.yaml manuels. Suivez le guide dédié pour l’installation, les identifiants et le choix du modèle.",
+      "openclawGuideLink": "Ouvrir le guide Provider OpenClaw",
+      "hermesGuideLink": "Ouvrir le guide du Provider Hermes"
     },
     "gui": {
       "cursor": {
@@ -314,8 +318,7 @@
       "stepSelect": "Sélectionnez Vancine et collez votre propre clé API Vancine.",
       "stepModel": "Exécutez :",
       "stepChoose": "Choisissez un modèle sous le Provider Vancine et commencez à l'utiliser.",
-      "catalogNote": "Le catalogue de modèles est fourni dynamiquement par Vancine. L'extension le met en cache et le revalide, vous n'avez donc pas à maintenir une liste blanche de modèles.",
-      "notOfficial": "pi-provider-vancine est une extension communautaire publiée et maintenue par Vancine. Elle ne constitue pas une coopération officielle, une certification ou une caution entre Pi, Earendil Works ou leurs mainteneurs et Vancine."
+      "catalogNote": "Le catalogue de modèles est fourni dynamiquement par Vancine. L'extension le met en cache et le revalide, vous n'avez donc pas à maintenir une liste blanche de modèles."
     }
   },
   "agentGuides": {
@@ -358,7 +361,6 @@
       "ctaKeys": "Gérer mes clés API",
       "ctaPricing": "Comparer les modèles et les tarifs",
       "ctaDocs": "Lire la documentation Chat Completions",
-      "notOfficial": "Vancine est un service API OpenAI-compatible indépendant. Ce n'est ni un fournisseur officiel, ni un partenaire, ni une intégration native de {{tool}}.",
       "statusCallout": "La configuration OpenAI-compatible de cet outil est prête. Suivez ce guide pour le connecter à Vancine."
     },
     "opencode": {
@@ -374,7 +376,6 @@
       "step7": "Choisissez vancine/{{modelId}}, ou un autre modèle sous le Provider vancine, puis envoyez un prompt.",
       "advancedTitle": "Configuration avancée (optionnelle)",
       "advancedNote": "N'utilisez un opencode.json au niveau du projet que pour remplacer la Base URL, définir une whitelist / blacklist de modèles, servir de secours si le catalogue en direct est indisponible, ou figer une configuration Provider explicite. Ne traitez pas ce fichier comme faisant partie de la configuration de base /connect.",
-      "notOfficial": "Vancine est un service API OpenAI-compatible indépendant, listé dans le catalogue Models.dev utilisé par OpenCode. Cette inscription au catalogue n'implique aucun partenariat officiel, ni recommandation, ni caution de la part d'OpenCode.",
       "errors": {
         "model": {
           "fix": "Utilisez l'identifiant exact du catalogue en direct Vancine. Les identifiants sont sensibles à la casse. La page Modèles fait foi."
@@ -417,7 +418,6 @@
       "step6": "Choisissez un modèle sous le Provider Vancine.",
       "step7": "Envoyez votre première requête via Vancine.",
       "catalogNote": "La liste des modèles provient du catalogue Vancine. Pi l’actualise au maximum toutes les 4 heures ; en cas d’échec ultérieur, il conserve le dernier cache réussi, y compris une liste vide. Un petit repli hors ligne n’est possible que si la première actualisation échoue sans aucun cache. Le catalogue n’est pas garanti en temps réel ; après une actualisation réussie, les modèles retirés disparaissent et ne sont pas rétablis par le repli.",
-      "notOfficial": "pi-provider-vancine est une extension communautaire publiée et maintenue par Vancine. Elle ne constitue pas une coopération officielle, une certification ou une caution entre Pi, Earendil Works ou leurs mainteneurs et Vancine.",
       "errors": {
         "providerMissing": {
           "symptom": "Le fournisseur Vancine n'apparaît pas dans /login.",
@@ -453,7 +453,6 @@
       "step4": "Listez et vérifiez les modèles accessibles avec votre clé :",
       "step5": "Démarrez une conversation avec un modèle Vancine vérifié.",
       "catalogNote": "La liste des modèles n’est pas un catalogue statique complet. Le plugin récupère le catalogue public Vancine, puis vérifie chaque candidat auprès de /v1/models avec votre clé et ne publie que l’intersection réellement utilisable par votre compte.",
-      "notOfficial": "@vancine/openclaw-provider est un plugin Provider communautaire maintenu par Vancine. Ce n’est pas un Provider officiel, intégré ou certifié d’OpenClaw ou de ClawHub, et sa présence ne constitue pas une caution d’OpenClaw ou de ClawHub.",
       "errors": {
         "pluginMissing": {
           "symptom": "Le plugin n’est pas chargé ou aucun modèle vancine n’apparaît après l’installation.",
@@ -479,6 +478,49 @@
       "zeroCredentialNote": "Limite exacte : le refus des modèles inconnus est garanti tant que le plugin dispose d’un état de catalogue vérifié pour l’identifiant actuel. Sans aucun identifiant, un modèle configuré manuellement peut encore être tenté sans authentification par le noyau OpenClaw et rejeté en amont avec un 401.",
       "limitationsNote": "Périmètre : le plugin publié n’a pas encore été éprouvé sur l’ensemble des versions d’OpenClaw, des flux de travail ni des types de requêtes multimodales. Consultez le README du plugin pour la déclaration de compatibilité actuelle.",
       "modelsNote": "Choisissez uniquement parmi les modèles vérifiés renvoyés par openclaw models list --provider vancine --refresh --json. Les pages Models et Pricing servent de référence ; un modèle affiché là-bas n’est pas forcément vérifié pour votre clé."
+    },
+    "hermes": {
+      "pageTitle": "Guide d’installation de Hermes Agent",
+      "valueProp": "Utilisez votre propre clé API Vancine dans Hermes Agent grâce au plugin vancine-hermes-provider, installé depuis sa source GitHub publique. Le même Provider fonctionne avec Hermes CLI, Hermes Gateway et Hermes Desktop.",
+      "githubLabel": "Dépôt GitHub",
+      "step1": "Installez le plugin Provider depuis sa source publique publiée (fx247562340/vancine-hermes-provider) :",
+      "step2": "Hermes traite cette source comme personnalisée et demande Enable 'vancine-provider' now? — répondez y pour activer le Provider après l’installation.",
+      "step3": "Définissez VANCINE_API_KEY avec votre clé API Vancine dans l’environnement que Hermes lit :",
+      "step4": "Redémarrez le backend Hermes CLI, Gateway ou Desktop pour charger le nouveau Provider.",
+      "step5": "Listez les modèles de chat Vancine que le provider a actuellement résolus ou mis en cache et choisissez-en un — cette liste n'est pas un ensemble d'autorisations vérifié par clé API :",
+      "step6": "Vous pouvez aussi appeler un modèle directement avec la forme provider/model :",
+      "installNote": "Hermes installe le plugin vancine-provider depuis une source GitHub personnalisée (non examinée), et non depuis un catalogue de plugins. C’est un plugin Provider de modèles Hermes : il n’existe donc pas de plugin Desktop séparé. Une seule installation sur le backend Hermes Agent sert le CLI, le Gateway et le Desktop.",
+      "surfacesTitle": "Où installer le plugin",
+      "surfaces": {
+        "cli": "Hermes CLI : installez-le dans le HERMES_HOME utilisé par ce processus CLI.",
+        "gateway": "Hermes Gateway : installez-le dans le HERMES_HOME de l’hôte du Gateway. Le Gateway et le CLI partagent le même backend Hermes Agent.",
+        "desktopLocal": "Hermes Desktop avec backend local : installez-le dans le même HERMES_HOME que le runtime Hermes local. Le Desktop ne charge pas de seconde liste de plugins.",
+        "desktopRemote": "Hermes Desktop avec un Gateway distant : installez-le dans le HERMES_HOME de l’hôte du Gateway distant, pas seulement sur la machine qui affiche l’interface Desktop. Un plugin présent uniquement sur l’ordinateur portable n’apparaîtra pas."
+      },
+      "catalogNote": "Le plugin n'embarque aucune liste complète de modèles codée en dur. Hermes charge les modèles Chat Completions actuellement disponibles depuis le catalogue Vancine, cette page ne maintient donc jamais une liste blanche statique. Le catalogue n'est pas garanti en temps réel. Un rafraîchissement réussi remplace la propre liste du provider, mais Hermes core conserve un cache disque des identifiants de modèles (environ une heure, périmé jusqu'à 7 jours) : un modèle retiré en amont peut donc rester visible dans le sélecteur un moment et n'échouer qu'à l'appel — dans ce cas, relancez hermes model et choisissez un identifiant actuel.",
+      "errors": {
+        "pluginMissing": {
+          "symptom": "Le Provider vancine n’apparaît pas dans Hermes après l’installation.",
+          "fix": "Vérifiez que le plugin a été cloné et activé, puis redémarrez le backend Hermes CLI / Gateway / Desktop. Si le Desktop se connecte à un Gateway distant, installez le plugin sur cet hôte Gateway."
+        },
+        "apiKey": {
+          "symptom": "La clé API est refusée (401 / invalid API key).",
+          "fix": "Créez ou copiez une clé dans votre compte Vancine, définissez VANCINE_API_KEY dans l’environnement que Hermes lit (l’environnement du processus ou le .env de ce HERMES_HOME), puis redémarrez le backend."
+        },
+        "modelMissing": {
+          "symptom": "Aucun modèle Vancine n’apparaît dans la liste des modèles.",
+          "fix": "Le sélecteur liste les modèles Chat Completions que le plugin a pu résoudre. Vérifiez que le Provider est activé et que le catalogue est joignable, puis relancez hermes model."
+        },
+        "wrongHost": {
+          "symptom": "Hermes Desktop n’affiche aucun Provider Vancine alors que le CLI d’une autre machine fonctionne.",
+          "fix": "Hermes Desktop parle à un backend Agent. Avec un Gateway distant, installez le plugin dans le HERMES_HOME de l’hôte du Gateway distant, pas seulement sur la machine qui affiche l’interface Desktop."
+        },
+        "modelRetired": {
+          "symptom": "model not found, ou identifiant de modèle refusé.",
+          "fix": "Les identifiants de modèles sont sensibles à la casse et peuvent être retirés en amont, et le sélecteur Hermes peut brièvement continuer d'afficher un identifiant retiré depuis son propre cache. Si un appel est rejeté, choisissez un identifiant actuel depuis hermes model ou la page Models en direct et copiez-le tel quel."
+        }
+      },
+      "modelsNote": "Choisissez parmi les modèles que hermes model liste actuellement — ce que le provider a résolu ou mis en cache depuis le catalogue Vancine, pas un ensemble d'autorisations par clé API. Si un appel est rejeté, relancez hermes model et choisissez un identifiant actuel. Les pages Models et Pricing en direct servent de référence ; un modèle qui y figure n'est pas garanti d'apparaître dans le sélecteur Hermes."
     }
   },
   "faq": {

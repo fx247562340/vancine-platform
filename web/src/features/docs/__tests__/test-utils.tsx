@@ -34,7 +34,7 @@ interface RenderWithProvidersOptions {
 /**
  * Render a UI inside the providers Docs components rely on: i18next,
  * React Query, and a TanStack Router with a `/docs/$slug` route and the
- * three nested `/docs/agents/<tool>` routes available as navigation
+ * nested `/docs/agents/<tool>` routes available as navigation
  * targets. The subject is mounted at the index route. The return type
  * (including the router) is inferred so we don't name the Router generic.
  */
@@ -61,6 +61,9 @@ export const renderWithProviders = (
     '/docs/agents/opencode',
     '/docs/agents/cline',
     '/docs/agents/roo-code',
+    '/docs/agents/pi',
+    '/docs/agents/openclaw',
+    '/docs/agents/hermes',
   ].map((path) =>
     createRoute({
       getParentRoute: () => rootRoute,

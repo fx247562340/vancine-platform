@@ -10,7 +10,7 @@
     },
     "step2": {
       "title": "Chọn mô hình",
-      "desc": "Chúng tôi khuyên dùng deepseek-v4-flash cho lần gọi đầu tiên — nhanh, rẻ và phù hợp để kiểm thử.",
+      "desc": "Chúng tôi khuyên dùng deepseek-v4.1-flash cho lần gọi đầu tiên — nhanh, rẻ và phù hợp để kiểm thử.",
       "viewAll": "Xem tất cả mô hình khả dụng",
       "dynamicFallback": "Đang hiển thị mô hình mặc định đã xác minh trong khi tải danh mục trực tiếp."
     },
@@ -79,7 +79,7 @@
       "apiKeyOpenai": "sk-xxx (khóa OpenAI)",
       "apiKeyNote": "Sử dụng token Vancine từ Bảng điều khiển → Token",
       "modelOpenai": "gpt-4o, gpt-4o-mini, v.v.",
-      "modelNote": "Sử dụng mô hình Vancine hỗ trợ (vd: deepseek-v4-flash)"
+      "modelNote": "Sử dụng mô hình Vancine hỗ trợ (vd: deepseek-v4.1-flash)"
     },
     "nextSteps": {
       "title": "Bước tiếp theo",
@@ -276,6 +276,9 @@
         },
         "openclaw": {
           "protocol": "Plugin nhà cung cấp cộng đồng cho OpenClaw, cài từ npm hoặc ClawHub."
+        },
+        "hermes": {
+          "protocol": "Plugin Provider cho Hermes Agent, cài từ nguồn GitHub công khai."
         }
       },
       "cardBoundary": "Cấu hình tương thích OpenAI của công cụ này đã sẵn sàng. Hãy làm theo hướng dẫn riêng của công cụ để kết nối với Vancine."
@@ -283,8 +286,9 @@
     "cli": {
       "codex": "Cấu hình chính thức Codex dùng ~/.codex/config.toml. Tài liệu hiện tại hiển thị giao thức Responses, nên đặt wire_api thành responses.",
       "openclaw": "OpenClaw kết nối qua plugin nhà cung cấp cộng đồng do Vancine duy trì thay vì cấu hình Base URL thủ công. Xem hướng dẫn chuyên biệt để cài đặt và xác thực.",
-      "hermes": "Plugin tương thích OpenAI của Hermes Agent thường dùng config.yaml hoặc biến môi trường cho base_url và api_key. Dùng các trường chính xác từ plugin đã cài.",
-      "openclawGuideLink": "Mở hướng dẫn nhà cung cấp OpenClaw"
+      "hermes": "Hermes Agent kết nối qua plugin vancine-hermes-provider, không cần điền Base URL hay config.yaml thủ công. Xem hướng dẫn riêng để cài đặt, cấu hình thông tin xác thực và chọn model.",
+      "openclawGuideLink": "Mở hướng dẫn nhà cung cấp OpenClaw",
+      "hermesGuideLink": "Mở hướng dẫn Provider Hermes"
     },
     "gui": {
       "cursor": {
@@ -314,8 +318,7 @@
       "stepSelect": "Chọn Vancine và dán khóa API Vancine của bạn.",
       "stepModel": "Chạy:",
       "stepChoose": "Chọn mô hình trong Vancine Provider và bắt đầu sử dụng.",
-      "catalogNote": "Danh mục mô hình do Vancine cung cấp động. Tiện ích sẽ lưu bộ nhớ đệm và xác thực lại danh mục, nên bạn không cần tự duy trì danh sách trắng mô hình.",
-      "notOfficial": "pi-provider-vancine là tiện ích cộng đồng do Vancine phát hành và duy trì. Nó không cấu thành hợp tác chính thức, chứng nhận hay sự chứng thực giữa Pi, Earendil Works hoặc những người bảo trì của họ với Vancine."
+      "catalogNote": "Danh mục mô hình do Vancine cung cấp động. Tiện ích sẽ lưu bộ nhớ đệm và xác thực lại danh mục, nên bạn không cần tự duy trì danh sách trắng mô hình."
     }
   },
   "agentGuides": {
@@ -358,7 +361,6 @@
       "ctaKeys": "Quản lý API key của tôi",
       "ctaPricing": "So sánh mô hình và bảng giá",
       "ctaDocs": "Đọc tài liệu Chat Completions API",
-      "notOfficial": "Vancine là dịch vụ API OpenAI-compatible độc lập, không phải nhà cung cấp chính thức, đối tác hay tích hợp có sẵn của {{tool}}.",
       "statusCallout": "Cấu hình tương thích OpenAI của công cụ này đã sẵn sàng. Hãy làm theo các bước trên trang này để kết nối với Vancine."
     },
     "opencode": {
@@ -374,7 +376,6 @@
       "step7": "Chọn vancine/{{modelId}}, hoặc mô hình khác trong Provider vancine, rồi gửi prompt.",
       "advancedTitle": "Cấu hình nâng cao (tuỳ chọn)",
       "advancedNote": "Chỉ dùng opencode.json cấp dự án khi cần ghi đè Base URL, đặt whitelist / blacklist mô hình, dự phòng thủ công khi catalogue trực tiếp lỗi, hoặc neo một cấu hình Provider tường minh. Đừng coi tệp này là một phần của thiết lập cơ bản /connect.",
-      "notOfficial": "Vancine là dịch vụ API tương thích OpenAI độc lập, được liệt kê trong catalogue Models.dev mà OpenCode sử dụng. Việc được liệt kê không đồng nghĩa với quan hệ hợp tác chính thức, khuyến nghị hay sự chứng thực từ OpenCode.",
       "errors": {
         "model": {
           "fix": "Dùng ID mô hình chính xác từ danh mục trực tiếp Vancine. ID phân biệt hoa/thường. Trang Models là nguồn chính xác."
@@ -417,7 +418,6 @@
       "step6": "Chọn một mô hình bên dưới nhà cung cấp Vancine.",
       "step7": "Gửi yêu cầu đầu tiên của bạn qua Vancine.",
       "catalogNote": "Danh sách mô hình lấy từ danh mục Vancine. Pi làm mới nhiều nhất mỗi 4 giờ; khi các lần làm mới sau thất bại, nó giữ bộ nhớ đệm thành công gần nhất, kể cả danh sách trống. Danh sách dự phòng ngoại tuyến nhỏ chỉ có thể được dùng khi lần làm mới đầu tiên thất bại và chưa có bộ nhớ đệm. Danh mục không được đảm bảo theo thời gian thực; sau khi làm mới thành công, các mô hình đã gỡ biến mất và không được danh sách dự phòng khôi phục.",
-      "notOfficial": "pi-provider-vancine là tiện ích cộng đồng do Vancine phát hành và duy trì. Nó không cấu thành hợp tác chính thức, chứng nhận hay sự chứng thực giữa Pi, Earendil Works hoặc những người bảo trì của họ với Vancine.",
       "errors": {
         "providerMissing": {
           "symptom": "Nhà cung cấp Vancine không xuất hiện trong /login.",
@@ -453,7 +453,6 @@
       "step4": "Liệt kê và xác thực các mô hình mà khóa của bạn có thể truy cập:",
       "step5": "Bắt đầu hội thoại với một mô hình Vancine đã xác thực.",
       "catalogNote": "Danh sách mô hình không phải danh mục đầy đủ tĩnh. Plugin tải danh mục công khai của Vancine, rồi xác thực từng ứng viên qua /v1/models bằng khóa của bạn và chỉ công bố phần giao nhau mà tài khoản bạn thực sự dùng được.",
-      "notOfficial": "@vancine/openclaw-provider là plugin nhà cung cấp cộng đồng do Vancine duy trì. Đây không phải nhà cung cấp chính thức, tích hợp sẵn hay được chứng nhận của OpenClaw hoặc ClawHub, và việc được liệt kê cũng không phải sự chứng thực của OpenClaw hay ClawHub.",
       "errors": {
         "pluginMissing": {
           "symptom": "Plugin chưa được tải hoặc không thấy mô hình vancine nào sau khi cài.",
@@ -479,6 +478,49 @@
       "zeroCredentialNote": "Ranh giới chính xác: việc từ chối mô hình không rõ ràng được đảm bảo khi plugin giữ trạng thái danh mục đã xác thực cho thông tin xác thực hiện tại. Khi hoàn toàn không có thông tin xác thực, lõi OpenClaw vẫn có thể thử một mô hình cấu hình thủ công mà không xác thực và bị thượng nguồn từ chối với mã 401.",
       "limitationsNote": "Lưu ý phạm vi: plugin đã xuất bản chưa được kiểm chứng trên toàn bộ phạm vi phiên bản OpenClaw, quy trình làm việc hay loại yêu cầu đa phương thức. Xem README của plugin để biết tuyên bố tương thích hiện tại.",
       "modelsNote": "Chỉ chọn trong số các mô hình đã xác thực được trả về bởi openclaw models list --provider vancine --refresh --json. Các trang Models và Pricing chỉ để tham khảo; một mô hình hiển thị ở đó không chắc được xác thực cho khóa của bạn."
+    },
+    "hermes": {
+      "pageTitle": "Hướng dẫn cài đặt Hermes Agent",
+      "valueProp": "Dùng API Key Vancine của riêng bạn trong Hermes Agent qua plugin vancine-hermes-provider, được cài từ nguồn GitHub công khai. Cùng một Provider hoạt động trên Hermes CLI, Hermes Gateway và Hermes Desktop.",
+      "githubLabel": "Kho GitHub",
+      "step1": "Cài plugin Provider từ nguồn công khai đã phát hành (fx247562340/vancine-hermes-provider):",
+      "step2": "Hermes coi đây là nguồn tùy chỉnh và hỏi Enable 'vancine-provider' now? — trả lời y để bật Provider sau khi cài.",
+      "step3": "Đặt VANCINE_API_KEY cho API Key Vancine trong môi trường mà Hermes đọc:",
+      "step4": "Khởi động lại backend Hermes CLI, Gateway hoặc Desktop để nạp Provider mới.",
+      "step5": "Liệt kê các mô hình chat Vancine mà provider hiện đang phân giải hoặc lưu đệm và chọn một — danh sách này không phải tập hợp quyền đã xác thực theo API Key:",
+      "step6": "Hoặc gọi trực tiếp một model theo dạng provider/model:",
+      "installNote": "Hermes cài plugin vancine-provider từ nguồn GitHub tùy chỉnh (chưa được kiểm duyệt), không phải từ danh mục plugin. Đây là plugin Provider model của Hermes nên không có plugin Desktop riêng: cài một lần trên backend Hermes Agent là dùng chung cho CLI, Gateway và Desktop.",
+      "surfacesTitle": "Nơi cài plugin",
+      "surfaces": {
+        "cli": "Hermes CLI: cài vào HERMES_HOME mà tiến trình CLI đó sử dụng.",
+        "gateway": "Hermes Gateway: cài vào HERMES_HOME của máy chủ Gateway. Gateway và CLI dùng chung một backend Hermes Agent.",
+        "desktopLocal": "Hermes Desktop với backend cục bộ: cài vào đúng HERMES_HOME mà runtime Hermes cục bộ sử dụng. Desktop không nạp thêm danh sách plugin nào khác.",
+        "desktopRemote": "Hermes Desktop với Gateway từ xa: cài vào HERMES_HOME của máy chủ Gateway từ xa, không chỉ trên máy đang hiển thị giao diện Desktop. Plugin chỉ có trên laptop sẽ không xuất hiện."
+      },
+      "catalogNote": "Plugin không kèm danh sách mô hình đầy đủ cố định. Hermes nạp các mô hình Chat Completions hiện có từ danh mục Vancine, nên trang này không duy trì whitelist mô hình tĩnh. Danh mục không được đảm bảo theo thời gian thực. Khi làm mới thành công, danh sách của chính provider sẽ được thay thế, nhưng lõi Hermes lưu bộ nhớ đệm trên đĩa cho các ID mô hình (khoảng 1 giờ, có thể cũ tới 7 ngày), nên mô hình đã bị gỡ phía thượng nguồn vẫn có thể hiển thị trong bộ chọn một thời gian và chỉ bị từ chối khi gọi — khi gặp trường hợp đó, hãy chạy lại hermes model và chọn một ID hiện hành.",
+      "errors": {
+        "pluginMissing": {
+          "symptom": "Provider vancine không xuất hiện trong Hermes sau khi cài.",
+          "fix": "Kiểm tra plugin đã được clone và bật, rồi khởi động lại backend Hermes CLI / Gateway / Desktop. Nếu Desktop kết nối tới Gateway từ xa, hãy cài plugin trên máy chủ Gateway đó."
+        },
+        "apiKey": {
+          "symptom": "API Key bị từ chối (401 / invalid API key).",
+          "fix": "Tạo hoặc sao chép key trong tài khoản Vancine, đặt VANCINE_API_KEY trong môi trường mà Hermes đọc (môi trường tiến trình hoặc .env của HERMES_HOME đó), rồi khởi động lại backend."
+        },
+        "modelMissing": {
+          "symptom": "Không có model Vancine nào trong danh sách model.",
+          "fix": "Danh sách hiển thị các model Chat Completions mà plugin phân giải được. Kiểm tra Provider đã bật và danh mục truy cập được, rồi chạy lại hermes model."
+        },
+        "wrongHost": {
+          "symptom": "Hermes Desktop không hiển thị Provider Vancine trong khi CLI trên máy khác thì có.",
+          "fix": "Hermes Desktop nói chuyện với backend Agent. Với Gateway từ xa, hãy cài plugin trong HERMES_HOME của máy chủ Gateway từ xa, không chỉ trên máy hiển thị giao diện Desktop."
+        },
+        "modelRetired": {
+          "symptom": "model not found, hoặc ID model bị từ chối.",
+          "fix": "ID mô hình phân biệt chữ hoa chữ thường và có thể đã bị gỡ phía thượng nguồn, còn bộ chọn của Hermes có thể vẫn hiển thị một ID đã gỡ trong khoảng thời gian ngắn do bộ nhớ đệm riêng. Nếu lượt gọi bị từ chối, hãy chọn một ID hiện hành từ hermes model hoặc trang Models và sao chép nguyên văn."
+        }
+      },
+      "modelsNote": "Chọn từ các mô hình mà hermes model đang liệt kê — đó là những gì provider đã phân giải hoặc lưu đệm từ danh mục Vancine, không phải tập hợp quyền đã xác thực theo API Key. Nếu một lượt gọi bị từ chối, hãy chạy lại hermes model và chọn một ID hiện hành. Trang Models và Bảng giá chỉ để tham khảo; mô hình hiển thị ở đó không chắc sẽ xuất hiện trong bộ chọn của Hermes."
     }
   },
   "faq": {

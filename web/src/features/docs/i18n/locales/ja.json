@@ -10,7 +10,7 @@
     },
     "step2": {
       "title": "モデルを選択",
-      "desc": "最初の呼び出しには deepseek-v4-flash をお勧めします — 高速、低コスト、テストに最適です。",
+      "desc": "最初の呼び出しには deepseek-v4.1-flash をお勧めします — 高速、低コスト、テストに最適です。",
       "viewAll": "すべての利用可能なモデルを表示",
       "dynamicFallback": "カタログ読み込み中、検証済みのデフォルトモデルを表示しています。"
     },
@@ -79,7 +79,7 @@
       "apiKeyOpenai": "sk-xxx（OpenAIキー）",
       "apiKeyNote": "コンソール → トークン管理でVancineトークンを取得",
       "modelOpenai": "gpt-4o、gpt-4o-miniなど",
-      "modelNote": "Vancine対応モデルを使用（例：deepseek-v4-flash）"
+      "modelNote": "Vancine対応モデルを使用（例：deepseek-v4.1-flash）"
     },
     "nextSteps": {
       "title": "次のステップ",
@@ -276,6 +276,9 @@
         },
         "openclaw": {
           "protocol": "OpenClaw 用のコミュニティ Provider プラグイン。npm または ClawHub からインストールします。"
+        },
+        "hermes": {
+          "protocol": "Hermes Agent 向けの Provider プラグイン。公開 GitHub ソースからインストールします。"
         }
       },
       "cardBoundary": "このツールの OpenAI 互換接続設定は準備完了です。専用ガイドの手順で Vancine に接続できます。"
@@ -283,8 +286,9 @@
     "cli": {
       "codex": "Codex公式設定は~/.codex/config.tomlを使用します。現在のドキュメントはResponsesプロトコルを示しているため、wire_apiをresponsesに設定します。",
       "openclaw": "OpenClaw は手動のベース URL 設定ではなく、Vancine が保守するコミュニティ Provider プラグイン経由で接続します。インストールと認証は専用ガイドを参照してください。",
-      "hermes": "Hermes AgentのOpenAI互換プラグインは通常、config.yamlまたは環境変数でbase_urlとapi_keyを設定します。インストール済みプラグインのフィールドを使用してください。",
-      "openclawGuideLink": "OpenClaw プロバイダーガイドを開く"
+      "hermes": "Hermes Agent は vancine-hermes-provider プラグイン経由で接続します。Base URL や config.yaml を手動で記入する必要はありません。インストール、認証情報、モデル選択は専用ガイドを参照してください。",
+      "openclawGuideLink": "OpenClaw プロバイダーガイドを開く",
+      "hermesGuideLink": "Hermes Provider ガイドを開く"
     },
     "gui": {
       "cursor": {
@@ -314,8 +318,7 @@
       "stepSelect": "Vancine を選び、ご自身の Vancine API Key を貼り付けます。",
       "stepModel": "実行：",
       "stepChoose": "Vancine Provider からモデルを選んで使い始めます。",
-      "catalogNote": "モデルカタログは Vancine が動的に提供します。拡張機能がキャッシュして再検証するため、モデルのホワイトリストを手動で管理する必要はありません。",
-      "notOfficial": "pi-provider-vancine は Vancine が公開・保守するコミュニティ拡張です。Pi、Earendil Works、またはそのメンテナーと Vancine との公式な協力、認証、承認を意味しません。"
+      "catalogNote": "モデルカタログは Vancine が動的に提供します。拡張機能がキャッシュして再検証するため、モデルのホワイトリストを手動で管理する必要はありません。"
     }
   },
   "agentGuides": {
@@ -358,7 +361,6 @@
       "ctaKeys": "API キーを管理",
       "ctaPricing": "モデルと料金を比較",
       "ctaDocs": "Chat Completions API ドキュメントを読む",
-      "notOfficial": "Vancine は独立した OpenAI 互換 API サービスです。{{tool}} の公式プロバイダー、パートナー、組み込み統合ではありません。",
       "statusCallout": "このツールの OpenAI 互換接続設定は準備完了です。このページの手順で Vancine に接続できます。"
     },
     "opencode": {
@@ -374,7 +376,6 @@
       "step7": "vancine/{{modelId}}、または vancine Provider 配下の他のモデルを選んでプロンプトを送信します。",
       "advancedTitle": "詳細設定（任意）",
       "advancedNote": "プロジェクト直下の opencode.json は、Base URL の上書き、モデルの whitelist / blacklist、ライブカタログ異常時の手動フォールバック、または Provider 設定を明示的に固定したい場合にだけ使います。基本の /connect セットアップの一部としては扱わないでください。",
-      "notOfficial": "Vancine は独立した OpenAI 互換 API サービスであり、OpenCode が使用する Models.dev カタログに掲載されています。このカタログ掲載は、OpenCode による公式な提携、推奨、承認やお墨付きを意味しません。",
       "errors": {
         "model": {
           "fix": "Vancine ライブカタログの正確なモデル ID を使用してください。ID は大文字小文字を区別します。Models ページが真実の源です。"
@@ -417,7 +418,6 @@
       "step6": "Vancine プロバイダー配下のモデルを選びます。",
       "step7": "Vancine を通じて最初のリクエストを送信します。",
       "catalogNote": "モデル一覧は Vancine カタログから提供されます。Pi は最大 4 時間ごとに更新し、以降の更新に失敗した場合は最新の成功キャッシュ（空の一覧を含む）を保持します。小さなオフラインフォールバックが使われるのは、初回の更新に失敗してキャッシュがまだない場合のみです。カタログはリアルタイムを保証せず、更新が成功すると提供終了モデルは消え、フォールバックでは復活しません。",
-      "notOfficial": "pi-provider-vancine は Vancine が公開・保守するコミュニティ拡張です。Pi、Earendil Works、またはそのメンテナーと Vancine との公式な協力、認証、承認を意味しません。",
       "errors": {
         "providerMissing": {
           "symptom": "/login に Vancine プロバイダーが表示されません。",
@@ -453,7 +453,6 @@
       "step4": "キーがアクセスできるモデルを一覧して検証します：",
       "step5": "検証済みの Vancine モデルで会話を始めます。",
       "catalogNote": "モデル一覧は静的な全カタログではありません。プラグインは公開 Vancine カタログを取得した後、各候補を /v1/models でキーと照合して検証し、アカウントが実際に利用できるものだけを公開します。",
-      "notOfficial": "@vancine/openclaw-provider は Vancine が保守するコミュニティ Provider プラグインです。OpenClaw や ClawHub の公式・内蔵・認証済みプロバイダーではなく、収録されていることも OpenClaw や ClawHub の承認を意味しません。",
       "errors": {
         "pluginMissing": {
           "symptom": "プラグインが読み込まれていないか、インストール後に vancine モデルが表示されません。",
@@ -479,6 +478,49 @@
       "zeroCredentialNote": "正確な境界：プラグインが現在の資格情報の検証済みカタログ状態を持っている間、未知のモデルは確実に拒否されます。資格情報がまったくない場合、OpenClaw コアが手動設定のモデルを未認証のまま試行し、上流で 401 で拒否される可能性があります。",
       "limitationsNote": "範囲の注記：公開済みプラグインは、OpenClaw の全バージョン・ワークフロー・マルチモーダルリクエスト種別にわたってはまだ検証されていません。最新の互換性についてはプラグインの README を参照してください。",
       "modelsNote": "openclaw models list --provider vancine --refresh --json が返す検証済みモデルからのみ選択してください。Models と Pricing のページは参考情報であり、そこに表示されるモデルがキーに対して検証されるとは限りません。"
+    },
+    "hermes": {
+      "pageTitle": "Hermes Agent セットアップガイド",
+      "valueProp": "公開 GitHub ソースからインストールする vancine-hermes-provider プラグインを使い、Hermes Agent でご自身の Vancine API Key を利用できます。同じ Provider が Hermes CLI、Hermes Gateway、Hermes Desktop で動作します。",
+      "githubLabel": "GitHub リポジトリ",
+      "step1": "公開されている配布元から Provider プラグインをインストールします（fx247562340/vancine-hermes-provider）：",
+      "step2": "Hermes はこれをカスタムソースとして扱い、Enable 'vancine-provider' now? と確認します。y と答えるとインストール後に Provider が有効になります。",
+      "step3": "Hermes が参照する環境に、Vancine API Key を VANCINE_API_KEY として設定します：",
+      "step4": "新しい Provider を読み込むため、Hermes CLI / Gateway / Desktop のバックエンドを再起動します。",
+      "step5": "プロバイダーが現在解決またはキャッシュしている Vancine のチャットモデルの一覧を表示して選んでください。このリストは API キーごとに検証された権限セットではありません：",
+      "step6": "provider/model 形式でモデルを直接呼び出すこともできます：",
+      "installNote": "Hermes は vancine-provider プラグインをプラグインカタログではなく、カスタム（未審査）の GitHub ソースからインストールします。Hermes のモデル Provider プラグインなので Desktop 専用プラグインは存在せず、Hermes Agent バックエンドに 1 回インストールすれば CLI・Gateway・Desktop で共通で使われます。",
+      "surfacesTitle": "プラグインのインストール先",
+      "surfaces": {
+        "cli": "Hermes CLI：その CLI プロセスが使う HERMES_HOME にインストールします。",
+        "gateway": "Hermes Gateway：Gateway ホストが使う HERMES_HOME にインストールします。Gateway と CLI は同じ Hermes Agent バックエンドを共有します。",
+        "desktopLocal": "Hermes Desktop（ローカルバックエンド）：ローカルの Hermes ランタイムが使う同じ HERMES_HOME にインストールします。Desktop は別のプラグイン一覧を読み込みません。",
+        "desktopRemote": "Hermes Desktop（リモート Gateway）：リモート Gateway ホストの HERMES_HOME にインストールします。Desktop 画面を表示しているマシンだけに入れても表示されません。"
+      },
+      "catalogNote": "このプラグインは固定の完全なモデル一覧を同梱していません。Hermes は Vancine カタログから現在利用できる Chat Completions モデルを読み込むため、このページは静的なモデル許可リストを管理しません。カタログはリアルタイムとは限りません。更新が成功するとプロバイダー自身のリストは置き換えられますが、Hermes core はプロバイダーのモデル ID をディスクにキャッシュします（約 1 時間、最大 7 日間古いまま）。そのため、上流で提供終了になったモデルがしばらくピッカーに表示され続け、呼び出し時にだけ拒否されることがあります。その場合は hermes model を再実行し、現在利用できるモデルを選んでください。",
+      "errors": {
+        "pluginMissing": {
+          "symptom": "インストール後も Hermes に vancine Provider が表示されません。",
+          "fix": "プラグインが複製され有効になっているか確認し、Hermes CLI / Gateway / Desktop のバックエンドを再起動します。Desktop がリモート Gateway に接続している場合は、その Gateway ホストにプラグインをインストールしてください。"
+        },
+        "apiKey": {
+          "symptom": "API Key が拒否されます（401 / invalid API key）。",
+          "fix": "Vancine アカウントでキーを作成またはコピーし、Hermes が参照する環境（プロセス環境、またはその HERMES_HOME の .env）に VANCINE_API_KEY を設定して、バックエンドを再起動します。"
+        },
+        "modelMissing": {
+          "symptom": "モデル一覧に Vancine のモデルが表示されません。",
+          "fix": "一覧にはプラグインが解決できた Chat Completions モデルが表示されます。Provider が有効でカタログに到達できることを確認し、hermes model を再実行してください。"
+        },
+        "wrongHost": {
+          "symptom": "別のマシンの CLI では使えるのに、Hermes Desktop に Vancine Provider が表示されません。",
+          "fix": "Hermes Desktop は Agent バックエンドと通信します。リモート Gateway を使う場合は、Desktop 画面のマシンだけでなく、リモート Gateway ホストの HERMES_HOME にプラグインをインストールしてください。"
+        },
+        "modelRetired": {
+          "symptom": "model not found、またはモデル ID が拒否されます。",
+          "fix": "モデル ID は大文字と小文字を区別し、上流で提供終了になることがあります。また、Hermes のピッカーは自身のキャッシュから、提供終了になった ID をしばらく表示し続けることがあります。呼び出しが拒否された場合は、hermes model または Models ページから現在利用できる ID を選び、そのままコピーしてください。"
+        }
+      },
+      "modelsNote": "hermes model が現在表示するモデルから選んでください。これはプロバイダーが Vancine カタログから解決またはキャッシュした内容であり、API キーごとに検証された権限セットではありません。呼び出しが拒否されたら hermes model を再実行し、現在利用できるモデルを選んでください。モデルと料金のページは参考情報であり、そこに載っているモデルが Hermes の一覧に必ず出るとは限りません。"
     }
   },
   "faq": {

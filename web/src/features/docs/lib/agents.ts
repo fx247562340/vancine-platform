@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 /**
- * First-batch coding agents with a dedicated Vancine setup guide.
+ * Every coding agent with a dedicated Vancine setup guide.
  *
  * The `key` is the i18n identifier (agentGuides.<key>.*) and the `path`
  * is the canonical lowercase TanStack Router path. Every guide carries the
@@ -27,19 +27,20 @@ For commercial licensing, please contact support@quantumnous.com
  * section of the OpenCode guide and must never be widened without new
  * evidence or promoted into a status badge.
  *
- * Five guides form the Agent guide registry: OpenCode, Cline, Roo Code
- * (manual OpenAI-compatible configuration) plus Pi and OpenClaw
- * (community provider plugins with their own install commands).
+ * Six guides form the Agent guide registry: OpenCode, Cline, Roo Code
+ * (manual OpenAI-compatible configuration) plus Pi, OpenClaw and Hermes
+ * (provider plugins with their own install commands).
  */
 /**
- * Module doc: Pi and OpenClaw carry community provider-plugin install flows
- * (/docs/agents/pi, /docs/agents/openclaw). The package-source links below are
- * the only package provenance facts shown in the UI: for Pi, its public
- * package-catalog listing page plus the npm and GitHub sources; for OpenClaw,
- * the npm, ClawHub and GitHub sources. In both cases the package itself is
- * distributed through npm (or ClawHub for OpenClaw) — a catalog page lists and
- * links a package, it never hosts it — so install commands always name the real
- * distribution source and never a catalog.
+ * Module doc: Pi, OpenClaw and Hermes carry provider-plugin install flows
+ * (/docs/agents/pi, /docs/agents/openclaw, /docs/agents/hermes). The package
+ * and repository links below are the only provenance facts shown in the UI:
+ * for Pi, its public package-catalog listing page plus the npm and GitHub
+ * sources; for OpenClaw, the npm, ClawHub and GitHub sources; for Hermes, the
+ * public GitHub repository only, because the plugin is distributed solely from
+ * that repository (no npm package, no PyPI package, no Hermes plugin catalog).
+ * Where a package is distributed through a registry, install commands always
+ * name the real distribution source and never a catalog.
  */
 import type { DocsAgentGuidePath } from '../types'
 
@@ -49,6 +50,7 @@ export type DocsAgentToolKey =
   | 'rooCode'
   | 'pi'
   | 'openclaw'
+  | 'hermes'
 
 export type DocsAgentToolPath = DocsAgentGuidePath
 
@@ -96,10 +98,33 @@ export const OPENCLAW_ONBOARD_COMMAND = 'openclaw onboard'
 export const OPENCLAW_MODELS_COMMAND =
   'openclaw models list --provider vancine --refresh --json'
 
+/**
+ * Public source for the Vancine-authored Hermes model-provider plugin. It is
+ * the ONLY distribution and provenance source for this plugin: there is no npm
+ * package, no PyPI package, and no listing in a Hermes plugin catalog, so the
+ * guide must never render such a link.
+ */
+export const VANCINE_HERMES_PROVIDER_GITHUB_URL =
+  'https://github.com/fx247562340/vancine-hermes-provider'
+
+export const HERMES_PROVIDER_INSTALL_COMMAND =
+  'hermes plugins install fx247562340/vancine-hermes-provider'
+export const HERMES_API_KEY_COMMAND = 'export VANCINE_API_KEY="sk-your-api-key"'
+export const HERMES_MODEL_COMMAND = 'hermes model'
+
+/**
+ * The Hermes invocation form. The model id is always the caller's live-catalog
+ * pick (both the hub and the guide pass `pickDocsTextModel`), never a hardcoded
+ * id, because Vancine retires model ids upstream.
+ */
+export function getHermesChatCommand(modelId: string): string {
+  return `hermes chat --provider vancine -m ${modelId}`
+}
+
 export interface DocsAgentToolProfile {
   key: DocsAgentToolKey
   /** Canonical lowercase path segment (also the route suffix). */
-  segment: 'opencode' | 'cline' | 'roo-code' | 'pi' | 'openclaw'
+  segment: 'opencode' | 'cline' | 'roo-code' | 'pi' | 'openclaw' | 'hermes'
   path: DocsAgentToolPath
   /** Language-neutral product name, never translated. */
   displayName: string
@@ -135,6 +160,12 @@ export const DOCS_AGENT_TOOLS: readonly DocsAgentToolProfile[] = [
     segment: 'openclaw',
     path: '/docs/agents/openclaw',
     displayName: 'OpenClaw',
+  },
+  {
+    key: 'hermes',
+    segment: 'hermes',
+    path: '/docs/agents/hermes',
+    displayName: 'Hermes',
   },
 ]
 
@@ -246,8 +277,9 @@ Model ID:      ${recommendedModelId}
       ]
     case 'pi':
     case 'openclaw':
+    case 'hermes':
       // Provider-plugin guides never show a manual Base URL/config block:
-      // their install + login flow lives in the numbered steps instead.
+      // their install + credential flow lives in the numbered steps instead.
       return []
   }
 }

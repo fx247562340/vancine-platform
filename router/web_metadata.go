@@ -99,13 +99,13 @@ var publicMarketingPages = []publicPageMeta{
 		// stay byte-identical to it.
 		path:  "/docs/agents",
 		title: "Coding Agent Integration Center | Vancine",
-		description: "Connect Pi, OpenCode, Cline, Roo Code and OpenClaw to the " +
-			"Vancine API. Install provider plugins from npm or ClawHub, or " +
-			"follow tool-specific setup guides.",
+		description: "Connect Pi, OpenCode, Cline, Roo Code, OpenClaw and Hermes " +
+			"to the Vancine API. Install provider plugins from npm, ClawHub or a " +
+			"public GitHub source, or follow tool-specific setup guides.",
 		ogTitle:          "Coding Agent Integration Center",
-		ogDescription:    "Connect Pi, OpenCode, Cline, Roo Code and OpenClaw to the Vancine API. Install provider plugins from npm or ClawHub, or follow tool-specific setup guides.",
+		ogDescription:    "Connect Pi, OpenCode, Cline, Roo Code, OpenClaw and Hermes to the Vancine API. Install provider plugins from npm, ClawHub or a public GitHub source, or follow tool-specific setup guides.",
 		twitterTitle:     "Coding Agent Integration Center | Vancine",
-		twitterDesc:      "Connect Pi, OpenCode, Cline, Roo Code and OpenClaw to the Vancine API. Install provider plugins from npm or ClawHub, or follow tool-specific setup guides.",
+		twitterDesc:      "Connect Pi, OpenCode, Cline, Roo Code, OpenClaw and Hermes to the Vancine API. Install provider plugins from npm, ClawHub or a public GitHub source, or follow tool-specific setup guides.",
 		twitterCardValue: "summary",
 	},
 	{
@@ -181,6 +181,25 @@ var publicMarketingPages = []publicPageMeta{
 		ogDescription:    "Install the @vancine/openclaw-provider plugin from npm or ClawHub, onboard with your own Vancine API key, and use a dynamically verified model list.",
 		twitterTitle:     "OpenClaw Setup Guide for the Vancine API | Vancine",
 		twitterDesc:      "Install the @vancine/openclaw-provider plugin from npm or ClawHub, onboard with your own Vancine API key, and use a dynamically verified model list.",
+		twitterCardValue: "summary",
+	},
+	{
+		// Hermes setup guide. The English values here are mirrored from
+		// the SPA's getDocsAgentToolPageMetadata('hermes') and must stay
+		// byte-identical to it. The plugin is distributed only from its
+		// public GitHub repository: no npm package, no PyPI package and
+		// no Hermes plugin-catalog entry exist, so this block must never
+		// grow such a link.
+		path:  "/docs/agents/hermes",
+		title: "Hermes Agent Setup Guide for the Vancine API | Vancine",
+		description: "Connect Hermes Agent to Vancine with the " +
+			"vancine-hermes-provider plugin: install it from its public " +
+			"GitHub source, set VANCINE_API_KEY, then choose a model with " +
+			"hermes model.",
+		ogTitle:          "Hermes Agent Setup Guide for the Vancine API",
+		ogDescription:    "Connect Hermes Agent to Vancine with the vancine-hermes-provider plugin: install it from its public GitHub source, set VANCINE_API_KEY, then choose a model with hermes model.",
+		twitterTitle:     "Hermes Agent Setup Guide for the Vancine API | Vancine",
+		twitterDesc:      "Connect Hermes Agent to Vancine with the vancine-hermes-provider plugin: install it from its public GitHub source, set VANCINE_API_KEY, then choose a model with hermes model.",
 		twitterCardValue: "summary",
 	},
 	{
@@ -434,12 +453,13 @@ const llmsTxtBody = `# Vancine public documentation index for LLM agents.
 
 ## Coding agents
 
-- [Coding Agent Integration Center](https://vancine.com/docs/agents): Connect Pi, OpenCode, Cline, Roo Code and OpenClaw to Vancine.
+- [Coding Agent Integration Center](https://vancine.com/docs/agents): Connect Pi, OpenCode, Cline, Roo Code, OpenClaw and Hermes to Vancine.
 - [OpenCode setup guide](https://vancine.com/docs/agents/opencode): Install the Models.dev provider catalog entry, paste the Vancine API key.
 - [Cline setup guide](https://vancine.com/docs/agents/cline): Cline VS Code extension configuration.
 - [Roo Code setup guide](https://vancine.com/docs/agents/roo-code): Roo Code configuration walkthrough.
 - [Pi setup guide](https://vancine.com/docs/agents/pi): Install the pi-provider-vancine community extension from npm, sign in with /login, pick a model with /model.
 - [OpenClaw setup guide](https://vancine.com/docs/agents/openclaw): Install the @vancine/openclaw-provider plugin from npm or ClawHub and onboard with your Vancine API key.
+- [Hermes setup guide](https://vancine.com/docs/agents/hermes): Install the vancine-hermes-provider plugin from its public GitHub source, set VANCINE_API_KEY, pick a model with hermes model.
 
 ## Image model detail pages
 

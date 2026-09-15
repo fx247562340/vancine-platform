@@ -31,9 +31,14 @@ import viDocs from '../i18n/locales/vi.json'
 import zhCNDocs from '../i18n/locales/zhCN.json'
 import zhTWDocs from '../i18n/locales/zhTW.json'
 import {
+  getHermesChatCommand,
+  HERMES_API_KEY_COMMAND,
+  HERMES_MODEL_COMMAND,
+  HERMES_PROVIDER_INSTALL_COMMAND,
   OPENCLAW_INSTALL_CLAWHUB_COMMAND,
   OPENCLAW_INSTALL_NPM_COMMAND,
   PI_PROVIDER_INSTALL_COMMAND,
+  VANCINE_HERMES_PROVIDER_GITHUB_URL,
   VANCINE_MODELS_DEV_PROVIDER_URL,
   VANCINE_OPENCLAW_PROVIDER_CLAWHUB_URL,
   VANCINE_OPENCLAW_PROVIDER_GITHUB_URL,
@@ -43,6 +48,7 @@ import {
   VANCINE_PI_PROVIDER_NPM_URL,
   type DocsAgentToolKey,
 } from '../lib/agents'
+import { DOCS_FALLBACK_TEXT_MODEL } from '../lib/example-generation'
 import DocsAgentDetailPage from '../pages/agent-detail'
 import {
   EN_DOCS,
@@ -268,7 +274,7 @@ describe('OpenCode /connect primary path', () => {
     // tree, so we look for the two adjacent tokens (`"models"` and the
     // dynamic model id) rather than for a single contiguous JSON literal.
     expect(container.textContent).toMatch(/"models"/)
-    expect(container.textContent).toMatch(/"deepseek-v4-flash"/)
+    expect(container.textContent).toMatch(/"deepseek-v4\.1-flash"/)
     expect(container.textContent).not.toContain('glm-5.1')
     expect(container.textContent).not.toContain('glm-5.3-flash')
     expect(container.textContent).not.toContain('# shell')
@@ -411,7 +417,14 @@ describe('Guide models, troubleshooting and CTAs', () => {
     ).not.toBeInTheDocument()
   })
 
-  it.each(['opencode', 'cline', 'rooCode', 'pi', 'openclaw'] as const)(
+  it.each([
+    'opencode',
+    'cline',
+    'rooCode',
+    'pi',
+    'openclaw',
+    'hermes',
+  ] as const)(
     '%s guide renders no relationship disclaimer and no false official claim',
     async (tool) => {
       const { container } = renderGuide(tool)
@@ -454,10 +467,11 @@ describe('Guide models, troubleshooting and CTAs', () => {
   })
 })
 
-describe('Provider plugin guides (Pi, OpenClaw)', () => {
+describe('Provider plugin guides (Pi, OpenClaw, Hermes)', () => {
   it.each([
     ['pi', 'Pi setup guide'],
     ['openclaw', 'OpenClaw setup guide'],
+    ['hermes', 'Hermes Agent setup guide'],
   ] as const)(
     '%s renders prerequisites, steps, models, errors and the CTA sections',
     async (tool, title) => {
@@ -603,7 +617,7 @@ describe('Provider plugin guides (Pi, OpenClaw)', () => {
     ).toBeNull()
   })
 
-  it.each(['pi', 'openclaw'] as const)(
+  it.each(['pi', 'openclaw', 'hermes'] as const)(
     '%s scopes model choice to its own list instead of the generic all-models line',
     async (tool) => {
       const { container } = renderGuide(tool)
@@ -616,15 +630,17 @@ describe('Provider plugin guides (Pi, OpenClaw)', () => {
       )
       if (tool === 'pi') {
         expect(container.textContent).toContain('/model')
-      } else {
+      } else if (tool === 'openclaw') {
         expect(container.textContent).toContain(
           'openclaw models list --provider vancine --refresh --json'
         )
+      } else {
+        expect(container.textContent).toContain('hermes model')
       }
     }
   )
 
-  it.each(['pi', 'openclaw'] as const)(
+  it.each(['pi', 'openclaw', 'hermes'] as const)(
     '%s shows exactly one primary-colored CTA (anonymous → /sign-up) and reference links stay secondary',
     async (tool) => {
       const { container } = renderGuide(tool)
@@ -643,7 +659,7 @@ describe('Provider plugin guides (Pi, OpenClaw)', () => {
     }
   )
 
-  it.each(['pi', 'openclaw'] as const)(
+  it.each(['pi', 'openclaw', 'hermes'] as const)(
     '%s shows exactly one primary-colored CTA when logged in (→ /keys)',
     async (tool) => {
       useAuthStore.setState({
@@ -704,7 +720,7 @@ describe('Provider plugin guides (Pi, OpenClaw)', () => {
     ).not.toBeInTheDocument()
   })
 
-  it.each(['pi', 'openclaw'] as const)(
+  it.each(['pi', 'openclaw', 'hermes'] as const)(
     '%s keeps the technical boundaries and shows no official/built-in claim',
     async (tool) => {
       const { container } = renderGuide(tool)
@@ -785,6 +801,221 @@ describe('Provider plugin guides (Pi, OpenClaw)', () => {
     expect(
       document.head.querySelector('link[rel="canonical"]')?.getAttribute('href')
     ).toBe('https://vancine.com/docs/agents/pi')
+  })
+})
+
+describe('Hermes Agent provider guide', () => {
+  it('shows the GitHub install, the API key export, and the model/chat commands', async () => {
+    const { container } = renderGuide('hermes')
+
+    await waitForHeading(/Hermes Agent setup guide/)
+    expect(
+      screen.getByText(HERMES_PROVIDER_INSTALL_COMMAND)
+    ).toBeInTheDocument()
+    expect(screen.getByText(HERMES_API_KEY_COMMAND)).toBeInTheDocument()
+    expect(screen.getByText(HERMES_MODEL_COMMAND)).toBeInTheDocument()
+
+    const stepsList = container.querySelector('ol')
+    expect(stepsList?.textContent).toContain('hermes plugins install')
+    expect(stepsList?.textContent).toContain('VANCINE_API_KEY')
+    expect(stepsList?.textContent).toContain('hermes model')
+    expect(stepsList?.textContent).toContain('hermes chat --provider vancine')
+    // The published flow: install → enable vancine-provider → key → restart
+    // the backend → pick a model → call it.
+    expect(stepsList?.textContent).toContain("Enable 'vancine-provider' now?")
+    expect(stepsList?.textContent).toMatch(
+      /Restart the Hermes CLI, Gateway, or Desktop backend/
+    )
+    // Each command sits under its own step, in this exact order.
+    const stepText = [...(stepsList?.children ?? [])].map(
+      (li) => li.textContent ?? ''
+    )
+    expect(stepText).toHaveLength(6)
+    expect(stepText[0]).toContain(HERMES_PROVIDER_INSTALL_COMMAND)
+    expect(stepText[1]).toContain("Enable 'vancine-provider' now?")
+    expect(stepText[1]).not.toContain(HERMES_API_KEY_COMMAND)
+    expect(stepText[2]).toContain(HERMES_API_KEY_COMMAND)
+    expect(stepText[3]).toMatch(/Restart the Hermes CLI, Gateway, or Desktop/)
+    expect(stepText[3]).not.toContain('hermes model')
+    expect(stepText[4]).toContain(HERMES_MODEL_COMMAND)
+    expect(stepText[5]).toContain(
+      getHermesChatCommand(DOCS_FALLBACK_TEXT_MODEL)
+    )
+  })
+
+  it('embeds the live-catalog recommended model in the call example, never a retired id', async () => {
+    const { container } = renderGuide('hermes')
+
+    await waitForHeading(/Hermes Agent setup guide/)
+    // The rendered command uses the shared verified fallback id exactly
+    // when the live catalog is unavailable in the test environment.
+    const command = getHermesChatCommand(DOCS_FALLBACK_TEXT_MODEL)
+    expect(screen.getByText(command)).toBeInTheDocument()
+    expect(command).toBe(
+      'hermes chat --provider vancine -m deepseek-v4.1-flash'
+    )
+    // A delisted snapshot id must never be hardcoded on the page, and the
+    // page must not maintain a static full model whitelist.
+    expect(container.textContent).not.toContain('deepseek-flash')
+    expect(container.textContent).not.toContain('deepseek-v4-flash')
+    expect(container.textContent).not.toContain('hy4-preview')
+    expect(container.textContent).not.toContain('glm-5.3-flash')
+    expect(container.textContent).toContain(
+      'The plugin ships no hardcoded full model list.'
+    )
+    expect(container.textContent).toContain(
+      'this page never maintains a static model whitelist'
+    )
+  })
+
+  it('picks the live-catalog model id over the fallback when the catalog resolves', () => {
+    // The catalog-backed pick: any resolved id flows through the same
+    // command builder, so a live catalog never shows the fallback id.
+    const live = getHermesChatCommand('kimi-k3')
+    expect(live).toBe('hermes chat --provider vancine -m kimi-k3')
+    expect(live).not.toContain(DOCS_FALLBACK_TEXT_MODEL)
+  })
+
+  it('links only the public GitHub source — no npm, PyPI, ClawHub or catalog link', async () => {
+    const { container } = renderGuide('hermes')
+
+    await waitForHeading(/Hermes Agent setup guide/)
+    const links = [...container.querySelectorAll('a')].map((a) =>
+      a.getAttribute('href')
+    )
+    expect(links).toContain(VANCINE_HERMES_PROVIDER_GITHUB_URL)
+    for (const forbidden of [
+      'npmjs.com',
+      'npm:',
+      'pypi.org',
+      'clawhub.ai',
+      'pi.dev',
+      'models.dev',
+    ]) {
+      expect(
+        links.filter((href) => (href ?? '').includes(forbidden)),
+        `no Hermes source link may point at ${forbidden}`
+      ).toEqual([])
+    }
+    const external = links.filter((href) => (href ?? '').startsWith('https://'))
+    expect(new Set(external)).toEqual(
+      new Set([VANCINE_HERMES_PROVIDER_GITHUB_URL])
+    )
+    expect(container.textContent).not.toContain('official plugin catalog')
+  })
+
+  it('covers the CLI, Gateway, Desktop local and Desktop remote install locations', async () => {
+    const { container } = renderGuide('hermes')
+
+    await waitForHeading(/Hermes Agent setup guide/)
+    expect(screen.getByText('Where to install the plugin')).toBeInTheDocument()
+    const text = container.textContent ?? ''
+    expect(text).toContain('Hermes CLI: install it in the HERMES_HOME')
+    expect(text).toContain(
+      "Hermes Gateway: install it in the Gateway host's HERMES_HOME"
+    )
+    expect(text).toContain('Hermes Desktop with a local backend')
+    expect(text).toContain('Hermes Desktop with a remote Gateway')
+    // The remote-Gateway entry names the wrong-host mistake explicitly.
+    expect(text).toContain('not only on the machine showing the Desktop UI')
+    // One install serves the CLI, Gateway and Desktop: no separate Desktop
+    // plugin exists.
+    expect(text).toContain('there is no separate Desktop plugin')
+  })
+
+  it('covers plugin, key, model, wrong-host and delisted-model errors', async () => {
+    renderGuide('hermes')
+
+    await waitForHeading('Common errors')
+    expect(
+      screen.getByText(
+        'The vancine provider does not appear in Hermes after installing.'
+      )
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('The API key is rejected (401 / invalid API key).')
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('No Vancine models appear in the model list.')
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'Hermes Desktop shows no Vancine provider while the CLI on another machine works.'
+      )
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('model not found, or the model id is rejected.')
+    ).toBeInTheDocument()
+  })
+
+  it('never puts the API key on the command line or into a URL', async () => {
+    const { container } = renderGuide('hermes')
+
+    await waitForHeading(/Hermes Agent setup guide/)
+    const commandBlocks = [...container.querySelectorAll('code')].map(
+      (el) => el.textContent ?? ''
+    )
+    for (const block of commandBlocks) {
+      expect(block).not.toMatch(/VANCINE_API_KEY="sk-[A-Za-z0-9]{20,}"/)
+      expect(block).not.toMatch(/[?&]api[_-]?key=/i)
+    }
+    // The key export uses the obvious placeholder only.
+    expect(container.textContent).toContain(
+      'export VANCINE_API_KEY="sk-your-api-key"'
+    )
+    expect(container.textContent).not.toMatch(REAL_KEY_PATTERN)
+  })
+
+  it('renders the shared guide sections in order, with the surface block between steps and models', async () => {
+    const { container } = renderGuide('hermes')
+
+    await waitForHeading(/Hermes Agent setup guide/)
+    const sectionOrder = [...container.querySelectorAll('h3')].map((heading) =>
+      heading.textContent?.trim()
+    )
+    expect(sectionOrder).toEqual([
+      'Prerequisites',
+      'Step-by-step setup',
+      'Recommended models',
+      'Common errors',
+      'Get started',
+    ])
+
+    // Within the setup section: the enable note, the numbered steps, then the
+    // install-location block, then the Models section.
+    const enableNote = screen.getByText(/there is no separate Desktop plugin/)
+    const stepsList = container.querySelector('ol')
+    const surfaces = screen.getByText('Where to install the plugin')
+    const modelsHeading = screen.getByRole('heading', {
+      name: 'Recommended models',
+    })
+    expect(stepsList).not.toBeNull()
+    expect(
+      enableNote.compareDocumentPosition(stepsList as Node) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).not.toBe(0)
+    expect(
+      (stepsList as Node).compareDocumentPosition(surfaces) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).not.toBe(0)
+    expect(
+      surfaces.compareDocumentPosition(modelsHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).not.toBe(0)
+  })
+
+  it('keeps the fixed query-free Hermes metadata while mounted', async () => {
+    renderGuide('hermes')
+
+    await waitForHeading(/Hermes Agent setup guide/)
+    await waitFor(() =>
+      expect(document.title).toBe(
+        'Hermes Agent Setup Guide for the Vancine API | Vancine'
+      )
+    )
+    expect(
+      document.head.querySelector('link[rel="canonical"]')?.getAttribute('href')
+    ).toBe('https://vancine.com/docs/agents/hermes')
   })
 })
 

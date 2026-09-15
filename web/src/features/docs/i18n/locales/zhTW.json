@@ -10,7 +10,7 @@
     },
     "step2": {
       "title": "選擇模型",
-      "desc": "推薦使用 deepseek-v4-flash 進行首次呼叫——速度快、成本低，適合測試驗證。",
+      "desc": "推薦使用 deepseek-v4.1-flash 進行首次呼叫——速度快、成本低，適合測試驗證。",
       "viewAll": "檢視所有可用模型",
       "dynamicFallback": "即時目錄載入中，先展示已核驗的預設模型。"
     },
@@ -79,7 +79,7 @@
       "apiKeyOpenai": "sk-xxx（OpenAI 金鑰）",
       "apiKeyNote": "使用 Vancine 令牌，在 控制台 → 令牌管理 取得",
       "modelOpenai": "gpt-4o、gpt-4o-mini 等",
-      "modelNote": "使用 Vancine 支援的模型（如 deepseek-v4-flash）"
+      "modelNote": "使用 Vancine 支援的模型（如 deepseek-v4.1-flash）"
     },
     "nextSteps": {
       "title": "下一步",
@@ -276,6 +276,9 @@
         },
         "openclaw": {
           "protocol": "OpenClaw 的社群 Provider 外掛，從 npm 或 ClawHub 安裝。"
+        },
+        "hermes": {
+          "protocol": "Hermes Agent 的 Provider 外掛，從其公開 GitHub 來源安裝。"
         }
       },
       "cardBoundary": "該工具的 OpenAI 相容接入配置已準備就緒，可依其專屬指南完成接入。"
@@ -283,8 +286,9 @@
     "cli": {
       "codex": "Codex 官方設定使用 ~/.codex/config.toml。它目前文件範例使用 Responses 協議，所以 wire_api 寫 responses。",
       "openclaw": "OpenClaw 透過 Vancine 維護的社群 Provider 外掛連線，而非手動設定 Base URL。安裝與驗證步驟請查看專門的指南。",
-      "hermes": "Hermes Agent 的 OpenAI-compatible 外掛常用 config.yaml 或環境變數設定 base_url / api_key。欄位以所安裝外掛為準。",
-      "openclawGuideLink": "開啟 OpenClaw Provider 指南"
+      "hermes": "Hermes Agent 透過 vancine-hermes-provider 外掛接入，無需手動填寫 Base URL 或 config.yaml。安裝、憑證設定與模型選擇請參閱專屬指南。",
+      "openclawGuideLink": "開啟 OpenClaw Provider 指南",
+      "hermesGuideLink": "開啟 Hermes Provider 指南"
     },
     "gui": {
       "cursor": {
@@ -314,8 +318,7 @@
       "stepSelect": "選擇 Vancine，並貼上你自己的 Vancine API Key。",
       "stepModel": "執行：",
       "stepChoose": "在 Vancine Provider 下選擇模型並開始使用。",
-      "catalogNote": "模型目錄由 Vancine 動態提供。擴充功能會快取並重新驗證該目錄，因此你無需手動維護模型白名單。",
-      "notOfficial": "pi-provider-vancine 是由 Vancine 發佈和維護的社群擴充功能。它不構成 Pi、Earendil Works 或其維護者與 Vancine 之間的官方合作、認證或背書。"
+      "catalogNote": "模型目錄由 Vancine 動態提供。擴充功能會快取並重新驗證該目錄，因此你無需手動維護模型白名單。"
     }
   },
   "agentGuides": {
@@ -358,7 +361,6 @@
       "ctaKeys": "管理我的 API Key",
       "ctaPricing": "比較模型與價格",
       "ctaDocs": "閱讀 Chat Completions API 文件",
-      "notOfficial": "Vancine 是獨立的 OpenAI 相容 API 服務，不是 {{tool}} 的官方供應商、官方合作夥伴或內建 Provider。",
       "statusCallout": "該工具的 OpenAI 相容接入配置已準備就緒，可依本頁步驟完成接入。"
     },
     "opencode": {
@@ -374,7 +376,6 @@
       "step7": "選擇 vancine/{{modelId}}，或 vancine Provider 下的其他模型，然後傳送提示詞。",
       "advancedTitle": "進階設定（選用）",
       "advancedNote": "僅在需要覆寫 Base URL、設定模型 whitelist / blacklist、即時目錄異常時手動後援，或其他需要明確覆寫 Provider 設定的情境，才使用專案層級 opencode.json。基礎接入不必同時執行 /connect 並編寫該檔案。",
-      "notOfficial": "Vancine 是獨立的 OpenAI 相容 API 服務，已列入 OpenCode 使用的 Models.dev 目錄。該目錄收錄不代表 Vancine 與 OpenCode 存在官方合作或背書關係。",
       "errors": {
         "model": {
           "fix": "使用 Vancine 即時目錄中的精確模型 ID，區分大小寫。Models 頁是唯一來源。"
@@ -417,7 +418,6 @@
       "step6": "在 Vancine Provider 下選擇一個模型。",
       "step7": "透過 Vancine 發出第一個請求。",
       "catalogNote": "模型清單來自 Vancine 目錄。Pi 最多每 4 小時重新整理一次；後續重新整理失敗時會保留最近一次成功的快取（包括空清單）。只有首次重新整理失敗且尚無快取時，才可能使用小型離線回退清單。目錄不保證即時；重新整理成功後，已下架的模型會消失，且不會被回退清單恢復。",
-      "notOfficial": "pi-provider-vancine 是由 Vancine 發佈和維護的社群擴充功能。它不構成 Pi、Earendil Works 或其維護者與 Vancine 之間的官方合作、認證或背書。",
       "errors": {
         "providerMissing": {
           "symptom": "在 /login 中看不到 Vancine Provider。",
@@ -453,7 +453,6 @@
       "step4": "列出並驗證你的金鑰可存取的模型：",
       "step5": "使用已驗證的 Vancine 模型開始對話。",
       "catalogNote": "模型清單不是靜態全量目錄。外掛會先取得公開的 Vancine 目錄，再用你的金鑰對 /v1/models 逐一驗證，只發布你的帳號實際可用的交集。",
-      "notOfficial": "@vancine/openclaw-provider 是由 Vancine 維護的社群 Provider 外掛。它不是 OpenClaw 或 ClawHub 的官方、內建或認證 Provider，其收錄也不代表 OpenClaw 或 ClawHub 的背書。",
       "errors": {
         "pluginMissing": {
           "symptom": "外掛未載入，或安裝後沒有出現 Vancine 模型。",
@@ -479,6 +478,49 @@
       "zeroCredentialNote": "準確邊界：在外掛持有目前憑證的已驗證目錄狀態時，未知模型一定會被拒絕。在完全沒有憑證的情況下，OpenClaw 核心仍可能以未驗證方式嘗試使用手動設定的模型，並被上游以 401 拒絕。",
       "limitationsNote": "範圍說明：已發布的外掛尚未在完整的 OpenClaw 版本、工作流程或多模態請求類型範圍內驗證。目前相容性聲明請查看外掛 README。",
       "modelsNote": "只從 openclaw models list --provider vancine --refresh --json 回傳的已驗證模型中選擇。Models 與 Pricing 頁面僅供參考；其中展示的模型不保證對你的金鑰通過驗證。"
+    },
+    "hermes": {
+      "pageTitle": "Hermes Agent 安裝指南",
+      "valueProp": "透過 vancine-hermes-provider 外掛在 Hermes Agent 中使用你自己的 Vancine API Key，該外掛從其公開 GitHub 來源安裝。同一個 Provider 適用於 Hermes CLI、Hermes Gateway 與 Hermes Desktop。",
+      "githubLabel": "GitHub 儲存庫",
+      "step1": "從已公開的發佈來源安裝此 Provider 外掛（fx247562340/vancine-hermes-provider）：",
+      "step2": "Hermes 會將其視為自訂來源，並詢問 Enable 'vancine-provider' now?，回答 y 即可在安裝後啟用此 Provider。",
+      "step3": "在 Hermes 讀取的環境中設定 VANCINE_API_KEY，填入你的 Vancine API Key：",
+      "step4": "重新啟動 Hermes CLI、Gateway 或 Desktop 後端，以載入新的 Provider。",
+      "step5": "列出 Provider 目前解析或快取的 Vancine 對話模型並選擇一個——該列表不是按 API Key 驗證的權限集合：",
+      "step6": "也可以直接用 provider/model 形式呼叫某個模型：",
+      "installNote": "Hermes 會把 vancine-provider 外掛當作自訂（未經審核）的 GitHub 來源安裝，而不是從外掛目錄安裝。它是 Hermes 的模型 Provider 外掛，因此沒有獨立的 Desktop 外掛：在 Hermes Agent 後端安裝一次，CLI、Gateway 與 Desktop 共用。",
+      "surfacesTitle": "外掛安裝位置",
+      "surfaces": {
+        "cli": "Hermes CLI：安裝到該 CLI 行程使用的 HERMES_HOME 中。",
+        "gateway": "Hermes Gateway：安裝到 Gateway 主機使用的 HERMES_HOME 中。Gateway 與 CLI 共用同一個 Hermes Agent 後端。",
+        "desktopLocal": "Hermes Desktop（本機後端）：安裝到本機 Hermes 執行環境使用的同一個 HERMES_HOME 中。Desktop 不會載入另一份外掛清單。",
+        "desktopRemote": "Hermes Desktop（遠端 Gateway）：安裝到遠端 Gateway 主機的 HERMES_HOME 中，而不是只裝在顯示 Desktop 介面的機器上。只裝在筆電上的外掛不會出現。"
+      },
+      "catalogNote": "該外掛不內建寫死的完整模型清單。Hermes 從 Vancine 目錄載入目前可用的 Chat Completions 模型，因此本頁不維護靜態模型白名單。該目錄不保證即時。重新整理成功會替換 Provider 自身的列表，但 Hermes core 會在磁碟快取 provider 模型 ID（約 1 小時，最長可沿用 7 天），因此上游已下架的模型可能仍會短暫顯示在選擇清單中，直到呼叫時才被拒絕——遇到這種情況，重新執行 hermes model 並選擇目前可用的模型。",
+      "errors": {
+        "pluginMissing": {
+          "symptom": "安裝後 Hermes 中沒有出現 vancine Provider。",
+          "fix": "確認外掛已複製並啟用，然後重新啟動 Hermes CLI / Gateway / Desktop 後端。如果 Desktop 連接的是遠端 Gateway，請在該 Gateway 主機上安裝外掛。"
+        },
+        "apiKey": {
+          "symptom": "API Key 被拒絕（401 / invalid API key）。",
+          "fix": "在你的 Vancine 帳戶中建立或複製一個 Key，並在 Hermes 讀取的環境中設定 VANCINE_API_KEY（行程環境或該 HERMES_HOME 的 .env），然後重新啟動後端。"
+        },
+        "modelMissing": {
+          "symptom": "模型清單中沒有出現任何 Vancine 模型。",
+          "fix": "選擇清單會列出外掛能解析到的 Chat Completions 模型。確認 Provider 已啟用且目錄可存取，然後再次執行 hermes model。"
+        },
+        "wrongHost": {
+          "symptom": "另一台機器上的 CLI 能用，而 Hermes Desktop 裡沒有 Vancine Provider。",
+          "fix": "Hermes Desktop 連接的是 Agent 後端。使用遠端 Gateway 時，請在遠端 Gateway 主機的 HERMES_HOME 中安裝外掛，而不是只裝在顯示 Desktop 介面的機器上。"
+        },
+        "modelRetired": {
+          "symptom": "model not found，或模型 ID 被拒絕。",
+          "fix": "模型 ID 區分大小寫，且可能已被上游下架；Hermes 的選擇清單也可能因自身快取而短暫顯示已下架的 ID。如果呼叫被拒絕，請從 hermes model 或即時 Models 頁面選擇目前可用的 ID，並原樣複製。"
+        }
+      },
+      "modelsNote": "從 hermes model 目前列出的模型中選擇——這是 Provider 從 Vancine 目錄解析或快取的結果，不是按 API Key 驗證的權限集合。如果呼叫被拒絕，重新執行 hermes model 並選擇目前可用的模型。模型與定價頁面僅供參考，頁面上出現的模型不保證會出現在 Hermes 的選擇清單中。"
     }
   },
   "faq": {
