@@ -18,6 +18,14 @@ import (
 type WebAssets struct {
 	BuildFS   fs.FS
 	IndexPage []byte
+	// PrivateIndexPage is the pristine SPA shell captured before any analytics
+	// injection. When present, it is served for the internal admin-only SPA
+	// paths listed in internalAdminSPAPaths, so no third-party statistics tag
+	// ever receives those URLs. When it is nil or empty the router fails closed
+	// at request time: those internal paths receive a stable 503 with no-store
+	// and noindex, never the analytics-injected IndexPage. Ordinary public
+	// paths are unaffected in both cases.
+	PrivateIndexPage []byte
 }
 
 // sitemapURL is one <url> entry of the sitemap document. lastmod is
@@ -176,6 +184,45 @@ func isUnknownDocsModelPath(path string) bool {
 	return true
 }
 
+// internalAdminRobotsTag is the X-Robots-Tag value sent with the internal
+// admin shell response. "noindex" asks search engines that honour the
+// directive not to index the page; "nofollow" asks crawlers that honour it not
+// to follow the page's links. It is a crawler directive only — it is not
+// access control, and it does not guarantee that third-party link-preview or
+// unfurl services will skip the page. The actual privacy protection comes from
+// serving the analytics-free private shell, requiring admin authentication, and
+// never listing the path publicly. The header is set on the private shell
+// response itself — never by reusing noindexIndexPage, which is the
+// statistics-injected variant and would defeat the whole point of the private
+// shell.
+const internalAdminRobotsTag = "noindex, nofollow"
+
+// internalShellUnavailableBody is the stable, content-free body of the
+// fail-closed response served for internal admin paths when no private shell
+// was provided. It deliberately carries no HTML, no statistics, no path echo,
+// no internal data and no credentials.
+var internalShellUnavailableBody = []byte("internal page unavailable\n")
+
+// internalAdminSPAPaths are the exact SPA paths served the analytics-free
+// private shell. They are internal, unlisted admin surfaces: a third-party
+// analytics tag must never see them, and they must never enter first-party
+// acquisition attribution. Both the bare and the trailing-slash form are
+// listed because the SPA router accepts either. Matching is exact, and the
+// router only ever passes c.Request.URL.Path — already percent-decoded and
+// query-stripped by net/http — so a query string can never change the
+// selection.
+var internalAdminSPAPaths = map[string]struct{}{
+	"/acquisition-funnel":  {},
+	"/acquisition-funnel/": {},
+}
+
+// isInternalAdminSPAPath reports whether path is one of the internal
+// admin-only SPA paths that must be served without third-party analytics.
+func isInternalAdminSPAPath(path string) bool {
+	_, ok := internalAdminSPAPaths[path]
+	return ok
+}
+
 func SetWebRouter(router *gin.Engine, assets WebAssets, pluginDispatcher gin.HandlerFunc) {
 	// Programmer-error guard. A bad entry in publicMarketingPages must fail
 	// at startup, not at request time.
@@ -186,6 +233,12 @@ func SetWebRouter(router *gin.Engine, assets WebAssets, pluginDispatcher gin.Han
 	// Pre-render one HTML variant per public marketing route. The map is
 	// built once at startup so NoRoute is an O(1) lookup + bytes write.
 	publicVariants, originalIndexPage, noindexIndexPage := buildPublicPageVariants(assets.IndexPage)
+
+	// Internal admin-only shell: the pristine copy captured before analytics
+	// injection in main.go. When a caller provides none, the internal paths
+	// fail closed at request time (see the NoRoute branch) rather than falling
+	// back to the statistics-injected shell.
+	privateIndexPage := assets.PrivateIndexPage
 
 	router.Use(gzip.Gzip(gzip.DefaultCompression))
 	router.Use(middleware.GlobalWebRateLimit())
@@ -230,6 +283,29 @@ func SetWebRouter(router *gin.Engine, assets WebAssets, pluginDispatcher gin.Han
 			// and must never be served the marketing HTML.
 			if routeIsRelayPrefix(path) {
 				controller.RelayNotFound(c)
+				return
+			}
+
+			// Internal admin-only SPA path: serve the analytics-free private
+			// shell. It keeps the normal SPA assets and client-side routing,
+			// carries no Umami / Google Analytics / Google Ads injection, and
+			// gets no public canonical — an internal path must never reach a
+			// third-party statistics provider.
+			if isInternalAdminSPAPath(path) {
+				if len(privateIndexPage) == 0 {
+					// Fail closed: serving the statistics-injected IndexPage here
+					// would leak the internal path to a third-party analytics
+					// provider, so the route returns an explicit, stable,
+					// content-free failure instead. No runtime string stripping
+					// and no panic.
+					c.Header("Cache-Control", "no-store")
+					c.Header("X-Robots-Tag", internalAdminRobotsTag)
+					c.Data(http.StatusServiceUnavailable, "text/plain; charset=utf-8", internalShellUnavailableBody)
+					return
+				}
+				c.Header("Cache-Control", "no-cache")
+				c.Header("X-Robots-Tag", internalAdminRobotsTag)
+				c.Data(http.StatusOK, "text/html; charset=utf-8", privateIndexPage)
 				return
 			}
 

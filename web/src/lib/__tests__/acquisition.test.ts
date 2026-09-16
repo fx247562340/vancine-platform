@@ -197,6 +197,141 @@ describe('extractLandingPath', () => {
   })
 })
 
+describe('isInternalAdminPath', () => {
+  test('matches exactly the two internal admin SPA path forms', async () => {
+    const acquisition = await loadAcquisition()
+
+    assert.equal(acquisition.isInternalAdminPath('/acquisition-funnel'), true)
+    assert.equal(acquisition.isInternalAdminPath('/acquisition-funnel/'), true)
+  })
+
+  test('never matches public landings, prefixes, siblings, sub-paths or case variants', async () => {
+    const acquisition = await loadAcquisition()
+
+    for (const pathname of [
+      '/',
+      '/pricing',
+      '/docs',
+      '/sign-in',
+      '/sign-up',
+      '/dashboard',
+      '/acquisition',
+      '/acquisition-funnels',
+      '/acquisition-funnel-x',
+      '/acquisition-funnel/a',
+      '/acquisition-funnel//',
+      '/ACQUISITION-FUNNEL',
+      '//acquisition-funnel',
+      'acquisition-funnel',
+      '',
+    ]) {
+      assert.equal(
+        acquisition.isInternalAdminPath(pathname),
+        false,
+        `pathname ${JSON.stringify(pathname)} must not be treated as internal`
+      )
+    }
+  })
+
+  test('is exact-match on pathname, so no prefix or substring rule can widen it', async () => {
+    const acquisition = await loadAcquisition()
+
+    // Callers pass window.location.pathname, which never carries a query.
+    // A string that does carry one must NOT match: this pins exact matching
+    // and rules out a future startsWith/includes rewrite.
+    assert.equal(
+      acquisition.isInternalAdminPath('/acquisition-funnel?utm_source=hn'),
+      false
+    )
+    assert.equal(
+      acquisition.isInternalAdminPath('/acquisition-funnel#top'),
+      false
+    )
+  })
+
+  test('matches percent-encoded equivalents exactly like the server does', async () => {
+    const acquisition = await loadAcquisition()
+
+    // net/http hands the Go router an already-decoded URL.Path, while the
+    // browser keeps window.location.pathname percent-encoded. Both sides must
+    // classify the same URL identically, or an encoded internal path would be
+    // served the private shell yet still record a first-party touch.
+    for (const pathname of [
+      '/%61cquisition-funnel',
+      '/%61cquisition-funnel/',
+      '/acquisition%2Dfunnel',
+      '/acquisition%2Dfunnel/',
+      '/%61cquisition%2Dfunnel',
+      '/%61cquisition%2Dfunnel/',
+      '/acquisition-funnel%2F',
+    ]) {
+      assert.equal(
+        acquisition.isInternalAdminPath(pathname),
+        true,
+        `encoded form ${JSON.stringify(pathname)} must be recognised as internal`
+      )
+    }
+  })
+
+  test('never widens the set for encoded near-misses, sub-paths, double encoding or case', async () => {
+    const acquisition = await loadAcquisition()
+
+    for (const pathname of [
+      '/%61cquisition-funnels',
+      '/%61cquisition-funnel-x',
+      '/%61cquisition-funnel/a',
+      '/acquisition%2Dfunnels',
+      // Decodes to /Acquisition-funnel: case must not be folded.
+      '/%41cquisition-funnel',
+      // Double-encoded: one decode pass leaves /%61cquisition-funnel, exactly
+      // what the server sees for that URL, so it must not match.
+      '/%2561cquisition-funnel',
+      '/%2561cquisition-funnel/',
+      '//%61cquisition-funnel',
+      '/%61cquisition-funnel//',
+    ]) {
+      assert.equal(
+        acquisition.isInternalAdminPath(pathname),
+        false,
+        `encoded near-miss ${JSON.stringify(pathname)} must not be treated as internal`
+      )
+    }
+  })
+
+  test('malformed percent escapes never throw and never match', async () => {
+    const acquisition = await loadAcquisition()
+
+    // decodeURIComponent throws URIError on these; the guard must swallow it so
+    // a hostile or truncated URL can never break app startup.
+    for (const pathname of [
+      '/%',
+      '/%zz',
+      '/acquisition-funnel%',
+      '/%61cquisition-funnel%',
+      '/%E0%A4%A',
+      '/acquisition-funnel/%',
+    ]) {
+      let threw = false
+      let result: boolean | undefined
+      try {
+        result = acquisition.isInternalAdminPath(pathname)
+      } catch {
+        threw = true
+      }
+      assert.equal(
+        threw,
+        false,
+        `must not throw for ${JSON.stringify(pathname)}`
+      )
+      assert.equal(
+        result,
+        false,
+        `must not match for ${JSON.stringify(pathname)}`
+      )
+    }
+  })
+})
+
 describe('captureLandingView', () => {
   test('posts one landing_view with allowlisted UTM and the landing path', async () => {
     installFetchStub()

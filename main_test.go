@@ -212,3 +212,160 @@ func TestInjectGoogleAnalyticsRejectsInvalidAdsEnvValues(t *testing.T) {
 	assert.NotContains(t, page, "googletagmanager.com")
 	assert.NotContains(t, page, "__VANCINE_GOOGLE_ADS__")
 }
+
+// ---------------------------------------------------------------------------
+// Internal admin shell: the pristine copy must be captured BEFORE any
+// analytics injection mutates indexPage, so internal admin-only routes can be
+// served a shell with no third-party tags while ordinary pages keep every
+// existing injection contract byte-for-byte.
+// ---------------------------------------------------------------------------
+
+// privateShellTestTemplate is a minimal production-shaped shell carrying both
+// real injection placeholders (each followed by a newline, exactly as the
+// embedded dist/index.html does) plus the SPA app asset tag and mount node.
+const privateShellTestTemplate = `<!doctype html>
+<html lang="en">
+  <head>
+    <title>Vancine</title>
+    <!--umami-->
+    <!--Google Analytics-->
+  <script defer src="/static/js/index.TESTBUILD.js"></script></head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
+`
+
+// privateShellEnvKeys are the analytics environment variables the private
+// shell tests control explicitly.
+var privateShellEnvKeys = []string{
+	"UMAMI_WEBSITE_ID",
+	"UMAMI_SCRIPT_URL",
+	"GOOGLE_ANALYTICS_ID",
+	"GOOGLE_ADS_ID",
+	"GOOGLE_ADS_SIGNUP_CONVERSION_LABEL",
+}
+
+// runCaptureAndInject installs a controlled environment and template, captures
+// the private shell, then runs both production injections in their real order.
+// It returns the captured private shell and the resulting public indexPage.
+func runCaptureAndInject(t *testing.T, env map[string]string) (string, string) {
+	t.Helper()
+	for _, key := range privateShellEnvKeys {
+		original, hadOriginal := os.LookupEnv(key)
+		if value, set := env[key]; set {
+			require.NoError(t, os.Setenv(key, value))
+		} else {
+			require.NoError(t, os.Unsetenv(key))
+		}
+		t.Cleanup(func() {
+			restoreGoogleEnvValue(key, original, hadOriginal)
+		})
+	}
+	originalIndexPage := indexPage
+	indexPage = []byte(privateShellTestTemplate)
+	t.Cleanup(func() { indexPage = originalIndexPage })
+
+	privateShell := capturePrivateIndexPage()
+	InjectUmamiAnalytics()
+	InjectGoogleAnalytics()
+	return string(privateShell), string(indexPage)
+}
+
+func TestCapturePrivateIndexPageSnapshotsShellBeforeAnalyticsInjection(t *testing.T) {
+	privateShell, publicShell := runCaptureAndInject(t, map[string]string{
+		"UMAMI_WEBSITE_ID":    "UMAMI-TEST",
+		"GOOGLE_ANALYTICS_ID": "G-4BCDEFGHIJ",
+	})
+
+	// The captured shell is the pristine template: no third-party payload.
+	assert.Equal(t, privateShellTestTemplate, privateShell,
+		"the private shell must be the untouched pre-injection template")
+	for _, marker := range []string{
+		"googletagmanager",
+		"google-analytics.com",
+		"analytics.umami.is",
+		"data-website-id",
+		"dataLayer",
+		"gtag(",
+		"__VANCINE_GOOGLE_ADS__",
+		"<!--Umami QuantumNous-->",
+		"<!--Google Analytics QuantumNous-->",
+	} {
+		assert.NotContains(t, privateShell, marker,
+			"the private shell must not carry %q", marker)
+	}
+	// It is still a bootable SPA shell.
+	assert.Contains(t, privateShell, `/static/js/index.TESTBUILD.js`)
+	assert.Contains(t, privateShell, `<div id="root">`)
+
+	// The ordinary public shell keeps the full existing injection contract.
+	assert.Contains(t, publicShell, `https://analytics.umami.is/script.js`)
+	assert.Contains(t, publicShell, `data-website-id="UMAMI-TEST"`)
+	assert.Contains(t, publicShell, "<!--Umami QuantumNous-->")
+	assert.Contains(t, publicShell, "https://www.googletagmanager.com/gtag/js?id=G-4BCDEFGHIJ")
+	assert.Contains(t, publicShell, gaOAuthPathGate)
+	assert.Contains(t, publicShell, "}else{"+gaLegacyConfig+"}")
+	assert.Contains(t, publicShell, "<!--Google Analytics QuantumNous-->")
+	assert.Contains(t, publicShell, `/static/js/index.TESTBUILD.js`,
+		"injection must not drop the SPA app asset tag")
+
+	// The two shells are genuinely different documents.
+	assert.NotEqual(t, privateShell, publicShell)
+}
+
+func TestCapturePrivateIndexPageExcludesGoogleAdsBootstrap(t *testing.T) {
+	// Ads-only deployment (no GA id): the Ads bootstrap loads gtag.js
+	// dynamically behind the production-hostname gate. None of it may reach
+	// the internal admin shell, while the public shell keeps the exact
+	// existing registration-conversion contract.
+	privateShell, publicShell := runCaptureAndInject(t, map[string]string{
+		"GOOGLE_ADS_ID":                      "AW-18416812623",
+		"GOOGLE_ADS_SIGNUP_CONVERSION_LABEL": "LQ_rCMbphuocEM-E6c1E",
+	})
+
+	assert.NotContains(t, privateShell, "googletagmanager")
+	assert.NotContains(t, privateShell, "AW-18416812623")
+	assert.NotContains(t, privateShell, "__VANCINE_GOOGLE_ADS__")
+	assert.NotContains(t, privateShell, adsHostnameGate)
+	assert.NotContains(t, privateShell, "dataLayer")
+
+	assert.Contains(t, publicShell, adsHostnameGate)
+	assert.Contains(t, publicShell, "var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=AW-18416812623';")
+	assert.Contains(t, publicShell, "gtag('config', 'AW-18416812623', "+safePageLocationOverride+");")
+	assert.Contains(t, publicShell, `window.__VANCINE_GOOGLE_ADS__={signupSendTo:"AW-18416812623/LQ_rCMbphuocEM-E6c1E"}`)
+}
+
+func TestCapturePrivateIndexPageIsUnaffectedByLaterInjection(t *testing.T) {
+	// No analytics configured: the injections still replace their build-template
+	// placeholders with inert marker comments, but add no third-party payload.
+	// The captured private shell must stay exactly the pristine template.
+	privateShell, publicShell := runCaptureAndInject(t, map[string]string{})
+
+	assert.Equal(t, privateShellTestTemplate, privateShell,
+		"the private shell must be byte-identical to the pre-injection template")
+	assert.NotContains(t, privateShell, "<!--Umami QuantumNous-->")
+	assert.NotContains(t, privateShell, "<!--Google Analytics QuantumNous-->")
+
+	for _, marker := range []string{
+		"googletagmanager",
+		"analytics.umami.is",
+		"data-website-id",
+		"dataLayer",
+		"gtag(",
+		"__VANCINE_GOOGLE_ADS__",
+		"<script async",
+		"<script defer src=\"https://",
+	} {
+		assert.NotContains(t, publicShell, marker,
+			"an unconfigured deployment must not inject %q", marker)
+	}
+	// The public shell still runs the injection path (placeholders replaced by
+	// the inert markers), so the two shells differ only by those markers.
+	assert.Contains(t, publicShell, "<!--Umami QuantumNous-->")
+	assert.Contains(t, publicShell, "<!--Google Analytics QuantumNous-->")
+	assert.NotContains(t, publicShell, "<!--umami-->")
+	assert.NotContains(t, publicShell, "<!--Google Analytics-->")
+	assert.Contains(t, publicShell, `/static/js/index.TESTBUILD.js`,
+		"injection must not drop the SPA app asset tag")
+}

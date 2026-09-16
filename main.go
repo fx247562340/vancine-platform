@@ -199,13 +199,17 @@ func main() {
 	server.Use(middleware.Version())
 	server.Use(middleware.I18n())
 	middleware.SetUpLogger(server)
+	// Internal admin-only routes must never carry a third-party analytics tag:
+	// snapshot the pristine shell BEFORE the injections below mutate indexPage.
+	privateIndexPage := capturePrivateIndexPage()
 	InjectUmamiAnalytics()
 	InjectGoogleAnalytics()
 
 	// 设置路由
 	router.SetRouter(server, router.WebAssets{
-		BuildFS:   buildFS,
-		IndexPage: indexPage,
+		BuildFS:          buildFS,
+		IndexPage:        indexPage,
+		PrivateIndexPage: privateIndexPage,
 	})
 	var port = os.Getenv("PORT")
 	if port == "" {
@@ -244,6 +248,16 @@ func main() {
 		model.SaveQuotaDataCache()
 	}
 	common.SysLog("server exited")
+}
+
+// capturePrivateIndexPage returns a copy of the pristine embedded SPA shell,
+// taken before InjectUmamiAnalytics / InjectGoogleAnalytics rewrite indexPage.
+// The web router serves this copy for internal admin-only SPA paths so no
+// third-party statistics tag ever receives those URLs. It must be called
+// before any injection runs; the returned copy is independent, so later
+// mutations of indexPage never reach it.
+func capturePrivateIndexPage() []byte {
+	return append([]byte(nil), indexPage...)
 }
 
 func InjectUmamiAnalytics() {

@@ -18,7 +18,21 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useEffect } from 'react'
 
-import { captureLandingView } from '@/lib/acquisition'
+import { captureLandingView, isInternalAdminPath } from '@/lib/acquisition'
+
+/**
+ * The pathname of the document that started this page load, captured at module
+ * evaluation — before the router can resolve a redirect.
+ *
+ * Reading `window.location.pathname` inside the effect is too late for an
+ * internal admin path that redirects immediately (anonymous -> /sign-in,
+ * non-admin -> /403): the effect would see the post-redirect public path and
+ * record a landing_view for what is really a bounce off an internal URL,
+ * inflating the funnel's landing counts. The bundle is evaluated once per
+ * document load, so this is exactly the "initial pathname" of that load.
+ */
+const initialPathname =
+  typeof window === 'undefined' ? '' : window.location.pathname
 
 /**
  * Application bootstrap boundary for first-party acquisition capture.
@@ -27,9 +41,15 @@ import { captureLandingView } from '@/lib/acquisition'
  * first render never waits on it. Renders nothing. StrictMode double effects
  * and remounts are deduplicated by the acquisition module's in-memory
  * promise, never by a second network request.
+ *
+ * Internal admin-only paths are skipped entirely: they are not acquisition
+ * landings, so no first-party touch may record them (see isInternalAdminPath).
+ * The decision uses the initial pathname of this page load and never a query
+ * string, so UTM parameters cannot pull an internal path back into capture.
  */
 export function AcquisitionBootstrap(): null {
   useEffect(() => {
+    if (isInternalAdminPath(initialPathname)) return
     void captureLandingView()
   }, [])
 

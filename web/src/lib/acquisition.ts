@@ -114,6 +114,53 @@ export function extractLandingPath(pathname: string): string {
   return pathname.slice(0, queryIndex)
 }
 
+/**
+ * Internal, unlisted admin-only SPA paths. They are not acquisition landings:
+ * reporting a landing_view for one would leak an internal path into
+ * first-party attribution and inflate the funnel's landing counts. Both the
+ * bare and the trailing-slash form are listed because the SPA router accepts
+ * either. Matching is exact, so prefixes, siblings, sub-paths and case
+ * variants stay ordinary public paths.
+ */
+const INTERNAL_ADMIN_PATHNAMES: ReadonlySet<string> = new Set([
+  '/acquisition-funnel',
+  '/acquisition-funnel/',
+])
+
+/**
+ * Report whether `pathname` is an internal admin-only SPA path that must stay
+ * out of acquisition attribution. Callers pass `window.location.pathname`,
+ * which never carries a query string or fragment, so the exact-match rule
+ * cannot be widened by request parameters.
+ *
+ * The pathname is percent-decoded once first, because the two sides of this
+ * boundary see different encodings: Go's net/http hands the router an
+ * already-decoded `URL.Path`, while the browser keeps `window.location.pathname`
+ * percent-encoded. Without decoding, an encoded internal URL
+ * (/%61cquisition-funnel) would be served the analytics-free private shell by
+ * the router yet still be treated as a public landing here, recording a
+ * first-party touch for a bounce off an internal admin path.
+ *
+ * Decoding must never throw: `decodeURIComponent` raises URIError on a
+ * malformed escape (/%zz, a truncated %E0%A4%A), and this runs during module
+ * evaluation, so an uncaught error would break app startup. On failure the raw
+ * pathname is kept, which cannot match the exact internal set.
+ *
+ * Exactly one decode pass, matching net/http: double-encoded input
+ * (/%2561cquisition-funnel) decodes to /%61cquisition-funnel and stays public
+ * on both sides. No prefix, substring, regex-prefix or case folding is used,
+ * so near-misses, sub-paths, repeated slashes and case variants never match.
+ */
+export function isInternalAdminPath(pathname: string): boolean {
+  let normalized = pathname
+  try {
+    normalized = decodeURIComponent(pathname)
+  } catch {
+    /* malformed percent-escape: keep the raw pathname */
+  }
+  return INTERNAL_ADMIN_PATHNAMES.has(normalized)
+}
+
 type PostTouchOptions = {
   keepalive?: boolean
   timeoutMs?: number
