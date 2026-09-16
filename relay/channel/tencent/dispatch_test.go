@@ -6,7 +6,9 @@ import (
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/relay/channel/openai"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
+	"github.com/QuantumNous/new-api/relaykit/dto"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -69,4 +71,50 @@ func TestDispatchAdaptorInit(t *testing.T) {
 			assert.Equal(t, tt.wantBaseURL, info.ChannelBaseUrl)
 		})
 	}
+}
+
+// TestTokenHubPreservesStreamOptions pins the upstream request contract for a
+// single-segment TokenHub key: the stream_options.include_usage injected by the
+// compatible handler must survive conversion, otherwise TokenHub never returns
+// usage and cached_tokens is lost for streaming requests.
+func TestTokenHubPreservesStreamOptions(t *testing.T) {
+	info := &relaycommon.RelayInfo{
+		IsStream:        true,
+		OriginModelName: "hunyuan-t1-latest",
+		ChannelMeta: &relaycommon.ChannelMeta{
+			ChannelType:          constant.ChannelTypeTencent,
+			ApiKey:               "test-tokenhub-key",
+			ChannelBaseUrl:       constant.ChannelBaseURLs[constant.ChannelTypeTencent],
+			UpstreamModelName:    "hunyuan-t1-latest",
+			SupportStreamOptions: true,
+		},
+	}
+
+	dispatch := &DispatchAdaptor{}
+	dispatch.Init(info)
+
+	require.NotNil(t, dispatch.Adaptor)
+	require.IsType(t, &openai.Adaptor{}, dispatch.Adaptor,
+		"single-segment TokenHub key must dispatch to the OpenAI-compatible adaptor")
+
+	request := &dto.GeneralOpenAIRequest{
+		Model:    "hunyuan-t1-latest",
+		Messages: []dto.Message{{Role: "user", Content: "ping"}},
+		Stream:   lo.ToPtr(true),
+		// Mirrors what relay/compatible_handler.go injects for stream requests.
+		StreamOptions: &dto.StreamOptions{IncludeUsage: true},
+	}
+
+	converted, err := dispatch.ConvertOpenAIRequest(nil, info, request)
+	require.NoError(t, err)
+
+	upstream, ok := converted.(*dto.GeneralOpenAIRequest)
+	require.True(t, ok, "converted upstream request must stay an OpenAI chat request")
+
+	require.NotNil(t, upstream.StreamOptions, "stream_options must survive TokenHub conversion")
+	assert.True(t, upstream.StreamOptions.IncludeUsage,
+		"stream_options.include_usage must stay true so TokenHub reports usage and cached_tokens")
+
+	// The contract must hold for a real Tencent channel, not by masquerading as OpenAI.
+	assert.Equal(t, constant.ChannelTypeTencent, info.ChannelType)
 }

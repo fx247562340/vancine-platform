@@ -246,7 +246,9 @@ func (a *Adaptor) ConvertOpenAIRequest(c *gin.Context, info *relaycommon.RelayIn
 	if request == nil {
 		return nil, errors.New("request is nil")
 	}
-	if info.ChannelType != constant.ChannelTypeOpenAI && info.ChannelType != constant.ChannelTypeAzure {
+	// Tencent 例外只覆盖单段 TokenHub key:它经 DispatchAdaptor 落到本 adaptor,需要保留
+	// stream_options.include_usage 才能回传 usage/cached_tokens;三段式 TC3 key 走原生 adaptor,不会到这里。
+	if info.ChannelType != constant.ChannelTypeOpenAI && info.ChannelType != constant.ChannelTypeAzure && info.ChannelType != constant.ChannelTypeTencent {
 		request.StreamOptions = nil
 	}
 	if info.ChannelType == constant.ChannelTypeOpenRouter {

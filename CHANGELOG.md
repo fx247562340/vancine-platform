@@ -1,3 +1,11 @@
+## 2.9.2 - 2026-09-16
+
+### Tencent TokenHub 流式用量
+
+- 保留 Tencent TokenHub OpenAI 兼容流式请求中的 `stream_options.include_usage`，使上游能够返回包含缓存 Token 的完整 usage。
+- 原生腾讯 TC3 凭据继续使用既有适配路径；其他渠道既有的 `StreamOptions` 清理行为保持不变。
+- 新增 TokenHub dispatch 回归测试，覆盖修复前字段被清除、修复后字段得到保留的请求契约。
+
 ## 2.9.1 - 2026-09-16
 
 ### 获客漏斗隐私保护
