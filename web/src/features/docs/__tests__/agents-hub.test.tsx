@@ -206,7 +206,7 @@ describe('Agent Integration hub cards', () => {
     // The Hermes install command belongs on the guide page, not on the hub.
     expect(
       screen.queryByText(
-        'hermes plugins install fx247562340/vancine-hermes-provider'
+        'hermes plugins install VancineAI/vancine-hermes-provider'
       )
     ).not.toBeInTheDocument()
   })

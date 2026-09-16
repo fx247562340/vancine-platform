@@ -483,7 +483,7 @@
       "pageTitle": "Руководство по установке Hermes Agent",
       "valueProp": "Используйте собственный API-ключ Vancine в Hermes Agent через плагин vancine-hermes-provider, устанавливаемый из открытого репозитория на GitHub. Один и тот же провайдер работает в Hermes CLI, Hermes Gateway и Hermes Desktop.",
       "githubLabel": "Репозиторий GitHub",
-      "step1": "Установите плагин-провайдер из открытого источника (fx247562340/vancine-hermes-provider):",
+      "step1": "Установите плагин-провайдер из открытого источника (VancineAI/vancine-hermes-provider):",
       "step2": "Hermes считает этот источник пользовательским и спрашивает Enable 'vancine-provider' now? — ответьте y, чтобы включить провайдер после установки.",
       "step3": "Задайте VANCINE_API_KEY со своим API-ключом Vancine в окружении, которое читает Hermes:",
       "step4": "Перезапустите бэкенд Hermes CLI, Gateway или Desktop, чтобы загрузился новый провайдер.",

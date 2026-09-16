@@ -483,7 +483,7 @@
       "pageTitle": "Hermes Agent 安装指南",
       "valueProp": "通过 vancine-hermes-provider 插件在 Hermes Agent 中使用你自己的 Vancine API Key，该插件从其公开 GitHub 源安装。同一个 Provider 适用于 Hermes CLI、Hermes Gateway 和 Hermes Desktop。",
       "githubLabel": "GitHub 仓库",
-      "step1": "从已公开的发布源安装该 Provider 插件（fx247562340/vancine-hermes-provider）：",
+      "step1": "从已公开的发布源安装该 Provider 插件（VancineAI/vancine-hermes-provider）：",
       "step2": "Hermes 会将其视为自定义来源，并询问 Enable 'vancine-provider' now?，回答 y 即可在安装后启用该 Provider。",
       "step3": "在 Hermes 读取的环境中设置 VANCINE_API_KEY，填入你的 Vancine API Key：",
       "step4": "重启 Hermes CLI、Gateway 或 Desktop 后端，以加载新的 Provider。",

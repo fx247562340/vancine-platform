@@ -105,10 +105,10 @@ export const OPENCLAW_MODELS_COMMAND =
  * guide must never render such a link.
  */
 export const VANCINE_HERMES_PROVIDER_GITHUB_URL =
-  'https://github.com/fx247562340/vancine-hermes-provider'
+  'https://github.com/VancineAI/vancine-hermes-provider'
 
 export const HERMES_PROVIDER_INSTALL_COMMAND =
-  'hermes plugins install fx247562340/vancine-hermes-provider'
+  'hermes plugins install VancineAI/vancine-hermes-provider'
 export const HERMES_API_KEY_COMMAND = 'export VANCINE_API_KEY="sk-your-api-key"'
 export const HERMES_MODEL_COMMAND = 'hermes model'
 

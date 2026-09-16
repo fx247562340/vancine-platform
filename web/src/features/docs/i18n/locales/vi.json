@@ -483,7 +483,7 @@
       "pageTitle": "Hướng dẫn cài đặt Hermes Agent",
       "valueProp": "Dùng API Key Vancine của riêng bạn trong Hermes Agent qua plugin vancine-hermes-provider, được cài từ nguồn GitHub công khai. Cùng một Provider hoạt động trên Hermes CLI, Hermes Gateway và Hermes Desktop.",
       "githubLabel": "Kho GitHub",
-      "step1": "Cài plugin Provider từ nguồn công khai đã phát hành (fx247562340/vancine-hermes-provider):",
+      "step1": "Cài plugin Provider từ nguồn công khai đã phát hành (VancineAI/vancine-hermes-provider):",
       "step2": "Hermes coi đây là nguồn tùy chỉnh và hỏi Enable 'vancine-provider' now? — trả lời y để bật Provider sau khi cài.",
       "step3": "Đặt VANCINE_API_KEY cho API Key Vancine trong môi trường mà Hermes đọc:",
       "step4": "Khởi động lại backend Hermes CLI, Gateway hoặc Desktop để nạp Provider mới.",

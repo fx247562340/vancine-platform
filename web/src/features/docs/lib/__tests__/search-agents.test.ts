@@ -73,7 +73,7 @@ const AGENT_BUNDLE = {
       valueProp:
         'Use your own Vancine API Key in Hermes Agent through the vancine-hermes-provider plugin, installed from its public GitHub source.',
       step1:
-        'Install the provider plugin from its published public source (fx247562340/vancine-hermes-provider):',
+        'Install the provider plugin from its published public source (VancineAI/vancine-hermes-provider):',
     },
   },
 }
@@ -180,7 +180,7 @@ describe('Docs search agent guide entries', () => {
     // reach the Hermes guide, not just the hub.
     for (const query of [
       'vancine-hermes-provider',
-      'fx247562340/vancine-hermes-provider',
+      'VancineAI/vancine-hermes-provider',
     ]) {
       const hermesPackage = searchDocs(index, query)
       assert.ok(

@@ -979,7 +979,7 @@ describe('Hermes provider guide copy', () => {
         `${code} valueProp must name vancine-hermes-provider`
       )
       assert.ok(
-        step1.includes('fx247562340/vancine-hermes-provider'),
+        step1.includes('VancineAI/vancine-hermes-provider'),
         `${code} step1 must name the published GitHub source`
       )
       // The install-time enable prompt is the literal upstream string.

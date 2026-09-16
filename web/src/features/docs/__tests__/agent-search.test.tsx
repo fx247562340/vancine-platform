@@ -108,7 +108,7 @@ describe('DocsSearchBox agent guide navigation', () => {
       '/docs/agents/hermes',
     ],
     [
-      'fx247562340/vancine-hermes-provider',
+      'VancineAI/vancine-hermes-provider',
       'Hermes Agent setup guide',
       '/docs/agents/hermes',
     ],

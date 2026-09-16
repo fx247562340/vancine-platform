@@ -1,3 +1,9 @@
+## 2.8.3 - 2026-09-16
+
+### Hermes Provider 归属
+
+- 将 Hermes Provider 的公开仓库与安装命令统一为 `VancineAI/vancine-hermes-provider`，同步更新 Agent 指南、站内搜索和多语言内容。
+
 ## 2.8.2 - 2026-09-16
 
 ### Hermes Agent 接入

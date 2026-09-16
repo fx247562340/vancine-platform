@@ -160,11 +160,11 @@ describe('Docs agent tool profiles', () => {
   it('pins the Vancine Hermes provider GitHub source as its only distribution source', () => {
     assert.equal(
       VANCINE_HERMES_PROVIDER_GITHUB_URL,
-      'https://github.com/fx247562340/vancine-hermes-provider'
+      'https://github.com/VancineAI/vancine-hermes-provider'
     )
     assert.equal(
       HERMES_PROVIDER_INSTALL_COMMAND,
-      'hermes plugins install fx247562340/vancine-hermes-provider'
+      'hermes plugins install VancineAI/vancine-hermes-provider'
     )
     assert.equal(
       HERMES_API_KEY_COMMAND,

@@ -483,7 +483,7 @@
       "pageTitle": "Hermes Agent setup guide",
       "valueProp": "Use your own Vancine API Key in Hermes Agent through the vancine-hermes-provider plugin, installed from its public GitHub source. The same provider works in the Hermes CLI, the Hermes Gateway, and Hermes Desktop.",
       "githubLabel": "GitHub repository",
-      "step1": "Install the provider plugin from its published public source (fx247562340/vancine-hermes-provider):",
+      "step1": "Install the provider plugin from its published public source (VancineAI/vancine-hermes-provider):",
       "step2": "Hermes treats this as a custom source and asks Enable 'vancine-provider' now? — answer y so the provider is enabled after install.",
       "step3": "Set VANCINE_API_KEY for your Vancine API key in the environment Hermes reads:",
       "step4": "Restart the Hermes CLI, Gateway, or Desktop backend so the new provider is loaded.",
