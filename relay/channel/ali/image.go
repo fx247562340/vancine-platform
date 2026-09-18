@@ -18,7 +18,6 @@ import (
 	"github.com/QuantumNous/new-api/service"
 
 	"github.com/gin-gonic/gin"
-	"github.com/samber/lo"
 )
 
 func aliImageSize(size string) string {
@@ -98,11 +97,19 @@ func oaiImage2AliImageRequest(info *relaycommon.RelayInfo, request dto.ImageRequ
 	inputFromExtra := false
 	if request.Extra != nil {
 		if val, ok := request.Extra["parameters"]; ok {
+			imageRequest.Parameters = AliImageParameters{}
 			err := common.Unmarshal(val, &imageRequest.Parameters)
 			if err != nil {
 				return nil, fmt.Errorf("invalid parameters field: %w", err)
 			}
 			paramsFromExtra = true
+			// Direct adaptor callers can bypass ingress validation. Reuse the
+			// decoded provider scalars and the same quantity validation below.
+			if request.BillingParameters == nil {
+				request.BillingParameters = &dto.ImageBillingParameters{
+					N: imageRequest.Parameters.N, PromptExtend: imageRequest.Parameters.PromptExtend,
+				}
+			}
 		}
 		if val, ok := request.Extra["input"]; ok {
 			err := common.Unmarshal(val, &imageRequest.Input)
@@ -115,7 +122,6 @@ func oaiImage2AliImageRequest(info *relaycommon.RelayInfo, request dto.ImageRequ
 	if !paramsFromExtra {
 		imageRequest.Parameters = AliImageParameters{
 			Size:         aliImageSize(request.Size),
-			N:            int(lo.FromPtrOr(request.N, uint(1))),
 			Watermark:    request.Watermark,
 			Seed:         request.Seed,
 			PromptExtend: request.PromptExtend,
@@ -138,21 +144,19 @@ func oaiImage2AliImageRequest(info *relaycommon.RelayInfo, request dto.ImageRequ
 		imageRequest.Parameters.Size = ""
 	}
 
-	if strings.Contains(request.Model, "z-image") {
-		// z-image 开启prompt_extend后，按2倍计费
-		if imageRequest.Parameters.PromptExtendValue() {
-			info.PriceData.AddOtherRatio("prompt_extend", 2)
+	count, err := request.ImageCount(true)
+	if err != nil {
+		return nil, err
+	}
+	imageRequest.Parameters.N = common.GetPointer(uint(count))
+	if request.BillingParameters != nil {
+		imageRequest.Parameters.PromptExtend = request.BillingParameters.PromptExtend
+	}
+	if info.TieredBillingSnapshot == nil {
+		info.PriceData.AddOtherRatio("n", float64(count))
+		if strings.Contains(request.Model, "z-image") && imageRequest.Parameters.PromptExtendValue() {
+			info.PriceData.AddOtherRatio("prompt_extend", common.ZImagePromptExtendMultiplier)
 		}
-	}
-
-	// Parameters may come from Extra["parameters"], bypassing the standard
-	// top-level n validation; enforce the same bound before it becomes a
-	// billing multiplier.
-	if imageRequest.Parameters.N < 0 || imageRequest.Parameters.N > dto.MaxImageN {
-		return nil, fmt.Errorf("parameters.n must be an integer between 1 and %d", dto.MaxImageN)
-	}
-	if imageRequest.Parameters.N != 0 {
-		info.PriceData.AddOtherRatio("n", float64(imageRequest.Parameters.N))
 	}
 
 	// 同步图片模型和异步图片模型请求格式不一样
@@ -290,6 +294,10 @@ func getImageBase64sFromForm(c *gin.Context, fieldName string) ([]string, error)
 }
 
 func oaiFormEdit2AliImageEdit(c *gin.Context, info *relaycommon.RelayInfo, request dto.ImageRequest) (*AliImageRequest, error) {
+	count, err := request.ImageCount(true)
+	if err != nil {
+		return nil, err
+	}
 	var imageRequest AliImageRequest
 	imageRequest.Model = request.Model
 	imageRequest.ResponseFormat = request.ResponseFormat
@@ -317,8 +325,11 @@ func oaiFormEdit2AliImageEdit(c *gin.Context, info *relaycommon.RelayInfo, reque
 		},
 	}
 	imageRequest.Parameters = AliImageParameters{
-		N:         int(lo.FromPtrOr(request.N, uint(1))),
+		N:         common.GetPointer(uint(count)),
 		Watermark: request.Watermark,
+	}
+	if request.BillingParameters != nil {
+		imageRequest.Parameters.PromptExtend = request.BillingParameters.PromptExtend
 	}
 	return &imageRequest, nil
 }
@@ -501,7 +512,9 @@ func aliImageHandler(a *Adaptor, c *gin.Context, resp *http.Response, info *rela
 	// actually surfaced, or it may omit the count entirely. Trust the
 	// rendered body, not the upstream usage, so the client-received
 	// count, the PriceData ratio, and the final settlement count agree.
-	info.PriceData.AddOtherRatio("n", float64(usableCount))
+	// UpdateImageCount is upstream's single entry point: it applies the n ratio
+	// and also records BillingImageCount for tiered/expression billing.
+	info.UpdateImageCount(int64(usableCount))
 	jsonResponse, err := common.Marshal(imageResponses)
 	if err != nil {
 		return types.NewError(err, types.ErrorCodeBadResponseBody), nil

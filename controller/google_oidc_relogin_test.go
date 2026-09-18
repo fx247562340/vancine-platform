@@ -175,6 +175,12 @@ func a08OIDCBody(t *testing.T, dbType common.DatabaseType) {
 	p10SetupDatabase(t, dbType,
 		&model.User{}, &model.ExternalIdentityClaim{}, &model.UserSession{},
 		&model.AuthFlow{}, &model.Log{},
+		// The merged security core projects two_fas/passkey_credentials while
+		// validating a login session and writes audit_logs for the unbind/bind
+		// trail; p10SetupDatabase runs with IsMasterNode=false, so InitLogDB does
+		// not migrate the audit table for us.
+		&model.TwoFA{}, &model.TwoFABackupCode{}, &model.PasskeyCredential{},
+		&model.AuditLog{},
 	)
 
 	const googleSub = "a08-google-sub-001"

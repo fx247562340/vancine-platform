@@ -35,6 +35,7 @@ func setupAcquisitionTest(t *testing.T) *gorm.DB {
 		db                   *gorm.DB
 		logDB                *gorm.DB
 		mainDBType           common.DatabaseType
+		logDBType            common.DatabaseType
 		secret               string
 		logConsume           bool
 		registerEnabled      bool
@@ -59,6 +60,7 @@ func setupAcquisitionTest(t *testing.T) *gorm.DB {
 		db:                   model.DB,
 		logDB:                model.LOG_DB,
 		mainDBType:           common.MainDatabaseType(),
+		logDBType:            common.LogDatabaseType(),
 		secret:               common.CryptoSecret,
 		logConsume:           common.LogConsumeEnabled,
 		registerEnabled:      common.RegisterEnabled,
@@ -95,6 +97,7 @@ func setupAcquisitionTest(t *testing.T) *gorm.DB {
 		model.DB = orig.db
 		model.LOG_DB = orig.logDB
 		common.SetMainDatabaseType(orig.mainDBType)
+		common.SetLogDatabaseType(orig.logDBType)
 		common.CryptoSecret = orig.secret
 		common.LogConsumeEnabled = orig.logConsume
 		common.RegisterEnabled = orig.registerEnabled
@@ -127,12 +130,22 @@ func setupAcquisitionTest(t *testing.T) *gorm.DB {
 		&model.UserSession{},
 		&model.UserOAuthBinding{},
 		&model.ExternalIdentityClaim{},
+		// The merged security core projects two_fas/passkey_credentials while it
+		// validates a login session for setupLogin, resolves custom providers from
+		// custom_oauth_providers, and writes the binding/login audit trail to
+		// audit_logs on the log database (which this fixture points at the same
+		// handle).
+		&model.TwoFA{},
+		&model.TwoFABackupCode{},
+		&model.PasskeyCredential{},
+		&model.CustomOAuthProvider{},
+		&model.AuditLog{},
 	))
 	require.NoError(t, db.Create(&model.Option{Key: model.AcquisitionCoverageStartedAtKey, Value: "1"}).Error)
 
 	model.DB = db
 	model.LOG_DB = db
-	common.SetMainDatabaseType(common.DatabaseTypeSQLite)
+	common.SetDatabaseTypes(common.DatabaseTypeSQLite, common.DatabaseTypeSQLite)
 	common.CryptoSecret = "acquisition-controller-test-secret"
 	common.LogConsumeEnabled = true
 	common.RegisterEnabled = true
@@ -849,6 +862,10 @@ func TestAcquisitionOAuthAccountBindDoesNotAttribute(t *testing.T) {
 	owner := model.User{
 		Username: "acq_bind_owner", Role: common.RoleCommonUser,
 		Status: common.UserStatusEnabled, AuthVersion: 1,
+		// The merged security core only offers a verification method the account
+		// actually holds; a binding account needs a password on file for the
+		// scoped account-bind proof to be issuable.
+		Password: "bind-owner-password-hash",
 	}
 	require.NoError(t, model.DB.Create(&owner).Error)
 
@@ -872,6 +889,13 @@ func TestAcquisitionOAuthAccountBindDoesNotAttribute(t *testing.T) {
 	}
 	oauth.Register("stub", provider)
 	t.Cleanup(func() { oauth.Unregister("stub") })
+
+	// The merged security core only starts an account-bind flow for a request
+	// that presents a scoped proof bound to a durable login session, so the
+	// fixture provisions that session and issues the proof for provider "stub".
+	identity := provisionBindSessionIdentity(t, model.DB, &owner, "acq-session-1")
+	stateCtx.Request.Header.Set("X-Security-Proof",
+		accountBindSecurityProof(t, identity, `{"provider":"stub"}`))
 
 	GenerateOAuthCode(stateCtx)
 	require.Equal(t, http.StatusOK, recorder.Code, recorder.Body.String())

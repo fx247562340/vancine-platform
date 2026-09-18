@@ -16,6 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import type { SystemStatus } from '@/features/auth/types'
+
 // ============================================================================
 // OAuth URL Builders
 // ============================================================================
@@ -180,4 +182,71 @@ export function buildOIDCOAuthUrl(
  */
 export function buildLinuxDOOAuthUrl(clientId: string, state: string): string {
   return `https://connect.linux.do/oauth2/authorize?response_type=code&client_id=${clientId}&state=${state}`
+}
+
+export function buildOAuthAuthorizationUrl(
+  provider: string,
+  state: string,
+  status: SystemStatus
+): string {
+  switch (provider) {
+    case 'github':
+      if (status.github_client_id) {
+        return buildGitHubOAuthUrl(status.github_client_id, state)
+      }
+      break
+    case 'discord':
+      if (status.discord_client_id) {
+        return buildDiscordOAuthUrl(status.discord_client_id, state)
+      }
+      break
+    case 'oidc':
+      if (status.oidc_authorization_endpoint && status.oidc_client_id) {
+        return buildOIDCOAuthUrl(
+          status.oidc_authorization_endpoint,
+          status.oidc_client_id,
+          state
+        )
+      }
+      break
+    case 'linuxdo':
+      if (status.linuxdo_client_id) {
+        return buildLinuxDOOAuthUrl(status.linuxdo_client_id, state)
+      }
+      break
+    case 'google': {
+      // Vancine Google OAuth. The entry is only usable when Google login is
+      // switched on AND the status-served redirect URI resolves to a same-origin
+      // absolute http(s) callback URL with a supported path, so an
+      // attacker-controlled or relative redirect can never be built here.
+      if (status.google_oauth !== true) break
+      const google = resolveGoogleBindingConfiguration(
+        status.google_client_id,
+        status.google_redirect_uri,
+        window.location.origin
+      )
+      if (google) {
+        return buildGoogleOAuthUrl(google.clientId, google.redirectUri, state)
+      }
+      break
+    }
+    default: {
+      const custom = status.custom_oauth_providers?.find(
+        (candidate) => candidate.slug === provider
+      )
+      if (custom) {
+        const url = new URL(custom.authorization_endpoint)
+        url.searchParams.set('client_id', custom.client_id)
+        url.searchParams.set(
+          'redirect_uri',
+          `${window.location.origin}/oauth/${provider}`
+        )
+        url.searchParams.set('response_type', 'code')
+        url.searchParams.set('state', state)
+        if (custom.scopes) url.searchParams.set('scope', custom.scopes)
+        return url.toString()
+      }
+    }
+  }
+  throw new Error('No linked OAuth provider is available.')
 }

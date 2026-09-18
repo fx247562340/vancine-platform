@@ -148,7 +148,7 @@ func TestVideoStudioWan3BodiesReachDashScopeAsReferenceMedia(t *testing.T) {
 			assert.JSONEq(t, `{
 				"model": "`+publicModel+`",
 				"input": {"prompt": "a spaceship gliding over the Great Wall"},
-				"parameters": {"prompt_extend": true, "duration": 5, "resolution": "1080P"}
+				"parameters": {"prompt_extend": true, "duration": 5, "resolution": "1080P", "ratio": "adaptive"}
 			}`, mustJSON(t, descriptor["body"]))
 		})
 
@@ -215,15 +215,15 @@ func TestVideoStudioWan3BodiesReachDashScopeAsReferenceMedia(t *testing.T) {
 						{"type": "reference_image", "url": "https://cdn.example/three.png"}
 					]
 				},
-				"parameters": {"prompt_extend": true, "duration": 8, "resolution": "720P"}
+				"parameters": {"prompt_extend": true, "duration": 8, "resolution": "720P", "ratio": "adaptive"}
 			}`, mustJSON(t, descriptor["body"]))
 
-			// Known, accepted limitation: the plugin derives the task's `action`
-			// label from firstImage(), which only looks at the top-level image
-			// fields, so a Wan3 reference-media request is recorded as
-			// text_to_video. It is a label on the task row only — Wan3 has no
-			// entry in resolutionRatio(), so billing is driven purely by seconds.
-			assert.Equal(t, "text_to_video", descriptor["action"])
+			// The upstream plugin derives the task's `action` label from
+			// videoAction(input), which treats a non-empty `input.media` array as
+			// image-derived, so a Wan3 reference-media request is recorded as
+			// image_to_video. Wan3 (kind "all") has no entry in resolutionRatio(),
+			// so billing is still driven purely by seconds.
+			assert.Equal(t, "image_to_video", descriptor["action"])
 		})
 	}
 

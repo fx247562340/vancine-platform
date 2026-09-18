@@ -49,6 +49,10 @@ func a11FiveCredBody(t *testing.T, dbType common.DatabaseType) {
 		&model.CustomOAuthProvider{}, &model.UserOAuthBinding{},
 		&model.Log{}, &model.UserSession{}, &model.TwoFA{},
 		&model.TwoFABackupCode{}, &model.AuthFlow{},
+		// The merged security core writes the admin-clear trail to audit_logs on
+		// the log database; p10SetupDatabase runs with IsMasterNode=false, so
+		// InitLogDB does not migrate the audit table for us.
+		&model.AuditLog{},
 	)
 
 	prevCryptoSecret := common.CryptoSecret
@@ -237,26 +241,26 @@ func a11FiveCredBody(t *testing.T, dbType common.DatabaseType) {
 		"the custom OAuth binding row must be untouched")
 
 	// 8. Audit is exactly one row with the right operator and no sensitive
-	//    values.
-	var auditLogs []model.Log
-	require.NoError(t, model.DB.Where("type = ?", model.LogTypeManage).Find(&auditLogs).Error)
-	var bindingClearLogs []model.Log
-	for _, l := range auditLogs {
-		if strings.Contains(l.Other, "user.binding_clear") {
-			bindingClearLogs = append(bindingClearLogs, l)
-		}
-	}
+	//    values. The merged security core persists the management audit trail in
+	//    the dedicated audit_logs table on the log database rather than in the
+	//    usage-log table, so the contract is read from model.AuditLog.
+	bindingClearLogs := findAuditRowsByAction(t, model.DB, "user.binding_clear")
 	require.Len(t, bindingClearLogs, 1,
 		"admin clear must produce exactly one user.binding_clear audit row")
 	audit := bindingClearLogs[0]
 	assert.Equal(t, admin.Id, audit.UserId, "the audit must be attributed to the admin")
-	assert.NotContains(t, audit.Other, googleSub,
+	require.NotNil(t, audit.Other.Op)
+	assert.Equal(t, "user.binding_clear", audit.Other.Op.Action)
+	require.NotNil(t, audit.Other.AdminInfo)
+	assert.Equal(t, admin.Id, audit.Other.AdminInfo.AdminID)
+	auditOther := auditOtherJSON(t, audit)
+	assert.NotContains(t, auditOther, googleSub,
 		"the audit other field must not contain the Google subject")
 	assert.NotContains(t, audit.Content, googleSub,
 		"the audit content field must not contain the Google subject")
-	assert.NotContains(t, audit.Other, adminToken,
+	assert.NotContains(t, auditOther, adminToken,
 		"the audit other field must not contain the admin access token")
-	assert.NotContains(t, audit.Other, targetToken,
+	assert.NotContains(t, auditOther, targetToken,
 		"the audit other field must not contain the target access token")
 
 	// 9. Password re-login still works through the real Login handler.

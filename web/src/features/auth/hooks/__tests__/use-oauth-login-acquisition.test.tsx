@@ -33,6 +33,10 @@ import { useOAuthLogin } from '../use-oauth-login'
 
 vi.mock('@/features/auth/api', () => ({
   createOAuthFlow: vi.fn(async () => 'oauth-state-token'),
+  createOAuthAuthorization: vi.fn(async () => ({
+    state: 'tg-state',
+    authorizationUrl: 'https://oauth.telegram.org/auth?state=tg-state',
+  })),
   logout: vi.fn(async () => ({ success: true, message: '' })),
   telegramLogin: vi.fn(async () => ({ success: false, message: '' })),
 }))
@@ -227,7 +231,12 @@ describe('useOAuthLogin register callback', () => {
     }
   )
 
-  it('never invokes the register callback for Telegram', async () => {
+  // Telegram moved to upstream's unified OAuth flow, so it is no longer a
+  // dialog-only special case: it is a real outbound redirect and must settle
+  // attribution like every other provider. The legacy `telegram_bot_name`
+  // fixture above deliberately omits `telegram_oauth_configured`, which is the
+  // flag the unified flow requires.
+  it('refuses Telegram login while unified Telegram OAuth is unconfigured', async () => {
     const callback = vi.fn()
     const { result } = renderHook(() =>
       useOAuthLogin(fullStatus, undefined, {
@@ -242,6 +251,58 @@ describe('useOAuthLogin register callback', () => {
     expect(callback).not.toHaveBeenCalled()
     expect(fetchSpy).not.toHaveBeenCalled()
     expect(openSpy).not.toHaveBeenCalled()
-    expect(result.current.isTelegramDialogOpen).toBe(true)
+  })
+
+  it('awaits the register callback before the Telegram redirect', async () => {
+    const configured: SystemStatus = {
+      ...fullStatus,
+      telegram_oauth_configured: true,
+    }
+    const deferred = createDeferred()
+    const callback = vi.fn(() => deferred.promise)
+    const { result } = renderHook(() =>
+      useOAuthLogin(configured, undefined, {
+        onBeforeOAuthRedirect: callback,
+      })
+    )
+
+    act(() => {
+      void result.current.handleTelegramLogin()
+    })
+    await waitFor(() => expect(callback).toHaveBeenCalledTimes(1))
+
+    // Attribution must settle before the browser leaves the page.
+    expect(lastRedirectUrl()).toBeUndefined()
+
+    await act(async () => {
+      deferred.resolve()
+    })
+
+    await waitFor(() =>
+      expect(lastRedirectUrl()).toContain('oauth.telegram.org')
+    )
+    expect(callback).toHaveBeenCalledTimes(1)
+  })
+
+  it('still redirects via Telegram when the register callback rejects', async () => {
+    const configured: SystemStatus = {
+      ...fullStatus,
+      telegram_oauth_configured: true,
+    }
+    const callback = vi.fn(async () => {
+      throw new Error('attribution unavailable')
+    })
+    const { result } = renderHook(() =>
+      useOAuthLogin(configured, undefined, {
+        onBeforeOAuthRedirect: callback,
+      })
+    )
+
+    await act(async () => {
+      await result.current.handleTelegramLogin()
+    })
+
+    expect(callback).toHaveBeenCalledTimes(1)
+    expect(lastRedirectUrl()).toContain('oauth.telegram.org')
   })
 })

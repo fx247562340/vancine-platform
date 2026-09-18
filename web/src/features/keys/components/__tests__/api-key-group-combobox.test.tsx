@@ -16,16 +16,31 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import i18next from 'i18next'
-import { useState } from 'react'
-import { I18nextProvider, initReactI18next } from 'react-i18next'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen, within } from '@testing-library/react'
+import { describe, expect, test } from 'vitest'
 
-import { ApiKeyGroupCombobox } from '../api-key-group-combobox'
+let shouldReduceMotion = false
+const reducedMotionMediaQuery = window.matchMedia('(prefers-reduced-motion)')
+Object.defineProperty(reducedMotionMediaQuery, 'matches', {
+  configurable: true,
+  get: () => shouldReduceMotion,
+})
+Object.defineProperty(window, 'matchMedia', {
+  configurable: true,
+  value: () => reducedMotionMediaQuery,
+})
 
-const i18n = i18next.createInstance()
+function setReducedMotion(value: boolean) {
+  shouldReduceMotion = value
+  reducedMotionMediaQuery.dispatchEvent(new Event('change'))
+}
+
+const { useState } = await import('react')
+const { createInstance } = await import('i18next')
+const { I18nextProvider, initReactI18next } = await import('react-i18next')
+const { ApiKeyGroupCombobox } = await import('../api-key-group-combobox')
+
+const i18n = createInstance()
 await i18n.use(initReactI18next).init({
   lng: 'en',
   resources: {
@@ -40,53 +55,6 @@ await i18n.use(initReactI18next).init({
     },
   },
 })
-
-// ----------------------------------------------------------------------------
-// matchMedia stub: useMediaQuery uses useSyncExternalStore against
-// window.matchMedia, so the returned object must be stable per query and a
-// real EventTarget so dispatching a `change` event re-renders the component.
-// ----------------------------------------------------------------------------
-
-let shouldReduceMotion = false
-const mqlCache = new Map<string, MockMediaQueryList>()
-
-class MockMediaQueryList extends EventTarget {
-  media: string
-  constructor(query: string) {
-    super()
-    this.media = query
-  }
-  get matches(): boolean {
-    return shouldReduceMotion
-  }
-  onchange: ((this: MockMediaQueryList, ev: Event) => unknown) | null = null
-  addListener = vi.fn()
-  removeListener = vi.fn()
-}
-
-beforeEach(() => {
-  shouldReduceMotion = false
-  mqlCache.clear()
-  vi.stubGlobal('matchMedia', (query: string) => {
-    let mql = mqlCache.get(query)
-    if (!mql) {
-      mql = new MockMediaQueryList(query)
-      mqlCache.set(query, mql)
-    }
-    return mql
-  })
-})
-
-afterEach(() => {
-  vi.unstubAllGlobals()
-})
-
-function setReducedMotion(value: boolean) {
-  shouldReduceMotion = value
-  mqlCache
-    .get('(prefers-reduced-motion: reduce)')
-    ?.dispatchEvent(new Event('change'))
-}
 
 const options = [
   {
@@ -114,103 +82,112 @@ function Harness(props: { initialValue: string }) {
   )
 }
 
+function getTrigger(): HTMLButtonElement {
+  return screen.getByRole('combobox')
+}
+
 function getCommandItem(label: string): HTMLElement {
   const item = [
-    ...document.body.querySelectorAll<HTMLElement>(
-      '[data-slot="command-item"]'
-    ),
+    ...document.querySelectorAll<HTMLElement>('[data-slot="command-item"]'),
   ].find((candidate) => candidate.textContent?.includes(label))
-  expect(item).not.toBeUndefined()
-  return item as HTMLElement
+  if (!item) {
+    throw new Error(`Expected command item containing "${label}"`)
+  }
+  return item
 }
 
 describe('API key group combobox Auto effect', () => {
-  it('rings the selected Auto trigger and its localized ratio without rendering the API ratio text', async () => {
+  test('uses the compact table capsules in the selected group and dropdown options', () => {
     setReducedMotion(false)
-    const user = userEvent.setup()
-    const { container } = render(<Harness initialValue='auto' />)
+    render(<Harness initialValue='auto' />)
 
-    const trigger = screen.getByRole('combobox')
-    expect(trigger.getAttribute('aria-expanded')).toBe('false')
-    expect(trigger.dataset.autoGroupEffect).toBe('trigger')
-    expect(trigger.classList.contains('overflow-hidden')).toBe(false)
-    expect(trigger.classList.contains('overflow-visible')).toBe(true)
+    const trigger = getTrigger()
+    expect(trigger).toHaveAttribute('aria-expanded', 'false')
+    expect(trigger).toHaveAttribute('data-auto-group-effect', 'trigger')
+    expect(trigger).not.toHaveClass('bg-linear-to-r', 'overflow-hidden')
+    expect(trigger).toHaveClass('overflow-visible')
 
     const triggerFlowBorder = trigger.querySelector<HTMLElement>(
       '[data-auto-group-flow-border]'
     )
-    expect(triggerFlowBorder).not.toBeNull()
-    expect(triggerFlowBorder?.getAttribute('aria-hidden')).toBe('true')
-    expect(triggerFlowBorder?.classList.contains('pointer-events-none')).toBe(
-      true
+    expect(triggerFlowBorder).toHaveAttribute('aria-hidden', 'true')
+    expect(triggerFlowBorder).toHaveClass(
+      'pointer-events-none',
+      'auto-group-flow-border'
     )
-    expect(
-      triggerFlowBorder?.classList.contains('auto-group-flow-border')
-    ).toBe(true)
 
-    const triggerRatio = trigger.querySelector<HTMLElement>(
-      '[data-auto-group-effect="ratio"]'
+    const triggerRatio = within(trigger)
+      .getByText('Auto')
+      .closest('[data-slot="badge"]')
+    expect(triggerRatio).toHaveTextContent('Auto')
+    expect(triggerRatio).not.toHaveTextContent('Ratio')
+    expect(triggerRatio).not.toHaveTextContent('x')
+    expect(trigger).not.toHaveTextContent('自动')
+    expect(triggerRatio).toHaveClass(
+      'relative',
+      'overflow-visible',
+      'rounded-md',
+      'h-5',
+      'min-w-12'
     )
-    expect(triggerRatio).not.toBeNull()
-    expect(triggerRatio?.textContent).toBe('Auto Ratio')
-    expect(triggerRatio?.textContent?.includes('自动')).toBe(false)
-    expect(trigger.textContent?.includes('自动')).toBe(false)
-    expect(triggerRatio?.classList.contains('overflow-visible')).toBe(true)
     expect(
       triggerRatio?.querySelector('[data-auto-group-flow-border]')
-    ).not.toBeNull()
+    ).toHaveClass('auto-group-flow-border-subtle')
 
-    await user.click(trigger)
-    expect(trigger.getAttribute('aria-expanded')).toBe('true')
+    fireEvent.click(trigger)
+    expect(trigger).toHaveAttribute('aria-expanded', 'true')
 
     const autoOption = getCommandItem('Global automatic routing')
-    expect(autoOption.dataset.autoGroupEffect).toBe('option')
-    expect(autoOption.getAttribute('aria-selected')).toBe('true')
-    expect(autoOption.classList.contains('overflow-visible')).toBe(true)
+    expect(autoOption).toHaveAttribute('data-auto-group-effect', 'option')
+    expect(autoOption).toHaveAttribute('aria-selected', 'true')
+    expect(autoOption).not.toHaveClass('bg-linear-to-r')
+    expect(autoOption).toHaveClass('overflow-visible')
     expect(
       autoOption.querySelector('[data-auto-group-flow-border]')
-    ).not.toBeNull()
-    const optionRatio = autoOption.querySelector<HTMLElement>(
-      '[data-auto-group-effect="ratio"]'
-    )
-    expect(optionRatio).not.toBeNull()
-    expect(optionRatio?.textContent).toBe('Auto Ratio')
+    ).toBeInTheDocument()
+    const optionRatio = within(autoOption)
+      .getByText('Auto')
+      .closest('[data-slot="badge"]')
+    expect(optionRatio).toHaveTextContent('Auto')
+    expect(optionRatio).not.toHaveTextContent('Ratio')
     expect(
       optionRatio?.querySelector('[data-auto-group-flow-border]')
-    ).not.toBeNull()
+    ).toHaveClass('auto-group-flow-border-subtle')
 
     const defaultOption = getCommandItem('User group')
-    expect(defaultOption.hasAttribute('data-auto-group-effect')).toBe(false)
-    expect(
-      defaultOption.querySelector('[data-auto-group-flow-border]')
-    ).toBeNull()
-    expect(defaultOption.textContent?.includes('1x Ratio')).toBe(true)
+    expect(defaultOption).not.toHaveAttribute('data-auto-group-effect')
+    expect(defaultOption.querySelector('[data-auto-group-flow-border]')).toBe(
+      null
+    )
+    const defaultRatio = within(defaultOption)
+      .getByText('1x')
+      .closest('[data-slot="badge"]')
+    expect(defaultRatio).toHaveClass(
+      'h-5',
+      'min-w-12',
+      'rounded-full',
+      'tabular-nums',
+      'border-muted-foreground/30'
+    )
+    expect(defaultRatio).not.toHaveTextContent('Ratio')
     expect(
       defaultOption.querySelector('[data-auto-group-effect="ratio"]')
-    ).toBeNull()
-
-    // `container` only holds the trigger; keep it referenced so it is not
-    // tree-shaken out of the render scope.
-    expect(container).toBeDefined()
+    ).toBe(null)
   })
 
-  it('keeps search and selection behavior while leaving normal groups unstyled', async () => {
+  test('keeps search and selection behavior while leaving normal groups unstyled', async () => {
     setReducedMotion(false)
-    const user = userEvent.setup()
-    render(<Harness initialValue='auto' />)
+    const { container } = render(<Harness initialValue='auto' />)
 
-    const trigger = screen.getByRole('combobox')
-    await user.click(trigger)
+    const trigger = getTrigger()
+    fireEvent.click(trigger)
 
-    const searchInput = screen.getByPlaceholderText(
-      'Search...'
-    ) as HTMLInputElement
-    await user.type(searchInput, 'vip')
+    fireEvent.input(screen.getByPlaceholderText('Search...'), {
+      target: { value: 'vip' },
+    })
 
     const visibleOptions = [
-      ...document.body.querySelectorAll<HTMLElement>(
-        '[data-slot="command-item"]'
-      ),
+      ...document.querySelectorAll<HTMLElement>('[data-slot="command-item"]'),
     ]
     expect(
       visibleOptions.some((option) =>
@@ -218,32 +195,30 @@ describe('API key group combobox Auto effect', () => {
       )
     ).toBe(false)
     const vipOption = getCommandItem('Priority group')
-    await user.click(vipOption)
+    fireEvent.click(vipOption)
 
-    expect(screen.getByTestId('selected-group').textContent).toBe('vip')
-    expect(trigger.getAttribute('aria-expanded')).toBe('false')
-    expect(trigger.hasAttribute('data-auto-group-effect')).toBe(false)
-    expect(trigger.querySelector('[data-auto-group-flow-border]')).toBeNull()
+    expect(within(container).getByTestId('selected-group')).toHaveTextContent(
+      'vip'
+    )
+    expect(trigger).toHaveAttribute('aria-expanded', 'false')
+    expect(trigger).not.toHaveAttribute('data-auto-group-effect')
+    expect(trigger.querySelector('[data-auto-group-flow-border]')).toBe(null)
   })
 
-  it('preserves the static Auto treatment but omits moving layers for reduced motion', async () => {
+  test('preserves the static Auto treatment but omits moving layers for reduced motion', async () => {
     setReducedMotion(true)
-    const user = userEvent.setup()
     render(<Harness initialValue='auto' />)
 
-    const trigger = screen.getByRole('combobox')
-    expect(trigger.dataset.autoGroupEffect).toBe('trigger')
-    expect(trigger.querySelector('[data-auto-group-flow-border]')).toBeNull()
-    expect(
-      trigger.querySelector('[data-auto-group-effect="ratio"]')
-    ).not.toBeNull()
+    const trigger = getTrigger()
+    expect(trigger).toHaveAttribute('data-auto-group-effect', 'trigger')
+    expect(trigger.querySelector('[data-auto-group-flow-border]')).toBe(null)
+    expect(within(trigger).getByText('Auto')).toBeInTheDocument()
 
-    await user.click(trigger)
+    fireEvent.click(trigger)
     const autoOption = getCommandItem('Global automatic routing')
-    expect(autoOption.dataset.autoGroupEffect).toBe('option')
-    expect(autoOption.querySelector('[data-auto-group-flow-border]')).toBeNull()
-    expect(
-      autoOption.querySelector('[data-auto-group-effect="ratio"]')
-    ).not.toBeNull()
+    expect(autoOption).toHaveAttribute('data-auto-group-effect', 'option')
+    expect(autoOption.querySelector('[data-auto-group-flow-border]')).toBe(null)
+    expect(within(autoOption).getByText('Auto')).toBeInTheDocument()
+    setReducedMotion(false)
   })
 })

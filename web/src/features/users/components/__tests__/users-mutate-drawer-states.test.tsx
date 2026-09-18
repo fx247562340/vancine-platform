@@ -20,19 +20,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import i18next from 'i18next'
 import { I18nextProvider, initReactI18next } from 'react-i18next'
-import { toast } from 'sonner'
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  type MockInstance,
-  vi,
-} from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getGroups, getPermissionCatalog, getUser } from '@/features/users/api'
-import { ERROR_MESSAGES } from '@/features/users/constants'
 import type { User } from '@/features/users/types'
 import { EMPTY_PERMISSION_CATALOG } from '@/lib/admin-permissions'
 
@@ -46,6 +36,24 @@ vi.mock('@/features/users/api', () => ({
   getGroups: vi.fn(),
   getPermissionCatalog: vi.fn(),
 }))
+
+// Load failures are reported through the unified server-error notifier, which
+// replaced the drawer's former direct `toast.error(fallback)` calls. The spy
+// therefore sits on that boundary and asserts the delegation contract: the raw
+// failure payload plus the user-visible fallback message the component chose.
+// `importActual` keeps the module's other exports (e.g. markServerErrorHandled)
+// intact for everything else in the rendered tree. `@/lib/server-error-message`
+// stays unmocked because the drawer's groups/permission-catalog queries use the
+// real `requireServerSuccess`.
+const handleServerErrorMock = vi.hoisted(() => vi.fn())
+vi.mock('@/lib/handle-server-error', async (importActual) => {
+  const actual =
+    await importActual<typeof import('@/lib/handle-server-error')>()
+  return {
+    ...actual,
+    handleServerError: (...args: unknown[]) => handleServerErrorMock(...args),
+  }
+})
 
 const getUserMock = vi.mocked(getUser)
 const getGroupsMock = vi.mocked(getGroups)
@@ -93,7 +101,9 @@ const USER_B: User = {
   display_name: 'Bob B',
 }
 
-let toastErrorSpy: MockInstance<typeof toast.error>
+// The fallback the drawer hands to the notifier; the test i18n instance has no
+// resource bundle, so `t('Failed to load')` resolves to the source string.
+const LOAD_FALLBACK = 'Failed to load'
 
 // One QueryClient per test, reused across rerenders and cleared on cleanup.
 let activeQueryClient: QueryClient | null = null
@@ -144,7 +154,7 @@ beforeEach(() => {
   getGroupsMock.mockResolvedValue({ success: true, data: [] })
   getPermissionCatalogMock.mockReset()
   getPermissionCatalogMock.mockResolvedValue(EMPTY_PERMISSION_CATALOG)
-  toastErrorSpy = vi.spyOn(toast, 'error')
+  handleServerErrorMock.mockClear()
 })
 
 afterEach(() => {
@@ -166,7 +176,7 @@ describe('UsersMutateDrawer load contract', () => {
     expect(screen.getByPlaceholderText('Enter display name')).toHaveValue(
       'Alice A'
     )
-    expect(toastErrorSpy).not.toHaveBeenCalled()
+    expect(handleServerErrorMock).not.toHaveBeenCalled()
   })
 
   it('shows the backend message and keeps the form untouched on business failure with message', async () => {
@@ -174,12 +184,15 @@ describe('UsersMutateDrawer load contract', () => {
     getUserMock.mockReturnValue(load.promise)
     renderDrawer(USER_A)
 
-    load.resolve({ success: false, message: 'User not found' })
+    const failure = { success: false, message: 'User not found' }
+    load.resolve(failure)
 
+    // The drawer must hand the gateway's own payload to the notifier (so the
+    // backend message wins over the fallback) together with the fallback.
     await waitFor(() => {
-      expect(toastErrorSpy).toHaveBeenCalledWith('User not found')
+      expect(handleServerErrorMock).toHaveBeenCalledWith(failure, LOAD_FALLBACK)
     })
-    expect(toastErrorSpy).toHaveBeenCalledTimes(1)
+    expect(handleServerErrorMock).toHaveBeenCalledTimes(1)
     expect(usernameInput()).toHaveValue('')
   })
 
@@ -188,12 +201,13 @@ describe('UsersMutateDrawer load contract', () => {
     getUserMock.mockReturnValue(load.promise)
     renderDrawer(USER_A)
 
-    load.resolve({ success: false })
+    const failure = { success: false }
+    load.resolve(failure)
 
     await waitFor(() => {
-      expect(toastErrorSpy).toHaveBeenCalledWith(ERROR_MESSAGES.LOAD_FAILED)
+      expect(handleServerErrorMock).toHaveBeenCalledWith(failure, LOAD_FALLBACK)
     })
-    expect(toastErrorSpy).toHaveBeenCalledTimes(1)
+    expect(handleServerErrorMock).toHaveBeenCalledTimes(1)
     expect(usernameInput()).toHaveValue('')
   })
 
@@ -202,12 +216,13 @@ describe('UsersMutateDrawer load contract', () => {
     getUserMock.mockReturnValue(load.promise)
     renderDrawer(USER_A)
 
-    load.resolve({ success: true })
+    const failure = { success: true }
+    load.resolve(failure)
 
     await waitFor(() => {
-      expect(toastErrorSpy).toHaveBeenCalledWith(ERROR_MESSAGES.LOAD_FAILED)
+      expect(handleServerErrorMock).toHaveBeenCalledWith(failure, LOAD_FALLBACK)
     })
-    expect(toastErrorSpy).toHaveBeenCalledTimes(1)
+    expect(handleServerErrorMock).toHaveBeenCalledTimes(1)
     expect(usernameInput()).toHaveValue('')
   })
 
@@ -216,12 +231,16 @@ describe('UsersMutateDrawer load contract', () => {
     getUserMock.mockReturnValue(load.promise)
     renderDrawer(USER_A)
 
-    load.reject(new Error('network down'))
+    const rejection = new Error('network down')
+    load.reject(rejection)
 
     await waitFor(() => {
-      expect(toastErrorSpy).toHaveBeenCalledWith(ERROR_MESSAGES.LOAD_FAILED)
+      expect(handleServerErrorMock).toHaveBeenCalledWith(
+        rejection,
+        LOAD_FALLBACK
+      )
     })
-    expect(toastErrorSpy).toHaveBeenCalledTimes(1)
+    expect(handleServerErrorMock).toHaveBeenCalledTimes(1)
     expect(usernameInput()).toHaveValue('')
   })
 
@@ -243,10 +262,10 @@ describe('UsersMutateDrawer load contract', () => {
     loadA.resolve({ success: true, data: USER_A })
     await act(async () => {})
     expect(usernameInput()).toHaveValue('bob')
-    expect(toastErrorSpy).not.toHaveBeenCalled()
+    expect(handleServerErrorMock).not.toHaveBeenCalled()
   })
 
-  it('does not toast when a stale load rejects after the drawer closes', async () => {
+  it('does not raise an error notification when a stale load rejects after the drawer closes', async () => {
     const load = deferred<{ success: boolean; data?: User }>()
     getUserMock.mockReturnValue(load.promise)
     const { rerender } = renderDrawer(USER_A)
@@ -255,11 +274,11 @@ describe('UsersMutateDrawer load contract', () => {
     await waitFor(() => expect(getUserMock).toHaveBeenCalledTimes(1))
     rerender(USER_A, false)
     // Settle the rejection in the test coroutine so the catch branch runs;
-    // only the sequence guard may suppress the toast.
+    // only the sequence guard may suppress the error notification.
     await act(async () => {
       load.reject(new Error('network down'))
     })
 
-    expect(toastErrorSpy).not.toHaveBeenCalled()
+    expect(handleServerErrorMock).not.toHaveBeenCalled()
   })
 })

@@ -25,6 +25,7 @@ import { RichContent } from '@/components/rich-content'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toLanguageTag } from '@/i18n/languages'
 import { isHttpUrl, isLikelyHtml } from '@/lib/content-format'
+import { requireServerSuccess } from '@/lib/server-error-message'
 
 import { getAboutContent } from './api'
 
@@ -83,7 +84,7 @@ export function About() {
   const langTag = toLanguageTag(i18n.language)
   const { data, isLoading } = useQuery({
     queryKey: ['about-content', langTag],
-    queryFn: getAboutContent,
+    queryFn: async () => requireServerSuccess(await getAboutContent()),
   })
 
   const rawContent = data?.data?.trim() ?? ''

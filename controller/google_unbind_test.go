@@ -62,6 +62,10 @@ func setupGoogleUnbindTest(t *testing.T) *gorm.DB {
 		&model.TwoFA{},
 		&model.TwoFABackupCode{},
 		&model.AuthFlow{},
+		// The merged security core writes the management/security audit trail to
+		// the dedicated audit_logs table on the log database instead of the
+		// usage-log table; this fixture points LOG_DB at the same handle.
+		&model.AuditLog{},
 	))
 
 	model.DB = db
@@ -99,15 +103,16 @@ func setupGoogleUnbindTest(t *testing.T) *gorm.DB {
 }
 
 // auditWriteBarrier lets the test goroutine deterministically wait for the
-// asynchronous gopool admin fallback audit to land before teardown: a GORM
-// after-create callback on the logs table signals once per created row. The
+// admin fallback audit to land before teardown: a GORM after-create callback on
+// the audit_logs table signals once per created row. The merged security core
+// writes that trail to audit_logs rather than to the usage-log table. The
 // callback itself runs on the pool goroutine and never touches testing.T.
 func auditWriteBarrier(t *testing.T, db *gorm.DB) <-chan struct{} {
 	t.Helper()
 	signals := make(chan struct{}, 8)
 	const callbackName = "test:google_unbind_audit_barrier"
 	require.NoError(t, db.Callback().Create().After("gorm:create").Register(callbackName, func(tx *gorm.DB) {
-		if tx.Statement.Table == "logs" {
+		if tx.Statement.Table == "audit_logs" {
 			select {
 			case signals <- struct{}{}:
 			default:
@@ -120,7 +125,7 @@ func auditWriteBarrier(t *testing.T, db *gorm.DB) <-chan struct{} {
 	return signals
 }
 
-// waitAuditSignal blocks until the barrier observes a logs-table create; the
+// waitAuditSignal blocks until the barrier observes an audit_logs create; the
 // timeout is only a hang guard, never a synchronization mechanism.
 func waitAuditSignal(t *testing.T, signals <-chan struct{}) {
 	t.Helper()
@@ -129,6 +134,27 @@ func waitAuditSignal(t *testing.T, signals <-chan struct{}) {
 	case <-time.After(10 * time.Second):
 		require.Fail(t, "the asynchronous admin fallback audit did not complete")
 	}
+}
+
+// findAuditRowsByAction reads the audit trail the merged security core persists
+// in audit_logs. The management/security audit moved out of the usage-log table
+// (model.Log with LogTypeManage) into this dedicated table on the log database,
+// so the operator-attribution and no-sensitive-value contracts are asserted
+// against model.AuditLog while keeping every original field expectation.
+func findAuditRowsByAction(t *testing.T, db *gorm.DB, action string) []model.AuditLog {
+	t.Helper()
+	var rows []model.AuditLog
+	require.NoError(t, db.Where("action = ?", action).Find(&rows).Error)
+	return rows
+}
+
+// auditOtherJSON renders an audit row's structured metadata back to JSON so the
+// "no sensitive values" contract can still be asserted on the raw payload.
+func auditOtherJSON(t *testing.T, row model.AuditLog) string {
+	t.Helper()
+	encoded, err := common.Marshal(row.Other)
+	require.NoError(t, err)
+	return string(encoded)
 }
 
 // validCOSEPublicKeyBase64 builds a genuinely parseable WebAuthn COSE_Key:
@@ -707,41 +733,36 @@ func TestAdminClearGoogleBindingBypassesSelfLockout(t *testing.T) {
 	assert.Empty(t, reloadUnbindUser(t, db, target.Id).GoogleSub, "the mirror must be cleared")
 
 	// Audit: operator-attributed user.binding_clear with target context.
-	var logs []model.Log
-	require.NoError(t, db.Where("type = ?", model.LogTypeManage).Find(&logs).Error)
-	var auditLogs []model.Log
-	for _, log := range logs {
-		if strings.Contains(log.Other, "user.binding_clear") {
-			auditLogs = append(auditLogs, log)
-		}
-	}
-	require.Len(t, auditLogs, 1, "exactly one binding_clear audit record expected")
-	audit := auditLogs[0]
+	auditRows := findAuditRowsByAction(t, db, "user.binding_clear")
+	require.Len(t, auditRows, 1, "exactly one binding_clear audit record expected")
+	audit := auditRows[0]
 	assert.Equal(t, admin.Id, audit.UserId, "the audit must be attributed to the operator")
+	assert.Equal(t, "admin-clearer", audit.Username)
+	assert.Equal(t, model.AuditCategoryOperation, audit.Category)
+	assert.True(t, audit.Success)
 
-	var other struct {
-		Op struct {
-			Action string                 `json:"action"`
-			Params map[string]interface{} `json:"params"`
-		} `json:"op"`
-		AdminInfo struct {
-			AdminId       int    `json:"admin_id"`
-			AdminUsername string `json:"admin_username"`
-		} `json:"admin_info"`
-	}
-	require.NoError(t, common.UnmarshalJsonStr(audit.Other, &other))
-	assert.Equal(t, "user.binding_clear", other.Op.Action)
-	assert.Equal(t, "google", other.Op.Params["bindingType"])
-	assert.Equal(t, "admin-target", other.Op.Params["username"])
-	assert.EqualValues(t, target.Id, other.Op.Params["target_user_id"])
-	assert.Equal(t, admin.Id, other.AdminInfo.AdminId)
-	assert.Equal(t, "admin-clearer", other.AdminInfo.AdminUsername)
+	require.NotNil(t, audit.Other.Op)
+	assert.Equal(t, "user.binding_clear", audit.Other.Op.Action)
+	params, err := common.Marshal(audit.Other.Op.Params)
+	require.NoError(t, err)
+	expectedParams, err := common.Marshal(model.AuditFields{
+		"bindingType":    "google",
+		"username":       "admin-target",
+		"target_user_id": target.Id,
+	})
+	require.NoError(t, err)
+	assert.JSONEq(t, string(expectedParams), string(params))
+
+	require.NotNil(t, audit.Other.AdminInfo)
+	assert.Equal(t, admin.Id, audit.Other.AdminInfo.AdminID)
+	assert.Equal(t, "admin-clearer", audit.Other.AdminInfo.AdminUsername)
 
 	// No sensitive values: neither the Google subject nor the operator's real
 	// access token credential may appear in the audit.
-	assert.NotContains(t, audit.Other, "admin-clear-sub")
+	auditOther := auditOtherJSON(t, audit)
+	assert.NotContains(t, auditOther, "admin-clear-sub")
 	assert.NotContains(t, audit.Content, "admin-clear-sub")
-	assert.NotContains(t, audit.Other, adminToken)
+	assert.NotContains(t, auditOther, adminToken)
 }
 
 // TestAdminClearGoogleBindingRejectsInsufficientRole proves a lower-role
@@ -764,13 +785,11 @@ func TestAdminClearGoogleBindingRejectsInsufficientRole(t *testing.T) {
 
 	waitAuditSignal(t, signals)
 
-	var logs []model.Log
-	require.NoError(t, db.Where("type = ?", model.LogTypeManage).Find(&logs).Error)
-	require.NotEmpty(t, logs, "the asynchronous fallback audit must have landed")
-	for _, log := range logs {
-		assert.NotContains(t, log.Other, "user.binding_clear",
-			"a refused admin clear must not produce a binding_clear audit")
-	}
+	var audits []model.AuditLog
+	require.NoError(t, db.Find(&audits).Error)
+	require.NotEmpty(t, audits, "the asynchronous fallback audit must have landed")
+	assert.Empty(t, findAuditRowsByAction(t, db, "user.binding_clear"),
+		"a refused admin clear must not produce a binding_clear audit")
 }
 
 // TestGoogleUnbindSelfRollsBackWhenClaimDeleteAborts forces a database
@@ -922,16 +941,9 @@ func TestAdminClearGoogleWritesAuditWhenCacheUnavailable(t *testing.T) {
 	assert.Empty(t, findGoogleClaims(t, db))
 	assert.Empty(t, reloadUnbindUser(t, db, target.Id).GoogleSub)
 
-	var logs []model.Log
-	require.NoError(t, db.Where("type = ?", model.LogTypeManage).Find(&logs).Error)
-	var auditLogs []model.Log
-	for _, log := range logs {
-		if strings.Contains(log.Other, "user.binding_clear") {
-			auditLogs = append(auditLogs, log)
-		}
-	}
-	require.Len(t, auditLogs, 1, "the committed admin clear must always write its audit")
-	assert.Equal(t, admin.Id, auditLogs[0].UserId)
+	auditRows := findAuditRowsByAction(t, db, "user.binding_clear")
+	require.Len(t, auditRows, 1, "the committed admin clear must always write its audit")
+	assert.Equal(t, admin.Id, auditRows[0].UserId)
 }
 
 // TestGoogleUnbindSelfSilentClaimDeleteZeroHitRollsBack protects the claim
@@ -1098,35 +1110,20 @@ func TestGoogleUnbindVsCustomProviderDisableConcurrent(t *testing.T) {
 	// Wait for the asynchronous admin audit to land, then verify its fields
 	// before any teardown runs.
 	waitAuditSignal(t, signals)
-	var logs []model.Log
-	require.NoError(t, db.Where("type = ?", model.LogTypeManage).Find(&logs).Error)
-	var auditLogs []model.Log
-	for _, log := range logs {
-		if strings.Contains(log.Other, "custom_oauth.update") {
-			auditLogs = append(auditLogs, log)
-		}
-	}
-	require.Len(t, auditLogs, 1, "exactly one custom_oauth.update audit record expected")
-	audit := auditLogs[0]
+	auditRows := findAuditRowsByAction(t, db, "custom_oauth.update")
+	require.Len(t, auditRows, 1, "exactly one custom_oauth.update audit record expected")
+	audit := auditRows[0]
 	assert.Equal(t, root.Id, audit.UserId, "the audit must be attributed to the root operator")
-	var other struct {
-		Op struct {
-			Action string `json:"action"`
-		} `json:"op"`
-		AdminInfo struct {
-			AdminId int `json:"admin_id"`
-		} `json:"admin_info"`
-		AuditInfo struct {
-			Success bool `json:"success"`
-		} `json:"audit_info"`
-	}
-	require.NoError(t, common.UnmarshalJsonStr(audit.Other, &other))
-	assert.Equal(t, "custom_oauth.update", other.Op.Action)
-	assert.Equal(t, root.Id, other.AdminInfo.AdminId)
-	assert.True(t, other.AuditInfo.Success)
-	assert.NotContains(t, audit.Other, "secret-race-disable-sso",
+	require.NotNil(t, audit.Other.Op)
+	assert.Equal(t, "custom_oauth.update", audit.Other.Op.Action)
+	require.NotNil(t, audit.Other.AdminInfo)
+	assert.Equal(t, root.Id, audit.Other.AdminInfo.AdminID)
+	require.NotNil(t, audit.Other.AuditInfo)
+	assert.True(t, audit.Other.AuditInfo.Success)
+	auditOther := auditOtherJSON(t, audit)
+	assert.NotContains(t, auditOther, "secret-race-disable-sso",
 		"the provider client secret must not appear in the audit")
-	assert.NotContains(t, audit.Other, rootToken,
+	assert.NotContains(t, auditOther, rootToken,
 		"the operator token must not appear in the audit")
 
 	claims := findGoogleClaims(t, db)
@@ -1363,18 +1360,12 @@ func TestGoogleUnbindLaunchProfileConfiguredDatabases(t *testing.T) {
 				require.Equal(t, true, decodeEnvelope(t, recorder)["success"], recorder.Body.String())
 				assert.Empty(t, findGoogleClaims(t, db))
 				assert.Empty(t, reloadUnbindUser(t, db, target.Id).GoogleSub)
-				var logs []model.Log
-				require.NoError(t, db.Where("type = ?", model.LogTypeManage).Find(&logs).Error)
-				var auditLogs []model.Log
-				for _, log := range logs {
-					if strings.Contains(log.Other, "user.binding_clear") {
-						auditLogs = append(auditLogs, log)
-					}
-				}
-				require.Len(t, auditLogs, 1)
-				assert.Equal(t, admin.Id, auditLogs[0].UserId)
-				assert.NotContains(t, auditLogs[0].Other, "admin-clear-sub")
-				assert.NotContains(t, auditLogs[0].Other, adminToken)
+				var logs []model.AuditLog
+				require.NoError(t, db.Where("action = ?", "user.binding_clear").Find(&logs).Error)
+				require.Len(t, logs, 1)
+				assert.Equal(t, admin.Id, logs[0].UserId)
+				assert.NotContains(t, auditOtherJSON(t, logs[0]), "admin-clear-sub")
+				assert.NotContains(t, auditOtherJSON(t, logs[0]), adminToken)
 			})
 
 			t.Run("selfRejectsCustomProviderMissingFromRuntime", func(t *testing.T) {

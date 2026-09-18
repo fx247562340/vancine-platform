@@ -22,6 +22,7 @@ import (
 	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/oauth"
+	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/system_setting"
 	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
@@ -143,11 +144,11 @@ func setupGoogleOAuthTest(t *testing.T, dsnOverride ...string) *googleOAuthTestE
 	}
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	require.NoError(t, err)
-	// SQLite fixtures keep the historical minimal migrate set so existing tests
-	// stay byte-for-byte on their original schema surface; remote launch-profile
-	// entry points migrate the broader set via setupGoogleOAuthTestOn.
-	require.NoError(t, db.AutoMigrate(&model.AuthFlow{}, &model.User{},
-		&model.ExternalIdentityClaim{}, &model.UserSession{}, &model.Log{}))
+	// SQLite and remote fixtures share one migrate set: the merged security core
+	// reads two_fas/passkey_credentials from the login-verification projection and
+	// writes binding/unbind audits, so the historical minimal set is no longer
+	// sufficient for any dialect.
+	require.NoError(t, db.AutoMigrate(googleLaunchProfileModels()...))
 	return finishGoogleOAuthTestSetup(t, db, common.DatabaseTypeSQLite, false)
 }
 
@@ -398,6 +399,7 @@ func finishGoogleOAuthTestSetup(t *testing.T, db *gorm.DB, dbType common.Databas
 	require.NoError(t, i18n.Init())
 	previousDB := model.DB
 	previousDBType := common.MainDatabaseType()
+	previousLogDBType := common.LogDatabaseType()
 	previousEnabled := common.GoogleOAuthEnabled
 	previousClientID := common.GoogleClientId
 	previousClientSecret := common.GoogleClientSecret
@@ -410,6 +412,7 @@ func finishGoogleOAuthTestSetup(t *testing.T, db *gorm.DB, dbType common.Databas
 	previousRedisEnabled := common.RedisEnabled
 	previousLogDB := model.LOG_DB
 	previousCryptoSecret := common.CryptoSecret
+	previousSessionSecret := common.SessionSecret
 	previousPasswordLogin := common.PasswordLoginEnabled
 	previousGitHubEnabled := common.GitHubOAuthEnabled
 	previousPasskeyEnabled := system_setting.GetPasskeySettings().Enabled
@@ -459,6 +462,12 @@ func finishGoogleOAuthTestSetup(t *testing.T, db *gorm.DB, dbType common.Databas
 
 	model.DB = db
 	common.SetMainDatabaseType(dbType)
+	// audit_logs lives on the log database; this fixture points LOG_DB at the same
+	// handle, so migrate it through the production entry point exactly like
+	// controller/token_test.go does for its audit matrix.
+	model.LOG_DB = db
+	common.SetLogDatabaseType(dbType)
+	require.NoError(t, model.MigrateAuditLogs())
 	common.GoogleOAuthEnabled = true
 	common.GoogleClientId = "google-test-client-id"
 	common.GoogleClientSecret = "google-test-client-secret"
@@ -467,8 +476,10 @@ func finishGoogleOAuthTestSetup(t *testing.T, db *gorm.DB, dbType common.Databas
 	common.RegisterEnabled = false
 	common.OptionMap = map[string]string{}
 	common.RedisEnabled = false
-	model.LOG_DB = db
 	common.CryptoSecret = "google-oauth-controller-test-secret"
+	// The merged security core signs/consumes account-bind proofs with an
+	// HMAC key derived from SessionSecret; pin it so the fixture is stable.
+	common.SessionSecret = "google-oauth-controller-test-session-secret"
 	common.PasswordLoginEnabled = true
 	common.GitHubOAuthEnabled = false
 	system_setting.GetPasskeySettings().Enabled = false
@@ -484,7 +495,8 @@ func finishGoogleOAuthTestSetup(t *testing.T, db *gorm.DB, dbType common.Databas
 		model.DB = previousDB
 		model.LOG_DB = previousLogDB
 		common.CryptoSecret = previousCryptoSecret
-		common.SetMainDatabaseType(previousDBType)
+		common.SessionSecret = previousSessionSecret
+		common.SetDatabaseTypes(previousDBType, previousLogDBType)
 		common.GoogleOAuthEnabled = previousEnabled
 		common.GoogleClientId = previousClientID
 		common.GoogleClientSecret = previousClientSecret
@@ -507,6 +519,15 @@ func finishGoogleOAuthTestSetup(t *testing.T, db *gorm.DB, dbType common.Databas
 	return env
 }
 
+// googleOAuthFixtureAuthVersion / googleOAuthFixtureSessionVersion are the
+// auth/session versions every session-scoped fixture context carries. The
+// merged security core validates a bind flow against a durable user_sessions
+// row, so provisioned sessions must match these exact versions.
+const (
+	googleOAuthFixtureAuthVersion    = int64(1)
+	googleOAuthFixtureSessionVersion = int64(1)
+)
+
 func createGoogleOAuthTestUser(t *testing.T, db *gorm.DB, username string) *model.User {
 	t.Helper()
 	user := &model.User{
@@ -522,28 +543,81 @@ func createGoogleOAuthTestUser(t *testing.T, db *gorm.DB, username string) *mode
 	return user
 }
 
-func newGoogleOAuthContext(method, target string, body io.Reader, userID int, sessionID string) (*gin.Context, *httptest.ResponseRecorder) {
+// provisionBindSessionIdentity provisions the durable login session that the
+// merged security core requires for an account bind, and returns the identity
+// a session-scoped fixture context carries for it. The row is created at most
+// once per sid, so one session can start several bind flows (the slot race
+// fixture does exactly that).
+func provisionBindSessionIdentity(t *testing.T, db *gorm.DB, user *model.User, sessionID string) service.AuthIdentity {
+	t.Helper()
+	require.EqualValues(t, googleOAuthFixtureAuthVersion, user.AuthVersion,
+		"the fixture context auth version must match the provisioned session")
+	identity := service.AuthIdentity{
+		UserID:          user.Id,
+		SessionID:       sessionID,
+		UserAuthVersion: googleOAuthFixtureAuthVersion,
+		SessionVersion:  googleOAuthFixtureSessionVersion,
+	}
+	var stored model.UserSession
+	err := db.Where("sid = ?", sessionID).First(&stored).Error
+	if err == nil {
+		require.Equal(t, user.Id, stored.UserID, "sid %s already belongs to another user", sessionID)
+		require.Equal(t, identity.UserAuthVersion, stored.UserAuthVersion)
+		require.Equal(t, identity.SessionVersion, stored.Version)
+		return identity
+	}
+	require.ErrorIs(t, err, gorm.ErrRecordNotFound)
+	now := time.Now().Unix()
+	require.NoError(t, db.Create(&model.UserSession{
+		SID: sessionID, UserID: user.Id,
+		Version: googleOAuthFixtureSessionVersion, UserAuthVersion: identity.UserAuthVersion,
+		Status: model.UserSessionStatusActive, RefreshHash: "google-bind-refresh-hash",
+		LoginMethod: "password", CreatedAt: now, LastActiveAt: now, ExpiresAt: now + 3600,
+	}).Error)
+	return identity
+}
+
+// accountBindSecurityProof issues the scoped security proof the merged security
+// core requires before an account bind may start. contextJSON must describe the
+// same service.AccountBindingContext the handler marshals, because the proof is
+// bound to a hash of that normalized context.
+func accountBindSecurityProof(t *testing.T, identity service.AuthIdentity, contextJSON string) string {
+	t.Helper()
+	return issueSecurityEnrollmentProof(t, identity, service.VerificationOperation{
+		Scope:   service.VerificationScopeAccountBind,
+		Context: []byte(contextJSON),
+	}, service.VerificationMethodPassword)
+}
+
+func newGoogleOAuthContext(method, target string, body io.Reader, userID int, sessionID string, securityProof ...string) (*gin.Context, *httptest.ResponseRecorder) {
 	recorder := httptest.NewRecorder()
 	context, _ := gin.CreateTestContext(recorder)
 	context.Request = httptest.NewRequest(method, target, body)
 	if body != nil {
 		context.Request.Header.Set("Content-Type", "application/json")
 	}
+	if len(securityProof) > 0 {
+		context.Request.Header.Set("X-Security-Proof", securityProof[0])
+	}
 	if userID > 0 {
 		context.Set("id", userID)
 		context.Set("session_id", sessionID)
-		context.Set("auth_version", int64(1))
-		context.Set("session_version", int64(1))
+		context.Set("auth_version", googleOAuthFixtureAuthVersion)
+		context.Set("session_version", googleOAuthFixtureSessionVersion)
 	}
 	return context, recorder
 }
 
 // startGoogleBindFlow drives the real POST /api/oauth/state controller with a
-// session identity, exactly like the account-binding page does.
+// session identity, exactly like the account-binding page does: the merged
+// security core requires a scoped account-bind security proof, so the flow
+// first provisions the durable session and then presents the proof.
 func startGoogleBindFlow(t *testing.T, user *model.User, sessionID string) string {
 	t.Helper()
+	identity := provisionBindSessionIdentity(t, model.DB, user, sessionID)
 	context, recorder := newGoogleOAuthContext(http.MethodPost, "/api/oauth/state",
-		strings.NewReader(`{"provider":"google","intent":"bind"}`), user.Id, sessionID)
+		strings.NewReader(`{"provider":"google","intent":"bind"}`), user.Id, sessionID,
+		accountBindSecurityProof(t, identity, `{"provider":"google"}`))
 	GenerateOAuthCode(context)
 	require.Equal(t, http.StatusOK, recorder.Code)
 	var response struct {
@@ -606,8 +680,8 @@ func serveOAuthCallback(provider, query string, userID int, sessionID string) *h
 		if userID > 0 {
 			c.Set("id", userID)
 			c.Set("session_id", sessionID)
-			c.Set("auth_version", int64(1))
-			c.Set("session_version", int64(1))
+			c.Set("auth_version", googleOAuthFixtureAuthVersion)
+			c.Set("session_version", googleOAuthFixtureSessionVersion)
 		}
 		c.Next()
 	})
@@ -619,16 +693,36 @@ func serveOAuthCallback(provider, query string, userID int, sessionID string) *h
 
 func decodeOAuthResponse(t *testing.T, recorder *httptest.ResponseRecorder) struct {
 	Success bool   `json:"success"`
+	Code    string `json:"code"`
 	Message string `json:"message"`
 } {
 	t.Helper()
 	var response struct {
 		Success bool   `json:"success"`
+		Code    string `json:"code"`
 		Message string `json:"message"`
 	}
 	require.NoError(t, common.Unmarshal(recorder.Body.Bytes(), &response))
 	return response
 }
+
+// googleBindConflictCode/googleBindConflictMessage pin the account-bind
+// conflict contract of the merged upstream security core: every bind error now
+// flows through controller.writeSecurityOperationError, which maps
+// model.ErrExternalIdentityAlreadyClaimed to a fixed machine-readable code plus
+// a provider-named message rendered from i18n.MsgOAuthAlreadyBound - the same
+// surface the pre-merge Vancine handleOAuthBind produced for the Google branch.
+// serveOAuthCallback sends no Accept-Language header and the test binary never
+// wires i18n.SetUserLangLoader, so the catalog resolves to its English default
+// here; the zh-CN/zh-TW/fr resolution and the Telegram, generic built-in,
+// custom-provider and unresolvable-slug cases are pinned by
+// TestWriteSecurityOperationErrorNamesProviderOnBindConflict. The rejection
+// itself - a subject owned by another user, or any rebind by an already-bound
+// user - is unchanged and stays enforced by external_identity_claims.
+const (
+	googleBindConflictCode    = "ACCOUNT_ALREADY_BOUND"
+	googleBindConflictMessage = "This Google account has already been bound"
+)
 
 func reloadGoogleOAuthUser(t *testing.T, env *googleOAuthTestEnv, id int) model.User {
 	t.Helper()
@@ -944,9 +1038,8 @@ func TestGoogleBindRejectsSubAlreadyBoundToAnotherUser(t *testing.T) {
 		"state="+url.QueryEscape(state)+"&code=mock-code", owner.Id, "session-owner")
 	response := decodeOAuthResponse(t, recorder)
 	assert.False(t, response.Success, "a Google account bound to another user must be rejected")
-	assert.Equal(t,
-		i18n.Translate(i18n.LangEn, i18n.MsgOAuthAlreadyBound, map[string]any{"Provider": "Google"}),
-		response.Message)
+	assert.Equal(t, googleBindConflictCode, response.Code)
+	assert.Equal(t, googleBindConflictMessage, response.Message)
 
 	assert.Empty(t, reloadGoogleOAuthUser(t, env, owner.Id).GoogleSub)
 	var ownerClaims []model.ExternalIdentityClaim
@@ -1139,9 +1232,8 @@ func TestGoogleBindRejectsRebind(t *testing.T) {
 				owner.Id, "session-owner")
 			response := decodeOAuthResponse(t, rebind)
 			assert.False(t, response.Success, "rebind must be rejected for an already-bound user")
-			assert.Equal(t,
-				i18n.Translate(i18n.LangEn, i18n.MsgOAuthAlreadyBound, map[string]any{"Provider": "Google"}),
-				response.Message)
+			assert.Equal(t, googleBindConflictCode, response.Code)
+			assert.Equal(t, googleBindConflictMessage, response.Message)
 
 			var claims []model.ExternalIdentityClaim
 			require.NoError(t, env.db.Find(&claims).Error)
@@ -1525,11 +1617,13 @@ func TestGoogleConcurrentBindSameSubjectSingleOwner(t *testing.T) {
 
 	responses := make([]struct {
 		Success bool
+		Code    string
 		Message string
 	}, 2)
 	for index, recorder := range recorders {
 		decoded := decodeOAuthResponse(t, recorder)
 		responses[index].Success = decoded.Success
+		responses[index].Code = decoded.Code
 		responses[index].Message = decoded.Message
 	}
 
@@ -1542,9 +1636,8 @@ func TestGoogleConcurrentBindSameSubjectSingleOwner(t *testing.T) {
 	}
 	require.NotEqual(t, -1, winnerIndex, "at least one racer must succeed: %v", responses)
 	loserIndex := 1 - winnerIndex
-	assert.Equal(t,
-		i18n.Translate(i18n.LangEn, i18n.MsgOAuthAlreadyBound, map[string]any{"Provider": "Google"}),
-		responses[loserIndex].Message)
+	assert.Equal(t, googleBindConflictCode, responses[loserIndex].Code)
+	assert.Equal(t, googleBindConflictMessage, responses[loserIndex].Message)
 
 	var claims []model.ExternalIdentityClaim
 	require.NoError(t, env.db.Find(&claims).Error)
@@ -1793,9 +1886,8 @@ func TestGoogleOAuthLaunchProfileConfiguredDatabases(t *testing.T) {
 					owner.Id, "session-owner")
 				response := decodeOAuthResponse(t, rebind)
 				assert.False(t, response.Success)
-				assert.Equal(t,
-					i18n.Translate(i18n.LangEn, i18n.MsgOAuthAlreadyBound, map[string]any{"Provider": "Google"}),
-					response.Message)
+				assert.Equal(t, googleBindConflictCode, response.Code)
+				assert.Equal(t, googleBindConflictMessage, response.Message)
 				var claims []model.ExternalIdentityClaim
 				require.NoError(t, env.db.Find(&claims).Error)
 				require.Len(t, claims, 1)
@@ -1918,11 +2010,13 @@ func TestGoogleOAuthLaunchProfileConfiguredDatabases(t *testing.T) {
 				require.NotNil(t, recorders[1])
 				responses := make([]struct {
 					Success bool
+					Code    string
 					Message string
 				}, 2)
 				for index, recorder := range recorders {
 					decoded := decodeOAuthResponse(t, recorder)
 					responses[index].Success = decoded.Success
+					responses[index].Code = decoded.Code
 					responses[index].Message = decoded.Message
 				}
 				winnerIndex := -1
@@ -1934,9 +2028,8 @@ func TestGoogleOAuthLaunchProfileConfiguredDatabases(t *testing.T) {
 				}
 				require.NotEqual(t, -1, winnerIndex, "at least one racer must succeed: %v", responses)
 				loserIndex := 1 - winnerIndex
-				assert.Equal(t,
-					i18n.Translate(i18n.LangEn, i18n.MsgOAuthAlreadyBound, map[string]any{"Provider": "Google"}),
-					responses[loserIndex].Message)
+				assert.Equal(t, googleBindConflictCode, responses[loserIndex].Code)
+				assert.Equal(t, googleBindConflictMessage, responses[loserIndex].Message)
 				var claims []model.ExternalIdentityClaim
 				require.NoError(t, env.db.Find(&claims).Error)
 				bound := assertGoogleClaimFinalState(t, users[winnerIndex].Id, env.userInfoSub, claims,

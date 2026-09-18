@@ -111,7 +111,8 @@ const realInitialAuthData = {
   accessToken: useAuthStore.getState().auth.accessToken,
   accessExpiresAt: useAuthStore.getState().auth.accessExpiresAt,
   session: useAuthStore.getState().auth.session,
-  pending2FAFlowToken: useAuthStore.getState().auth.pending2FAFlowToken,
+  pendingLoginVerification:
+    useAuthStore.getState().auth.pendingLoginVerification,
   bootstrapState: useAuthStore.getState().auth.bootstrapState,
 }
 

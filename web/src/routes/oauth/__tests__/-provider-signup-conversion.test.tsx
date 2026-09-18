@@ -23,6 +23,7 @@ For commercial licensing, please contact support@quantumnous.com
  * window.opener is null, so the callback always resolves to login mode -
  * exactly the branch that carries signup conversions.
  */
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, render, waitFor } from '@testing-library/react'
 import i18next from 'i18next'
 import { initReactI18next } from 'react-i18next'
@@ -124,7 +125,16 @@ function validAuthBundle(extra: Record<string, unknown> = {}, userId = 1) {
   }
 }
 
+// The callback screen renders inside AuthLayout, whose useSystemConfig() reads
+// the shared `/api/status` cache through useQueryClient(). A provider is
+// therefore required; `autoLoad` stays false in the layout, so no status
+// request is fired and the mocked api.get keeps serving only the OAuth call.
+let queryClient: QueryClient
+
 beforeEach(() => {
+  queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 } },
+  })
   capturedComponent = null
   paramsProviderHolder.current = 'github'
   searchHolder.current = { code: 'oauth-code', state: 'state-token' }
@@ -139,6 +149,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
+  queryClient.clear()
   vi.resetModules()
 })
 
@@ -146,7 +157,11 @@ async function renderOAuthCallback(): Promise<void> {
   await import('../$provider')
   if (!capturedComponent) throw new Error('route component was not captured')
   const Callback = capturedComponent
-  render(<Callback />)
+  render(
+    <QueryClientProvider client={queryClient}>
+      <Callback />
+    </QueryClientProvider>
+  )
 }
 
 describe('OAuthCallback Google Ads conversion wiring', () => {

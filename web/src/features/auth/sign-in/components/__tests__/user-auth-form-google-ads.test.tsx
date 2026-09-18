@@ -61,9 +61,18 @@ vi.mock('@/hooks/use-status', () => ({
   }),
 }))
 
+// The merged component consumes the hook's bundle-or-challenge entry point:
+// `handleLoginResult(data, redirectTo?)` applies the auth bundle (or routes a
+// login challenge) and resolves to whether the login completed. The mock mirrors
+// the real hook's returned shape and resolves `true`, which is exactly what the
+// real implementation returns for a valid auth bundle, so the component's
+// post-login `toast.success` branch is still exercised. `handleLoginSuccess` is
+// kept only for shape parity — the components no longer call it directly.
 const authRedirectMocks = vi.hoisted(() => ({
   handleLoginSuccess: vi.fn(async () => {}),
-  redirectTo2FA: vi.fn(),
+  handleLoginResult: vi.fn(async () => true),
+  redirectToLogin: vi.fn(),
+  redirectToRegister: vi.fn(),
 }))
 
 vi.mock('@/features/auth/hooks/use-auth-redirect', () => ({
@@ -142,6 +151,7 @@ beforeEach(() => {
     message: 'wechat rejected',
   }))
   authRedirectMocks.handleLoginSuccess.mockClear()
+  authRedirectMocks.handleLoginResult.mockClear()
   googleAdsMocks.reportGoogleAdsSignupConversion.mockReset()
   toastSpy.error.mockClear()
   toastSpy.success.mockClear()
@@ -190,7 +200,7 @@ async function submitWeChatCode(): Promise<void> {
   // and the observable end state - not a fixed sleep - defines the wait.
   fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
   await waitFor(() =>
-    expect(authRedirectMocks.handleLoginSuccess).toHaveBeenCalledTimes(1)
+    expect(authRedirectMocks.handleLoginResult).toHaveBeenCalledTimes(1)
   )
 }
 
@@ -222,7 +232,7 @@ describe('UserAuthForm Google Ads conversion on WeChat signup', () => {
     expect(
       googleAdsMocks.reportGoogleAdsSignupConversion
     ).not.toHaveBeenCalled()
-    expect(authRedirectMocks.handleLoginSuccess).toHaveBeenCalledTimes(1)
+    expect(authRedirectMocks.handleLoginResult).toHaveBeenCalledTimes(1)
   })
 
   it('fires no conversion when the WeChat login fails', async () => {
@@ -255,6 +265,6 @@ describe('UserAuthForm Google Ads conversion on WeChat signup', () => {
     expect(
       googleAdsMocks.reportGoogleAdsSignupConversion
     ).not.toHaveBeenCalled()
-    expect(authRedirectMocks.handleLoginSuccess).not.toHaveBeenCalled()
+    expect(authRedirectMocks.handleLoginResult).not.toHaveBeenCalled()
   })
 })

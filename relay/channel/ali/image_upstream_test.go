@@ -152,7 +152,8 @@ func TestQwenImage30MockUpstreamSendsCustomSizeAsStar(t *testing.T) {
 	aliRequest, ok := converted.(*AliImageRequest)
 	require.True(t, ok)
 	assert.Equal(t, "1024*1536", aliRequest.Parameters.Size)
-	assert.Equal(t, 2, aliRequest.Parameters.N)
+	require.NotNil(t, aliRequest.Parameters.N)
+	assert.Equal(t, uint(2), *aliRequest.Parameters.N)
 
 	payload, err := common.Marshal(aliRequest)
 	require.NoError(t, err)

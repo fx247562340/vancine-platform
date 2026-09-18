@@ -163,8 +163,9 @@ async function renderHeader(
 function getDesktopNav(container: HTMLElement): HTMLElement {
   const header = container.querySelector('header') as HTMLElement | null
   expect(header).not.toBeNull()
+  // Upstream's responsive fix moved the desktop nav breakpoint from sm to lg.
   const desktopNav = header?.querySelector(
-    '[class~="sm:flex"]'
+    '[class~="lg:flex"]'
   ) as HTMLElement | null
   expect(desktopNav).not.toBeNull()
   return desktopNav as HTMLElement

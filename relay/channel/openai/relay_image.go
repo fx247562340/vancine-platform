@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,13 +22,6 @@ import (
 	"github.com/tidwall/sjson"
 )
 
-func updateOpenAIImageCount(info *relaycommon.RelayInfo, count int64) {
-	if info == nil || !info.PriceData.UsePrice || count <= 0 || count > int64(dto.MaxImageN) {
-		return
-	}
-	info.PriceData.AddOtherRatio("n", float64(count))
-}
-
 // OpenaiImageHandler handles non-streaming OpenAI image responses
 // (generations/edits), returning the parsed usage for billing.
 //
@@ -36,6 +30,7 @@ func updateOpenAIImageCount(info *relaycommon.RelayInfo, count int64) {
 //   - data is not an array, or is empty;
 //   - the array contains more than dto.MaxImageN items;
 //   - any item is missing a usable http(s) url or a base64 image payload.
+//
 // In every fail-closed case the response body is NOT written to the client,
 // the previously-recorded n ratio is NOT lowered, and the gateway returns
 // bad_response. On success the original body is written verbatim and the
@@ -67,8 +62,10 @@ func OpenaiImageHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http.
 		// handler ran).
 		return nil, types.NewError(fmt.Errorf("upstream returned no usable images"), types.ErrorCodeBadResponse)
 	}
-
-	updateOpenAIImageCount(info, int64(usableCount))
+	// Bill exactly the validated usable count, never the raw data.# length.
+	// Upstream's UpdateImageCount also records BillingImageCount for tiered
+	// billing, so it supersedes the retired Vancine updateOpenAIImageCount.
+	info.UpdateImageCount(int64(usableCount))
 
 	// 写入原始 response body：所有 item 都已验证为合法，无需二次拷贝或重建。
 	service.IOCopyBytesGracefully(c, resp, responseBody)
@@ -97,12 +94,7 @@ func normalizeOpenAIUsage(usage *dto.Usage) {
 		usage.CompletionTokens = usage.OutputTokens
 	}
 	if usage.InputTokensDetails != nil {
-		usage.PromptTokensDetails.CachedTokens = usage.InputTokensDetails.CachedTokens
-		usage.PromptTokensDetails.CachedCreationTokens = usage.InputTokensDetails.CachedCreationTokens
-		usage.PromptTokensDetails.CacheWriteTokens = usage.InputTokensDetails.CacheWriteTokens
-		usage.PromptTokensDetails.ImageTokens = usage.InputTokensDetails.ImageTokens
-		usage.PromptTokensDetails.TextTokens = usage.InputTokensDetails.TextTokens
-		usage.PromptTokensDetails.AudioTokens = usage.InputTokensDetails.AudioTokens
+		usage.PromptTokensDetails = usage.InputTokensDetails.Clone()
 	}
 	if usage.TotalTokens == 0 {
 		usage.TotalTokens = usage.PromptTokens + usage.CompletionTokens
@@ -183,12 +175,8 @@ func OpenaiImageStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, resp 
 	if info.StreamStatus != nil {
 		upstreamFinished := info.StreamStatus.EndReason == relaycommon.StreamEndReasonDone ||
 			info.StreamStatus.EndReason == relaycommon.StreamEndReasonEOF
-		requestedN := 1.0
-		if n, ok := info.PriceData.OtherRatios()["n"]; ok {
-			requestedN = n
-		}
-		if upstreamFinished || float64(completedImages) > requestedN {
-			updateOpenAIImageCount(info, completedImages)
+		if upstreamFinished || completedImages > int64(info.RequestedImageCount()) {
+			info.UpdateImageCount(completedImages)
 		}
 	}
 	return usage, nil
@@ -286,7 +274,7 @@ func openaiImageJSONAsStreamHandler(c *gin.Context, info *relaycommon.RelayInfo,
 	// must answer JSON; an event-stream response is rejected in
 	// relay.ImageHelper before any handler runs).
 	imageCount := gjson.GetBytes(responseBody, "data.#").Int()
-	updateOpenAIImageCount(info, imageCount)
+	info.UpdateImageCount(imageCount)
 
 	helper.SetEventStreamHeaders(c)
 	c.Status(http.StatusOK)
@@ -308,10 +296,8 @@ func openaiImageJSONAsStreamHandler(c *gin.Context, info *relaycommon.RelayInfo,
 		}
 	}
 
-	// Re-iterate the data array to emit one SSE event per item, in the
-	// original order and count - the same forwarding semantics as main.
-	dataItems := gjson.GetBytes(responseBody, "data").Array()
-	for _, image := range dataItems {
+	for i := range imageCount {
+		image := gjson.GetBytes(responseBody, "data."+strconv.FormatInt(i, 10))
 		payload := []byte(`{"type":"image_generation.completed"}`)
 		payload, err = sjson.SetBytes(payload, "created_at", created)
 		if err != nil {

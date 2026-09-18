@@ -23,13 +23,15 @@ import {
   waitFor,
   type RenderResult,
 } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, test } from 'vitest'
+import type { AxiosError } from 'axios'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
 import type { Redemption } from '../../types'
 
 const i18n = (await import('i18next')).default
 const { I18nextProvider, initReactI18next } = await import('react-i18next')
 const { Toaster, toast } = await import('sonner')
+const { AxiosError: AxiosErrorCtor, AxiosHeaders } = await import('axios')
 const { api } = await import('@/lib/api')
 const { useSystemConfigStore } = await import('@/stores/system-config-store')
 const { RedemptionsProvider } = await import('../redemptions-provider')
@@ -91,6 +93,25 @@ function deferred<T>() {
     reject = promiseReject
   })
   return { promise, reject, resolve }
+}
+
+// A real AxiosError carrying an HTTP response, so the shared resolver sees the
+// same shape the browser produces: axios's own synthesized transport text on
+// `message` and whatever body (or no body) the server or proxy returned.
+function httpFailure(data: unknown, status = 500): AxiosError {
+  return new AxiosErrorCtor(
+    `Request failed with status code ${status}`,
+    'ERR_BAD_RESPONSE',
+    undefined,
+    undefined,
+    {
+      data,
+      status,
+      statusText: 'Error',
+      headers: {},
+      config: { headers: new AxiosHeaders() },
+    }
+  )
 }
 
 function drawerTree(currentRow: Redemption) {
@@ -206,11 +227,42 @@ describe('redemption drawer', () => {
     expect(getControlByLabel('Quota (CNY)').value).toBe('200')
   })
 
-  test('blocks updates and reports an error when loading rejects', async () => {
+  // The rejection path must behave like the resolved business-failure path: a
+  // genuine message wins, and a failure carrying only axios's transport text
+  // (empty body, HTML proxy document) falls back to the component's localized
+  // copy. Never the raw English 'Request failed with status code 500', and
+  // never a second toast from the shared HTTP layer.
+  test.each([
+    {
+      label: 'an ordinary Error keeps its own reason',
+      failure: () => new Error('network failure'),
+      expected: 'network failure',
+    },
+    {
+      label: 'a backend message on an HTTP failure wins over the fallback',
+      failure: () => httpFailure({ success: false, message: 'Code revoked' }),
+      expected: 'Code revoked',
+    },
+    {
+      label: 'an empty HTTP 500 body shows the localized fallback',
+      failure: () => httpFailure({}),
+      expected: 'Failed to load',
+    },
+    {
+      label: 'an HTML proxy error document shows the localized fallback',
+      failure: () =>
+        httpFailure('<!doctype html><html><body>502 Bad Gateway</body></html>'),
+      expected: 'Failed to load',
+    },
+  ])('blocks updates and reports $label', async ({ failure, expected }) => {
+    // Spy without replacing the implementation: the real sonner toast must
+    // still render so the DOM assertions below observe what the user sees,
+    // while the spy proves exactly one notification was emitted.
+    const notify = vi.spyOn(toast, 'error')
     const updates: unknown[] = []
     Reflect.set(console, 'log', () => undefined)
     apiClient.get = async () => {
-      throw new Error('network failure')
+      throw failure()
     }
     apiClient.put = async (_url, data) => {
       updates.push(data)
@@ -218,31 +270,34 @@ describe('redemption drawer', () => {
     }
 
     await renderDrawer(redemption(1))
-    // Merged contract: load rejection shows the localized load-failure toast.
-    await waitFor(() =>
-      expect(document.body).toHaveTextContent('Failed to load redemption codes')
-    )
+    await waitFor(() => expect(document.body).toHaveTextContent(expected))
 
+    expect(notify.mock.calls.map(([message]) => message)).toEqual([expected])
+    // The form stays in its unloaded state: no field was populated and Save
+    // remains blocked, so submitting cannot write anything.
     expect(getSaveButton()).toBeDisabled()
+    expect(getControlByLabel('Name').value).toBe('')
     submitForm()
     expect(updates).toEqual([])
   })
 
-  test('blocks updates and uses localized feedback for unsuccessful responses', async () => {
-    apiClient.get = async () => ({
-      data: { success: false, message: 'raw server message' },
-    })
-
-    await renderDrawer(redemption(1))
-    // Vancine contract: when the gateway supplies a business message it is
-    // surfaced verbatim (an accurate error beats a generic one); the form
-    // stays blocked and only one toast fires.
-    await waitFor(() =>
-      expect(document.body).toHaveTextContent('raw server message')
-    )
-
-    expect(getSaveButton()).toBeDisabled()
-  })
+  test.each([
+    {
+      message: 'Redemption code is no longer available',
+      expected: 'Redemption code is no longer available',
+    },
+    { message: undefined, expected: 'Failed to load' },
+  ])(
+    'blocks updates and reports the server reason or localized fallback: $expected',
+    async ({ message, expected }) => {
+      apiClient.get = async () => ({
+        data: { success: false, message },
+      })
+      await renderDrawer(redemption(1))
+      await waitFor(() => expect(document.body).toHaveTextContent(expected))
+      expect(getSaveButton()).toBeDisabled()
+    }
+  )
 
   test('keeps the original quota when another field changes', async () => {
     const original = redemption(1)

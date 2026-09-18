@@ -96,6 +96,14 @@ vi.mock('@/hooks/use-system-config', () => ({
 }))
 
 const getHomePageContentMock = vi.fn()
+// The hook reports load failures through the unified server-error notifier
+// (upstream's replacement for a local console.error + toast.error pair), so the
+// spy sits on that boundary instead of on console.
+const handleServerErrorMock = vi.hoisted(() => vi.fn())
+vi.mock('@/lib/handle-server-error', () => ({
+  handleServerError: (...args: unknown[]) => handleServerErrorMock(...args),
+}))
+
 vi.mock('@/features/home/api', () => ({
   getHomePageContent: (...args: unknown[]) => getHomePageContentMock(...args),
 }))
@@ -165,7 +173,8 @@ const realInitialAuthData = {
   accessToken: useAuthStore.getState().auth.accessToken,
   accessExpiresAt: useAuthStore.getState().auth.accessExpiresAt,
   session: useAuthStore.getState().auth.session,
-  pending2FAFlowToken: useAuthStore.getState().auth.pending2FAFlowToken,
+  pendingLoginVerification:
+    useAuthStore.getState().auth.pendingLoginVerification,
   bootstrapState: useAuthStore.getState().auth.bootstrapState,
 }
 
@@ -499,31 +508,32 @@ describe('R6: cached content lazy initializer', () => {
   })
 
   it('keeps cache when network fails', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    handleServerErrorMock.mockClear()
     localStorage.setItem('home_page_content', 'https://cached.example.com/home')
     getHomePageContentMock.mockRejectedValue(new Error('Network error'))
     renderHome()
     await waitFor(() => {
       expect(screen.getByTitle('Custom Home Page')).toBeInTheDocument()
     })
-    expect(consoleSpy).toHaveBeenCalledWith(
-      'Failed to load home page content:',
-      expect.any(Error)
+    expect(handleServerErrorMock).toHaveBeenCalledTimes(1)
+    expect(handleServerErrorMock).toHaveBeenCalledWith(
+      expect.any(Error),
+      'Failed to load home page content'
     )
-    consoleSpy.mockRestore()
   })
 
   it('shows built-in homepage when network fails and no cache', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    handleServerErrorMock.mockClear()
     getHomePageContentMock.mockRejectedValue(new Error('Network error'))
     renderHome()
     await screen.findByRole('heading', {
       level: 1,
       name: 'One API for Chinese frontier and high-performance AI models',
     })
-    expect(consoleSpy).toHaveBeenCalledWith(
-      'Failed to load home page content:',
-      expect.any(Error)
+    expect(handleServerErrorMock).toHaveBeenCalledTimes(1)
+    expect(handleServerErrorMock).toHaveBeenCalledWith(
+      expect.any(Error),
+      'Failed to load home page content'
     )
     expect(
       screen.getByRole('heading', {
@@ -531,7 +541,6 @@ describe('R6: cached content lazy initializer', () => {
         name: 'One API for Chinese frontier and high-performance AI models',
       })
     ).toBeInTheDocument()
-    consoleSpy.mockRestore()
   })
 })
 

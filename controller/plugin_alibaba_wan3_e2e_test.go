@@ -97,7 +97,7 @@ func TestAlibabaWan3PlatformVideoGenerationsSubmitAndPoll(t *testing.T) {
 			queryCalls.Add(1)
 			queryPath = r.URL.Path
 			queryHeader = r.Header.Clone()
-			_, _ = io.WriteString(w, `{"request_id":"req-wan3-2","output":{"task_id":"ali-wan3-1","task_status":"SUCCEEDED","video_url":"`+upstreamVideoURL+`","duration":5,"resolution":"720P"}}`)
+			_, _ = io.WriteString(w, `{"request_id":"req-wan3-2","output":{"task_id":"ali-wan3-1","task_status":"SUCCEEDED","video_url":"`+upstreamVideoURL+`","duration":5,"resolution":"1080P"}}`)
 		default:
 			http.NotFound(w, r)
 		}
@@ -120,7 +120,7 @@ func TestAlibabaWan3PlatformVideoGenerationsSubmitAndPoll(t *testing.T) {
 	require.NotNil(t, generation)
 	declaredPlugin, declaredFound := generation.Get("alibaba")
 	require.True(t, declaredFound)
-	assert.Equal(t, "1.1.0", declaredPlugin.Meta.Version)
+	assert.Equal(t, "1.3.0", declaredPlugin.Meta.Version)
 	assert.Contains(t, declaredPlugin.Meta.Models, "wan3.0-video")
 
 	submitRecorder := httptest.NewRecorder()
@@ -195,7 +195,10 @@ func TestAlibabaWan3PlatformVideoGenerationsSubmitAndPoll(t *testing.T) {
 		parameters, ok := upstreamBody["parameters"].(map[string]any)
 		require.True(t, ok)
 		assert.Equal(t, float64(5), parameters["duration"])
-		assert.Equal(t, "720P", parameters["resolution"])
+		// The request sends no size, so upstream's Wan3 profile applies its own
+		// defaultResolution (1080P) and the kind:"all" default ratio (adaptive).
+		assert.Equal(t, "1080P", parameters["resolution"])
+		assert.Equal(t, "adaptive", parameters["ratio"])
 		assert.Equal(t, true, parameters["prompt_extend"])
 	})
 
@@ -207,7 +210,7 @@ func TestAlibabaWan3PlatformVideoGenerationsSubmitAndPoll(t *testing.T) {
 		assert.Contains(t, body, `"model":"wan3.0-video"`)
 		assert.NotContains(t, body, "ali-wan3-1")
 		assert.NotContains(t, body, "cdn.example")
-		assert.Equal(t, `{"seconds":5}`, submitRecorder.Header().Get("X-New-Api-Other-Ratios"))
+		assert.Equal(t, `{"resolution-1080P":4,"seconds":5}`, submitRecorder.Header().Get("X-New-Api-Other-Ratios"))
 	})
 
 	var persisted model.Task
@@ -223,18 +226,18 @@ func TestAlibabaWan3PlatformVideoGenerationsSubmitAndPoll(t *testing.T) {
 		snapshot := persisted.PrivateData.Execution.TaskPlugin
 		assert.Equal(t, "alibaba", snapshot.Key)
 		assert.Equal(t, "Alibaba Bailian", snapshot.Name)
-		assert.Equal(t, "1.1.0", snapshot.Version)
+		assert.Equal(t, "1.3.0", snapshot.Version)
 		require.NotNil(t, persisted.PrivateData.BillingContext)
-		assert.Equal(t, map[string]float64{"seconds": 5}, persisted.PrivateData.BillingContext.OtherRatios)
+		assert.Equal(t, map[string]float64{"seconds": 5, "resolution-1080P": 4}, persisted.PrivateData.BillingContext.OtherRatios)
 		assert.Equal(t, "wan3.0-video", persisted.PrivateData.BillingContext.OriginModelName)
 		assert.False(t, persisted.PrivateData.BillingContext.PerCallBilling)
 		assert.Nil(t, persisted.PrivateData.BillingContext.TieredSnapshot)
-		assert.Equal(t, 1_250_000, persisted.Quota)
+		assert.Equal(t, 5_000_000, persisted.Quota)
 	})
 
 	var chargedUser model.User
 	require.NoError(t, database.First(&chargedUser, 21).Error)
-	assert.Equal(t, 8_750_000, chargedUser.Quota)
+	assert.Equal(t, 5_000_000, chargedUser.Quota)
 
 	previousAdaptorFactory := service.GetTaskAdaptorFunc
 	service.GetTaskAdaptorFunc = func(platform constant.TaskPlatform) service.TaskPollingAdaptor {
@@ -258,11 +261,11 @@ func TestAlibabaWan3PlatformVideoGenerationsSubmitAndPoll(t *testing.T) {
 		assert.Equal(t, model.TaskStatus(model.TaskStatusSuccess), persisted.Status)
 		assert.Equal(t, "100%", persisted.Progress)
 		assert.Equal(t, upstreamVideoURL, persisted.PrivateData.ResultURL)
-		assert.Equal(t, 1_250_000, persisted.Quota, "matching completion facts must not move the settled quota")
+		assert.Equal(t, 5_000_000, persisted.Quota, "matching completion facts must not move the settled quota")
 
 		var settledUser model.User
 		require.NoError(t, database.First(&settledUser, 21).Error)
-		assert.Equal(t, 8_750_000, settledUser.Quota)
+		assert.Equal(t, 5_000_000, settledUser.Quota)
 	})
 
 	t.Run("artifacts stay available through platform 17", func(t *testing.T) {

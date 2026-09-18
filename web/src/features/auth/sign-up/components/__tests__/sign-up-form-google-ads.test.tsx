@@ -62,9 +62,16 @@ vi.mock('@/hooks/use-status', () => ({
   }),
 }))
 
+// The merged component consumes the hook's bundle-or-challenge entry point:
+// `handleLoginResult(data, redirectTo?)` applies the auth bundle (or routes a
+// login challenge) and resolves to whether the login completed. The mock mirrors
+// the real hook's returned shape and resolves `true`, which is exactly what the
+// real implementation returns for a valid auth bundle, so the component's
+// post-login `toast.success` branch is still exercised. `handleLoginSuccess` is
+// kept only for shape parity — the components no longer call it directly.
 const authRedirectMocks = vi.hoisted(() => ({
   handleLoginSuccess: vi.fn(async () => {}),
-  redirectTo2FA: vi.fn(),
+  handleLoginResult: vi.fn(async () => true),
   redirectToLogin: vi.fn(),
   redirectToRegister: vi.fn(),
 }))
@@ -132,6 +139,7 @@ beforeEach(() => {
     message: 'wechat rejected',
   }))
   authRedirectMocks.handleLoginSuccess.mockClear()
+  authRedirectMocks.handleLoginResult.mockClear()
   authRedirectMocks.redirectToLogin.mockClear()
   googleAdsMocks.reportGoogleAdsSignupConversion.mockReset()
   toastSpy.error.mockClear()
@@ -300,7 +308,7 @@ describe('SignUpForm Google Ads conversion on WeChat registration', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
     })
     await waitFor(() =>
-      expect(authRedirectMocks.handleLoginSuccess).toHaveBeenCalledTimes(1)
+      expect(authRedirectMocks.handleLoginResult).toHaveBeenCalledTimes(1)
     )
   }
 
@@ -331,7 +339,7 @@ describe('SignUpForm Google Ads conversion on WeChat registration', () => {
     expect(
       googleAdsMocks.reportGoogleAdsSignupConversion
     ).not.toHaveBeenCalled()
-    expect(authRedirectMocks.handleLoginSuccess).toHaveBeenCalledTimes(1)
+    expect(authRedirectMocks.handleLoginResult).toHaveBeenCalledTimes(1)
   })
 
   it('reports a second, different real WeChat registration in the same form session', async () => {
@@ -360,7 +368,7 @@ describe('SignUpForm Google Ads conversion on WeChat registration', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
     })
     await waitFor(() =>
-      expect(authRedirectMocks.handleLoginSuccess).toHaveBeenCalledTimes(1)
+      expect(authRedirectMocks.handleLoginResult).toHaveBeenCalledTimes(1)
     )
     expect(
       googleAdsMocks.reportGoogleAdsSignupConversion
@@ -384,7 +392,7 @@ describe('SignUpForm Google Ads conversion on WeChat registration', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
     })
     await waitFor(() =>
-      expect(authRedirectMocks.handleLoginSuccess).toHaveBeenCalledTimes(2)
+      expect(authRedirectMocks.handleLoginResult).toHaveBeenCalledTimes(2)
     )
     expect(
       googleAdsMocks.reportGoogleAdsSignupConversion
@@ -423,6 +431,6 @@ describe('SignUpForm Google Ads conversion on WeChat registration', () => {
     expect(
       googleAdsMocks.reportGoogleAdsSignupConversion
     ).not.toHaveBeenCalled()
-    expect(authRedirectMocks.handleLoginSuccess).not.toHaveBeenCalled()
+    expect(authRedirectMocks.handleLoginResult).not.toHaveBeenCalled()
   })
 })

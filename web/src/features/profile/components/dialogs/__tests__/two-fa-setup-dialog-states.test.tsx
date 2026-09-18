@@ -16,23 +16,28 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { render, screen, waitFor } from '@testing-library/react'
+/**
+ * TwoFASetupDialog body-state contract.
+ *
+ * Upstream's security rework made this dialog purely presentational: the
+ * `setup2FA` / `enable2FA` fetching, the secure-verification proof and the
+ * failure messaging now live in `useTwoFASetup`
+ * (@/features/security/hooks/use-two-fa-setup) and flow through the shared
+ * `handleServerError` notifier. These tests therefore drive the dialog through
+ * its props instead of mocking the API, and assert the states a user can
+ * actually see: initializing, ready, load-failure, surfaced error, the backup
+ * code step, and the close contract.
+ */
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import i18next from 'i18next'
-import { useState } from 'react'
 import { I18nextProvider, initReactI18next } from 'react-i18next'
-import { toast } from 'sonner'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { TwoFASetupDialog } from '../two-fa-setup-dialog'
+import type { TwoFASetupData } from '@/features/security/api'
+import { TwoFASetupDialog } from '@/features/security/components/dialogs/two-fa-setup-dialog'
 
-const setup2FAMock = vi.hoisted(() => vi.fn())
-const enable2FAMock = vi.hoisted(() => vi.fn())
 const copyToClipboardMock = vi.hoisted(() => vi.fn())
-
-vi.mock('@/lib/api', () => ({
-  setup2FA: (...args: unknown[]) => setup2FAMock(...args),
-  enable2FA: (...args: unknown[]) => enable2FAMock(...args),
-}))
 
 // Real hook contract is { copiedText, copyToClipboard } — CopyButton
 // destructures exactly these two fields; the underlying clipboard is a
@@ -58,135 +63,160 @@ await i18n.use(initReactI18next).init({
         'Verify Setup': 'Verify Setup',
         Back: 'Back',
         Next: 'Next',
+        'Enable 2FA': 'Enable 2FA',
+        'Enabling...': 'Enabling...',
+        Cancel: 'Cancel',
         'Setting up 2FA...': 'Setting up 2FA...',
         'Failed to load setup data': 'Failed to load setup data',
-        'Failed to setup 2FA': 'Failed to setup 2FA',
+        'Verification Code': 'Verification Code',
+        'Enter 6-digit code': 'Enter 6-digit code',
         'Scan this QR code with your authenticator app (Google Authenticator, Microsoft Authenticator, etc.)':
           'Scan this QR code with your authenticator app (Google Authenticator, Microsoft Authenticator, etc.)',
         'Or enter this key manually:': 'Or enter this key manually:',
         'Copy secret key': 'Copy secret key',
+        'Copy all backup codes': 'Copy all backup codes',
+        'Copy All Codes': 'Copy All Codes',
+        'Save these backup codes in a safe place. Each code can only be used once.':
+          'Save these backup codes in a safe place. Each code can only be used once.',
       },
     },
   },
 })
 
-// Controlled wrapper: the parent owns `open`, so a failed setup that calls
-// onOpenChange(false) really closes the dialog. Keeping `open` pinned to
-// true would re-trigger the open effect and re-run setup2FA in a loop; the
-// wrapper's owned state prevents that without sleeps or private state.
-function Harness({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
-  const [open, setOpen] = useState(true)
-  return (
+const setupData: TwoFASetupData = {
+  secret: 'SECRETKEY',
+  qr_code_data: 'otpauth://totp/Vancine:test@example.com?secret=SECRETKEY',
+  backup_codes: ['CODE-ONE', 'CODE-TWO', 'CODE-THREE'],
+  flow_token: 'flow-token',
+  // Far in the future so the dialog never takes the expired-setup branch.
+  expires_at: Math.floor(Date.now() / 1000) + 600,
+}
+
+type DialogProps = {
+  setupData?: TwoFASetupData | null
+  loading?: boolean
+  initializing?: boolean
+  error?: string
+  onCancel?: () => void
+  onEnable?: (code: string) => Promise<void>
+}
+
+function renderDialog(props: DialogProps = {}) {
+  const onCancel = props.onCancel ?? vi.fn()
+  const onEnable = props.onEnable ?? vi.fn(async () => {})
+  const utils = render(
     <I18nextProvider i18n={i18n}>
       <TwoFASetupDialog
-        open={open}
-        onOpenChange={(next) => {
-          setOpen(next)
-          onOpenChange(next)
-        }}
-        onSuccess={() => {}}
+        open
+        setupData={props.setupData === undefined ? setupData : props.setupData}
+        loading={props.loading ?? false}
+        initializing={props.initializing ?? false}
+        error={props.error}
+        onCancel={onCancel}
+        onEnable={onEnable}
       />
     </I18nextProvider>
   )
+  return { onCancel, onEnable, ...utils }
 }
-
-function renderHarness(onOpenChange = vi.fn()) {
-  return {
-    onOpenChange,
-    ...render(<Harness onOpenChange={onOpenChange} />),
-  }
-}
-
-beforeEach(() => {
-  setup2FAMock.mockReset()
-  setup2FAMock.mockResolvedValue({
-    success: true,
-    message: '',
-    data: {
-      secret: 'SECRETKEY',
-      qr_code_data: 'otpauth://totp/test',
-      backup_codes: ['AAAA-0001'],
-    },
-  })
-  enable2FAMock.mockReset()
-  enable2FAMock.mockResolvedValue({ success: true })
-  copyToClipboardMock.mockReset()
-  copyToClipboardMock.mockResolvedValue(true)
-})
 
 afterEach(() => {
-  // Unconditional restoration so a failing assertion never leaks a spy or
-  // mock into the next test.
   vi.restoreAllMocks()
 })
 
 describe('TwoFASetupDialog main body states', () => {
-  it('shows "Setting up 2FA..." while setup2FA is pending', async () => {
-    setup2FAMock.mockReturnValue(new Promise(() => {}))
-    renderHarness()
+  it('shows "Setting up 2FA..." and gates navigation while initializing', () => {
+    renderDialog({ initializing: true, setupData: null })
 
-    await screen.findByText('Setting up 2FA...')
-
-    // No failure state, no loaded content while the request is in flight.
+    expect(screen.getByText('Setting up 2FA...')).toBeInTheDocument()
+    // No failure state and no loaded content while the request is in flight.
     expect(screen.queryByText('Failed to load setup data')).toBeNull()
     expect(screen.queryByText('SECRETKEY')).toBeNull()
-    // The Next step is held disabled while initializing.
     expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled()
+    // Back only exists from step 1 onward, so the first step has no way back.
+    expect(screen.queryByRole('button', { name: 'Back' })).toBeNull()
   })
 
-  it('shows QR/secret content and an enabled Next once setup succeeds', async () => {
-    renderHarness()
+  it('shows QR/secret content and an enabled Next once setup data arrives', () => {
+    renderDialog()
 
-    await screen.findByText('SECRETKEY')
+    expect(screen.getByText('SECRETKEY')).toBeInTheDocument()
     expect(screen.getByText(/Scan this QR code/)).toBeInTheDocument()
     // QRCodeSVG exposes its accessible contract as an img role; this proves
     // the QR code itself is present (dialog chrome never renders role=img).
     expect(screen.getByRole('img')).toBeInTheDocument()
-    // Initializing and failure states are gone.
     expect(screen.queryByText('Setting up 2FA...')).toBeNull()
     expect(screen.queryByText('Failed to load setup data')).toBeNull()
     expect(screen.getByRole('button', { name: 'Next' })).not.toBeDisabled()
   })
 
-  it('surfaces the backend failure message and closes on a failed setup', async () => {
-    const errorSpy = vi.spyOn(toast, 'error')
-    setup2FAMock.mockResolvedValue({
-      success: false,
-      message: 'Backend refused 2FA setup',
-    })
-    const { onOpenChange } = renderHarness()
+  it('reports a load failure instead of an empty QR step', () => {
+    renderDialog({ setupData: null })
 
-    await waitFor(() => {
-      expect(errorSpy).toHaveBeenCalledWith('Backend refused 2FA setup')
-    })
-    // Each side of the failure contract fires exactly once.
-    expect(errorSpy).toHaveBeenCalledTimes(1)
-    expect(onOpenChange).toHaveBeenCalledTimes(1)
-    expect(onOpenChange).toHaveBeenCalledWith(false)
-    expect(setup2FAMock).toHaveBeenCalledTimes(1)
-    // The controlled close really removed the dialog from the accessible
-    // tree: its title is gone once the parent stopped rendering it open.
-    await waitFor(() => {
-      expect(screen.queryByText('Setup Two-Factor Authentication')).toBeNull()
-    })
+    expect(screen.getByText('Failed to load setup data')).toBeInTheDocument()
+    expect(screen.queryByText('Setting up 2FA...')).toBeNull()
+    expect(screen.queryByText('SECRETKEY')).toBeNull()
+    // Navigation stays gated: there is nothing to step through.
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled()
   })
 
-  it('falls back to the generic message and closes when setup2FA rejects', async () => {
-    const errorSpy = vi.spyOn(toast, 'error')
-    setup2FAMock.mockRejectedValue(new Error('network down'))
-    const { onOpenChange } = renderHarness()
+  it('surfaces a supplied error message as an alert', () => {
+    renderDialog({ error: 'Backend refused 2FA setup' })
 
-    await waitFor(() => {
-      expect(errorSpy).toHaveBeenCalledWith('Failed to setup 2FA')
-    })
-    // The catch branch logs the real error via console.error (production
-    // behavior, reported separately) and then fires each contract once.
-    expect(errorSpy).toHaveBeenCalledTimes(1)
-    expect(onOpenChange).toHaveBeenCalledTimes(1)
-    expect(onOpenChange).toHaveBeenCalledWith(false)
-    expect(setup2FAMock).toHaveBeenCalledTimes(1)
-    await waitFor(() => {
-      expect(screen.queryByText('Setup Two-Factor Authentication')).toBeNull()
-    })
+    const alert = screen.getByRole('alert')
+    expect(alert).toHaveTextContent('Backend refused 2FA setup')
+  })
+
+  it('reveals every backup code on the second step', async () => {
+    const user = userEvent.setup()
+    renderDialog()
+
+    await user.click(screen.getByRole('button', { name: 'Next' }))
+
+    for (const code of setupData.backup_codes) {
+      expect(screen.getByText(code)).toBeInTheDocument()
+    }
+    expect(
+      screen.getByText(
+        'Save these backup codes in a safe place. Each code can only be used once.'
+      )
+    ).toBeInTheDocument()
+  })
+
+  it('hands the close back to the owner through onCancel', async () => {
+    const user = userEvent.setup()
+    const onCancel = vi.fn()
+    const { container } = renderDialog({ onCancel })
+
+    // The dialog is controlled: closing it is the owner's decision, so the
+    // component must report the intent rather than mutate its own visibility.
+    const closeButton = container.querySelector(
+      '[aria-label="Close"], [data-slot="dialog-close"]'
+    )
+    if (closeButton) {
+      await user.click(closeButton)
+    } else {
+      await user.keyboard('{Escape}')
+    }
+
+    expect(onCancel).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps Enable gated until a code is entered, then submits it', async () => {
+    const user = userEvent.setup()
+    const onEnable = vi.fn(async () => {})
+    renderDialog({ onEnable })
+
+    await user.click(screen.getByRole('button', { name: 'Next' }))
+    await user.click(screen.getByRole('button', { name: 'Next' }))
+
+    const enable = screen.getByRole('button', { name: 'Enable 2FA' })
+    expect(enable).toBeDisabled()
+
+    await user.type(screen.getByLabelText('Verification Code'), '123456')
+    expect(enable).not.toBeDisabled()
+
+    await user.click(enable)
+    expect(onEnable).toHaveBeenCalledWith('123456')
   })
 })

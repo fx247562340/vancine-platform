@@ -130,6 +130,15 @@ func passkeyReLoginBody(t *testing.T, dbType common.DatabaseType) {
 		&model.UserSession{},
 		&model.AuthFlow{},
 		&model.Log{},
+		// The merged security core projects two_fas while choosing a passkey
+		// login method, reads options for the passkey settings snapshot, and
+		// writes audit_logs for the unbind/relogin trail; p10SetupDatabase runs
+		// with IsMasterNode=false, so InitLogDB does not migrate the audit table
+		// for us.
+		&model.TwoFA{},
+		&model.TwoFABackupCode{},
+		&model.Option{},
+		&model.AuditLog{},
 	)
 
 	// Explicitly enable Passkey and pin deterministic RP ID / Origins; the

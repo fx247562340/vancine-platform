@@ -19,19 +19,9 @@ For commercial licensing, please contact support@quantumnous.com
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import i18next from 'i18next'
 import { I18nextProvider, initReactI18next } from 'react-i18next'
-import { toast } from 'sonner'
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  type MockInstance,
-  vi,
-} from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getRedemption } from '@/features/redemption-codes/api'
-import { ERROR_MESSAGES } from '@/features/redemption-codes/constants'
 import type { Redemption } from '@/features/redemption-codes/types'
 
 import { RedemptionsMutateDrawer } from '../redemptions-mutate-drawer'
@@ -42,6 +32,22 @@ vi.mock('@/features/redemption-codes/api', () => ({
   createRedemption: vi.fn(),
   updateRedemption: vi.fn(),
 }))
+
+// Load failures are reported through the unified server-error notifier, which
+// replaced the drawer's former direct `toast.error(fallback)` calls. The spy
+// therefore sits on that boundary and asserts the delegation contract: the raw
+// failure payload plus the user-visible fallback message the component chose.
+// `importActual` keeps the module's other exports (e.g. markServerErrorHandled)
+// intact for everything else in the rendered tree.
+const handleServerErrorMock = vi.hoisted(() => vi.fn())
+vi.mock('@/lib/handle-server-error', async (importActual) => {
+  const actual =
+    await importActual<typeof import('@/lib/handle-server-error')>()
+  return {
+    ...actual,
+    handleServerError: (...args: unknown[]) => handleServerErrorMock(...args),
+  }
+})
 
 const getRedemptionMock = vi.mocked(getRedemption)
 
@@ -87,7 +93,9 @@ const REDEMPTION_B: Redemption = {
   key: 'CODE-B',
 }
 
-let toastErrorSpy: MockInstance<typeof toast.error>
+// The fallback the drawer hands to the notifier; the test i18n instance has no
+// resource bundle, so `t('Failed to load')` resolves to the source string.
+const LOAD_FALLBACK = 'Failed to load'
 
 function renderDrawer(currentRow: Redemption) {
   const onOpenChange = vi.fn()
@@ -111,7 +119,7 @@ function nameInput() {
 
 beforeEach(() => {
   getRedemptionMock.mockReset()
-  toastErrorSpy = vi.spyOn(toast, 'error')
+  handleServerErrorMock.mockClear()
 })
 
 afterEach(() => {
@@ -128,7 +136,7 @@ describe('RedemptionsMutateDrawer load contract', () => {
     load.resolve({ success: true, data: REDEMPTION_A })
 
     await waitFor(() => expect(nameInput()).toHaveValue('gift pack'))
-    expect(toastErrorSpy).not.toHaveBeenCalled()
+    expect(handleServerErrorMock).not.toHaveBeenCalled()
   })
 
   it('shows the backend message and keeps the form untouched on business failure with message', async () => {
@@ -136,12 +144,15 @@ describe('RedemptionsMutateDrawer load contract', () => {
     getRedemptionMock.mockReturnValue(load.promise)
     renderDrawer(REDEMPTION_A)
 
-    load.resolve({ success: false, message: 'Code revoked' })
+    const failure = { success: false, message: 'Code revoked' }
+    load.resolve(failure)
 
+    // The drawer must hand the gateway's own payload to the notifier (so the
+    // backend message wins over the fallback) together with the fallback.
     await waitFor(() => {
-      expect(toastErrorSpy).toHaveBeenCalledWith('Code revoked')
+      expect(handleServerErrorMock).toHaveBeenCalledWith(failure, LOAD_FALLBACK)
     })
-    expect(toastErrorSpy).toHaveBeenCalledTimes(1)
+    expect(handleServerErrorMock).toHaveBeenCalledTimes(1)
     expect(nameInput()).toHaveValue('')
   })
 
@@ -150,12 +161,13 @@ describe('RedemptionsMutateDrawer load contract', () => {
     getRedemptionMock.mockReturnValue(load.promise)
     renderDrawer(REDEMPTION_A)
 
-    load.resolve({ success: false })
+    const failure = { success: false }
+    load.resolve(failure)
 
     await waitFor(() => {
-      expect(toastErrorSpy).toHaveBeenCalledWith(ERROR_MESSAGES.LOAD_FAILED)
+      expect(handleServerErrorMock).toHaveBeenCalledWith(failure, LOAD_FALLBACK)
     })
-    expect(toastErrorSpy).toHaveBeenCalledTimes(1)
+    expect(handleServerErrorMock).toHaveBeenCalledTimes(1)
     expect(nameInput()).toHaveValue('')
   })
 
@@ -164,26 +176,34 @@ describe('RedemptionsMutateDrawer load contract', () => {
     getRedemptionMock.mockReturnValue(load.promise)
     renderDrawer(REDEMPTION_A)
 
-    load.resolve({ success: true })
+    const failure = { success: true }
+    load.resolve(failure)
 
     await waitFor(() => {
-      expect(toastErrorSpy).toHaveBeenCalledWith(ERROR_MESSAGES.LOAD_FAILED)
+      expect(handleServerErrorMock).toHaveBeenCalledWith(failure, LOAD_FALLBACK)
     })
-    expect(toastErrorSpy).toHaveBeenCalledTimes(1)
+    expect(handleServerErrorMock).toHaveBeenCalledTimes(1)
     expect(nameInput()).toHaveValue('')
   })
 
-  it('shows the localized fallback on reject and keeps the form untouched', async () => {
+  it('delegates a rejection to the unified notifier with the localized fallback and keeps the form untouched', async () => {
     const load = deferred<{ success: boolean; data?: Redemption }>()
     getRedemptionMock.mockReturnValue(load.promise)
     renderDrawer(REDEMPTION_A)
 
-    load.reject(new Error('network down'))
+    const rejection = new Error('network down')
+    load.reject(rejection)
 
+    // The catch branch forwards the raw error together with the same localized
+    // fallback the resolved-business-failure branch uses, so a transport
+    // failure that carries no actionable message still shows localized copy.
     await waitFor(() => {
-      expect(toastErrorSpy).toHaveBeenCalledWith(ERROR_MESSAGES.LOAD_FAILED)
+      expect(handleServerErrorMock).toHaveBeenCalledWith(
+        rejection,
+        LOAD_FALLBACK
+      )
     })
-    expect(toastErrorSpy).toHaveBeenCalledTimes(1)
+    expect(handleServerErrorMock).toHaveBeenCalledTimes(1)
     expect(nameInput()).toHaveValue('')
   })
 
@@ -215,10 +235,10 @@ describe('RedemptionsMutateDrawer load contract', () => {
     loadA.resolve({ success: true, data: REDEMPTION_A })
     await act(async () => {})
     expect(nameInput()).toHaveValue('vip pack')
-    expect(toastErrorSpy).not.toHaveBeenCalled()
+    expect(handleServerErrorMock).not.toHaveBeenCalled()
   })
 
-  it('does not toast when a stale load rejects after the drawer unmounts', async () => {
+  it('does not raise an error notification when a stale load rejects after the drawer unmounts', async () => {
     const load = deferred<{ success: boolean; data?: Redemption }>()
     getRedemptionMock.mockReturnValue(load.promise)
     const { view } = renderDrawer(REDEMPTION_A)
@@ -227,11 +247,11 @@ describe('RedemptionsMutateDrawer load contract', () => {
     await waitFor(() => expect(getRedemptionMock).toHaveBeenCalledTimes(1))
     view.unmount()
     // Settle the rejection in the test coroutine so the catch branch runs;
-    // only the sequence guard may suppress the toast.
+    // only the sequence guard may suppress the error notification.
     await act(async () => {
       load.reject(new Error('network down'))
     })
 
-    expect(toastErrorSpy).not.toHaveBeenCalled()
+    expect(handleServerErrorMock).not.toHaveBeenCalled()
   })
 })

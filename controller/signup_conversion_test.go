@@ -79,6 +79,10 @@ func TestSignupConversionWeChatBindOmitsSignupCompleted(t *testing.T) {
 	owner := model.User{
 		Username: "wechat_conversion_bind_owner", Role: common.RoleCommonUser,
 		Status: common.UserStatusEnabled, AuthVersion: 1,
+		// The merged security core only offers a verification method the account
+		// actually holds; a binding account needs a password on file for the
+		// scoped account-bind proof to be issuable.
+		Password: "bind-owner-password-hash",
 	}
 	require.NoError(t, model.DB.Create(&owner).Error)
 
@@ -86,13 +90,23 @@ func TestSignupConversionWeChatBindOmitsSignupCompleted(t *testing.T) {
 	common.WeChatAuthEnabled = true
 	common.WeChatServerAddress = mock.URL
 
+	// WeChatBind now authenticates a dashboard session and consumes a scoped
+	// account-bind proof whose context carries the WeChat code, so the fixture
+	// provisions the durable session and presents that proof.
+	identity := provisionBindSessionIdentity(t, model.DB, &owner, "signup-conversion-wechat-session")
+
 	gin.SetMode(gin.TestMode)
 	recorder := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(recorder)
 	c.Request = httptest.NewRequest(http.MethodPost, "/api/oauth/wechat/bind",
 		strings.NewReader(`{"code":"mock-code"}`))
 	c.Request.Header.Set("Content-Type", "application/json")
-	c.Set("id", owner.Id)
+	c.Request.Header.Set("X-Security-Proof",
+		accountBindSecurityProof(t, identity, `{"provider":"wechat","code":"mock-code"}`))
+	c.Set("id", identity.UserID)
+	c.Set("session_id", identity.SessionID)
+	c.Set("auth_version", identity.UserAuthVersion)
+	c.Set("session_version", identity.SessionVersion)
 	WeChatBind(c)
 
 	require.Equal(t, http.StatusOK, recorder.Code, recorder.Body.String())
@@ -308,6 +322,10 @@ func TestSignupConversionGenericOAuthBindOmitsSignupCompleted(t *testing.T) {
 	owner := model.User{
 		Username: "signup_conversion_bind_owner", Role: common.RoleCommonUser,
 		Status: common.UserStatusEnabled, AuthVersion: 1,
+		// The merged security core only offers a verification method the account
+		// actually holds; a binding account needs a password on file for the
+		// scoped account-bind proof to be issuable.
+		Password: "bind-owner-password-hash",
 	}
 	require.NoError(t, model.DB.Create(&owner).Error)
 
@@ -319,16 +337,21 @@ func TestSignupConversionGenericOAuthBindOmitsSignupCompleted(t *testing.T) {
 	oauth.Register("stubbind", provider)
 	t.Cleanup(func() { oauth.Unregister("stubbind") })
 
-	// Start a bind-intent flow exactly like the account settings page does.
+	// Start a bind-intent flow exactly like the account settings page does. The
+	// merged security core only starts it for a request presenting a scoped
+	// account-bind proof bound to a durable login session.
+	identity := provisionBindSessionIdentity(t, model.DB, &owner, "signup-conversion-session-1")
 	stateRecorder := httptest.NewRecorder()
 	stateCtx, _ := gin.CreateTestContext(stateRecorder)
 	stateCtx.Request = httptest.NewRequest(http.MethodPost, "/api/oauth/state",
 		strings.NewReader(`{"provider":"stubbind","intent":"bind"}`))
 	stateCtx.Request.Header.Set("Content-Type", "application/json")
-	stateCtx.Set("id", owner.Id)
-	stateCtx.Set("session_id", "signup-conversion-session-1")
-	stateCtx.Set("auth_version", int64(1))
-	stateCtx.Set("session_version", int64(1))
+	stateCtx.Request.Header.Set("X-Security-Proof",
+		accountBindSecurityProof(t, identity, `{"provider":"stubbind"}`))
+	stateCtx.Set("id", identity.UserID)
+	stateCtx.Set("session_id", identity.SessionID)
+	stateCtx.Set("auth_version", identity.UserAuthVersion)
+	stateCtx.Set("session_version", identity.SessionVersion)
 	GenerateOAuthCode(stateCtx)
 	require.Equal(t, http.StatusOK, stateRecorder.Code, stateRecorder.Body.String())
 	var stateResp struct {
@@ -343,10 +366,10 @@ func TestSignupConversionGenericOAuthBindOmitsSignupCompleted(t *testing.T) {
 	// Drive the callback through the real router so :provider resolves.
 	router := gin.New()
 	router.Use(func(c *gin.Context) {
-		c.Set("id", owner.Id)
-		c.Set("session_id", "signup-conversion-session-1")
-		c.Set("auth_version", int64(1))
-		c.Set("session_version", int64(1))
+		c.Set("id", identity.UserID)
+		c.Set("session_id", identity.SessionID)
+		c.Set("auth_version", identity.UserAuthVersion)
+		c.Set("session_version", identity.SessionVersion)
 		c.Next()
 	})
 	router.GET("/api/oauth/:provider", HandleOAuth)

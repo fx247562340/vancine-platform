@@ -241,6 +241,11 @@ func SetWebRouter(router *gin.Engine, assets WebAssets, pluginDispatcher gin.Han
 	privateIndexPage := assets.PrivateIndexPage
 
 	router.Use(gzip.Gzip(gzip.DefaultCompression))
+	// Upstream's access-token audit covers public reads and rejections that
+	// happen before route-level auth. Vancine applies gzip/rate-limit/cache/
+	// static at router scope, so the audit is registered here in upstream's
+	// relative order instead of being re-added inside NoRoute.
+	router.Use(middleware.AccessTokenAudit())
 	router.Use(middleware.GlobalWebRateLimit())
 	router.Use(middleware.Cache())
 

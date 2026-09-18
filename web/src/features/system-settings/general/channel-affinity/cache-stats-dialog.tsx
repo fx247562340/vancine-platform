@@ -18,10 +18,10 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useEffect, useMemo, useState, useRef, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
 
 import { Dialog } from '@/components/dialog'
 import { formatTimestampToDate } from '@/lib/format'
+import { handleServerError } from '@/lib/handle-server-error'
 
 import { getAffinityUsageCache } from './api'
 
@@ -62,18 +62,18 @@ export function CacheStatsDialog(props: Props) {
 
     setStats(null)
 
-    // The chain fully owns its rejection contract (seq-guarded toast) and
-    // completes with a sync setState in finally; the void only acknowledges
+    // The chain fully owns its rejection contract (seq-guarded error handling)
+    // and completes with a sync setState in finally; the void only acknowledges
     // the discarded return value of the trailing .finally().
     void getAffinityUsageCache(props.target)
       .then((res) => {
         if (seq !== seqRef.current) return
         if (res.success) setStats((res.data as Record<string, unknown>) || {})
-        else toast.error(res.message || t('Request failed'))
+        else handleServerError(res, t('Request failed'))
       })
-      .catch(() => {
+      .catch((error) => {
         if (seq !== seqRef.current) return
-        toast.error(t('Request failed'))
+        handleServerError(error, t('Request failed'))
       })
       .finally(() => {
         if (seq !== seqRef.current) return

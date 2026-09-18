@@ -123,7 +123,8 @@ func TestOaiImage2AliImageRequestHonorsExtraParametersForPublicAPI(t *testing.T)
 		},
 	}, true)
 	require.NoError(t, err)
-	assert.Equal(t, 3, converted.Parameters.N)
+	require.NotNil(t, converted.Parameters.N)
+	assert.Equal(t, uint(3), *converted.Parameters.N)
 	assert.Equal(t, "1024*1024", converted.Parameters.Size)
 }
 

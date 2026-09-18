@@ -30,6 +30,7 @@ For commercial licensing, please contact support@quantumnous.com
 /**
  * @vitest-environment jsdom
  */
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { AxiosResponse, InternalAxiosRequestConfig } from 'axios'
@@ -39,6 +40,7 @@ import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { api } from '@/lib/api'
+import { useSystemConfigStore } from '@/stores/system-config-store'
 
 import { UserBindingDialog } from '../user-binding-dialog'
 
@@ -227,16 +229,34 @@ const recordingAdapter = async (
 // Rendering harness
 // ============================================================================
 
+/**
+ * The dialog reads `/api/status` through the shared React Query cache
+ * (`statusQueryOptions`), so it needs a QueryClientProvider. A fresh client per
+ * render keeps the per-test `google_oauth` switch isolated; the status request
+ * still goes through the recording adapter, so no real network is involved.
+ */
+const queryClients: QueryClient[] = []
+
+function createQueryClient(): QueryClient {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 } },
+  })
+  queryClients.push(queryClient)
+  return queryClient
+}
+
 function renderDialog(onUnbindSuccess?: () => void) {
   return render(
-    <I18nextProvider i18n={i18n}>
-      <UserBindingDialog
-        open
-        onOpenChange={() => undefined}
-        userId={1}
-        onUnbindSuccess={onUnbindSuccess ?? (() => undefined)}
-      />
-    </I18nextProvider>
+    <QueryClientProvider client={createQueryClient()}>
+      <I18nextProvider i18n={i18n}>
+        <UserBindingDialog
+          open
+          onOpenChange={() => undefined}
+          userId={1}
+          onUnbindSuccess={onUnbindSuccess ?? (() => undefined)}
+        />
+      </I18nextProvider>
+    </QueryClientProvider>
   )
 }
 
@@ -273,12 +293,19 @@ beforeEach(() => {
   businessFailureMessage = 'clear refused by backend'
   googleCleared = false
   api.defaults.adapter = recordingAdapter
+  // `fetchStatus` persists a snapshot to localStorage and syncs the system
+  // config store; reset both so no status leaks between tests.
+  window.localStorage.clear()
+  useSystemConfigStore.setState(useSystemConfigStore.getInitialState(), true)
 })
 
 afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
   api.defaults.adapter = originalAdapter
+  queryClients.splice(0).forEach((client) => client.clear())
+  window.localStorage.clear()
+  useSystemConfigStore.setState(useSystemConfigStore.getInitialState(), true)
 })
 
 describe('UserBindingDialog Google admin clear', () => {
@@ -382,8 +409,36 @@ describe('UserBindingDialog Google admin clear', () => {
     expect(clearRequests()).toHaveLength(1)
   })
 
-  it('shows exactly one localized toast when an HTTP failure has no backend message', async () => {
+  it("shows exactly one toast with the component's localized fallback when an HTTP failure has no backend message", async () => {
     clearMode = 'http-failure-no-message'
+    const errorSpy = vi.spyOn(toast, 'error')
+    renderDialog()
+
+    const user = userEvent.setup()
+    await user.click(
+      await screen.findByRole('button', { name: 'Unbind Google' })
+    )
+    await user.click(screen.getByRole('button', { name: 'Confirm Unbind' }))
+
+    await clearRequestArrived.promise
+    await waitFor(() => expect(errorSpy).toHaveBeenCalledTimes(1))
+    // A message-less HTTP 500 carries only axios's synthesized transport text.
+    // The shared resolver must not treat that as a server message, so the
+    // component's t('Unbind failed') fallback is what the user sees — never the
+    // raw English 'Request failed with status code 500'. The invariant this
+    // test also owns is unchanged: exactly one toast, emitted by the component,
+    // never duplicated by the interceptor.
+    expect(errorSpy).toHaveBeenCalledWith('Unbind failed')
+    expect(clearRequests()).toHaveLength(1)
+    expectNoSensitiveSubjectLeak()
+  })
+
+  it('shows exactly one localized fallback toast when a business failure carries no backend message', async () => {
+    // The t('Unbind failed') fallback IS live on the business-failure path:
+    // a resolved { success: false } response with an empty message has no
+    // usable text, so handleServerError(res, fallback) returns the fallback.
+    clearMode = 'business-failure'
+    businessFailureMessage = ''
     const errorSpy = vi.spyOn(toast, 'error')
     renderDialog()
 
@@ -397,6 +452,7 @@ describe('UserBindingDialog Google admin clear', () => {
     await waitFor(() => expect(errorSpy).toHaveBeenCalledTimes(1))
     expect(errorSpy).toHaveBeenCalledWith('Unbind failed')
     expect(clearRequests()).toHaveLength(1)
+    expectNoSensitiveSubjectLeak()
   })
 
   it('re-renders the cleared state after a successful clear', async () => {
