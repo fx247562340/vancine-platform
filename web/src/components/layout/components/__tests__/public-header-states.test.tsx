@@ -41,6 +41,7 @@ import {
 } from '@/components/layout/components/public-header'
 import enLocale from '@/i18n/locales/en.json'
 import { trackEvent } from '@/lib/analytics'
+import { ROLE } from '@/lib/roles'
 import { useAuthStore, type AuthUser } from '@/stores/auth-store'
 
 // useSystemConfig is a network/store boundary; a mutable holder lets each
@@ -78,6 +79,36 @@ const topNavLinksState = {
 
 vi.mock('@/hooks/use-top-nav-links', () => ({
   useTopNavLinks: () => topNavLinksState.value,
+}))
+
+// The header must never render the /api/status version. These boundary mocks
+// control what status and the update checker would report so the version
+// tests below can prove the header renders neither; both hooks are network
+// boundaries and the header itself (module under test) stays real.
+const statusFixture = {
+  value: null as { system_name?: string; version?: string } | null,
+}
+
+vi.mock('@/hooks/use-status', () => ({
+  useStatus: () => ({
+    status: statusFixture.value,
+    loading: false,
+    error: null,
+  }),
+}))
+
+const systemUpdateState = {
+  value: {
+    currentVersion: 'v2.10.0',
+    checking: false,
+    shouldNotify: false,
+    release: null,
+    snapshot: null,
+  },
+}
+
+vi.mock('@/features/system-update/use-system-update', () => ({
+  useSystemUpdate: () => systemUpdateState.value,
 }))
 
 vi.mock('@/lib/analytics', () => ({
@@ -183,6 +214,12 @@ const authenticatedUser: AuthUser = {
   role: 0,
 }
 
+const adminUser: AuthUser = {
+  id: 2,
+  username: 'admin',
+  role: ROLE.ADMIN,
+}
+
 beforeEach(async () => {
   await initTestI18n()
   trackEventMock.mockClear()
@@ -194,6 +231,14 @@ beforeEach(async () => {
     logoLoaded: true,
   }
   setAuthUser(null)
+  statusFixture.value = { system_name: 'Vancine', version: 'v2.10.0' }
+  systemUpdateState.value = {
+    currentVersion: 'v2.10.0',
+    checking: false,
+    shouldNotify: false,
+    release: null,
+    snapshot: null,
+  }
 })
 
 afterEach(() => {
@@ -308,5 +353,25 @@ describe('PublicHeader desktop auth entry states', () => {
       within(desktopNav).queryAllByTestId('profile-dropdown')
     ).toHaveLength(0)
     expect(screen.queryByTestId('profile-dropdown')).toBeNull()
+  })
+})
+
+describe('PublicHeader version chip removal', () => {
+  it('shows the brand without the version chip or update button for an authenticated admin', async () => {
+    setAuthUser(adminUser)
+
+    const { container } = await renderHeader()
+
+    // Logo and site name stay visible in the brand area.
+    expect(screen.getByAltText('logo')).toHaveAttribute('src', '/logo.png')
+    expect(screen.getByText('Vancine')).toBeInTheDocument()
+    // The version and its update-check button must not render anywhere in
+    // the header even though status and the update checker carry a version.
+    expect(within(container).queryByText('v2.10.0')).toBeNull()
+    expect(
+      within(container).queryByRole('button', {
+        name: 'System updates, current version: v2.10.0',
+      })
+    ).toBeNull()
   })
 })
