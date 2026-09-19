@@ -29,14 +29,35 @@ the next catalog refresh. They do not require a new npm release.
 Two layers:
 
 1. **Realtime status and price** come from current platform pricing
-   (`model.GetPricing()`), including enabled abilities and
-   ModelRatio / CompletionRatio / CacheRatio / CreateCacheRatio.
-   Base USD/1M conversion:
+   (`model.GetPricing()`), including enabled abilities. Token USD/1M
+   prices have two sources:
+
+   **Legacy ratio** (`billing_mode` is not `tiered_expr`):
 
    - `input = model_ratio * 2`
    - `output = input * completion_ratio`
    - `cacheRead = input * cache_ratio`, or `0` when absent
    - `cacheWrite = input * create_cache_ratio`, or `0` when absent
+
+   **Standard single-tier token expression** (`billing_mode=tiered_expr`)
+   that maps losslessly onto Pi's four static prices. The only accepted
+   shape is one `tier("base", <sum>)` whose sum multiplies each of `p`,
+   `c`, and optionally `cr` / `cc` by a non-negative numeric literal at
+   most once, with `p` and `c` required:
+
+   - `p` → `input`
+   - `c` → `output`
+   - `cr` → `cacheRead` when present. If `cr` is omitted, cache-read
+     tokens stay inside `p`, so `cacheRead` falls back to `input`.
+   - `cc` → `cacheWrite` when present. If `cc` is omitted, cache-write
+     tokens stay inside `p`, so `cacheWrite` falls back to `input`.
+   - `cc1h` cannot map onto Pi's single `cacheWrite` field and is
+     excluded.
+
+   Coefficients are copied from the expression literals. They are not
+   recomputed from ratios. Example:
+   `tier("base", p * 0.12 + c * 0.4 + cr * 0.024)` publishes
+   `input=0.12`, `output=0.4`, `cacheRead=0.024`, `cacheWrite=0.12`.
 
    User-group multipliers, recharge discounts, and display-currency
    conversion are not applied.
@@ -65,8 +86,13 @@ inferred from model id, name, or marketing copy.
 
 `supported_endpoint_types` containing `openai` is not by itself proof of
 Pi chat; the registry must also declare chat completions metadata.
-TTS, video, image generation, embeddings, rerank, async task,
-per-request, and tiered/dynamic expression prices are excluded.
+TTS, video, image generation, embeddings, rerank, async task, and
+per-request prices are excluded. Complex expression prices are also
+excluded when they cannot map losslessly onto Pi's four static token
+prices: multiple tiers, `len` conditions, request probes (`header`,
+`param`, `u`), media/task variables (`img`, `img_cr`, `img_o`, `ai`,
+`ao`, `cc1h`, `image_count`), `fixed()` per-request leaves, and any
+illegal or otherwise non-standard expression.
 
 ## Adding a model
 
@@ -100,8 +126,9 @@ refresh. A brand-new model ID still needs trusted Pi metadata
   not a current alias.
 - Runtime output is every registry model that is currently enabled,
   token-priced, and advertised with a live OpenAI Chat Completions
-  endpoint. Media, per-request, tiered/dynamic, and unverified rows are
-  omitted. Platform models do not enter Pi unconditionally.
+  endpoint. Media, per-request, task, fixed, multi-tier, request-
+  conditional, and other non-lossless expression rows are omitted.
+  Platform models do not enter Pi unconditionally.
 
 The provider refreshes on startup and on its catalog interval using
 `ETag` / `Last-Modified`. A `304` keeps the last successful cache.

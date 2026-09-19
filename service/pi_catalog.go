@@ -11,7 +11,10 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/pkg/billingexpr"
 	"github.com/QuantumNous/new-api/setting/billing_setting"
+	"github.com/expr-lang/expr/ast"
+	"github.com/expr-lang/expr/parser"
 )
 
 const (
@@ -264,11 +267,18 @@ func piCatalogHasLiveChatCompletions(item model.Pricing) bool {
 }
 
 func piCatalogTokenCost(item model.Pricing) (PiCatalogCost, string) {
+	if item.BillingMode == billing_setting.BillingModeTieredExpr {
+		cost, ok := piCatalogCostFromStandardExpr(item.BillingExpr)
+		if !ok {
+			return PiCatalogCost{}, "unsupported Pi token pricing expression"
+		}
+		if !piCatalogCostFinite(cost.Input) || !piCatalogCostFinite(cost.Output) || !piCatalogCostFinite(cost.CacheRead) || !piCatalogCostFinite(cost.CacheWrite) {
+			return PiCatalogCost{}, "invalid token cost"
+		}
+		return cost, ""
+	}
 	if item.QuotaType != 0 {
 		return PiCatalogCost{}, "per-request pricing"
-	}
-	if item.BillingMode == billing_setting.BillingModeTieredExpr || strings.TrimSpace(item.BillingExpr) != "" {
-		return PiCatalogCost{}, "tiered/dynamic pricing"
 	}
 
 	input := item.ModelRatio * 2
@@ -290,6 +300,118 @@ func piCatalogTokenCost(item model.Pricing) (PiCatalogCost, string) {
 		CacheRead:  cacheRead,
 		CacheWrite: cacheWrite,
 	}, ""
+}
+
+// piCatalogCostFromStandardExpr maps a lossless single-tier token expression
+// onto Pi's four static USD/1M prices. Only
+// tier("base", p*X + c*Y [+ cr*Z] [+ cc*W]) is accepted; coefficients are
+// taken from numeric literals without recomputation. Omitted cr/cc fall back
+// to the input price because those tokens stay inside p.
+func piCatalogCostFromStandardExpr(exprStr string) (PiCatalogCost, bool) {
+	exprStr = strings.TrimSpace(exprStr)
+	if exprStr == "" {
+		return PiCatalogCost{}, false
+	}
+	_, body := billingexpr.ParseExprVersion(exprStr)
+	body = strings.TrimSpace(body)
+	if body == "" {
+		return PiCatalogCost{}, false
+	}
+	tree, err := parser.Parse(body)
+	if err != nil || tree == nil || tree.Node == nil {
+		return PiCatalogCost{}, false
+	}
+	call, ok := tree.Node.(*ast.CallNode)
+	if !ok || len(call.Arguments) != 2 {
+		return PiCatalogCost{}, false
+	}
+	callee, ok := call.Callee.(*ast.IdentifierNode)
+	if !ok || callee.Value != "tier" {
+		return PiCatalogCost{}, false
+	}
+	name, ok := call.Arguments[0].(*ast.StringNode)
+	if !ok || name.Value != "base" {
+		return PiCatalogCost{}, false
+	}
+	prices := make(map[string]float64, 4)
+	if !piCatalogCollectStandardTokenTerms(call.Arguments[1], prices) {
+		return PiCatalogCost{}, false
+	}
+	input, hasP := prices["p"]
+	output, hasC := prices["c"]
+	if !hasP || !hasC {
+		return PiCatalogCost{}, false
+	}
+	cacheRead, hasCR := prices["cr"]
+	if !hasCR {
+		cacheRead = input
+	}
+	cacheWrite, hasCC := prices["cc"]
+	if !hasCC {
+		cacheWrite = input
+	}
+	return PiCatalogCost{
+		Input:      input,
+		Output:     output,
+		CacheRead:  cacheRead,
+		CacheWrite: cacheWrite,
+	}, true
+}
+
+func piCatalogCollectStandardTokenTerms(node ast.Node, prices map[string]float64) bool {
+	bin, ok := node.(*ast.BinaryNode)
+	if !ok {
+		return false
+	}
+	switch bin.Operator {
+	case "+":
+		return piCatalogCollectStandardTokenTerms(bin.Left, prices) && piCatalogCollectStandardTokenTerms(bin.Right, prices)
+	case "*":
+		ident, coeff, ok := piCatalogStandardMulTerm(bin)
+		if !ok {
+			return false
+		}
+		if _, exists := prices[ident]; exists {
+			return false
+		}
+		switch ident {
+		case "p", "c", "cr", "cc":
+			prices[ident] = coeff
+			return true
+		default:
+			return false
+		}
+	default:
+		return false
+	}
+}
+
+func piCatalogStandardMulTerm(bin *ast.BinaryNode) (string, float64, bool) {
+	if ident, coeff, ok := piCatalogIdentTimesNumber(bin.Left, bin.Right); ok {
+		return ident, coeff, true
+	}
+	return piCatalogIdentTimesNumber(bin.Right, bin.Left)
+}
+
+func piCatalogIdentTimesNumber(maybeIdent, maybeNumber ast.Node) (string, float64, bool) {
+	ident, ok := maybeIdent.(*ast.IdentifierNode)
+	if !ok || ident.Value == "" {
+		return "", 0, false
+	}
+	switch n := maybeNumber.(type) {
+	case *ast.IntegerNode:
+		if n.Value < 0 {
+			return "", 0, false
+		}
+		return ident.Value, float64(n.Value), true
+	case *ast.FloatNode:
+		if math.IsNaN(n.Value) || math.IsInf(n.Value, 0) || n.Value < 0 {
+			return "", 0, false
+		}
+		return ident.Value, n.Value, true
+	default:
+		return "", 0, false
+	}
 }
 
 func piCatalogCostFinite(value float64) bool {

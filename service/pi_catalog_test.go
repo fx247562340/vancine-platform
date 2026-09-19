@@ -31,6 +31,13 @@ func chatPricing(id string, ratio, completion float64) model.Pricing {
 	}
 }
 
+func exprChatPricing(id, expr string) model.Pricing {
+	item := chatPricing(id, 999, 999)
+	item.BillingMode = billing_setting.BillingModeTieredExpr
+	item.BillingExpr = expr
+	return item
+}
+
 func defaultPriorityPricing() []model.Pricing {
 	return []model.Pricing{
 		chatPricing("glm-5.3-flash", 0.06, 3.333333333333),
@@ -533,6 +540,7 @@ func TestPiCatalogExcludesPerRequestAndTieredPricing(t *testing.T) {
 			QuotaType:              0,
 			ModelRatio:             0.06,
 			CompletionRatio:        3,
+			BillingMode:            billing_setting.BillingModeTieredExpr,
 			BillingExpr:            "tiered()",
 			SupportedEndpointTypes: []constant.EndpointType{constant.EndpointTypeOpenAI},
 		},
@@ -542,8 +550,8 @@ func TestPiCatalogExcludesPerRequestAndTieredPricing(t *testing.T) {
 	assert.Empty(t, models)
 	reasons := skipByID(skipped)
 	assert.Equal(t, "per-request pricing", reasons["hy4-preview"])
-	assert.Equal(t, "tiered/dynamic pricing", reasons["glm-5.3-flash"])
-	assert.Equal(t, "tiered/dynamic pricing", reasons["qwen3.8-flash"])
+	assert.Equal(t, "unsupported Pi token pricing expression", reasons["glm-5.3-flash"])
+	assert.Equal(t, "unsupported Pi token pricing expression", reasons["qwen3.8-flash"])
 }
 
 func TestPiCatalogOmitsMissingRegistryMetadata(t *testing.T) {
@@ -708,4 +716,219 @@ func TestPiCatalogFullSetChangeUpdatesCacheIdentity(t *testing.T) {
 	assert.NotEqual(t, first.ETag, second.ETag)
 	assert.True(t, second.LastModified.After(first.LastModified))
 	assert.NotEqual(t, first.Catalog.GeneratedAt, second.Catalog.GeneratedAt)
+}
+
+func TestPiCatalogIncludesLosslessStandardTokenExpression(t *testing.T) {
+	pricing := []model.Pricing{
+		exprChatPricing("glm-5.3-flash", `tier("base", p * 0.12 + c * 0.4 + cr * 0.024)`),
+	}
+	svc := catalogService(t, pricing, time.Unix(1, 0).UTC())
+	models, skipped := svc.BuildModels(pricing)
+	require.Empty(t, skipped)
+	require.Len(t, models, 1)
+	require.Equal(t, "glm-5.3-flash", models[0].ID)
+
+	cost := models[0].Cost
+	assert.Equal(t, 0.12, cost.Input)
+	assert.Equal(t, 0.4, cost.Output)
+	assert.Equal(t, 0.024, cost.CacheRead)
+	assert.Equal(t, 0.12, cost.CacheWrite)
+}
+
+func TestPiCatalogIncludesStandardExpressionCacheWrite(t *testing.T) {
+	pricing := []model.Pricing{
+		exprChatPricing("deepseek-v4.1-flash", `tier("base", p * 0.24 + c * 0.96 + cr * 0.0048 + cc * 0.3)`),
+	}
+	svc := catalogService(t, pricing, time.Unix(1, 0).UTC())
+	models, skipped := svc.BuildModels(pricing)
+	require.Empty(t, skipped)
+	require.Len(t, models, 1)
+	require.Equal(t, "deepseek-v4.1-flash", models[0].ID)
+
+	cost := models[0].Cost
+	assert.Equal(t, 0.24, cost.Input)
+	assert.Equal(t, 0.96, cost.Output)
+	assert.Equal(t, 0.0048, cost.CacheRead)
+	assert.Equal(t, 0.3, cost.CacheWrite)
+}
+
+func TestPiCatalogStandardExpressionAcceptsLiteralVariants(t *testing.T) {
+	cases := []struct {
+		name string
+		expr string
+		want PiCatalogCost
+	}{
+		{
+			name: "reversed multiplication",
+			expr: `tier("base", 0.12 * p + 0.4 * c + 0.024 * cr)`,
+			want: PiCatalogCost{Input: 0.12, Output: 0.4, CacheRead: 0.024, CacheWrite: 0.12},
+		},
+		{
+			name: "v1 version prefix",
+			expr: `v1:tier("base", p * 0.12 + c * 0.4 + cr * 0.024)`,
+			want: PiCatalogCost{Input: 0.12, Output: 0.4, CacheRead: 0.024, CacheWrite: 0.12},
+		},
+		{
+			name: "integer literals",
+			expr: `tier("base", p * 1 + c * 2)`,
+			want: PiCatalogCost{Input: 1, Output: 2, CacheRead: 1, CacheWrite: 1},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			pricing := []model.Pricing{exprChatPricing("glm-5.3-flash", tc.expr)}
+			models, skipped := catalogService(t, pricing, time.Unix(1, 0).UTC()).BuildModels(pricing)
+			require.Empty(t, skipped)
+			require.Len(t, models, 1)
+			assert.Equal(t, tc.want, models[0].Cost)
+		})
+	}
+}
+
+func TestPiCatalogLegacyRatioPricingUnchangedAlongsideExpressions(t *testing.T) {
+	pricing := []model.Pricing{
+		chatPricing("hy4-preview", 0.335, 2.985074626866),
+		exprChatPricing("glm-5.3-flash", `tier("base", p * 0.12 + c * 0.4 + cr * 0.024)`),
+	}
+	models, skipped := catalogService(t, pricing, time.Unix(1, 0).UTC()).BuildModels(pricing)
+	require.Empty(t, skipped)
+	require.Len(t, models, 2)
+
+	byID := map[string]PiCatalogModel{}
+	for _, item := range models {
+		byID[item.ID] = item
+	}
+
+	glm := byID["glm-5.3-flash"]
+	assert.Equal(t, 0.12, glm.Cost.Input)
+	assert.Equal(t, 0.4, glm.Cost.Output)
+	assert.Equal(t, 0.024, glm.Cost.CacheRead)
+	assert.Equal(t, 0.12, glm.Cost.CacheWrite)
+
+	hy4 := byID["hy4-preview"]
+	input := 0.335 * 2
+	assert.Equal(t, input, hy4.Cost.Input)
+	assert.InDelta(t, input*2.985074626866, hy4.Cost.Output, 1e-12)
+	assert.InDelta(t, input*0.2, hy4.Cost.CacheRead, 1e-12)
+	assert.Equal(t, 0.0, hy4.Cost.CacheWrite)
+}
+
+func TestPiCatalogLegacyRatioIgnoresUnusedBillingExprField(t *testing.T) {
+	item := chatPricing("qwen3.8-flash", 0.06, 3.166666666667)
+	item.BillingExpr = "tiered()"
+	pricing := []model.Pricing{item}
+	models, skipped := catalogService(t, pricing, time.Unix(1, 0).UTC()).BuildModels(pricing)
+	require.Empty(t, skipped)
+	require.Len(t, models, 1)
+	require.Equal(t, "qwen3.8-flash", models[0].ID)
+	assert.Equal(t, 0.12, models[0].Cost.Input)
+}
+
+func TestPiCatalogSkipsExpressionsThatCannotMapToStaticTokenPrices(t *testing.T) {
+	cases := []struct {
+		name string
+		expr string
+	}{
+		{name: "fixed per-request", expr: `tier("request", fixed(0.01))`},
+		{name: "image_count billing", expr: `tier("image", fixed(0.02)) * image_count`},
+		{name: "len condition and multiple tiers", expr: `len <= 32000 ? tier("short", p * 0.12 + c * 0.4) : tier("long", p * 0.24 + c * 0.8)`},
+		{name: "header request rule", expr: `tier("base", p * 0.12 + c * 0.4)|||when(header("x") has "y") * 2`},
+		{name: "param request probe", expr: `tier("base", p * 0.12 + c * 0.4 + param("n") * 1)`},
+		{name: "usage function", expr: `tier("base", p * 0.12 + c * 0.4 + u("seconds") * 0.4)`},
+		{name: "img variable", expr: `tier("base", p * 0.12 + c * 0.4 + img * 1)`},
+		{name: "img_cr variable", expr: `tier("base", p * 0.12 + c * 0.4 + img_cr * 1)`},
+		{name: "img_o variable", expr: `tier("base", p * 0.12 + c * 0.4 + img_o * 1)`},
+		{name: "ai variable", expr: `tier("base", p * 0.12 + c * 0.4 + ai * 1)`},
+		{name: "ao variable", expr: `tier("base", p * 0.12 + c * 0.4 + ao * 1)`},
+		{name: "cc1h variable", expr: `tier("base", p * 0.12 + c * 0.4 + cc1h * 1)`},
+		{name: "illegal expression", expr: `not a valid expr!!!`},
+		{name: "empty expression", expr: ""},
+		{name: "missing completion term", expr: `tier("base", p * 0.12)`},
+		{name: "no tier wrapper", expr: `p * 0.12 + c * 0.4`},
+		{name: "max function", expr: `tier("base", max(p, 1) * 0.12 + c * 0.4)`},
+		{name: "subtraction", expr: `tier("base", p * 0.12 + c * 0.4 - cr * 0.01)`},
+		{name: "division", expr: `tier("base", p * 0.12 + c * 0.4 / 2)`},
+		{name: "variable times variable", expr: `tier("base", p * c)`},
+		{name: "multiple added tiers", expr: `tier("a", p * 0.12 + c * 0.4) + tier("b", p * 0.24 + c * 0.8)`},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			pricing := []model.Pricing{exprChatPricing("glm-5.3-flash", tc.expr)}
+			models, skipped := catalogService(t, pricing, time.Unix(1, 0).UTC()).BuildModels(pricing)
+			assert.Empty(t, models)
+			reasons := skipByID(skipped)
+			assert.Equal(t, "unsupported Pi token pricing expression", reasons["glm-5.3-flash"])
+		})
+	}
+}
+
+func TestPiCatalogOmittedCacheVarsFallbackToInputPrice(t *testing.T) {
+	cases := []struct {
+		name string
+		expr string
+		want PiCatalogCost
+	}{
+		{
+			name: "no cr or cc falls back to input",
+			expr: `tier("base", p * 0.12 + c * 0.4)`,
+			want: PiCatalogCost{Input: 0.12, Output: 0.4, CacheRead: 0.12, CacheWrite: 0.12},
+		},
+		{
+			name: "explicit cr omits cc to input",
+			expr: `tier("base", p * 0.12 + c * 0.4 + cr * 0.024)`,
+			want: PiCatalogCost{Input: 0.12, Output: 0.4, CacheRead: 0.024, CacheWrite: 0.12},
+		},
+		{
+			name: "explicit cr and cc",
+			expr: `tier("base", p * 0.12 + c * 0.4 + cr * 0.024 + cc * 0.15)`,
+			want: PiCatalogCost{Input: 0.12, Output: 0.4, CacheRead: 0.024, CacheWrite: 0.15},
+		},
+		{
+			name: "explicit cc omits cr to input",
+			expr: `tier("base", p * 0.12 + c * 0.4 + cc * 0.15)`,
+			want: PiCatalogCost{Input: 0.12, Output: 0.4, CacheRead: 0.12, CacheWrite: 0.15},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			pricing := []model.Pricing{exprChatPricing("glm-5.3-flash", tc.expr)}
+			models, skipped := catalogService(t, pricing, time.Unix(1, 0).UTC()).BuildModels(pricing)
+			require.Empty(t, skipped)
+			require.Len(t, models, 1)
+			assert.Equal(t, tc.want, models[0].Cost)
+		})
+	}
+}
+
+func TestPiCatalogTieredExprTakesPriorityOverLeftoverQuotaType(t *testing.T) {
+	item := exprChatPricing("hy4-preview", `tier("base", p * 0.12 + c * 0.4)`)
+	item.QuotaType = 1
+	item.ModelPrice = 0.02
+	pricing := []model.Pricing{item}
+	models, skipped := catalogService(t, pricing, time.Unix(1, 0).UTC()).BuildModels(pricing)
+	require.Empty(t, skipped)
+	require.Len(t, models, 1)
+	require.Equal(t, "hy4-preview", models[0].ID)
+	assert.Equal(t, 0.12, models[0].Cost.Input)
+	assert.Equal(t, 0.4, models[0].Cost.Output)
+	assert.Equal(t, 0.12, models[0].Cost.CacheRead)
+	assert.Equal(t, 0.12, models[0].Cost.CacheWrite)
+}
+
+func TestPiCatalogSnapshotOmitsBillingExpressionSource(t *testing.T) {
+	expr := `tier("base", p * 0.12 + c * 0.4 + cr * 0.024)`
+	pricing := []model.Pricing{exprChatPricing("glm-5.3-flash", expr)}
+	svc := catalogService(t, pricing, time.Unix(1, 0).UTC())
+	snapshot, err := svc.Snapshot()
+	require.NoError(t, err)
+	require.Len(t, snapshot.Catalog.Models, 1)
+	require.Equal(t, "glm-5.3-flash", snapshot.Catalog.Models[0].ID)
+
+	body := string(snapshot.Body)
+	assert.NotContains(t, body, expr)
+	assert.NotContains(t, body, "p * 0.12")
+	assert.NotContains(t, body, "BillingExpr")
+	assert.NotContains(t, body, "billing_expr")
+	assert.NotContains(t, body, "tiered_expr")
+	assert.NotContains(t, body, "999")
 }
