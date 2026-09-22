@@ -254,7 +254,6 @@ func TestPiCatalogGlm53FlashCostFromLiveRatios(t *testing.T) {
 func TestPiCatalogRetiredDeepSeekModelsStayOutOfCatalog(t *testing.T) {
 	retired := []string{
 		"deepseek-v4-flash",
-		"deepseek-v4-pro",
 		"deepseek-v4-flash-vision-exp",
 		"deepseek-flash",
 	}
@@ -931,4 +930,179 @@ func TestPiCatalogSnapshotOmitsBillingExpressionSource(t *testing.T) {
 	assert.NotContains(t, body, "billing_expr")
 	assert.NotContains(t, body, "tiered_expr")
 	assert.NotContains(t, body, "999")
+}
+
+func existingLivePiCatalogIDs() []string {
+	return []string{
+		"Doubao-Seed-2.1-pro",
+		"Doubao-Seed-2.1-turbo",
+		"LongCat-2.0",
+		"MiniMax-M3",
+		"deepseek-v4.1-flash",
+		"doubao-seed-evolving",
+		"glm-5.3",
+		"glm-5.3-flash",
+		"hy4-preview",
+		"kimi-k2.7-code",
+		"kimi-k2.7-code-highspeed",
+		"kimi-k3",
+		"qwen3.7-plus",
+		"qwen3.8-flash",
+		"qwen3.8-max",
+	}
+}
+
+func productionShapePiCatalogPricing() []model.Pricing {
+	pricing := make([]model.Pricing, 0, 30)
+	for _, id := range existingLivePiCatalogIDs() {
+		pricing = append(pricing, chatPricing(id, 0.1, 1))
+	}
+	pricing = append(pricing,
+		exprChatPricing("deepseek-v4-pro", `tier("base", p * 0.66 + c * 1.98 + cr * 0.022)`),
+		exprChatPricing("glm-5.3-flashx", `tier("base", p * 0.3 + c * 1.05 + cr * 0.09)`),
+		exprChatPricing("kimi-k2.8-preview", `tier("base", p * 1.4 + c * 7 + cr * 0.14)`),
+		exprChatPricing("mimo-v2.6-flash", `tier("base", p * 0.14 + c * 0.28 + cr * 0.0028)`),
+		exprChatPricing("mimo-v2.6-pro", `tier("base", p * 0.435 + c * 0.87 + cr * 0.0036)`),
+	)
+	for _, item := range []model.Pricing{
+		{ModelName: "Doubao-Seedance-2.0", QuotaType: 1, ModelPrice: 0.02, SupportedEndpointTypes: []constant.EndpointType{constant.EndpointTypeOpenAIVideo}},
+		{ModelName: "Doubao-Seedance-2.5", QuotaType: 1, ModelPrice: 0.02, SupportedEndpointTypes: []constant.EndpointType{constant.EndpointTypeOpenAIVideo}},
+		{ModelName: "Doubao-Seedream-5.0-lite", QuotaType: 1, ModelPrice: 0.02, SupportedEndpointTypes: []constant.EndpointType{constant.EndpointTypeImageGeneration}},
+		{ModelName: "Doubao-Seedream-5.0-pro", QuotaType: 1, ModelPrice: 0.02, SupportedEndpointTypes: []constant.EndpointType{constant.EndpointTypeImageGeneration}},
+		{ModelName: "MiniMax-H3", QuotaType: 1, ModelPrice: 0.02, SupportedEndpointTypes: []constant.EndpointType{constant.EndpointTypeOpenAI}},
+		{ModelName: "qwen-image-3.0", QuotaType: 1, ModelPrice: 0.02, SupportedEndpointTypes: []constant.EndpointType{constant.EndpointTypeImageGeneration}},
+		{ModelName: "qwen-image-3.0-pro", QuotaType: 1, ModelPrice: 0.02, SupportedEndpointTypes: []constant.EndpointType{constant.EndpointTypeImageGeneration}},
+		{ModelName: "wan2.7-image-pro", QuotaType: 1, ModelPrice: 0.02, SupportedEndpointTypes: []constant.EndpointType{constant.EndpointTypeImageGeneration}},
+		{ModelName: "wan3.0-video", QuotaType: 1, ModelPrice: 0.02, SupportedEndpointTypes: []constant.EndpointType{constant.EndpointTypeOpenAIVideo}},
+		{ModelName: "wan3.0-video-prime", QuotaType: 1, ModelPrice: 0.02, SupportedEndpointTypes: []constant.EndpointType{constant.EndpointTypeOpenAIVideo}},
+	} {
+		pricing = append(pricing, item)
+	}
+	return pricing
+}
+
+func TestPiCatalogProductionShapePublishesTwentyChatModels(t *testing.T) {
+	pricing := productionShapePiCatalogPricing()
+	svc := catalogService(t, pricing, time.Unix(1, 0).UTC())
+	models, skipped := svc.BuildModels(pricing)
+
+	ids := make([]string, len(models))
+	byID := make(map[string]PiCatalogModel, len(models))
+	for i, item := range models {
+		ids[i] = item.ID
+		byID[item.ID] = item
+	}
+	require.Len(t, models, 20)
+	assert.Equal(t, []string{
+		"Doubao-Seed-2.1-pro",
+		"Doubao-Seed-2.1-turbo",
+		"LongCat-2.0",
+		"MiniMax-M3",
+		"deepseek-v4-pro",
+		"deepseek-v4.1-flash",
+		"doubao-seed-evolving",
+		"glm-5.3",
+		"glm-5.3-flash",
+		"glm-5.3-flashx",
+		"hy4-preview",
+		"kimi-k2.7-code",
+		"kimi-k2.7-code-highspeed",
+		"kimi-k2.8-preview",
+		"kimi-k3",
+		"mimo-v2.6-flash",
+		"mimo-v2.6-pro",
+		"qwen3.7-plus",
+		"qwen3.8-flash",
+		"qwen3.8-max",
+	}, ids)
+
+	for _, id := range existingLivePiCatalogIDs() {
+		_, ok := byID[id]
+		assert.True(t, ok, "existing catalog model %s must remain published", id)
+	}
+	assert.NotContains(t, ids, "mimo-v2.5")
+	assert.NotContains(t, ids, "mimo-v2.5-pro")
+
+	type wantNew struct {
+		name          string
+		input         []string
+		contextWindow int
+		maxTokens     int
+		cost          PiCatalogCost
+	}
+	added := map[string]wantNew{
+		"deepseek-v4-pro": {
+			name: "DeepSeek V4 Pro", input: []string{"text"},
+			contextWindow: 1000000, maxTokens: 384000,
+			cost: PiCatalogCost{Input: 0.66, Output: 1.98, CacheRead: 0.022, CacheWrite: 0.66},
+		},
+		"glm-5.3-flashx": {
+			name: "GLM-5.3-FlashX", input: []string{"text", "image"},
+			contextWindow: 1000000, maxTokens: 131072,
+			cost: PiCatalogCost{Input: 0.3, Output: 1.05, CacheRead: 0.09, CacheWrite: 0.3},
+		},
+		"kimi-k2.8-preview": {
+			name: "Kimi K2.8 Preview", input: []string{"text", "image"},
+			contextWindow: 1048576, maxTokens: 131072,
+			cost: PiCatalogCost{Input: 1.4, Output: 7, CacheRead: 0.14, CacheWrite: 1.4},
+		},
+		"mimo-v2.6-flash": {
+			name: "MiMo-V2.6-Flash", input: []string{"text", "image"},
+			contextWindow: 1048576, maxTokens: 131072,
+			cost: PiCatalogCost{Input: 0.14, Output: 0.28, CacheRead: 0.0028, CacheWrite: 0.14},
+		},
+		"mimo-v2.6-pro": {
+			name: "MiMo-V2.6-Pro", input: []string{"text", "image"},
+			contextWindow: 1048576, maxTokens: 131072,
+			cost: PiCatalogCost{Input: 0.435, Output: 0.87, CacheRead: 0.0036, CacheWrite: 0.435},
+		},
+	}
+	for id, want := range added {
+		item, ok := byID[id]
+		require.True(t, ok, "%s must appear in the catalog", id)
+		assert.Equal(t, want.name, item.Name)
+		assert.Equal(t, "chat", item.Kind)
+		assert.Equal(t, "openai-completions", item.API)
+		assert.Equal(t, "chat.completions", item.Endpoint)
+		assert.True(t, item.Enabled)
+		assert.True(t, item.Available)
+		assert.Equal(t, want.input, item.Input)
+		assert.Contains(t, item.Input, "text")
+		assert.True(t, item.Reasoning)
+		assert.Equal(t, want.contextWindow, item.ContextWindow)
+		assert.Equal(t, want.maxTokens, item.MaxTokens)
+		assert.Greater(t, item.ContextWindow, 0)
+		assert.Greater(t, item.MaxTokens, 0)
+		assert.Nil(t, item.Compat.SupportsReasoningEffort)
+		assert.Equal(t, want.cost, item.Cost)
+	}
+
+	reasons := skipByID(skipped)
+	for _, id := range []string{
+		"Doubao-Seedance-2.0",
+		"Doubao-Seedance-2.5",
+		"Doubao-Seedream-5.0-lite",
+		"Doubao-Seedream-5.0-pro",
+		"MiniMax-H3",
+		"qwen-image-3.0",
+		"qwen-image-3.0-pro",
+		"wan2.7-image-pro",
+		"wan3.0-video",
+		"wan3.0-video-prime",
+	} {
+		assert.NotContains(t, ids, id)
+		assert.Equal(t, "missing Pi metadata", reasons[id], "%s must stay out of the Pi catalog", id)
+	}
+}
+
+func TestPiCatalogRemovedMimoV25DoesNotRepublishFromLivePricing(t *testing.T) {
+	pricing := []model.Pricing{
+		chatPricing("mimo-v2.5", 0.1, 1),
+		chatPricing("mimo-v2.5-pro", 0.1, 1),
+	}
+	models, skipped := catalogService(t, pricing, time.Unix(1, 0).UTC()).BuildModels(pricing)
+	assert.Empty(t, models)
+	reasons := skipByID(skipped)
+	assert.Equal(t, "missing Pi metadata", reasons["mimo-v2.5"])
+	assert.Equal(t, "missing Pi metadata", reasons["mimo-v2.5-pro"])
 }

@@ -1,3 +1,11 @@
+## 2.11.0 - 2026-09-22
+
+### Pi Catalog 模型更新
+
+- 新增 `deepseek-v4-pro`、`glm-5.3-flashx`、`kimi-k2.8-preview`、`mimo-v2.6-flash`、`mimo-v2.6-pro` 的已审核 Chat + Token 模型元数据。
+- 移除已下架的 `mimo-v2.5` 与 `mimo-v2.5-pro`，防止它们在定价数据重新出现时回流 Catalog。
+- Catalog 继续从实时定价解析输入、输出和缓存读取价格；注册表不保存价格。
+
 ## 2.10.3 - 2026-09-19
 
 ### 模型详情
