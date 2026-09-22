@@ -18,6 +18,10 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { selectFast } from '@/features/home/lib/homepage-pricing'
 import { QUOTA_TYPE_VALUES } from '@/features/pricing/constants'
+import {
+  getDynamicDisplayGroupRatio,
+  getDynamicPricingSummary,
+} from '@/features/pricing/lib/dynamic-price'
 import { formatPrice } from '@/features/pricing/lib/price'
 import type { ModelCapability, PricingModel } from '@/features/pricing/types'
 import type { PageMetadata } from '@/hooks/use-page-metadata'
@@ -94,12 +98,78 @@ export interface FastCodingModelsPriceSummary {
   cache: string | null
 }
 
+/**
+ * Fields surfaced on the cards and comparison table. The shared dynamic
+ * pricing summary stores one entry per BILLING_PRICING_VARS row, so we
+ * look them up by their `field` rather than by tier order. The order
+ * here is the order the page renders them in (input, output, cache).
+ */
+const FAST_CODING_DYNAMIC_FIELDS = {
+  input: 'inputPrice',
+  output: 'outputPrice',
+  cache: 'cacheReadPrice',
+} as const
+
 export function getFastCodingModelsPriceSummary(
   model: PricingModel
 ): FastCodingModelsPriceSummary {
+  // Expression-billed models take precedence: real per-1M USD price
+  // lives in `billing_expr`. The shared `model_ratio` /
+  // `completion_ratio` / `cache_ratio` are migration placeholders and
+  // must never surface as a display price. The `tiered_expr` branch
+  // runs even when the legacy `quota_type` is not 0/TOKEN, because
+  // some catalog rows still carry the legacy quota_type from the
+  // migration; trusting `quota_type` first would discard the
+  // expression price and render "not available" on every migrated
+  // fast model.
+  if (model.billing_mode === 'tiered_expr') {
+    const summary = getDynamicPricingSummary(model, {
+      tokenUnit: 'M',
+      groupRatioMultiplier: getDynamicDisplayGroupRatio(model),
+    })
+    // No structured rows (e.g. task usage, special / max() expressions)
+    // or an empty expression: every price becomes "not available".
+    // The legacy $75 placeholder must never be substituted here.
+    if (!summary || summary.isSpecialExpression) {
+      return { input: null, output: null, cache: null }
+    }
+    const formatted: Record<
+      keyof typeof FAST_CODING_DYNAMIC_FIELDS,
+      string | null
+    > = {
+      input: null,
+      output: null,
+      cache: null,
+    }
+    for (const entry of summary.entries) {
+      if (entry.formattedRange) {
+        // Multi-tier ranges (time-based pricing, mixed billing) do not
+        // collapse to a single number on the cards. Leave the field
+        // "not available" rather than misrendering a range as a fixed
+        // price. The full breakdown remains on the model square.
+        continue
+      }
+      if (entry.field === FAST_CODING_DYNAMIC_FIELDS.input) {
+        formatted.input = entry.formatted
+      } else if (entry.field === FAST_CODING_DYNAMIC_FIELDS.output) {
+        formatted.output = entry.formatted
+      } else if (entry.field === FAST_CODING_DYNAMIC_FIELDS.cache) {
+        formatted.cache = entry.formatted
+      }
+    }
+    return formatted
+  }
+
+  // Non-expression models: fall back to the legacy quota_type gate.
+  // Per-request / per-image / per-task billing has no per-1M-token
+  // price; the page renders "not available" and never synthesises
+  // a value from `model_price`.
   if (model.quota_type !== QUOTA_TYPE_VALUES.TOKEN) {
     return { input: null, output: null, cache: null }
   }
+
+  // Legacy token billing: keep the existing formatPrice path so we do
+  // not regress any model that has not been migrated to billing_expr.
   return {
     input: formatPrice(model, 'input', 'M'),
     output: formatPrice(model, 'output', 'M'),

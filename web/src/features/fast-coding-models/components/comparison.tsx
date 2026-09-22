@@ -142,9 +142,11 @@ export function Comparison(): ReactElement {
                         <span className='flex items-center gap-2'>
                           {/* Decorative: the model id text is the accessible name;
                               aria-hidden also keeps the missing-icon fallback out of
-                              the accessibility tree. */}
+                              the accessibility tree. Live /api/pricing usually does
+                              not set per-model `icon`; fall back to `vendor_icon`
+                              so the supplier brand always renders. */}
                           <span aria-hidden='true' className='shrink-0'>
-                            {getLobeIcon(model.icon, 20)}
+                            {getLobeIcon(model.icon || model.vendor_icon, 20)}
                           </span>
                           <code className='font-mono text-sm font-semibold'>
                             {model.model_name}
@@ -324,9 +326,11 @@ function MobileComparisonCard(props: { model: PricingModel }): ReactElement {
     >
       <div className='flex items-center gap-2'>
         {/* Decorative: the model id text is the accessible name; aria-hidden
-            also keeps the missing-icon fallback out of the accessibility tree. */}
+            also keeps the missing-icon fallback out of the accessibility tree.
+            Live /api/pricing usually does not set per-model `icon`; fall back
+            to `vendor_icon` so the supplier brand always renders. */}
         <span aria-hidden='true' className='shrink-0'>
-          {getLobeIcon(model.icon, 20)}
+          {getLobeIcon(model.icon || model.vendor_icon, 20)}
         </span>
         <code className='font-mono text-sm font-semibold'>
           {model.model_name}

@@ -180,6 +180,135 @@ describe('price summaries', () => {
       cache: null,
     })
   })
+
+  // Expression-billed token models (billing_mode='tiered_expr') carry
+  // their real per-1M USD price inside `billing_expr`; the legacy
+  // `model_ratio`/`completion_ratio`/`cache_ratio` are placeholders
+  // from the migration and must never surface as a display price.
+  // The summary must consume the shared dynamic pricing helpers and
+  // return null — never the $75 placeholder — for any field the
+  // expression does not provide.
+  test('tiered_expr models read input/output/cache from billing_expr, not the legacy ratios', () => {
+    const model = fixtureModel({
+      billing_mode: 'tiered_expr',
+      billing_expr: 'tier("base", p * 0.12 + c * 0.4 + cr * 0.024)',
+      // Real production placeholders from the migration. The display
+      // layer must never derive a price from these fields.
+      model_ratio: 37.5,
+      completion_ratio: 1,
+      cache_ratio: null,
+    })
+    const summary = getFastCodingModelsPriceSummary(model)
+    assert.equal(summary.input, '$0.12')
+    assert.equal(summary.output, '$0.4')
+    assert.equal(summary.cache, '$0.024')
+    // Defensive: the legacy placeholder must never bleed into any
+    // display field, neither as a dollar amount nor as a dash.
+    for (const value of [summary.input, summary.output, summary.cache]) {
+      assert.ok(value !== null)
+      assert.ok(
+        !value.includes('75'),
+        `display value must not be the $75 placeholder: ${value}`
+      )
+    }
+  })
+
+  test('tiered_expr deepseek-style expression exposes the catalog USD-per-1M price', () => {
+    // Mirrors the production /api/pricing payload for deepseek-v4.1-flash:
+    //   Input $0.24 / Output $0.96 / Cache read $0.0048
+    const model = fixtureModel({
+      billing_mode: 'tiered_expr',
+      billing_expr: 'tier("base", p * 0.24 + c * 0.96 + cr * 0.0048)',
+      model_ratio: 37.5,
+      completion_ratio: 1,
+      cache_ratio: null,
+    })
+    const summary = getFastCodingModelsPriceSummary(model)
+    assert.equal(summary.input, '$0.24')
+    assert.equal(summary.output, '$0.96')
+    assert.equal(summary.cache, '$0.0048')
+  })
+
+  test('tiered_expr without a cache field leaves only the cache price null', () => {
+    // Input and Output are read straight from the expression. The
+    // page must not invent or borrow a cache price from the legacy
+    // ratios — the cache column simply shows "not available".
+    const model = fixtureModel({
+      billing_mode: 'tiered_expr',
+      billing_expr: 'tier("base", p * 0.12 + c * 0.4)',
+      model_ratio: 37.5,
+      completion_ratio: 1,
+      cache_ratio: null,
+    })
+    const summary = getFastCodingModelsPriceSummary(model)
+    assert.equal(summary.input, '$0.12')
+    assert.equal(summary.output, '$0.4')
+    assert.equal(summary.cache, null)
+  })
+
+  test('tiered_expr expressions that cannot be structured into rows do not fall back to the placeholder', () => {
+    // max() cannot be reduced to the simple per-row format the page
+    // renders. The page must not silently show the $75 legacy
+    // placeholder; it must mark every unavailable price as null.
+    const model = fixtureModel({
+      billing_mode: 'tiered_expr',
+      billing_expr: 'tier("custom", max(p * 2 + c * 8, 100))',
+      model_ratio: 37.5,
+      completion_ratio: 1,
+      cache_ratio: null,
+    })
+    const summary = getFastCodingModelsPriceSummary(model)
+    assert.equal(summary.input, null)
+    assert.equal(summary.output, null)
+    assert.equal(summary.cache, null)
+  })
+
+  test('legacy token models continue to use the existing formatPrice path', () => {
+    // Non-tiered_expr token models still go through the legacy
+    // formatPrice code path with the same per-1M USD numbers they
+    // produced before this change. The fixture pins the math:
+    //   input  = model_ratio * 2 * 1                 = 0.06
+    //   output = input      * completion_ratio       = 0.06 * 4 = 0.24
+    //   cache  = input      * cache_ratio            = 0.06 * 0.1 = 0.006
+    // The summary must report these exact dollar amounts.
+    const model = fixtureModel({
+      quota_type: 0,
+      model_ratio: 0.03,
+      completion_ratio: 4,
+      cache_ratio: 0.1,
+    })
+    const summary = getFastCodingModelsPriceSummary(model)
+    assert.equal(summary.input, '$0.06')
+    assert.equal(summary.output, '$0.24')
+    assert.equal(summary.cache, '$0.006')
+  })
+
+  // The billing_mode='tiered_expr' branch must take precedence over
+  // the legacy quota_type gate: some catalog rows migrated from the
+  // ratio table still carry a non-TOKEN quota_type from the legacy
+  // schema, but their real per-1M USD price now lives in billing_expr.
+  // Skipping the tiered_expr branch on the basis of quota_type would
+  // discard the expression price and render "not available" on every
+  // such migrated fast model.
+  test('tiered_expr takes precedence over a legacy non-TOKEN quota_type', () => {
+    const model = fixtureModel({
+      // A non-TOKEN quota_type left over from the legacy schema.
+      // The summary must still resolve prices from the expression,
+      // not from the legacy ratios and not as all-null.
+      quota_type: 1,
+      billing_mode: 'tiered_expr',
+      billing_expr: 'tier("base", p * 0.24 + c * 0.96 + cr * 0.0048)',
+      // Real production placeholders from the migration. The display
+      // layer must never derive a price from these fields.
+      model_ratio: 37.5,
+      completion_ratio: 1,
+      cache_ratio: null,
+    })
+    const summary = getFastCodingModelsPriceSummary(model)
+    assert.equal(summary.input, '$0.24')
+    assert.equal(summary.output, '$0.96')
+    assert.equal(summary.cache, '$0.0048')
+  })
 })
 
 describe('catalog token formatting', () => {

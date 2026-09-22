@@ -106,9 +106,28 @@ vi.mock('@/hooks/use-system-config', () => ({
 }))
 
 // Icon loading is an external asset boundary; the contracts under test
-// are content and structure, not the icon renderer.
+// are content and structure, not the icon renderer. The mock captures
+// the icon key actually passed by the component so the page contract
+// can assert vendor_icon fallbacks instead of treating every model
+// icon as opaque markup.
 vi.mock('@/lib/lobe-icon', () => ({
-  getLobeIcon: () => <span data-testid='model-icon' />,
+  getLobeIcon: (iconKey: string | undefined | null, size: number = 20) => {
+    const safe = typeof iconKey === 'string' ? iconKey : ''
+    if (!safe) {
+      return (
+        <span data-testid='model-icon' data-icon-key='' data-icon-missing>
+          ?
+        </span>
+      )
+    }
+    return (
+      <span
+        data-testid='model-icon'
+        data-icon-key={safe}
+        data-icon-size={size}
+      />
+    )
+  },
 }))
 
 vi.mock('@/lib/analytics', () => ({
@@ -187,6 +206,7 @@ function fixtureModel(overrides: Partial<PricingModel>): PricingModel {
 function fixturePricing(opts: {
   fast: ReadonlyArray<{ model_name: string; tags?: string }>
   nonFast?: ReadonlyArray<{ model_name: string; tags?: string }>
+  vendors?: ReadonlyArray<{ id: number; name: string; icon?: string }>
 }): PricingData {
   const fast = opts.fast.map((m, i) =>
     fixtureModel({ id: i + 1, tags: 'fast', ...m })
@@ -197,7 +217,7 @@ function fixturePricing(opts: {
   return {
     success: true,
     data: [...fast, ...nonFast],
-    vendors: [],
+    vendors: [...(opts.vendors ?? [])],
     group_ratio: { default: 1 },
     usable_group: { default: { desc: 'default', ratio: 1 } },
     supported_endpoint: {},
@@ -301,6 +321,77 @@ describe('page structure', () => {
     expect(text).toContain('$VANCINE_API_KEY')
     for (const model of DEFAULT_FAST_MODELS) {
       expect(text).toContain(model.model_name)
+    }
+  })
+})
+
+describe('icon fallback to vendor_icon', () => {
+  // The live /api/pricing payload usually does not set per-model
+  // `icon`; the page must use `model.icon || model.vendor_icon` for
+  // every surface (main card, desktop table, mobile card) so the
+  // supplier brand resolves. A missing icon resolves to the "?"
+  // placeholder, which is the visible production regression.
+  const VENDOR_DEFS = [
+    { id: 1, name: 'DeepSeek', icon: 'DeepSeek.Color' },
+    { id: 2, name: 'Zhipu', icon: 'Zhipu.Color' },
+    { id: 3, name: 'Xiaomi', icon: 'Xiaomi.Color' },
+    { id: 4, name: 'Qwen', icon: 'Qwen.Color' },
+  ]
+  const VENDOR_ICON_MODELS = VENDOR_DEFS.map((vendor, i) => ({
+    model_name: `${vendor.name.toLowerCase()}-v4-${i + 1}`,
+    vendor_id: vendor.id,
+    vendor_icon: vendor.icon,
+  }))
+
+  function withVendors(): ReturnType<typeof fixturePricing> {
+    return fixturePricing({ fast: VENDOR_ICON_MODELS, vendors: VENDOR_DEFS })
+  }
+
+  it('main model card uses vendor_icon when model.icon is empty', async () => {
+    getPricingMock.mockResolvedValue(withVendors())
+    renderPage()
+    for (const model of VENDOR_ICON_MODELS) {
+      const card = await screen.findByTestId(
+        `fast-coding-model-card-${model.model_name}`
+      )
+      const icons = within(card).getAllByTestId('model-icon')
+      expect(icons.length).toBeGreaterThan(0)
+      for (const icon of icons) {
+        const key = icon.getAttribute('data-icon-key')
+        expect(key).toBe(model.vendor_icon)
+        expect(icon.hasAttribute('data-icon-missing')).toBe(false)
+        expect(icon.textContent ?? '').not.toBe('?')
+      }
+    }
+  })
+
+  it('desktop comparison table uses vendor_icon in every model column header', async () => {
+    getPricingMock.mockResolvedValue(withVendors())
+    renderPage()
+    const tableWrapper = await screen.findByTestId(
+      'fast-coding-models-comparison-table'
+    )
+    const table = within(tableWrapper).getByRole('table')
+    const headerIcons = within(table).getAllByTestId('model-icon')
+    expect(headerIcons.length).toBe(VENDOR_ICON_MODELS.length)
+    for (const icon of headerIcons) {
+      const key = icon.getAttribute('data-icon-key') ?? ''
+      expect(VENDOR_ICON_MODELS.some((m) => m.vendor_icon === key)).toBe(true)
+      expect(icon.hasAttribute('data-icon-missing')).toBe(false)
+    }
+  })
+
+  it('mobile comparison cards use vendor_icon for every model', async () => {
+    getPricingMock.mockResolvedValue(withVendors())
+    renderPage()
+    for (const model of VENDOR_ICON_MODELS) {
+      const card = await screen.findByTestId(
+        `fast-coding-comparison-card-${model.model_name}`
+      )
+      const icon = within(card).getByTestId('model-icon')
+      const key = icon.getAttribute('data-icon-key')
+      expect(key).toBe(model.vendor_icon)
+      expect(icon.hasAttribute('data-icon-missing')).toBe(false)
     }
   })
 })

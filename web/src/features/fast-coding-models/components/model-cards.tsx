@@ -184,9 +184,11 @@ function ModelCard(props: { model: PricingModel }): ReactElement {
       <CardHeader>
         <div className='flex items-center gap-2.5'>
           {/* Decorative: the model id text is the accessible name; aria-hidden
-              also keeps the missing-icon fallback out of the accessibility tree. */}
+              also keeps the missing-icon fallback out of the accessibility tree.
+              Live /api/pricing usually does not set per-model `icon`; fall
+              back to `vendor_icon` so the supplier brand always renders. */}
           <span aria-hidden='true' className='shrink-0'>
-            {getLobeIcon(model.icon, 32)}
+            {getLobeIcon(model.icon || model.vendor_icon, 32)}
           </span>
           <div className='flex min-w-0 flex-col'>
             <code className='truncate font-mono text-sm font-semibold'>
