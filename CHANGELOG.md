@@ -1,3 +1,11 @@
+## 2.11.2 - 2026-10-01
+
+### Agent Catalog
+
+- 新增 `MiniMax-M3.1-Flash-Preview` 与 `LongCat-2.5-Preview` 的已审核 Chat Completions 元数据。
+- 两个模型仅在实时定价、OpenAI Chat Completions 端点及可无损解析的 Token 表达式同时有效时进入中央 Catalog。
+- Pi、Hermes 与 OpenClaw 可在各自下一次 Catalog 刷新后发现新模型；Provider 包、OpenCode 与 Models.dev 均未修改。
+
 ## 2.11.1 - 2026-09-22
 
 ### 快速编程模型指南

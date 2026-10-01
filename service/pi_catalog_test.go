@@ -953,7 +953,7 @@ func existingLivePiCatalogIDs() []string {
 }
 
 func productionShapePiCatalogPricing() []model.Pricing {
-	pricing := make([]model.Pricing, 0, 30)
+	pricing := make([]model.Pricing, 0, 32)
 	for _, id := range existingLivePiCatalogIDs() {
 		pricing = append(pricing, chatPricing(id, 0.1, 1))
 	}
@@ -963,6 +963,8 @@ func productionShapePiCatalogPricing() []model.Pricing {
 		exprChatPricing("kimi-k2.8-preview", `tier("base", p * 1.4 + c * 7 + cr * 0.14)`),
 		exprChatPricing("mimo-v2.6-flash", `tier("base", p * 0.14 + c * 0.28 + cr * 0.0028)`),
 		exprChatPricing("mimo-v2.6-pro", `tier("base", p * 0.435 + c * 0.87 + cr * 0.0036)`),
+		exprChatPricing("MiniMax-M3.1-Flash-Preview", `tier("base", p * 0.24 + c * 0.96 + cr * 0.048)`),
+		exprChatPricing("LongCat-2.5-Preview", `tier("base", p * 0.3 + c * 1.2 + cr * 0.006)`),
 	)
 	for _, item := range []model.Pricing{
 		{ModelName: "Doubao-Seedance-2.0", QuotaType: 1, ModelPrice: 0.02, SupportedEndpointTypes: []constant.EndpointType{constant.EndpointTypeOpenAIVideo}},
@@ -981,7 +983,7 @@ func productionShapePiCatalogPricing() []model.Pricing {
 	return pricing
 }
 
-func TestPiCatalogProductionShapePublishesTwentyChatModels(t *testing.T) {
+func TestPiCatalogProductionShapePublishesTwentyTwoChatModels(t *testing.T) {
 	pricing := productionShapePiCatalogPricing()
 	svc := catalogService(t, pricing, time.Unix(1, 0).UTC())
 	models, skipped := svc.BuildModels(pricing)
@@ -992,12 +994,14 @@ func TestPiCatalogProductionShapePublishesTwentyChatModels(t *testing.T) {
 		ids[i] = item.ID
 		byID[item.ID] = item
 	}
-	require.Len(t, models, 20)
+	require.Len(t, models, 22)
 	assert.Equal(t, []string{
 		"Doubao-Seed-2.1-pro",
 		"Doubao-Seed-2.1-turbo",
 		"LongCat-2.0",
+		"LongCat-2.5-Preview",
 		"MiniMax-M3",
+		"MiniMax-M3.1-Flash-Preview",
 		"deepseek-v4-pro",
 		"deepseek-v4.1-flash",
 		"doubao-seed-evolving",
@@ -1105,4 +1109,109 @@ func TestPiCatalogRemovedMimoV25DoesNotRepublishFromLivePricing(t *testing.T) {
 	reasons := skipByID(skipped)
 	assert.Equal(t, "missing Pi metadata", reasons["mimo-v2.5"])
 	assert.Equal(t, "missing Pi metadata", reasons["mimo-v2.5-pro"])
+}
+
+func TestPiCatalogPublishesMiniMaxM31FlashPreviewAndLongCat25Preview(t *testing.T) {
+	pricing := []model.Pricing{
+		exprChatPricing("MiniMax-M3.1-Flash-Preview", `tier("base", p * 0.24 + c * 0.96 + cr * 0.048)`),
+		exprChatPricing("LongCat-2.5-Preview", `tier("base", p * 0.3 + c * 1.2 + cr * 0.006)`),
+	}
+	models, skipped := catalogService(t, pricing, time.Unix(1, 0).UTC()).BuildModels(pricing)
+	require.Empty(t, skipped)
+	require.Len(t, models, 2)
+
+	ids := make([]string, len(models))
+	byID := make(map[string]PiCatalogModel, len(models))
+	for i, item := range models {
+		ids[i] = item.ID
+		byID[item.ID] = item
+	}
+	assert.Equal(t, []string{"LongCat-2.5-Preview", "MiniMax-M3.1-Flash-Preview"}, ids)
+
+	type wantModel struct {
+		name          string
+		input         []string
+		contextWindow int
+		maxTokens     int
+		cost          PiCatalogCost
+	}
+	wants := map[string]wantModel{
+		"MiniMax-M3.1-Flash-Preview": {
+			name:          "MiniMax-M3.1-Flash-Preview",
+			input:         []string{"text", "image"},
+			contextWindow: 1000000,
+			maxTokens:     512000,
+			cost:          PiCatalogCost{Input: 0.24, Output: 0.96, CacheRead: 0.048, CacheWrite: 0.24},
+		},
+		"LongCat-2.5-Preview": {
+			name:          "LongCat-2.5-Preview",
+			input:         []string{"text", "image"},
+			contextWindow: 1000000,
+			maxTokens:     131072,
+			cost:          PiCatalogCost{Input: 0.3, Output: 1.2, CacheRead: 0.006, CacheWrite: 0.3},
+		},
+	}
+	for id, want := range wants {
+		item, ok := byID[id]
+		require.True(t, ok, "%s must appear in the catalog", id)
+		assert.Equal(t, want.name, item.Name)
+		assert.Equal(t, "chat", item.Kind)
+		assert.Equal(t, "openai-completions", item.API)
+		assert.Equal(t, "chat.completions", item.Endpoint)
+		assert.Equal(t, want.input, item.Input)
+		assert.True(t, item.Reasoning)
+		assert.Equal(t, want.contextWindow, item.ContextWindow)
+		assert.Equal(t, want.maxTokens, item.MaxTokens)
+		assert.True(t, item.Enabled)
+		assert.True(t, item.Available)
+		assert.Nil(t, item.Compat.SupportsReasoningEffort)
+		assert.False(t, item.Compat.SupportsDeveloperRole)
+		assert.Equal(t, want.cost, item.Cost)
+	}
+}
+
+func TestPiCatalogNewChatModelsRequireLiveIntersection(t *testing.T) {
+	t.Run("missing live pricing", func(t *testing.T) {
+		pricing := []model.Pricing{chatPricing("glm-5.3-flash", 0.06, 3)}
+		models, skipped := catalogService(t, pricing, time.Unix(1, 0).UTC()).BuildModels(pricing)
+		require.Empty(t, skipped)
+		require.Len(t, models, 1)
+		assert.Equal(t, "glm-5.3-flash", models[0].ID)
+		assert.NotContains(t, []string{models[0].ID}, "MiniMax-M3.1-Flash-Preview")
+		assert.NotContains(t, []string{models[0].ID}, "LongCat-2.5-Preview")
+	})
+
+	t.Run("missing openai endpoint", func(t *testing.T) {
+		pricing := []model.Pricing{
+			{
+				ModelName:              "MiniMax-M3.1-Flash-Preview",
+				BillingMode:            billing_setting.BillingModeTieredExpr,
+				BillingExpr:            `tier("base", p * 0.24 + c * 0.96 + cr * 0.048)`,
+				SupportedEndpointTypes: []constant.EndpointType{constant.EndpointTypeOpenAIResponse},
+			},
+			{
+				ModelName:              "LongCat-2.5-Preview",
+				BillingMode:            billing_setting.BillingModeTieredExpr,
+				BillingExpr:            `tier("base", p * 0.3 + c * 1.2 + cr * 0.006)`,
+				SupportedEndpointTypes: nil,
+			},
+		}
+		models, skipped := catalogService(t, pricing, time.Unix(1, 0).UTC()).BuildModels(pricing)
+		assert.Empty(t, models)
+		reasons := skipByID(skipped)
+		assert.Equal(t, "no live chat completions endpoint", reasons["MiniMax-M3.1-Flash-Preview"])
+		assert.Equal(t, "no live chat completions endpoint", reasons["LongCat-2.5-Preview"])
+	})
+
+	t.Run("unsupported expression", func(t *testing.T) {
+		pricing := []model.Pricing{
+			exprChatPricing("MiniMax-M3.1-Flash-Preview", `tiered()`),
+			exprChatPricing("LongCat-2.5-Preview", `p * 0.3 + c * 1.2`),
+		}
+		models, skipped := catalogService(t, pricing, time.Unix(1, 0).UTC()).BuildModels(pricing)
+		assert.Empty(t, models)
+		reasons := skipByID(skipped)
+		assert.Equal(t, "unsupported Pi token pricing expression", reasons["MiniMax-M3.1-Flash-Preview"])
+		assert.Equal(t, "unsupported Pi token pricing expression", reasons["LongCat-2.5-Preview"])
+	})
 }

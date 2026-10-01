@@ -126,6 +126,12 @@ refresh. A brand-new model ID still needs trusted Pi metadata
   (display name `DeepSeek V4.1 Flash`) and `deepseek-v4-pro` (display name
   `DeepSeek V4 Pro`). `deepseek-flash` is a retired former ID and is not a
   current alias.
+  Current MiniMax Chat Completions IDs include `MiniMax-M3` and
+  `MiniMax-M3.1-Flash-Preview`. Current LongCat Chat Completions IDs
+  include `LongCat-2.0` and `LongCat-2.5-Preview`. Those IDs are published
+  only when compile-time reviewed Pi metadata, live pricing, an `openai`
+  Chat Completions endpoint, and a lossless parseable token price all hold
+  at once. A registry row alone is not enough.
 - Runtime output is every registry model that is currently enabled,
   token-priced, and advertised with a live OpenAI Chat Completions
   endpoint. Media, per-request, task, fixed, multi-tier, request-
