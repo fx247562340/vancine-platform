@@ -126,8 +126,16 @@ refresh. A brand-new model ID still needs trusted Pi metadata
   (display name `DeepSeek V4.1 Flash`) and `deepseek-v4-pro` (display name
   `DeepSeek V4 Pro`). `deepseek-flash` is a retired former ID and is not a
   current alias.
-  Current MiniMax Chat Completions IDs include `MiniMax-M3` and
-  `MiniMax-M3.1-Flash-Preview`. Current LongCat Chat Completions IDs
+  Current MiniMax Chat Completions ID is `MiniMax-M3.1-Flash` (display name
+  `MiniMax-M3.1-Flash`; stable release). `MiniMax-M3` has been removed from
+  the current catalog registry, and `MiniMax-M3.1-Flash-Preview` has been
+  superseded by the stable `MiniMax-M3.1-Flash` and removed from the
+  registry. Neither old ID is kept as an alias or compatibility mapping:
+  even if `MiniMax-M3` or `MiniMax-M3.1-Flash-Preview` reappear in current
+  or future live pricing, they will not automatically enter the Pi catalog
+  because they have no Pi metadata. This document does not assert whether
+  those old IDs remain callable through other platform routes.
+  Current LongCat Chat Completions IDs
   include `LongCat-2.0` and `LongCat-2.5-Preview`. Those IDs are published
   only when compile-time reviewed Pi metadata, live pricing, an `openai`
   Chat Completions endpoint, and a lossless parseable token price all hold

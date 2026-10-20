@@ -1,3 +1,11 @@
+## 2.11.3 - 2026-10-20
+
+### Agent Catalog
+
+- 将 `MiniMax-M3.1-Flash-Preview` 替换为稳定版 `MiniMax-M3.1-Flash`，同步更新上下文输出上限与实时表达式价格验证。
+- 从 Catalog 注册表移除已下架的 `MiniMax-M3` 与 Preview ID，防止旧 ID 因未来定价数据变化而重新发布。
+- Pi 与 OpenClaw Provider 包无需更新，可在平台 Catalog 发布后通过各自的目录刷新机制发现稳定版模型。
+
 ## 2.11.2 - 2026-10-01
 
 ### Agent Catalog
