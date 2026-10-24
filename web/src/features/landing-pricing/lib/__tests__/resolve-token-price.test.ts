@@ -242,6 +242,140 @@ describe('resolveLandingTokenPrice', () => {
     ).toEqual({ status: 'unsupported' })
   })
 
+  test('keeps a simple linear expression unsupported unless the caller opts in', () => {
+    const models = [
+      tokenModel({
+        model_name: 'kimi-k3.1-pro',
+        billing_mode: 'tiered_expr',
+        billing_expr: 'tier("base", p * 1.6 + c * 8 + cr * 0.16)',
+        model_ratio: 99,
+        completion_ratio: 99,
+      }),
+    ]
+    expect(resolveLandingTokenPrice(models, 'kimi-k3.1-pro')).toEqual({
+      status: 'unsupported',
+    })
+  })
+
+  test('resolves the two Kimi K3.1 linear expressions without reading model_ratio', () => {
+    const models = [
+      tokenModel({
+        model_name: 'kimi-k3.1-pro',
+        billing_mode: 'tiered_expr',
+        billing_expr: 'tier("base", p * 1.6 + c * 8 + cr * 0.16)',
+        model_ratio: 99,
+        completion_ratio: 9,
+        quota_type: 1,
+      }),
+      tokenModel({
+        id: 2,
+        model_name: 'kimi-k3.1-pro-highspeed',
+        billing_mode: 'tiered_expr',
+        billing_expr: 'tier("base", p * 3.2 + c * 16 + cr * 0.16)',
+        model_ratio: 50,
+        completion_ratio: 8,
+      }),
+    ]
+    const options = { allowSimpleLinearExpression: true }
+    expect(resolveLandingTokenPrice(models, 'kimi-k3.1-pro', options)).toEqual({
+      status: 'ready',
+      amounts: { inputUsd: 1.6, outputUsd: 8, cacheReadUsd: 0.16 },
+    })
+    expect(
+      resolveLandingTokenPrice(models, 'kimi-k3.1-pro-highspeed', options)
+    ).toEqual({
+      status: 'ready',
+      amounts: { inputUsd: 3.2, outputUsd: 16, cacheReadUsd: 0.16 },
+    })
+  })
+
+  test('applies the display group ratio to a linear expression', () => {
+    const result = resolveLandingTokenPrice(
+      [
+        tokenModel({
+          model_name: 'kimi-k3.1-pro',
+          billing_mode: 'tiered_expr',
+          billing_expr: 'tier("base", p * 1.6 + c * 8 + cr * 0.16)',
+          enable_groups: ['vip'],
+          group_ratio: { vip: 2 },
+        }),
+      ],
+      'kimi-k3.1-pro',
+      { allowSimpleLinearExpression: true }
+    )
+    expect(result).toEqual({
+      status: 'ready',
+      amounts: { inputUsd: 3.2, outputUsd: 16, cacheReadUsd: 0.32 },
+    })
+  })
+
+  test('leaves cache null when a linear expression has no cache read term', () => {
+    expect(
+      resolveLandingTokenPrice(
+        [
+          tokenModel({
+            model_name: 'linear',
+            billing_mode: 'tiered_expr',
+            billing_expr: 'tier("base", p * 1.6 + c * 8)',
+          }),
+        ],
+        'linear',
+        { allowSimpleLinearExpression: true }
+      )
+    ).toEqual({
+      status: 'ready',
+      amounts: { inputUsd: 1.6, outputUsd: 8, cacheReadUsd: null },
+    })
+  })
+
+  test('degrades complex, missing, and abnormal expressions instead of guessing', () => {
+    const options = { allowSimpleLinearExpression: true }
+    const cases: Array<Partial<PricingModel>> = [
+      { billing_expr: '' },
+      { billing_expr: 'tier("base", p * 1.6 + c * 8) * 2' },
+      {
+        billing_expr:
+          'param("premium") ? tier("pro", p * 4 + c * 16) : tier("base", p * 2 + c * 8)',
+      },
+      {
+        billing_expr: 'tier("base", u("seconds") * 0.4)',
+        billing_usage_schema: { seconds: { type: 'number', unit: 'second' } },
+      },
+      {
+        billing_expr: 'tier("base", p * 1.6 + c * 8)',
+        billing_plugin_variants: [
+          {
+            plugin_key: 'alt',
+            plugin_name: 'Alt',
+            billing_expr: 'tier("base", p * 2 + c * 4)',
+            billing_mode: 'tiered_expr',
+            billing_usage_schema: {},
+          },
+        ],
+      },
+    ]
+    for (const overrides of cases) {
+      expect(
+        resolveLandingTokenPrice(
+          [
+            tokenModel({
+              model_name: 'bad',
+              billing_mode: 'tiered_expr',
+              model_ratio: 5,
+              completion_ratio: 2,
+              ...overrides,
+            }),
+          ],
+          'bad',
+          options
+        )
+      ).toEqual({ status: 'unsupported' })
+    }
+    expect(resolveLandingTokenPrice([], 'kimi-k3.1-pro', options)).toEqual({
+      status: 'missing',
+    })
+  })
+
   test('treats billing_mode tiered_expr as unsupported even without a usable expression', () => {
     const cases: Array<Partial<PricingModel>> = [
       { billing_mode: 'tiered_expr', billing_expr: 'input * 2' },

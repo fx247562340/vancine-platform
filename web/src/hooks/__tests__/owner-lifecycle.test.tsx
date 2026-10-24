@@ -449,25 +449,25 @@ describe('public marketing page metadata switches', () => {
     )
 
     expect(document.title).toBe(
-      'Kimi K3 API Pricing & OpenRouter Comparison | Vancine'
+      'Kimi K3.1 Pro & Highspeed API for Coding Agents | Vancine'
     )
     expect(
       document.head.querySelector('meta[name="title"]')?.getAttribute('content')
-    ).toBe('Kimi K3 API Pricing & OpenRouter Comparison | Vancine')
+    ).toBe('Kimi K3.1 Pro & Highspeed API for Coding Agents | Vancine')
     expect(descriptionContent()).toBe(
-      'See live Vancine pricing for Kimi K3. Vancine is offered at a fixed 20% discount to the referenced OpenRouter Models API standard price as of September 9, 2026. Compare pricing, code, and test evidence.'
+      'Choose Kimi K3.1 Pro or Highspeed on an OpenAI-compatible API. Compare live Vancine input and output prices with the October 24, 2026 Kimi official reference.'
     )
     expect(
       document.head
         .querySelector('meta[property="og:title"]')
         ?.getAttribute('content')
-    ).toBe('Kimi K3 API Pricing & OpenRouter Comparison')
+    ).toBe('Kimi K3.1 Pro & Highspeed API for Coding Agents')
     expect(
       document.head
         .querySelector('meta[property="og:description"]')
         ?.getAttribute('content')
     ).toBe(
-      'See live Vancine pricing for Kimi K3. Vancine is offered at a fixed 20% discount to the referenced OpenRouter Models API standard price as of September 9, 2026. Compare pricing, code, and test evidence.'
+      'Choose Kimi K3.1 Pro or Highspeed on an OpenAI-compatible API. Compare live Vancine input and output prices with the October 24, 2026 Kimi official reference.'
     )
     expect(
       document.head
@@ -479,19 +479,19 @@ describe('public marketing page metadata switches', () => {
       document.head
         .querySelector('meta[name="twitter:title"]')
         ?.getAttribute('content')
-    ).toBe('Kimi K3 API Pricing & OpenRouter Comparison')
+    ).toBe('Kimi K3.1 Pro & Highspeed API for Coding Agents')
     expect(
       document.head
         .querySelector('meta[name="twitter:description"]')
         ?.getAttribute('content')
     ).toBe(
-      'See live Vancine pricing for Kimi K3. Vancine is offered at a fixed 20% discount to the referenced OpenRouter Models API standard price as of September 9, 2026. Compare pricing, code, and test evidence.'
+      'Choose Kimi K3.1 Pro or Highspeed on an OpenAI-compatible API. Compare live Vancine input and output prices with the October 24, 2026 Kimi official reference.'
     )
 
     home.unmount()
     // Kimi still owns the head after Home unmounts.
     expect(document.title).toBe(
-      'Kimi K3 API Pricing & OpenRouter Comparison | Vancine'
+      'Kimi K3.1 Pro & Highspeed API for Coding Agents | Vancine'
     )
     expect(canonicalHref()).toBe('https://vancine.com/kimi-k3-api')
     expect(isPublicMarketingMetadataActive()).toBe(true)

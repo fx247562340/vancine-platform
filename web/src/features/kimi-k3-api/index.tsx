@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useLocation } from '@tanstack/react-router'
-import { useMemo, type ReactElement } from 'react'
+import { useMemo, useState, type ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { PublicLayout } from '@/components/layout'
@@ -33,12 +33,15 @@ import { Faq } from './components/faq'
 import { FinalCta } from './components/final-cta'
 import { Hero } from './components/hero'
 import { Quickstart } from './components/quickstart'
-import { getKimiK3PageMetadata, KIMI_K3_MODEL_ID } from './lib/landing'
+import {
+  getKimiK3PageMetadata,
+  KIMI_K31_DEFAULT_MODEL_ID,
+  type KimiK31ModelId,
+} from './lib/landing'
 
 /**
- * Public developer landing page for the Kimi K3 model. Composes the shared
- * PublicLayout and Footer, manages its own SEO metadata through the shared
- * page-metadata hook, and delegates every section to a dedicated component.
+ * Public developer landing page for Kimi K3.1 Pro and Highspeed. The route
+ * stays /kimi-k3-api. One pricing query feeds both model selections.
  */
 export function KimiK3ApiPage(): ReactElement {
   const { i18n } = useTranslation()
@@ -46,17 +49,19 @@ export function KimiK3ApiPage(): ReactElement {
   const location = useLocation()
   const isAuthenticated = !!auth.user
   const search = location.searchStr ?? ''
+  const [modelId, setModelId] = useState<KimiK31ModelId>(
+    KIMI_K31_DEFAULT_MODEL_ID
+  )
 
   const metadata = useMemo(
     () => getKimiK3PageMetadata(i18n.language),
     [i18n.language]
   )
-  // Public marketing route: the metadata is owned by this page. The
-  // `publicMarketingPage: true` flag prevents the system branding
-  // bootstrap in main.tsx from overwriting the route-level title.
   usePageMetadata(metadata, { publicMarketingPage: true })
   const landingPricing = useLandingPricing()
-  const vancinePrice = landingPricing.resolve(KIMI_K3_MODEL_ID)
+  const vancinePrice = landingPricing.resolve(modelId, {
+    allowSimpleLinearExpression: true,
+  })
 
   return (
     <PublicLayout showMainContainer={false}>
@@ -64,12 +69,22 @@ export function KimiK3ApiPage(): ReactElement {
         <Hero
           isAuthenticated={isAuthenticated}
           search={search}
+          modelId={modelId}
+          onModelChange={setModelId}
           vancinePrice={vancinePrice}
         />
-        <Availability vancinePrice={vancinePrice} />
+        <Availability
+          modelId={modelId}
+          onModelChange={setModelId}
+          vancinePrice={vancinePrice}
+        />
         <Evidence />
-        <Quickstart isAuthenticated={isAuthenticated} search={search} />
-        <AgentCompatibility />
+        <Quickstart
+          isAuthenticated={isAuthenticated}
+          search={search}
+          modelId={modelId}
+        />
+        <AgentCompatibility modelId={modelId} />
         <Faq />
         <FinalCta isAuthenticated={isAuthenticated} search={search} />
       </main>

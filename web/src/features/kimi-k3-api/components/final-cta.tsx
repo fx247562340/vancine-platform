@@ -56,11 +56,11 @@ export function FinalCta(props: FinalCtaProps): ReactElement {
           aria-hidden='true'
         />
         <h2 id='kimi-k3-final-cta-title' className='text-3xl font-bold'>
-          {t('Get Kimi K3 through an OpenAI-compatible API')}
+          {t('Get Kimi K3.1 Pro or Highspeed through an OpenAI-compatible API')}
         </h2>
         <p className='text-muted-foreground'>
           {t(
-            'Review the dated price snapshot and the published test evidence, then send a request with your Vancine API key.'
+            'Choose a model, create a Vancine API key, and send a request. Kimi K3.1 live results are not published yet.'
           )}
         </p>
         <FirstTopUpBonusCallout className='w-full max-w-xl' />

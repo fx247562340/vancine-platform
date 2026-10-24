@@ -16,14 +16,22 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { hasTaskUsageSchema } from '@/features/pricing/lib/dynamic-price'
+import {
+  getDynamicPricingSummary,
+  hasTaskUsageSchema,
+  type DynamicPriceEntry,
+} from '@/features/pricing/lib/dynamic-price'
 import {
   getDisplayGroupRatio,
   isTokenBasedModel,
 } from '@/features/pricing/lib/model-helpers'
 import type { PricingModel } from '@/features/pricing/types'
 
-import type { LandingModelPrice } from '../types'
+import type {
+  LandingModelPrice,
+  LandingTokenAmounts,
+  LandingTokenPriceOptions,
+} from '../types'
 
 function isFiniteNonNegative(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0
@@ -40,23 +48,7 @@ function isFiniteNonNegative(value: unknown): value is number {
  *
  * Exact `model_name` match only. No static-price fallback.
  */
-export function resolveLandingTokenPrice(
-  models: readonly PricingModel[],
-  modelId: string
-): LandingModelPrice {
-  const model = models.find((entry) => entry.model_name === modelId)
-  if (!model) {
-    return { status: 'missing' }
-  }
-
-  if (
-    !isTokenBasedModel(model) ||
-    hasTaskUsageSchema(model) ||
-    model.billing_mode === 'tiered_expr'
-  ) {
-    return { status: 'unsupported' }
-  }
-
+function usableGroupRatio(model: PricingModel): number | null {
   const enabledGroups = Array.isArray(model.enable_groups)
     ? model.enable_groups
     : []
@@ -67,11 +59,126 @@ export function resolveLandingTokenPrice(
       isFiniteNonNegative(configuredGroupRatio[group])
     )
   const groupRatio = getDisplayGroupRatio(model)
+  if (!hasUsableGroupRatio || !isFiniteNonNegative(groupRatio)) {
+    return null
+  }
+  return groupRatio
+}
+
+function linearEntry(
+  entries: readonly DynamicPriceEntry[],
+  field: string
+): number | null | 'unsupported' {
+  const matches = entries.filter((entry) => entry.field === field)
+  if (matches.length === 0) return null
+  if (matches.length !== 1 || matches[0].formattedRange) return 'unsupported'
+  if (!isFiniteNonNegative(matches[0].value)) return 'unsupported'
+  return matches[0].value
+}
+
+/**
+ * Resolve one unconditional linear token expression.
+ *
+ * Reuses the Pricing module parser. Never reads model_ratio. Complex
+ * conditions, multiple tiers, request rules, task billing, time pricing,
+ * plugin variants, and missing input or output degrade to unsupported.
+ */
+function resolveSimpleLinearExpressionPrice(
+  model: PricingModel
+): LandingModelPrice {
   if (
-    !hasUsableGroupRatio ||
+    hasTaskUsageSchema(model) ||
+    (model.billing_plugin_variants?.length ?? 0) > 0 ||
+    !model.billing_expr
+  ) {
+    return { status: 'unsupported' }
+  }
+
+  const groupRatio = usableGroupRatio(model)
+  if (groupRatio === null) {
+    return { status: 'unsupported' }
+  }
+
+  const summary = getDynamicPricingSummary(model, {
+    tokenUnit: 'M',
+    groupRatioMultiplier: 1,
+  })
+  const tier = summary?.tier
+  const conditions =
+    tier && 'conditions' in tier && Array.isArray(tier.conditions)
+      ? tier.conditions
+      : null
+  if (
+    !summary ||
+    !tier ||
+    conditions === null ||
+    conditions.length > 0 ||
+    summary.isSpecialExpression ||
+    summary.isTaskUsage ||
+    summary.isTimePricing ||
+    summary.isMixedBilling ||
+    summary.hasRequestRules ||
+    summary.tierCount !== 1 ||
+    ('billingUnit' in tier && tier.billingUnit === 'request')
+  ) {
+    return { status: 'unsupported' }
+  }
+
+  const input = linearEntry(summary.entries, 'inputPrice')
+  const output = linearEntry(summary.entries, 'outputPrice')
+  const cache = linearEntry(summary.entries, 'cacheReadPrice')
+  if (
+    input === 'unsupported' ||
+    output === 'unsupported' ||
+    cache === 'unsupported' ||
+    input === null ||
+    output === null
+  ) {
+    return { status: 'unsupported' }
+  }
+
+  const amounts: LandingTokenAmounts = {
+    inputUsd: input * groupRatio,
+    outputUsd: output * groupRatio,
+    cacheReadUsd: cache === null ? null : cache * groupRatio,
+  }
+  if (
+    !isFiniteNonNegative(amounts.inputUsd) ||
+    !isFiniteNonNegative(amounts.outputUsd) ||
+    (amounts.cacheReadUsd !== null &&
+      !isFiniteNonNegative(amounts.cacheReadUsd))
+  ) {
+    return { status: 'unsupported' }
+  }
+  return { status: 'ready', amounts }
+}
+
+export function resolveLandingTokenPrice(
+  models: readonly PricingModel[],
+  modelId: string,
+  options?: LandingTokenPriceOptions
+): LandingModelPrice {
+  const model = models.find((entry) => entry.model_name === modelId)
+  if (!model) {
+    return { status: 'missing' }
+  }
+
+  if (model.billing_mode === 'tiered_expr') {
+    if (!options?.allowSimpleLinearExpression) {
+      return { status: 'unsupported' }
+    }
+    return resolveSimpleLinearExpressionPrice(model)
+  }
+
+  if (!isTokenBasedModel(model) || hasTaskUsageSchema(model)) {
+    return { status: 'unsupported' }
+  }
+
+  const groupRatio = usableGroupRatio(model)
+  if (
+    groupRatio === null ||
     !isFiniteNonNegative(model.model_ratio) ||
-    !isFiniteNonNegative(model.completion_ratio) ||
-    !isFiniteNonNegative(groupRatio)
+    !isFiniteNonNegative(model.completion_ratio)
   ) {
     return { status: 'unsupported' }
   }

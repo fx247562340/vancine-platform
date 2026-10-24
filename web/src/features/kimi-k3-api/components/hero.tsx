@@ -28,104 +28,116 @@ import {
   type LandingModelPrice,
 } from '@/features/landing-pricing'
 import { trackEvent } from '@/lib/analytics'
-import { cn } from '@/lib/utils'
 
 import {
   formatKimiK3Usd,
+  getKimiK31InputOutputDiscountPercent,
+  getKimiK31Model,
   getKimiK3CtaLabelKey,
   getKimiK3CtaTarget,
+  KIMI_K31_DISCOUNT_KEY,
   KIMI_K3_CTA_EVENT,
-  KIMI_K3_PRICE_PROVIDERS,
   KIMI_K3_PRICE_UNIT_KEY,
   KIMI_K3_PRICING_SECTION_ID,
-  type KimiK3PriceProvider,
+  type KimiK31ModelId,
 } from '../lib/landing'
+import { ModelChoice } from './model-choice'
 
 export interface HeroProps {
   isAuthenticated: boolean
-  /** The raw query string of the landing page URL. */
   search: string
+  modelId: KimiK31ModelId
+  onModelChange: (modelId: KimiK31ModelId) => void
   vancinePrice: LandingModelPrice
-}
-
-/**
- * The two providers shown in the hero card, in display order, with the
- * reference listing de-emphasised against the current Vancine price.
- */
-const HERO_PRICE_ROWS = [
-  { provider: KIMI_K3_PRICE_PROVIDERS[0], reference: false },
-  { provider: KIMI_K3_PRICE_PROVIDERS[1], reference: true },
-] as const
-
-function providerAmount(
-  provider: KimiK3PriceProvider,
-  field: 'input' | 'output',
-  vancinePrice: LandingModelPrice
-): ReactElement {
-  if (provider.id === 'vancine') {
-    return <VancineLivePrice price={vancinePrice} field={field} />
-  }
-  const amount = field === 'input' ? provider.inputUsd : provider.outputUsd
-  return <>{formatKimiK3Usd(amount)}</>
 }
 
 function HeroPriceCard(props: {
+  modelId: KimiK31ModelId
   vancinePrice: LandingModelPrice
 }): ReactElement {
   const { t } = useTranslation()
+  const model = getKimiK31Model(props.modelId)
+  const discount = getKimiK31InputOutputDiscountPercent(
+    props.vancinePrice,
+    props.modelId
+  )
+  const showCache =
+    props.vancinePrice.status === 'ready' &&
+    props.vancinePrice.amounts.cacheReadUsd !== null
 
   return (
     <aside
       data-testid='kimi-k3-hero-price-card'
-      aria-label={t('Kimi K3 API pricing')}
+      aria-label={t('Kimi K3.1 live pricing')}
       className='border-border bg-card w-full rounded-xl border p-5 shadow-sm'
     >
       <p className='text-muted-foreground text-xs font-semibold tracking-wide uppercase'>
-        {t('Kimi K3 API pricing')}
+        {t('Kimi K3.1 live pricing')}
       </p>
+      <p className='mt-2 font-mono text-sm'>{model.id}</p>
       <dl className='mt-4 flex flex-col gap-3 text-sm'>
-        {HERO_PRICE_ROWS.map(({ provider, reference }) => (
-          <div
-            key={provider.nameKey}
-            className={cn(
-              'flex items-baseline justify-between gap-4',
-              reference && 'text-muted-foreground'
-            )}
-          >
-            <dt className={cn(!reference && 'font-medium')}>
-              {t(provider.nameKey)}
-            </dt>
-            <dd className='text-right tabular-nums'>
-              <span className='block'>
-                {t('Input')}{' '}
-                {providerAmount(provider, 'input', props.vancinePrice)}
+        <div className='flex items-baseline justify-between gap-4'>
+          <dt className='font-medium'>{t('Vancine')}</dt>
+          <dd className='text-right tabular-nums'>
+            <span className='block'>
+              {t('Input')}{' '}
+              <VancineLivePrice price={props.vancinePrice} field='input' />
+            </span>
+            <span className='block'>
+              {t('Output')}{' '}
+              <VancineLivePrice price={props.vancinePrice} field='output' />
+            </span>
+            {showCache ? (
+              <span className='text-muted-foreground block'>
+                {t('Cache read')}{' '}
+                <VancineLivePrice price={props.vancinePrice} field='cache' />
               </span>
-              <span className='block'>
-                {t('Output')}{' '}
-                {providerAmount(provider, 'output', props.vancinePrice)}
-              </span>
-            </dd>
-          </div>
-        ))}
+            ) : null}
+          </dd>
+        </div>
+        <div className='text-muted-foreground flex items-baseline justify-between gap-4'>
+          <dt>{t('Kimi official')}</dt>
+          <dd className='text-right tabular-nums'>
+            <span className='block'>
+              {t('Input')} {formatKimiK3Usd(model.officialInputUsd)}
+            </span>
+            <span className='block'>
+              {t('Output')} {formatKimiK3Usd(model.officialOutputUsd)}
+            </span>
+          </dd>
+        </div>
         <div className='flex items-baseline justify-between gap-4'>
           <dt className='text-muted-foreground'>{t('Unit')}</dt>
           <dd className='text-right'>{t(KIMI_K3_PRICE_UNIT_KEY)}</dd>
         </div>
       </dl>
-      <p className='text-primary mt-4 text-sm font-semibold'>
-        {t('20% lower than OpenRouter on both input and output')}
-      </p>
+      {discount !== null ? (
+        <p
+          className='text-primary mt-4 text-sm font-semibold'
+          data-testid='kimi-k31-discount'
+        >
+          {t(KIMI_K31_DISCOUNT_KEY, { percent: discount })}
+        </p>
+      ) : null}
       <p className='text-muted-foreground mt-2 text-xs'>
         {t('OpenAI-compatible API')} · {t('Pay as you go')}
       </p>
+      <p className='text-muted-foreground mt-2 text-xs'>
+        {t(
+          'The 1M-token context window is a published Kimi specification, not a Vancine measurement.'
+        )}
+      </p>
+      {props.modelId === 'kimi-k3.1-pro-highspeed' ? (
+        <p className='text-muted-foreground mt-2 text-xs'>
+          {t(
+            'Official guide: about 2–3× the speed of Kimi K3.1 Pro. Not a Vancine measurement.'
+          )}
+        </p>
+      ) : null}
     </aside>
   )
 }
 
-/**
- * Above-the-fold introduction: search-intent H1, dated price summary,
- * the auth-aware primary CTA, and an in-page anchor to the comparison.
- */
 export function Hero(props: HeroProps): ReactElement {
   const { t } = useTranslation()
   const ctaTarget = getKimiK3CtaTarget(props.isAuthenticated, props.search)
@@ -142,11 +154,18 @@ export function Hero(props: HeroProps): ReactElement {
             id='kimi-k3-hero-title'
             className='text-4xl font-bold tracking-tight md:text-5xl'
           >
-            {t('Kimi K3 API pricing and OpenRouter comparison')}
+            {t('Kimi K3.1 Pro & Highspeed API for Coding Agents')}
           </h1>
           <p className='text-foreground max-w-2xl text-base font-medium md:text-lg'>
-            {t('20% lower than OpenRouter on both input and output')}
+            {t(
+              'Choose Kimi K3.1 Pro or Highspeed, then call it through one OpenAI-compatible API.'
+            )}
           </p>
+          <ModelChoice
+            idPrefix='kimi-k31-hero'
+            modelId={props.modelId}
+            onModelChange={props.onModelChange}
+          />
           <div className='flex flex-wrap items-center gap-3'>
             <Button
               size='lg'
@@ -175,7 +194,10 @@ export function Hero(props: HeroProps): ReactElement {
             </Button>
           </div>
         </div>
-        <HeroPriceCard vancinePrice={props.vancinePrice} />
+        <HeroPriceCard
+          modelId={props.modelId}
+          vancinePrice={props.vancinePrice}
+        />
       </div>
     </section>
   )

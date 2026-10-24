@@ -88,7 +88,7 @@ export function Evidence(): ReactElement {
       label: t('Tests passed'),
       value: agent.testsPassed ? t('PASS') : t('FAIL'),
     },
-    { label: t('Evidence file is public'), value: t('Verified') },
+    { label: t('Evidence file is public'), value: t('Historical K3 record') },
   ]
 
   const agentStats: EvidenceStat[] = [
@@ -168,11 +168,11 @@ export function Evidence(): ReactElement {
     >
       <div className='flex flex-col gap-2'>
         <h2 id='kimi-k3-evidence-title' className='text-3xl font-bold'>
-          {t('Real Kimi K3 API test evidence')}
+          {t('Historical Kimi K3 test record')}
         </h2>
         <p className='text-muted-foreground max-w-3xl'>
           {t(
-            'Headline results from a single historical run: the request succeeded, the returned model matched, tool calls completed, tests passed, and the evidence file is public. Token counts and run IDs are secondary detail.'
+            'Headline results from a single historical kimi-k3 run: the request succeeded, the returned model matched, tool calls completed, tests passed, and the evidence file is public. These results are not Kimi K3.1 results.'
           )}
         </p>
       </div>
@@ -219,14 +219,14 @@ export function Evidence(): ReactElement {
           <CardHeader>
             <CardTitle className='flex flex-wrap items-center gap-2'>
               {t('API compatibility')}
-              <Badge variant='secondary'>{t('Verified')}</Badge>
+              <Badge variant='secondary'>{t('Historical K3 record')}</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className='flex flex-col gap-3'>
             <EvidenceStatList stats={probeStats} />
             <p className='text-muted-foreground text-xs'>
               {t(
-                'The probe used a 16-token completion budget that was mostly consumed by reasoning, so its visible content is inconclusive. This small reasoning-heavy response is not a content-generation failure.'
+                'The probe used a 16-token completion budget that was mostly consumed by reasoning, so its visible content is inconclusive. This small reasoning-heavy response is not a content-generation failure. It is a historical kimi-k3 probe, not a K3.1 example.'
               )}
             </p>
           </CardContent>
@@ -236,7 +236,7 @@ export function Evidence(): ReactElement {
           <CardHeader>
             <CardTitle className='flex flex-wrap items-center gap-2'>
               {t('OpenCode coding agent')}
-              <Badge variant='secondary'>{t('Verified')}</Badge>
+              <Badge variant='secondary'>{t('Historical K3 record')}</Badge>
             </CardTitle>
             <CardDescription>
               {t('Model steps completed')}: {String(agent.modelStepsCompleted)}
@@ -296,7 +296,7 @@ export function Evidence(): ReactElement {
       </div>
 
       <aside
-        aria-label={t('Real Kimi K3 API test evidence')}
+        aria-label={t('Historical Kimi K3 test record')}
         className='border-border bg-muted/30 mt-6 rounded-lg border p-4'
       >
         <ul className='flex flex-col gap-2'>

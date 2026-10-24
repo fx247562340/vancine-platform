@@ -988,7 +988,9 @@ describe('Custom homepage branches', () => {
     })
     renderHome()
     await screen.findByTitle('Custom Home Page')
-    expect(screen.queryByText('Kimi K3 API')).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('Kimi K3.1 Pro & Highspeed API')
+    ).not.toBeInTheDocument()
     expect(screen.queryByText('Seedance 2.5 API')).not.toBeInTheDocument()
     expect(screen.queryByText('AI Media API')).not.toBeInTheDocument()
     expect(screen.queryByText('Works with your stack')).not.toBeInTheDocument()
@@ -1010,7 +1012,9 @@ describe('Custom homepage branches', () => {
     await waitFor(() => {
       expect(document.querySelector('.custom-home-content')).not.toBeNull()
     })
-    expect(screen.queryByText('Kimi K3 API')).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('Kimi K3.1 Pro & Highspeed API')
+    ).not.toBeInTheDocument()
     expect(screen.queryByText('Seedance 2.5 API')).not.toBeInTheDocument()
     expect(screen.queryByText('AI Media API')).not.toBeInTheDocument()
     expect(screen.queryByText('Works with your stack')).not.toBeInTheDocument()
@@ -1030,7 +1034,9 @@ describe('Custom homepage branches', () => {
     })
     renderHome()
     await screen.findByText('Custom')
-    expect(screen.queryByText('Kimi K3 API')).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('Kimi K3.1 Pro & Highspeed API')
+    ).not.toBeInTheDocument()
     expect(screen.queryByText('Seedance 2.5 API')).not.toBeInTheDocument()
     expect(screen.queryByText('AI Media API')).not.toBeInTheDocument()
     expect(screen.queryByText('Works with your stack')).not.toBeInTheDocument()
@@ -1061,7 +1067,7 @@ describe('P6-C discovery routes', () => {
       name: 'One API for Chinese frontier and high-performance AI models',
     })
     const body = document.body.textContent ?? ''
-    expect(body).not.toContain('Kimi K3 API')
+    expect(body).not.toContain('Kimi K3.1 Pro & Highspeed API')
     expect(body).not.toContain('Seedance 2.5 API')
     expect(body).not.toContain('AI Media API')
   })

@@ -31,6 +31,17 @@ export type LandingModelPrice =
   | { status: 'unsupported' }
   | { status: 'ready'; amounts: LandingTokenAmounts }
 
+/**
+ * Opt-in for a single unconditional linear token expression.
+ * Omitted or false keeps the ratio-only path used by other landing pages.
+ */
+export type LandingTokenPriceOptions = {
+  allowSimpleLinearExpression?: boolean
+}
+
 export type LandingPricingState = {
-  resolve: (modelId: string) => LandingModelPrice
+  resolve: (
+    modelId: string,
+    options?: LandingTokenPriceOptions
+  ) => LandingModelPrice
 }

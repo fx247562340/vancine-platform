@@ -16,15 +16,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import {
-  CheckmarkCircle02Icon,
-  InformationCircleIcon,
-} from '@hugeicons/core-free-icons'
+import { InformationCircleIcon } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
 import type { ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { Badge } from '@/components/ui/badge'
 import {
   Card,
   CardContent,
@@ -33,12 +29,11 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 
-/**
- * Agent compatibility matrix. Only OpenCode may be described as live
- * verified; Cline, Roo Code, and generic OpenAI-compatible clients are
- * configuration-compatible statements only.
- */
-export function AgentCompatibility(): ReactElement {
+import type { KimiK31ModelId } from '../lib/landing'
+
+export function AgentCompatibility(props: {
+  modelId: KimiK31ModelId
+}): ReactElement {
   const { t } = useTranslation()
 
   return (
@@ -52,36 +47,30 @@ export function AgentCompatibility(): ReactElement {
           <h2 id='kimi-k3-agents-title' className='text-3xl font-bold'>
             {t('Agent setup')}
           </h2>
+          <p className='text-muted-foreground max-w-3xl'>
+            {t('Kimi K3.1 Pro and Highspeed are not live-verified on Vancine.')}
+          </p>
         </div>
 
         <div className='grid gap-4 md:grid-cols-3'>
           <Card>
             <CardHeader>
-              <CardTitle className='flex items-center gap-2'>
-                OpenCode
-                <Badge variant='secondary'>
-                  <HugeiconsIcon
-                    icon={CheckmarkCircle02Icon}
-                    data-icon='inline-start'
-                    aria-hidden='true'
-                  />
-                  {t('Verified')}
-                </Badge>
-              </CardTitle>
-              <CardDescription>
-                {t('Configure a Vancine provider')}
-              </CardDescription>
+              <CardTitle>{t('Configure a Vancine provider')}</CardTitle>
+              <CardDescription>OpenCode</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className='flex flex-col gap-3'>
               <p>
                 {t(
                   'Use the OpenAI-compatible SDK provider, the Vancine base URL, and an environment-backed key.'
                 )}
               </p>
-              <p className='text-muted-foreground mt-3 text-xs'>
-                {t(
-                  'Only OpenCode v1.18.3 has a live coding-agent verification so far. Cline and Roo Code configurations are provided in the starter repository but have not been independently live-verified.'
-                )}
+              <p>
+                <span className='text-muted-foreground'>
+                  {t('Selected model ID')}
+                </span>
+                <code className='mt-1 block font-mono text-sm'>
+                  {props.modelId}
+                </code>
               </p>
             </CardContent>
           </Card>
@@ -101,7 +90,12 @@ export function AgentCompatibility(): ReactElement {
                     'Set the base URL to https://vancine.com/v1 and use your VANCINE_API_KEY.'
                   )}
                 </li>
-                <li>{t('Select kimi-k3 as the model ID.')}</li>
+                <li>
+                  {t('Selected model ID')}{' '}
+                  <code className='text-foreground font-mono'>
+                    {props.modelId}
+                  </code>
+                </li>
               </ol>
             </CardContent>
           </Card>
@@ -113,25 +107,45 @@ export function AgentCompatibility(): ReactElement {
                 {t('Use the same OpenAI-compatible connection')}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className='flex flex-col gap-3'>
               <p>
                 {t(
                   'Set the base URL to https://vancine.com/v1 and use your VANCINE_API_KEY.'
                 )}
               </p>
-              <p className='mt-3 flex items-start gap-2'>
+              <p className='flex items-start gap-2'>
                 <HugeiconsIcon
                   icon={InformationCircleIcon}
                   className='text-muted-foreground mt-0.5 shrink-0'
                   aria-hidden='true'
                 />
                 <span className='text-muted-foreground text-xs'>
-                  {t('Select kimi-k3 as the model ID.')}
+                  {t(
+                    'Official docs describe streaming, reasoning_effort, and tool calling for these model IDs. Vancine has not live-verified those capabilities for Kimi K3.1 Pro or Highspeed.'
+                  )}
                 </span>
               </p>
             </CardContent>
           </Card>
         </div>
+
+        <ul className='text-muted-foreground list-disc space-y-2 pl-5 text-sm'>
+          <li>
+            {t(
+              'The public starter repository still targets kimi-k3 only. It is a historical K3 asset, not a K3.1 verified example.'
+            )}
+          </li>
+          <li>
+            {t(
+              'Moonshot says full model weights will be released by November 4, 2026. They are not open yet.'
+            )}
+          </li>
+          <li>
+            {t(
+              'Official guide: about 2–3× the speed of Kimi K3.1 Pro. Not a Vancine measurement.'
+            )}
+          </li>
+        </ul>
       </div>
     </section>
   )

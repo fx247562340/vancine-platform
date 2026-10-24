@@ -31,4 +31,5 @@ export type {
   LandingModelPrice,
   LandingPricingState,
   LandingTokenAmounts,
+  LandingTokenPriceOptions,
 } from './types'

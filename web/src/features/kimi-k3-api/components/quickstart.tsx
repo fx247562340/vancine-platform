@@ -28,10 +28,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { trackEvent } from '@/lib/analytics'
 
 import {
+  getKimiK31CodeExamples,
   getKimiK3CtaTarget,
-  KIMI_K3_CODE_EXAMPLES,
   KIMI_K3_CTA_EVENT,
   KIMI_K3_RESOURCE_EVENT,
+  type KimiK31ModelId,
 } from '../lib/landing'
 import { CopyableCode } from './copyable-code'
 
@@ -39,6 +40,7 @@ export interface QuickstartProps {
   isAuthenticated: boolean
   /** The raw query string of the landing page URL. */
   search: string
+  modelId: KimiK31ModelId
 }
 
 /**
@@ -48,6 +50,7 @@ export interface QuickstartProps {
 export function Quickstart(props: QuickstartProps): ReactElement {
   const { t } = useTranslation()
   const ctaTarget = getKimiK3CtaTarget(props.isAuthenticated, props.search)
+  const examples = getKimiK31CodeExamples(props.modelId)
 
   return (
     <section
@@ -61,25 +64,38 @@ export function Quickstart(props: QuickstartProps): ReactElement {
         </h2>
         <p className='text-muted-foreground'>
           {t(
-            'Send your first Kimi K3 chat completion with an environment variable, not a pasted secret.'
+            'Send a chat completion for the selected model ID. Read the key from VANCINE_API_KEY. Do not send temperature or max_tokens.'
           )}
         </p>
       </div>
 
       <Tabs defaultValue='curl' className='mt-8'>
         <TabsList aria-label={t('Quickstart languages')}>
-          {KIMI_K3_CODE_EXAMPLES.map((example) => (
+          {examples.map((example) => (
             <TabsTrigger key={example.id} value={example.id}>
               {example.label}
             </TabsTrigger>
           ))}
         </TabsList>
-        {KIMI_K3_CODE_EXAMPLES.map((example) => (
+        {examples.map((example) => (
           <TabsContent key={example.id} value={example.id} className='mt-4'>
             <CopyableCode code={example.code} label={example.label} />
           </TabsContent>
         ))}
       </Tabs>
+
+      <ul className='text-muted-foreground mt-6 list-disc space-y-2 pl-5 text-sm'>
+        <li>
+          {t(
+            'Official docs fix temperature, top_p, n, presence_penalty, and frequency_penalty. Omit them. The old K3 probe used temperature 0 and max_tokens 16; that is not a K3.1 example.'
+          )}
+        </li>
+        <li>
+          {t(
+            'Official docs describe streaming, reasoning_effort, and tool calling for these model IDs. Vancine has not live-verified those capabilities for Kimi K3.1 Pro or Highspeed.'
+          )}
+        </li>
+      </ul>
 
       <Separator className='my-8' />
 

@@ -310,14 +310,14 @@ var publicMarketingPages = []publicPageMeta{
 	},
 	{
 		path:  "/kimi-k3-api",
-		title: "Kimi K3 API Pricing & OpenRouter Comparison | Vancine",
-		description: "See live Vancine pricing for Kimi K3. Vancine is offered at a " +
-			"fixed 20% discount to the referenced OpenRouter Models API standard " +
-			"price as of September 9, 2026. Compare pricing, code, and test evidence.",
-		ogTitle:          "Kimi K3 API Pricing & OpenRouter Comparison",
-		ogDescription:    "See live Vancine pricing for Kimi K3. Vancine is offered at a fixed 20% discount to the referenced OpenRouter Models API standard price as of September 9, 2026. Compare pricing, code, and test evidence.",
-		twitterTitle:     "Kimi K3 API Pricing & OpenRouter Comparison",
-		twitterDesc:      "See live Vancine pricing for Kimi K3. Vancine is offered at a fixed 20% discount to the referenced OpenRouter Models API standard price as of September 9, 2026. Compare pricing, code, and test evidence.",
+		title: "Kimi K3.1 Pro & Highspeed API for Coding Agents | Vancine",
+		description: "Choose Kimi K3.1 Pro or Highspeed on an OpenAI-compatible API. " +
+			"Compare live Vancine input and output prices with the October 24, 2026 " +
+			"Kimi official reference.",
+		ogTitle:          "Kimi K3.1 Pro & Highspeed API for Coding Agents",
+		ogDescription:    "Choose Kimi K3.1 Pro or Highspeed on an OpenAI-compatible API. Compare live Vancine input and output prices with the October 24, 2026 Kimi official reference.",
+		twitterTitle:     "Kimi K3.1 Pro & Highspeed API for Coding Agents",
+		twitterDesc:      "Choose Kimi K3.1 Pro or Highspeed on an OpenAI-compatible API. Compare live Vancine input and output prices with the October 24, 2026 Kimi official reference.",
 		twitterCardValue: "summary",
 	},
 	{
@@ -479,7 +479,7 @@ const llmsTxtBody = `# Vancine public documentation index for LLM agents.
 
 ## Other acquisition pages
 
-- [Kimi K3 API pricing & OpenRouter comparison](https://vancine.com/kimi-k3-api)
+- [Kimi K3.1 Pro and Highspeed API for coding agents](https://vancine.com/kimi-k3-api)
 - [OpenRouter alternative for Chinese AI models](https://vancine.com/openrouter-alternative)
 - [GLM-5.3 & GLM-5.3 Flash API pricing](https://vancine.com/glm-api)
 - [8 Chinese AI models tested in Pi coding agent](https://vancine.com/coding-agent-benchmark)

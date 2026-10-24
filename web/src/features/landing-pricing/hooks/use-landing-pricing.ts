@@ -21,7 +21,11 @@ import { useMemo } from 'react'
 import { usePricingData } from '@/features/pricing/hooks/use-pricing-data'
 
 import { resolveLandingTokenPrice } from '../lib/resolve-token-price'
-import type { LandingModelPrice, LandingPricingState } from '../types'
+import type {
+  LandingModelPrice,
+  LandingPricingState,
+  LandingTokenPriceOptions,
+} from '../types'
 
 const LOADING_PRICE: LandingModelPrice = { status: 'loading' }
 const ERROR_PRICE: LandingModelPrice = { status: 'error' }
@@ -43,7 +47,8 @@ export function useLandingPricing(): LandingPricingState {
       return { resolve: () => ERROR_PRICE }
     }
     return {
-      resolve: (modelId: string) => resolveLandingTokenPrice(models, modelId),
+      resolve: (modelId: string, options?: LandingTokenPriceOptions) =>
+        resolveLandingTokenPrice(models, modelId, options),
     }
   }, [models, isLoading, error])
 }

@@ -170,12 +170,26 @@ function fixturePricing(models: PricingModel[]): PricingData {
   }
 }
 
-/** Distinct from the retired static $2.40 / $12.00 Vancine snapshot. */
-const KIMI_LIVE_MODEL = tokenModel({
-  model_name: 'kimi-k3',
-  model_ratio: 5,
-  completion_ratio: 2,
-})
+function exprModel(name: string, expr: string, id: number): PricingModel {
+  return tokenModel({
+    id,
+    model_name: name,
+    billing_mode: 'tiered_expr',
+    billing_expr: expr,
+    model_ratio: 99,
+    completion_ratio: 9,
+    quota_type: 1,
+  })
+}
+
+const LIVE_MODELS = [
+  exprModel('kimi-k3.1-pro', 'tier("base", p * 1.6 + c * 8 + cr * 0.16)', 1),
+  exprModel(
+    'kimi-k3.1-pro-highspeed',
+    'tier("base", p * 3.2 + c * 16 + cr * 0.16)',
+    2
+  ),
+]
 
 function renderPage(initialPath = '/kimi-k3-api/'): RenderResult & {
   queryClient: QueryClient
@@ -210,7 +224,7 @@ beforeEach(async () => {
   setAuthenticated(false)
   trackEventMock.mockClear()
   getPricingMock.mockReset()
-  getPricingMock.mockResolvedValue(fixturePricing([KIMI_LIVE_MODEL]))
+  getPricingMock.mockResolvedValue(fixturePricing(LIVE_MODELS))
 })
 
 afterEach(() => {
@@ -233,19 +247,19 @@ describe('kimi-k3-api page structure', () => {
     const headings = await screen.findAllByRole('heading', { level: 1 })
     expect(headings).toHaveLength(1)
     expect(headings[0]).toHaveTextContent(
-      'Kimi K3 API pricing and OpenRouter comparison'
+      'Kimi K3.1 Pro & Highspeed API for Coding Agents'
     )
 
     const sections = screen
       .getAllByRole('heading', { level: 2 })
       .map((heading) => heading.textContent)
     expect(sections).toEqual([
-      'Kimi K3 API price comparison',
-      'Real Kimi K3 API test evidence',
+      'Kimi K3.1 price comparison',
+      'Historical Kimi K3 test record',
       'OpenAI-compatible quickstart',
       'Agent setup',
       'Frequently asked questions',
-      'Get Kimi K3 through an OpenAI-compatible API',
+      'Get Kimi K3.1 Pro or Highspeed through an OpenAI-compatible API',
     ])
   })
 
@@ -263,9 +277,8 @@ describe('kimi-k3-api page structure', () => {
     const [heading] = await screen.findAllByRole('heading', { level: 1 })
     const hero = heading.closest('section') as HTMLElement
     expect(hero).not.toBeNull()
-    expect(hero).toHaveTextContent(
-      '20% lower than OpenRouter on both input and output'
-    )
+    expect(hero).toHaveTextContent('kimi-k3.1-pro')
+    expect(hero.textContent).not.toContain('OpenRouter')
     expect(
       within(hero).getByTestId('kimi-k3-hero-primary-cta')
     ).toBeInTheDocument()
@@ -438,7 +451,7 @@ describe('link safety', () => {
     })
     expect(pricingLinks.length).toBeGreaterThanOrEqual(1)
     for (const pricingLink of pricingLinks) {
-      expect(pricingLink).toHaveAttribute('href', '/pricing/kimi-k3')
+      expect(pricingLink).toHaveAttribute('href', '/pricing/kimi-k3.1-pro')
       expect(pricingLink).not.toHaveAttribute('target')
     }
   })
@@ -507,7 +520,7 @@ describe('FAQ keyboard accessibility', () => {
     const user = userEvent.setup()
     renderPage()
 
-    const question = 'Where can I confirm current Kimi K3 pricing?'
+    const question = 'Where can I confirm current Kimi K3.1 pricing?'
     const trigger = await screen.findByRole('button', { name: question })
     trigger.focus()
     await user.keyboard('{Enter}')
@@ -584,81 +597,62 @@ describe('price comparison', () => {
     renderPage()
     const card = await screen.findByTestId('kimi-k3-hero-price-card')
     await waitFor(() => {
-      expect(card.textContent).toContain('Input $10.00')
+      expect(card.textContent).toContain('Input $1.60')
     })
 
-    expect(card.textContent).toContain('Output $20.00')
-    expect(card.textContent).toContain('Input $3.00')
-    expect(card.textContent).toContain('Output $15.00')
+    expect(card.textContent).toContain('Output $8.00')
+    expect(card.textContent).toContain('Input $2.00')
+    expect(card.textContent).toContain('Output $10.00')
     expect(card.textContent).toContain('Vancine')
-    expect(card.textContent).toContain('OpenRouter')
+    expect(card.textContent).toContain('Kimi official')
+    expect(card.textContent).not.toContain('OpenRouter')
     expect(card.textContent).not.toContain('$2.40')
     expect(card.textContent).not.toContain('$12.00')
-    expect(card.textContent).not.toContain('$2.40 / $12.00')
-    expect(card.textContent).not.toContain('$3.00 / $15.00')
     expect(within(card).getByText('USD per 1M tokens')).toBeInTheDocument()
     expect(card.textContent).toContain(
-      '20% lower than OpenRouter on both input and output'
+      'Input and output are 20% lower than the October 24, 2026 Kimi official reference. This is not a total-bill discount.'
     )
   })
 
-  it('shows live Vancine prices with dated OpenRouter and Kimi official references', async () => {
+  it('shows live Vancine prices with the dated Kimi official reference', async () => {
     renderPage()
     await screen.findByRole('heading', {
       level: 2,
-      name: 'Kimi K3 API price comparison',
+      name: 'Kimi K3.1 price comparison',
     })
     await waitFor(() => {
-      expect(document.body.textContent ?? '').toContain('$10.00')
+      expect(document.body.textContent ?? '').toContain('$1.60')
     })
 
     const pageText = document.body.textContent ?? ''
-    expect(pageText).toContain('$20.00')
-    expect(pageText).toContain('$3.00')
-    expect(pageText).toContain('$15.00')
+    expect(pageText).toContain('$8.00')
+    expect(pageText).toContain('$2.00')
+    expect(pageText).toContain('$10.00')
     expect(pageText).not.toContain('$2.40')
     expect(pageText).not.toContain('$12.00')
-    for (const retired of [
-      '$2.00',
-      '$11.20',
-      '$2.50',
-      '$14.00',
-      '33%',
-      '25%',
-      'up to 33%',
-      'at least 20%',
-    ]) {
-      expect(pageText).not.toContain(retired)
-    }
-    expect(pageText).toContain('USD per 1M tokens')
-    expect(pageText).toContain('Vancine is 20% lower on both input and output')
+    expect(pageText).not.toContain('$3.00')
+    expect(pageText).not.toContain('$15.00')
+    expect(pageText).toContain('October 24, 2026')
     expect(pageText).toContain('Current Vancine price')
     expect(pageText).toContain(
-      'OpenRouter and Kimi official prices were snapshotted on September 9, 2026.'
-    )
-    expect(pageText).toContain(
-      'OpenRouter figures are the standard prices returned by the OpenRouter Models API under default conditions.'
-    )
-    expect(pageText).toContain(
-      'Free variants, promotional prices, cached input prices, and temporary provider discounts are excluded from this comparison.'
-    )
-    expect(pageText).not.toMatch(
-      /Vancine is 20% lower on input · 20% lower on output/
+      'Input and output are 20% lower than the October 24, 2026 Kimi official reference. This is not a total-bill discount.'
     )
     expect(pageText).toContain('$0.19')
+    expect(pageText).toContain('kimi-k3')
+    expect(pageText).not.toContain('Verified')
   })
 
-  it('uses accessible names on the three pricing source links', async () => {
+  it('uses accessible names on the pricing source links for the selected model', async () => {
     renderPage()
     await screen.findByRole('heading', {
       level: 2,
-      name: 'Kimi K3 API price comparison',
+      name: 'Kimi K3.1 price comparison',
     })
 
     const vancine = screen.getAllByRole('link', {
       name: /Vancine live Pricing/,
     })[0]
-    expect(vancine).toHaveAttribute('href', '/pricing/kimi-k3')
+    expect(vancine).toHaveAttribute('href', '/pricing/kimi-k3.1-pro')
     expect(vancine).not.toHaveAttribute('target')
 
     const official = screen.getAllByRole('link', {
@@ -666,59 +660,46 @@ describe('price comparison', () => {
     })[0]
     expect(official).toHaveAttribute(
       'href',
-      'https://platform.kimi.ai/docs/pricing/chat-k3'
+      'https://platform.moonshot.ai/docs/pricing/chat'
     )
     expect(official).toHaveAttribute('target', '_blank')
     expect(official.getAttribute('rel')).toContain('noopener')
     expect(official.getAttribute('rel')).toContain('noreferrer')
-
-    const openrouter = screen.getAllByRole('link', {
-      name: /OpenRouter Models API/,
-    })[0]
-    expect(openrouter).toHaveAttribute(
-      'href',
-      'https://openrouter.ai/api/v1/models'
-    )
-    expect(openrouter).toHaveAttribute('target', '_blank')
-    expect(openrouter.getAttribute('rel')).toContain('noopener')
-    expect(openrouter.getAttribute('rel')).toContain('noreferrer')
+    expect(
+      screen.queryByRole('link', { name: /OpenRouter Models API/ })
+    ).toBeNull()
   })
 
   it('renders the same providers, prices, and conclusions in the table and mobile cards', async () => {
     renderPage()
     await screen.findByRole('heading', {
       level: 2,
-      name: 'Kimi K3 API price comparison',
+      name: 'Kimi K3.1 price comparison',
     })
 
     const cards = screen.getAllByTestId('kimi-k3-price-card')
     const table = screen.getByTestId('kimi-k3-price-table')
-    expect(cards).toHaveLength(3)
+    expect(cards).toHaveLength(2)
     expect(table.tagName).toBe('TABLE')
-    expect(table.querySelectorAll('tbody tr')).toHaveLength(3)
+    expect(table.querySelectorAll('tbody tr')).toHaveLength(2)
 
     await waitFor(() => {
-      expect(cards[0]).toHaveTextContent('$10.00')
+      expect(cards[0]).toHaveTextContent('$1.60')
     })
 
     const expected = [
       {
         name: 'Vancine',
-        input: '$10.00',
-        output: '$20.00',
+        input: '$1.60',
+        output: '$8.00',
         difference: 'Current Vancine price',
       },
       {
-        name: 'OpenRouter',
-        input: '$3.00',
-        output: '$15.00',
-        difference: 'Vancine is 20% lower on both input and output',
-      },
-      {
         name: 'Kimi official',
-        input: '$3.00',
-        output: '$15.00',
-        difference: 'Vancine is 20% lower on both input and output',
+        input: '$2.00',
+        output: '$10.00',
+        difference:
+          'Input and output are 20% lower than the October 24, 2026 Kimi official reference. This is not a total-bill discount.',
       },
     ] as const
 
@@ -734,6 +715,86 @@ describe('price comparison', () => {
     }
   })
 
+  it('syncs the pricing link, code example, and prices when the model changes', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findAllByText('$1.60')
+    expect(
+      screen.getByText(
+        (content) =>
+          content.includes('"model": "kimi-k3.1-pro"') &&
+          !content.includes('highspeed')
+      )
+    ).toBeInTheDocument()
+
+    const highspeed = screen.getAllByTestId(
+      'kimi-k31-hero-kimi-k3.1-pro-highspeed'
+    )[0]
+    await user.click(highspeed)
+
+    await waitFor(() => {
+      expect(document.body.textContent ?? '').toContain('$3.20')
+    })
+    expect(document.body.textContent ?? '').toContain('$16.00')
+    expect(document.body.textContent ?? '').toContain('$4.00')
+    expect(document.body.textContent ?? '').toContain('$20.00')
+    expect(
+      screen.getAllByRole('link', { name: /Vancine live Pricing/ })[0]
+    ).toHaveAttribute('href', '/pricing/kimi-k3.1-pro-highspeed')
+    expect(
+      screen.getByText((content) =>
+        content.includes('"model": "kimi-k3.1-pro-highspeed"')
+      )
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText(
+        (content) =>
+          content.includes('"model": "kimi-k3.1-pro"') &&
+          !content.includes('highspeed')
+      )
+    ).toBeNull()
+    expect(
+      screen.getAllByText('kimi-k3.1-pro-highspeed').length
+    ).toBeGreaterThan(0)
+  })
+
+  it('hides the discount when the live expression does not match the reference', async () => {
+    getPricingMock.mockResolvedValue(
+      fixturePricing([
+        exprModel(
+          'kimi-k3.1-pro',
+          'tier("base", p * 1.5 + c * 8 + cr * 0.16)',
+          1
+        ),
+      ])
+    )
+    renderPage()
+    const card = await screen.findByTestId('kimi-k3-hero-price-card')
+    await waitFor(() => {
+      expect(card.textContent).toContain('$1.50')
+    })
+    expect(card.textContent).not.toContain('20% lower')
+    expect(document.body.textContent ?? '').toContain(
+      'Discount not confirmed against the dated official reference'
+    )
+  })
+
+  it('does not invent a price for an unsupported expression', async () => {
+    getPricingMock.mockResolvedValue(
+      fixturePricing([
+        exprModel('kimi-k3.1-pro', 'tier("base", p * 1.6 + c * 8) * 2', 1),
+      ])
+    )
+    renderPage()
+    const card = await screen.findByTestId('kimi-k3-hero-price-card')
+    await waitFor(() => {
+      expect(card.textContent).toContain('Dynamic Pricing')
+    })
+    expect(card.textContent).not.toContain('$1.60')
+    expect(card.textContent).not.toContain('$198.00')
+    expect(card.textContent).not.toContain('20% lower')
+  })
+
   it('does not fall back to the retired static Vancine price while loading', async () => {
     getPricingMock.mockReturnValue(new Promise(() => {}))
     renderPage()
@@ -741,10 +802,8 @@ describe('price comparison', () => {
     expect(card.textContent).toContain('Loading')
     expect(card.textContent).not.toContain('$2.40')
     expect(card.textContent).not.toContain('$12.00')
-    expect(card.textContent).toContain('Input $3.00')
-    expect(card.textContent).toContain(
-      '20% lower than OpenRouter on both input and output'
-    )
+    expect(card.textContent).toContain('Input $2.00')
+    expect(card.textContent).not.toContain('20% lower')
   })
 
   it('does not fall back to the retired static Vancine price on pricing error', async () => {
@@ -756,28 +815,38 @@ describe('price comparison', () => {
     })
     expect(card.textContent).not.toContain('$2.40')
     expect(card.textContent).not.toContain('$12.00')
-    expect(card.textContent).not.toContain('$10.00')
+    expect(card.textContent).not.toContain('$1.60')
+    expect(card.textContent).not.toContain('20% lower')
   })
 
-  it('does not fall back to the retired static Vancine price when kimi-k3 is missing', async () => {
+  it('does not fall back to a static Vancine price when the selected model is missing', async () => {
     getPricingMock.mockResolvedValue(fixturePricing([]))
     renderPage()
     const card = await screen.findByTestId('kimi-k3-hero-price-card')
     await waitFor(() => {
       expect(card.textContent).toContain('View live pricing')
     })
+    expect(card.textContent).not.toContain('$1.60')
     expect(card.textContent).not.toContain('$2.40')
-    expect(card.textContent).not.toContain('$12.00')
+    expect(card.textContent).not.toContain('20% lower')
   })
 
-  it('uses a single pricing query for the page', async () => {
+  it('uses a single pricing query when the model changes', async () => {
+    const user = userEvent.setup()
     const { queryClient } = renderPage()
     await waitFor(() => {
-      expect(document.body.textContent ?? '').toContain('$10.00')
+      expect(document.body.textContent ?? '').toContain('$1.60')
+    })
+    await user.click(
+      screen.getAllByTestId('kimi-k31-hero-kimi-k3.1-pro-highspeed')[0]
+    )
+    await waitFor(() => {
+      expect(document.body.textContent ?? '').toContain('$3.20')
     })
     expect(
       queryClient.getQueryCache().findAll({ queryKey: ['pricing'] })
     ).toHaveLength(1)
+    expect(getPricingMock).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -786,7 +855,7 @@ describe('evidence hierarchy', () => {
     renderPage()
     await screen.findByRole('heading', {
       level: 2,
-      name: 'Real Kimi K3 API test evidence',
+      name: 'Historical Kimi K3 test record',
     })
     const headline = screen.getByTestId('kimi-k3-evidence-headline')
     expect(headline).toHaveTextContent('HTTP 200')
@@ -802,13 +871,17 @@ describe('evidence hierarchy', () => {
     renderPage()
     await screen.findByRole('heading', {
       level: 2,
-      name: 'Real Kimi K3 API test evidence',
+      name: 'Historical Kimi K3 test record',
     })
     const pageText = document.body.textContent ?? ''
     expect(pageText).toContain('single historical controlled run')
     expect(pageText).toContain('not a current price or credit commitment')
     expect(pageText).toContain(
-      'Cline and Roo Code configurations are provided in the starter repository but have not been independently live-verified'
+      'Cline and Roo Code configurations in the starter repository have not been independently live-verified'
+    )
+    expect(pageText).toContain('retired model kimi-k3')
+    expect(pageText).toContain(
+      'not a verification of kimi-k3.1-pro or kimi-k3.1-pro-highspeed'
     )
     // The relationship caveat is no longer published, and the page never
     // claims an official relationship either.

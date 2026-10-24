@@ -843,11 +843,11 @@ export const STATIC_I18N_KEYS = [
   // passed to t() from the shared registry, not from literal t('...') calls.
   'API Solutions',
   'Developer solutions',
-  'Kimi K3 API',
+  'Kimi K3.1 Pro & Highspeed API',
   'GLM-5.3 and GLM-5.3 Flash API',
   'Seedance 2.5 API',
   'AI Media API',
-  'Kimi K3 for coding agents and OpenAI-compatible clients.',
+  'Kimi K3.1 Pro and Highspeed for coding agents and OpenAI-compatible clients.',
   'GLM-5.3 and GLM-5.3 Flash through one OpenAI-compatible API.',
   'Async Doubao-Seedance-2.5 video generation through one API.',
   'Image and video generation through one API.',

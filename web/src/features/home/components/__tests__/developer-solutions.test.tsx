@@ -179,7 +179,9 @@ describe('DeveloperSolutions component contract', () => {
         name: 'Landing pages for coding agents and AI media workflows.',
       })
     ).toBeInTheDocument()
-    expect(screen.getByText('Kimi K3 API')).toBeInTheDocument()
+    expect(
+      screen.getByText('Kimi K3.1 Pro & Highspeed API')
+    ).toBeInTheDocument()
     expect(
       screen.getByText('GLM-5.3 and GLM-5.3 Flash API')
     ).toBeInTheDocument()

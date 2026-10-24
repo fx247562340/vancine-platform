@@ -30,31 +30,24 @@ import { trackEvent } from '@/lib/analytics'
 
 import {
   formatKimiK3Usd,
+  getKimiK31InputOutputDiscountPercent,
+  getKimiK31Model,
+  KIMI_K31_DISCOUNT_KEY,
+  KIMI_K31_DISCOUNT_UNCONFIRMED_KEY,
+  KIMI_K31_OFFICIAL_PRICING_URL,
   KIMI_K3_PRICE_DISCLAIMER_KEYS,
-  KIMI_K3_PRICE_PROVIDERS,
   KIMI_K3_PRICE_UNIT_KEY,
   KIMI_K3_PRICING_SECTION_ID,
   KIMI_K3_RESOURCE_EVENT,
-  KIMI_K3_VANCINE_PRICING_MODEL_ID,
-  type KimiK3PriceProvider,
+  type KimiK31ModelId,
 } from '../lib/landing'
+import { ModelChoice } from './model-choice'
 
-function providerAmount(
-  provider: KimiK3PriceProvider,
-  field: 'input' | 'output',
-  vancinePrice: LandingModelPrice
-): ReactElement {
-  if (provider.id === 'vancine') {
-    return <VancineLivePrice price={vancinePrice} field={field} />
-  }
-  const amount = field === 'input' ? provider.inputUsd : provider.outputUsd
-  return <>{formatKimiK3Usd(amount)}</>
-}
-
-function SourceLink(props: { provider: KimiK3PriceProvider }): ReactElement {
+function SourceLink(props: {
+  modelId: KimiK31ModelId
+  kind: 'vancine' | 'official'
+}): ReactElement {
   const { t } = useTranslation()
-  const provider = props.provider
-  const label = t(provider.sourceLabelKey)
   const icon = (
     <HugeiconsIcon
       icon={ArrowUpRight01Icon}
@@ -64,23 +57,22 @@ function SourceLink(props: { provider: KimiK3PriceProvider }): ReactElement {
   )
   const className =
     'inline-flex items-center gap-1 underline underline-offset-2'
-  const onClick = (): void => {
-    trackEvent(KIMI_K3_RESOURCE_EVENT, {
-      resource: provider.resource,
-      location: 'pricing',
-    })
-  }
 
-  if (provider.sourceKind === 'internal') {
+  if (props.kind === 'vancine') {
     return (
       <Link
         data-testid='kimi-k3-vancine-pricing-link'
         className={className}
         to='/pricing/$modelId'
-        params={{ modelId: KIMI_K3_VANCINE_PRICING_MODEL_ID }}
-        onClick={onClick}
+        params={{ modelId: props.modelId }}
+        onClick={() =>
+          trackEvent(KIMI_K3_RESOURCE_EVENT, {
+            resource: 'pricing',
+            location: 'pricing',
+          })
+        }
       >
-        {label}
+        {t('Vancine live Pricing')}
         {icon}
       </Link>
     )
@@ -88,27 +80,57 @@ function SourceLink(props: { provider: KimiK3PriceProvider }): ReactElement {
 
   return (
     <a
-      data-testid={`kimi-k3-${provider.id}-source-link`}
+      data-testid='kimi-k3-kimi_official-source-link'
       className={className}
-      href={provider.sourceHref}
+      href={KIMI_K31_OFFICIAL_PRICING_URL}
       target='_blank'
       rel='noopener noreferrer'
-      onClick={onClick}
+      onClick={() =>
+        trackEvent(KIMI_K3_RESOURCE_EVENT, {
+          resource: 'kimi_official_pricing',
+          location: 'pricing',
+        })
+      }
     >
-      {label}
+      {t('Kimi official pricing')}
       {icon}
     </a>
   )
 }
 
-/**
- * Kimi K3-only dated price comparison. Replaces the former China-portfolio
- * availability block while keeping this file name and export.
- */
 export function Availability(props: {
+  modelId: KimiK31ModelId
+  onModelChange: (modelId: KimiK31ModelId) => void
   vancinePrice: LandingModelPrice
 }): ReactElement {
   const { t } = useTranslation()
+  const model = getKimiK31Model(props.modelId)
+  const discount = getKimiK31InputOutputDiscountPercent(
+    props.vancinePrice,
+    props.modelId
+  )
+  const officialDifference =
+    discount === null
+      ? t(KIMI_K31_DISCOUNT_UNCONFIRMED_KEY)
+      : t(KIMI_K31_DISCOUNT_KEY, { percent: discount })
+  const rows = [
+    {
+      id: 'vancine',
+      name: t('Vancine'),
+      input: <VancineLivePrice price={props.vancinePrice} field='input' />,
+      output: <VancineLivePrice price={props.vancinePrice} field='output' />,
+      difference: t('Current Vancine price'),
+      source: <SourceLink modelId={props.modelId} kind='vancine' />,
+    },
+    {
+      id: 'kimi_official',
+      name: t('Kimi official'),
+      input: formatKimiK3Usd(model.officialInputUsd),
+      output: formatKimiK3Usd(model.officialOutputUsd),
+      difference: officialDifference,
+      source: <SourceLink modelId={props.modelId} kind='official' />,
+    },
+  ] as const
 
   return (
     <section
@@ -117,45 +139,46 @@ export function Availability(props: {
       className='bg-muted/30 scroll-mt-24 px-4 py-16 md:px-6'
     >
       <div className='mx-auto flex w-full max-w-5xl flex-col gap-6'>
-        <div className='flex flex-col gap-2'>
+        <div className='flex flex-col gap-4'>
           <h2 id='kimi-k3-pricing-title' className='text-3xl font-bold'>
-            {t('Kimi K3 API price comparison')}
+            {t('Kimi K3.1 price comparison')}
           </h2>
+          <ModelChoice
+            idPrefix='kimi-k31-pricing'
+            modelId={props.modelId}
+            onModelChange={props.onModelChange}
+          />
         </div>
 
         <div className='border-border bg-card/30 overflow-hidden rounded-xl border'>
           <div className='md:hidden'>
             <ul className='divide-border divide-y'>
-              {KIMI_K3_PRICE_PROVIDERS.map((provider) => (
+              {rows.map((row) => (
                 <li
-                  key={provider.id}
+                  key={row.id}
                   data-testid='kimi-k3-price-card'
                   className='p-4 text-sm'
                 >
-                  <p className='font-semibold'>{t(provider.nameKey)}</p>
+                  <p className='font-semibold'>{row.name}</p>
                   <dl className='mt-3 grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2'>
                     <dt className='text-muted-foreground'>
                       {t('Input price')}
                     </dt>
                     <dd className='text-right font-medium tabular-nums'>
-                      {providerAmount(provider, 'input', props.vancinePrice)}
+                      {row.input}
                     </dd>
                     <dt className='text-muted-foreground'>
                       {t('Output price')}
                     </dt>
                     <dd className='text-right font-medium tabular-nums'>
-                      {providerAmount(provider, 'output', props.vancinePrice)}
+                      {row.output}
                     </dd>
                     <dt className='text-muted-foreground'>{t('Unit')}</dt>
                     <dd className='text-right'>{t(KIMI_K3_PRICE_UNIT_KEY)}</dd>
                     <dt className='text-muted-foreground'>{t('Difference')}</dt>
-                    <dd className='text-right font-medium'>
-                      {t(provider.differenceKey)}
-                    </dd>
+                    <dd className='text-right font-medium'>{row.difference}</dd>
                     <dt className='text-muted-foreground'>{t('Source')}</dt>
-                    <dd className='text-right'>
-                      <SourceLink provider={provider} />
-                    </dd>
+                    <dd className='text-right'>{row.source}</dd>
                   </dl>
                 </li>
               ))}
@@ -167,7 +190,7 @@ export function Availability(props: {
             className='hidden w-full text-sm md:table'
           >
             <caption className='sr-only'>
-              {t('Kimi K3 API price comparison')}
+              {t('Kimi K3.1 price comparison')}
             </caption>
             <thead className='bg-muted/40 text-muted-foreground text-xs tracking-wide uppercase'>
               <tr>
@@ -192,22 +215,20 @@ export function Availability(props: {
               </tr>
             </thead>
             <tbody>
-              {KIMI_K3_PRICE_PROVIDERS.map((provider) => (
-                <tr key={provider.id} className='border-border border-t'>
+              {rows.map((row) => (
+                <tr key={row.id} className='border-border border-t'>
                   <th scope='row' className='px-4 py-3 text-left font-semibold'>
-                    {t(provider.nameKey)}
+                    {row.name}
                   </th>
                   <td className='px-4 py-3 text-right tabular-nums'>
-                    {providerAmount(provider, 'input', props.vancinePrice)}
+                    {row.input}
                   </td>
                   <td className='px-4 py-3 text-right tabular-nums'>
-                    {providerAmount(provider, 'output', props.vancinePrice)}
+                    {row.output}
                   </td>
                   <td className='px-4 py-3'>{t(KIMI_K3_PRICE_UNIT_KEY)}</td>
-                  <td className='px-4 py-3'>{t(provider.differenceKey)}</td>
-                  <td className='px-4 py-3'>
-                    <SourceLink provider={provider} />
-                  </td>
+                  <td className='px-4 py-3'>{row.difference}</td>
+                  <td className='px-4 py-3'>{row.source}</td>
                 </tr>
               ))}
             </tbody>

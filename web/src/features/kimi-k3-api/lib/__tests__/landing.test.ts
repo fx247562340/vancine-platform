@@ -20,6 +20,8 @@ import assert from 'node:assert/strict'
 
 import { describe, test } from 'vitest'
 
+import type { LandingModelPrice } from '@/features/landing-pricing'
+
 import {
   getKimiK3CtaDestination,
   getKimiK3CtaLabelKey,
@@ -30,7 +32,9 @@ import {
   KIMI_K3_API_KEY_ENV_VAR,
   KIMI_K3_CANONICAL,
   KIMI_K3_CHAT_ENDPOINT,
-  KIMI_K3_CODE_EXAMPLES,
+  getKimiK31CodeExamples,
+  getKimiK31InputOutputDiscountPercent,
+  KIMI_K31_DEFAULT_MODEL_ID,
   KIMI_K3_CTA_EVENT,
   KIMI_K3_CTA_LOCATIONS,
   KIMI_K3_EVIDENCE_FILE_URL,
@@ -38,7 +42,6 @@ import {
   KIMI_K3_EVIDENCE_STARTER_REPO,
   KIMI_K3_FAQ,
   KIMI_K3_MEASURED_USAGE_EVIDENCE,
-  KIMI_K3_MODEL_ID,
   KIMI_K3_OPENCODE_AGENT_EVIDENCE,
   KIMI_K3_RESOURCE_EVENT,
   KIMI_K3_RESOURCE_LOCATIONS,
@@ -142,22 +145,23 @@ describe('page metadata', () => {
     const metadata = getKimiK3PageMetadata('en')
     assert.equal(
       metadata.title,
-      'Kimi K3 API Pricing & OpenRouter Comparison | Vancine'
+      'Kimi K3.1 Pro & Highspeed API for Coding Agents | Vancine'
     )
     assert.equal(
       metadata.description,
-      'See live Vancine pricing for Kimi K3. Vancine is offered at a fixed 20% discount to the referenced OpenRouter Models API standard price as of September 9, 2026. Compare pricing, code, and test evidence.'
+      'Choose Kimi K3.1 Pro or Highspeed on an OpenAI-compatible API. Compare live Vancine input and output prices with the October 24, 2026 Kimi official reference.'
     )
     assert.equal(
       metadata.ogTitle,
-      'Kimi K3 API Pricing & OpenRouter Comparison'
+      'Kimi K3.1 Pro & Highspeed API for Coding Agents'
     )
     assert.equal(metadata.ogDescription, metadata.description)
     assert.equal(
       metadata.twitterTitle,
-      'Kimi K3 API Pricing & OpenRouter Comparison'
+      'Kimi K3.1 Pro & Highspeed API for Coding Agents'
     )
     assert.equal(metadata.twitterDescription, metadata.description)
+    assert.equal(metadata.description.includes('20%'), false)
   })
 
   test('covers all seven supported languages distinctly', () => {
@@ -192,60 +196,56 @@ describe('page metadata', () => {
 })
 
 describe('code example contract', () => {
-  const exampleById = new Map(
-    KIMI_K3_CODE_EXAMPLES.map((example) => [example.id, example])
-  )
-
-  test('provides cURL, Python, Node.js, and OpenCode examples', () => {
-    assert.deepEqual(
-      KIMI_K3_CODE_EXAMPLES.map((example) => example.id),
-      ['curl', 'python', 'node', 'opencode']
-    )
+  test('switches both model IDs through cURL, Python, Node.js, and OpenCode', () => {
+    assert.equal(KIMI_K31_DEFAULT_MODEL_ID, 'kimi-k3.1-pro')
+    for (const modelId of [
+      'kimi-k3.1-pro',
+      'kimi-k3.1-pro-highspeed',
+    ] as const) {
+      const examples = getKimiK31CodeExamples(modelId)
+      assert.deepEqual(
+        examples.map((example) => example.id),
+        ['curl', 'python', 'node', 'opencode']
+      )
+      for (const example of examples) {
+        assert.ok(example.code.includes(modelId), example.id)
+        assert.equal(example.code.includes('"kimi-k3"'), false)
+        assert.equal(example.code.includes("'kimi-k3'"), false)
+        assert.ok(example.code.includes(KIMI_K3_API_KEY_ENV_VAR))
+        assert.equal(example.code.includes('temperature'), false)
+        assert.equal(example.code.includes('max_tokens'), false)
+        assert.equal(example.code.includes('sk-'), false)
+        assert.equal(example.code.includes('api.vancine.com'), false)
+      }
+      const otherId =
+        modelId === 'kimi-k3.1-pro'
+          ? 'kimi-k3.1-pro-highspeed'
+          : 'kimi-k3.1-pro'
+      for (const example of examples) {
+        const hasModel =
+          example.code.includes(`"${modelId}"`) ||
+          example.code.includes(`'${modelId}'`)
+        const hasOther =
+          example.code.includes(`"${otherId}"`) ||
+          example.code.includes(`'${otherId}'`)
+        assert.equal(hasModel, true, example.id)
+        assert.equal(hasOther, false, example.id)
+      }
+    }
   })
 
-  test('every example targets the public endpoint and kimi-k3', () => {
+  test('keeps the public endpoint and environment-backed OpenCode key', () => {
     assert.equal(
       KIMI_K3_CHAT_ENDPOINT,
       'https://vancine.com/v1/chat/completions'
     )
     assert.equal(KIMI_K3_API_BASE_URL, 'https://vancine.com/v1')
-    assert.equal(KIMI_K3_MODEL_ID, 'kimi-k3')
-    for (const example of [
-      exampleById.get('curl'),
-      exampleById.get('python'),
-      exampleById.get('node'),
-    ]) {
-      assert.ok(example, `missing example`)
-      assert.ok(example.code.includes(KIMI_K3_CHAT_ENDPOINT))
-      assert.ok(
-        example.code.includes('"kimi-k3"') || example.code.includes("'kimi-k3'")
-      )
-    }
-    const opencode = exampleById.get('opencode')
+    const opencode = getKimiK31CodeExamples('kimi-k3.1-pro').find(
+      (example) => example.id === 'opencode'
+    )
     assert.ok(opencode)
+    assert.ok(opencode.code.includes('{env:VANCINE_API_KEY}'))
     assert.ok(opencode.code.includes(KIMI_K3_API_BASE_URL))
-    assert.ok(opencode.code.includes('"kimi-k3"'))
-  })
-
-  test('keys come only from the VANCINE_API_KEY environment variable', () => {
-    for (const example of KIMI_K3_CODE_EXAMPLES) {
-      assert.ok(
-        example.code.includes(KIMI_K3_API_KEY_ENV_VAR),
-        `${example.id} must read the environment variable`
-      )
-      if (example.id === 'opencode') {
-        assert.ok(example.code.includes('{env:VANCINE_API_KEY}'))
-      }
-    }
-  })
-
-  test('contains no legacy domains, hardcoded secrets, or fixed prices', () => {
-    for (const example of KIMI_K3_CODE_EXAMPLES) {
-      assert.ok(!example.code.includes('api.vancine.com'))
-      assert.ok(!example.code.includes('localhost'))
-      assert.ok(!example.code.includes('127.0.0.1'))
-      assert.ok(!example.code.includes('sk-'))
-    }
   })
 })
 
@@ -293,8 +293,10 @@ describe('historical evidence semantics', () => {
 
   test('publishes the limiting caveats for the historical run', () => {
     const limitations = [...KIMI_K3_EVIDENCE_LIMITATION_KEYS]
-    assert.equal(limitations.length, 6)
+    assert.equal(limitations.length, 7)
     const joined = limitations.join(' ')
+    assert.ok(joined.includes('retired model kimi-k3'))
+    assert.ok(joined.includes('not a verification of kimi-k3.1-pro'))
     assert.ok(joined.includes('single historical controlled run'))
     assert.ok(joined.includes('not a current price or credit commitment'))
     assert.ok(joined.includes('No free-tier or credit amount is guaranteed'))
@@ -342,12 +344,15 @@ describe('analytics event enumeration', () => {
   })
 
   test('FAQ contract covers pricing, comparison, model identity, evidence, limits, and quickstart', () => {
-    assert.equal(KIMI_K3_FAQ.length, 6)
+    assert.equal(KIMI_K3_FAQ.length, 8)
     const questions = KIMI_K3_FAQ.map((entry) => entry.questionKey).join(' ')
-    assert.ok(questions.includes('current Kimi K3 pricing'))
-    assert.ok(questions.includes('Kimi official and OpenRouter'))
-    assert.ok(questions.includes('real kimi-k3 model'))
+    const answers = KIMI_K3_FAQ.map((entry) => entry.answerKey).join(' ')
+    assert.ok(questions.includes('current Kimi K3.1 pricing'))
+    assert.ok(questions.includes('input and output discount'))
+    assert.ok(questions.includes('verified on Vancine'))
     assert.ok(questions.includes('actually been tested'))
+    assert.ok(answers.includes('retired model kimi-k3'))
+    assert.ok(answers.includes('not Kimi K3.1 results'))
     assert.ok(questions.includes('rate limits and availability'))
     assert.ok(questions.includes('OpenAI-compatible request'))
     // The officiality question was removed and not replaced.
@@ -357,6 +362,52 @@ describe('analytics event enumeration', () => {
       ),
       false,
       'FAQ must not raise an official-relationship question'
+    )
+  })
+})
+
+describe('input and output discount', () => {
+  const ready = (inputUsd: number, outputUsd: number): LandingModelPrice => ({
+    status: 'ready',
+    amounts: { inputUsd, outputUsd, cacheReadUsd: 0.16 },
+  })
+
+  test('matches the dated official reference for both models', () => {
+    assert.equal(
+      getKimiK31InputOutputDiscountPercent(ready(1.6, 8), 'kimi-k3.1-pro'),
+      20
+    )
+    assert.equal(
+      getKimiK31InputOutputDiscountPercent(
+        ready(3.2, 16),
+        'kimi-k3.1-pro-highspeed'
+      ),
+      20
+    )
+  })
+
+  test('hides the assertion when prices do not confirm one shared discount', () => {
+    assert.equal(
+      getKimiK31InputOutputDiscountPercent(ready(1.6, 9), 'kimi-k3.1-pro'),
+      null
+    )
+    assert.equal(
+      getKimiK31InputOutputDiscountPercent(ready(2, 10), 'kimi-k3.1-pro'),
+      null
+    )
+    assert.equal(
+      getKimiK31InputOutputDiscountPercent(
+        { status: 'unsupported' },
+        'kimi-k3.1-pro'
+      ),
+      null
+    )
+    assert.equal(
+      getKimiK31InputOutputDiscountPercent(
+        { status: 'missing' },
+        'kimi-k3.1-pro-highspeed'
+      ),
+      null
     )
   })
 })

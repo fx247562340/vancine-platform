@@ -113,7 +113,9 @@ describe('Docs sidebar Developer solutions block', () => {
     // The block heading comes from the global namespace.
     expect(await screen.findByText('Developer solutions')).toBeInTheDocument()
 
-    const kimiLink = await screen.findByRole('link', { name: 'Kimi K3 API' })
+    const kimiLink = await screen.findByRole('link', {
+      name: 'Kimi K3.1 Pro & Highspeed API',
+    })
     expect(kimiLink).toHaveAttribute('href', '/kimi-k3-api')
     expect(kimiLink).not.toHaveAttribute('target')
 
@@ -140,7 +142,9 @@ describe('Docs sidebar Developer solutions block', () => {
     const user = userEvent.setup()
     renderSidebar()
 
-    const kimiLink = await screen.findByRole('link', { name: 'Kimi K3 API' })
+    const kimiLink = await screen.findByRole('link', {
+      name: 'Kimi K3.1 Pro & Highspeed API',
+    })
     await user.click(kimiLink)
 
     expect(await screen.findByTestId('kimi-page')).toBeInTheDocument()
@@ -195,7 +199,9 @@ describe('Docs sidebar Developer solutions block', () => {
     renderSidebar()
 
     // Every registry link navigates OUT of /docs to a real landing route.
-    const kimiLink = await screen.findByRole('link', { name: 'Kimi K3 API' })
+    const kimiLink = await screen.findByRole('link', {
+      name: 'Kimi K3.1 Pro & Highspeed API',
+    })
     expect(String(kimiLink.getAttribute('href'))).not.toMatch(/^\/docs\//)
     const glmLink = await screen.findByRole('link', {
       name: 'GLM-5.3 and GLM-5.3 Flash API',

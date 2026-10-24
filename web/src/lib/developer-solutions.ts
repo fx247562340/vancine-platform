@@ -60,8 +60,9 @@ export const DEVELOPER_SOLUTIONS: readonly DeveloperSolution[] = [
   {
     id: 'kimi-k3-api',
     route: '/kimi-k3-api',
-    titleKey: 'Kimi K3 API',
-    descriptionKey: 'Kimi K3 for coding agents and OpenAI-compatible clients.',
+    titleKey: 'Kimi K3.1 Pro & Highspeed API',
+    descriptionKey:
+      'Kimi K3.1 Pro and Highspeed for coding agents and OpenAI-compatible clients.',
     resource: 'kimi_k3_api',
   },
   {

@@ -196,7 +196,7 @@ describe('desktop API Solutions menu', () => {
       return element as HTMLElement
     })
     expect(
-      within(popup).getByRole('link', { name: /Kimi K3 API/ })
+      within(popup).getByRole('link', { name: /Kimi K3.1 Pro & Highspeed API/ })
     ).toHaveAttribute('href', '/kimi-k3-api')
     expect(
       within(popup).getByRole('link', { name: /GLM-5.3 and GLM-5.3 Flash API/ })
@@ -275,7 +275,10 @@ describe('mobile menu Developer solutions group', () => {
 
     // The registry links exist in the DOM ...
     expect(
-      screen.queryAllByRole('link', { name: 'Kimi K3 API', hidden: true })
+      screen.queryAllByRole('link', {
+        name: 'Kimi K3.1 Pro & Highspeed API',
+        hidden: true,
+      })
     ).not.toHaveLength(0)
     expect(
       screen.queryAllByRole('link', {
@@ -287,7 +290,9 @@ describe('mobile menu Developer solutions group', () => {
       screen.queryAllByRole('link', { name: 'AI Media API', hidden: true })
     ).not.toHaveLength(0)
     // ... but are not exposed to the accessibility tree.
-    expect(screen.queryByRole('link', { name: 'Kimi K3 API' })).toBeNull()
+    expect(
+      screen.queryByRole('link', { name: 'Kimi K3.1 Pro & Highspeed API' })
+    ).toBeNull()
     expect(screen.queryByRole('link', { name: 'Seedance 2.5 API' })).toBeNull()
     expect(screen.queryByRole('link', { name: 'AI Media API' })).toBeNull()
   })
@@ -306,7 +311,9 @@ describe('mobile menu Developer solutions group', () => {
     })
     expect(overlay?.hasAttribute('inert')).toBe(false)
 
-    const kimiLink = await screen.findByRole('link', { name: 'Kimi K3 API' })
+    const kimiLink = await screen.findByRole('link', {
+      name: 'Kimi K3.1 Pro & Highspeed API',
+    })
     const glmLink = await screen.findByRole('link', {
       name: 'GLM-5.3 and GLM-5.3 Flash API',
     })
@@ -330,7 +337,7 @@ describe('mobile menu Developer solutions group', () => {
       name: 'Toggle navigation menu',
     })
     await user.click(toggle)
-    await screen.findByRole('link', { name: 'Kimi K3 API' })
+    await screen.findByRole('link', { name: 'Kimi K3.1 Pro & Highspeed API' })
 
     await user.click(toggle)
 
@@ -341,7 +348,10 @@ describe('mobile menu Developer solutions group', () => {
     expect(overlay?.hasAttribute('inert')).toBe(true)
     // Still in the DOM, but gone from the accessibility tree and tab order.
     expect(
-      screen.queryAllByRole('link', { name: 'Kimi K3 API', hidden: true })
+      screen.queryAllByRole('link', {
+        name: 'Kimi K3.1 Pro & Highspeed API',
+        hidden: true,
+      })
     ).not.toHaveLength(0)
     expect(
       screen.queryAllByRole('link', {
@@ -349,7 +359,9 @@ describe('mobile menu Developer solutions group', () => {
         hidden: true,
       })
     ).not.toHaveLength(0)
-    expect(screen.queryByRole('link', { name: 'Kimi K3 API' })).toBeNull()
+    expect(
+      screen.queryByRole('link', { name: 'Kimi K3.1 Pro & Highspeed API' })
+    ).toBeNull()
     expect(screen.queryByRole('link', { name: 'Seedance 2.5 API' })).toBeNull()
     expect(screen.queryByRole('link', { name: 'AI Media API' })).toBeNull()
   })
@@ -361,14 +373,18 @@ describe('mobile menu Developer solutions group', () => {
     await user.click(
       await screen.findByRole('button', { name: 'Toggle navigation menu' })
     )
-    const kimiLink = await screen.findByRole('link', { name: 'Kimi K3 API' })
+    const kimiLink = await screen.findByRole('link', {
+      name: 'Kimi K3.1 Pro & Highspeed API',
+    })
     await user.click(kimiLink)
 
     expect(await screen.findByTestId('kimi-page')).toBeInTheDocument()
     // Activating a link closes the menu and navigates; the registry links
     // must be gone from the accessibility tree either way.
     await waitFor(() => {
-      expect(screen.queryByRole('link', { name: 'Kimi K3 API' })).toBeNull()
+      expect(
+        screen.queryByRole('link', { name: 'Kimi K3.1 Pro & Highspeed API' })
+      ).toBeNull()
     })
     expect(screen.queryByRole('link', { name: 'Seedance 2.5 API' })).toBeNull()
     expect(screen.queryByRole('link', { name: 'AI Media API' })).toBeNull()
@@ -392,7 +408,7 @@ describe('mobile menu Developer solutions group', () => {
     // Grouped under the Developer solutions label.
     expect(screen.getByText('Developer solutions')).toBeInTheDocument()
     const kimiLink = await screen.findByRole('link', {
-      name: 'Kimi K3 API',
+      name: 'Kimi K3.1 Pro & Highspeed API',
     })
     await user.click(kimiLink)
 
@@ -428,7 +444,7 @@ describe('API Solutions menu Guide section', () => {
 
     // The four API product links keep their order ...
     expect(
-      within(popup).getByRole('link', { name: /Kimi K3 API/ })
+      within(popup).getByRole('link', { name: /Kimi K3.1 Pro & Highspeed API/ })
     ).toBeInTheDocument()
     expect(
       within(popup).getByRole('link', { name: /AI Media API/ })
@@ -444,7 +460,9 @@ describe('API Solutions menu Guide section', () => {
     expect(guideLink).toHaveAttribute('href', '/guides/fast-coding-models')
     // The guide list holds only guide entries, never API products.
     expect(
-      within(guideList).queryByRole('link', { name: /Kimi K3 API/ })
+      within(guideList).queryByRole('link', {
+        name: /Kimi K3.1 Pro & Highspeed API/,
+      })
     ).toBeNull()
   })
 
