@@ -135,6 +135,17 @@ refresh. A brand-new model ID still needs trusted Pi metadata
   or future live pricing, they will not automatically enter the Pi catalog
   because they have no Pi metadata. This document does not assert whether
   those old IDs remain callable through other platform routes.
+  Current Kimi Chat Completions IDs are only `kimi-k3.1-pro` and
+  `kimi-k3.1-pro-highspeed`. `kimi-k2.7-code`, `kimi-k2.7-code-highspeed`,
+  `kimi-k2.8-preview`, and `kimi-k3` have been removed from the catalog
+  registry. None of those old IDs is kept as an alias or compatibility
+  mapping: even if they reappear in current or future live pricing, they
+  will not automatically enter the Pi catalog because they have no Pi
+  metadata. This document does not assert whether those old IDs remain
+  callable through other platform routes. The two new IDs are published
+  only when compile-time reviewed Pi metadata, live pricing, an `openai`
+  Chat Completions endpoint, and a lossless parseable token price all hold
+  at once.
   Current LongCat Chat Completions IDs
   include `LongCat-2.0` and `LongCat-2.5-Preview`. Those IDs are published
   only when compile-time reviewed Pi metadata, live pricing, an `openai`

@@ -1,3 +1,11 @@
+## 2.11.4 - 2026-10-24
+
+### Agent Catalog
+
+- 新增 `kimi-k3.1-pro` 与 `kimi-k3.1-pro-highspeed` 的已审核 Chat Completions 元数据，支持 1M 上下文、多模态输入与 `reasoning_effort`。
+- 从 Catalog 注册表移除已下架的 `kimi-k2.7-code`、`kimi-k2.7-code-highspeed`、`kimi-k2.8-preview` 与 `kimi-k3`，防止旧 ID 因未来定价变化重新发布。
+- Pi 与 OpenClaw Provider 包无需更新，可在平台 Catalog 发布后通过各自的目录刷新机制发现 Kimi K3.1 模型。
+
 ## 2.11.3 - 2026-10-20
 
 ### Agent Catalog

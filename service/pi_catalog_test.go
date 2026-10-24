@@ -656,7 +656,7 @@ func TestPiCatalogOutputsAllEligibleChatCompletionsModels(t *testing.T) {
 	pricing := []model.Pricing{
 		chatPricing("qwen3.8-max", 0.8, 3),
 		chatPricing("glm-5.3", 0.56, 3.142857142857),
-		chatPricing("kimi-k3", 1.2, 5),
+		chatPricing("kimi-k3.1-pro", 1.2, 5),
 		chatPricing("deepseek-v4.1-flash", 0.11, 3),
 		chatPricing("LongCat-2.0", 0.12, 4),
 	}
@@ -672,7 +672,7 @@ func TestPiCatalogOutputsAllEligibleChatCompletionsModels(t *testing.T) {
 		"LongCat-2.0",
 		"deepseek-v4.1-flash",
 		"glm-5.3",
-		"kimi-k3",
+		"kimi-k3.1-pro",
 		"qwen3.8-max",
 	}, ids)
 }
@@ -690,7 +690,7 @@ func TestPiCatalogFullSetChangeUpdatesCacheIdentity(t *testing.T) {
 	now := time.Date(2026, 8, 31, 8, 0, 0, 0, time.UTC)
 	live := []model.Pricing{
 		chatPricing("glm-5.3", 0.56, 3),
-		chatPricing("kimi-k3", 1.2, 5),
+		chatPricing("kimi-k3.1-pro", 1.2, 5),
 		chatPricing("qwen3.8-max", 0.8, 3),
 	}
 	svc := NewPiCatalogService(PiCatalogOptions{
@@ -703,7 +703,7 @@ func TestPiCatalogFullSetChangeUpdatesCacheIdentity(t *testing.T) {
 
 	live = []model.Pricing{
 		chatPricing("glm-5.3", 0.56, 3),
-		chatPricing("kimi-k3", 1.2, 5),
+		chatPricing("kimi-k3.1-pro", 1.2, 5),
 		chatPricing("qwen3.8-max", 0.8, 3),
 		chatPricing("MiniMax-M3.1-Flash", 0.12, 4),
 	}
@@ -940,9 +940,6 @@ func existingLivePiCatalogIDs() []string {
 		"glm-5.3",
 		"glm-5.3-flash",
 		"hy4-preview",
-		"kimi-k2.7-code",
-		"kimi-k2.7-code-highspeed",
-		"kimi-k3",
 		"qwen3.7-plus",
 		"qwen3.8-flash",
 		"qwen3.8-max",
@@ -957,7 +954,8 @@ func productionShapePiCatalogPricing() []model.Pricing {
 	pricing = append(pricing,
 		exprChatPricing("deepseek-v4-pro", `tier("base", p * 0.66 + c * 1.98 + cr * 0.022)`),
 		exprChatPricing("glm-5.3-flashx", `tier("base", p * 0.3 + c * 1.05 + cr * 0.09)`),
-		exprChatPricing("kimi-k2.8-preview", `tier("base", p * 1.4 + c * 7 + cr * 0.14)`),
+		exprChatPricing("kimi-k3.1-pro", `tier("base", p * 1.6 + c * 8 + cr * 0.16)`),
+		exprChatPricing("kimi-k3.1-pro-highspeed", `tier("base", p * 3.2 + c * 16 + cr * 0.16)`),
 		exprChatPricing("mimo-v2.6-flash", `tier("base", p * 0.14 + c * 0.28 + cr * 0.0028)`),
 		exprChatPricing("mimo-v2.6-pro", `tier("base", p * 0.435 + c * 0.87 + cr * 0.0036)`),
 		exprChatPricing("MiniMax-M3.1-Flash", `tier("base", p * 0.12 + c * 0.48 + cr * 0.012)`),
@@ -980,7 +978,7 @@ func productionShapePiCatalogPricing() []model.Pricing {
 	return pricing
 }
 
-func TestPiCatalogProductionShapePublishesTwentyOneChatModels(t *testing.T) {
+func TestPiCatalogProductionShapePublishesNineteenChatModels(t *testing.T) {
 	pricing := productionShapePiCatalogPricing()
 	svc := catalogService(t, pricing, time.Unix(1, 0).UTC())
 	models, skipped := svc.BuildModels(pricing)
@@ -991,7 +989,7 @@ func TestPiCatalogProductionShapePublishesTwentyOneChatModels(t *testing.T) {
 		ids[i] = item.ID
 		byID[item.ID] = item
 	}
-	require.Len(t, models, 21)
+	require.Len(t, models, 19)
 	assert.Equal(t, []string{
 		"Doubao-Seed-2.1-pro",
 		"Doubao-Seed-2.1-turbo",
@@ -1005,10 +1003,8 @@ func TestPiCatalogProductionShapePublishesTwentyOneChatModels(t *testing.T) {
 		"glm-5.3-flash",
 		"glm-5.3-flashx",
 		"hy4-preview",
-		"kimi-k2.7-code",
-		"kimi-k2.7-code-highspeed",
-		"kimi-k2.8-preview",
-		"kimi-k3",
+		"kimi-k3.1-pro",
+		"kimi-k3.1-pro-highspeed",
 		"mimo-v2.6-flash",
 		"mimo-v2.6-pro",
 		"qwen3.7-plus",
@@ -1024,6 +1020,10 @@ func TestPiCatalogProductionShapePublishesTwentyOneChatModels(t *testing.T) {
 	assert.NotContains(t, ids, "mimo-v2.5-pro")
 	assert.NotContains(t, ids, "MiniMax-M3", "retired MiniMax-M3 must not enter the Pi catalog")
 	assert.NotContains(t, ids, "MiniMax-M3.1-Flash-Preview", "replaced preview id must not enter the Pi catalog")
+	assert.NotContains(t, ids, "kimi-k2.7-code")
+	assert.NotContains(t, ids, "kimi-k2.7-code-highspeed")
+	assert.NotContains(t, ids, "kimi-k2.8-preview")
+	assert.NotContains(t, ids, "kimi-k3")
 
 	type wantNew struct {
 		name          string
@@ -1042,11 +1042,6 @@ func TestPiCatalogProductionShapePublishesTwentyOneChatModels(t *testing.T) {
 			name: "GLM-5.3-FlashX", input: []string{"text", "image"},
 			contextWindow: 1000000, maxTokens: 131072,
 			cost: PiCatalogCost{Input: 0.3, Output: 1.05, CacheRead: 0.09, CacheWrite: 0.3},
-		},
-		"kimi-k2.8-preview": {
-			name: "Kimi K2.8 Preview", input: []string{"text", "image"},
-			contextWindow: 1048576, maxTokens: 131072,
-			cost: PiCatalogCost{Input: 1.4, Output: 7, CacheRead: 0.14, CacheWrite: 1.4},
 		},
 		"mimo-v2.6-flash": {
 			name: "MiMo-V2.6-Flash", input: []string{"text", "image"},
@@ -1084,6 +1079,31 @@ func TestPiCatalogProductionShapePublishesTwentyOneChatModels(t *testing.T) {
 		assert.Equal(t, want.cost, item.Cost)
 	}
 
+	kimiWants := map[string]PiCatalogCost{
+		"kimi-k3.1-pro":           {Input: 1.6, Output: 8, CacheRead: 0.16, CacheWrite: 1.6},
+		"kimi-k3.1-pro-highspeed": {Input: 3.2, Output: 16, CacheRead: 0.16, CacheWrite: 3.2},
+	}
+	kimiNames := map[string]string{
+		"kimi-k3.1-pro":           "Kimi K3.1 Pro",
+		"kimi-k3.1-pro-highspeed": "Kimi K3.1 Pro Highspeed",
+	}
+	for id, wantCost := range kimiWants {
+		item, ok := byID[id]
+		require.True(t, ok, "%s must appear in the catalog", id)
+		assert.Equal(t, kimiNames[id], item.Name)
+		assert.Equal(t, "chat", item.Kind)
+		assert.Equal(t, "openai-completions", item.API)
+		assert.Equal(t, "chat.completions", item.Endpoint)
+		assert.Equal(t, []string{"text", "image"}, item.Input)
+		assert.True(t, item.Reasoning)
+		assert.Equal(t, 1048576, item.ContextWindow)
+		assert.Equal(t, 1048576, item.MaxTokens)
+		require.NotNil(t, item.Compat.SupportsReasoningEffort)
+		assert.True(t, *item.Compat.SupportsReasoningEffort)
+		assert.False(t, item.Compat.SupportsDeveloperRole)
+		assert.Equal(t, wantCost, item.Cost)
+	}
+
 	reasons := skipByID(skipped)
 	for _, id := range []string{
 		"Doubao-Seedance-2.0",
@@ -1108,6 +1128,10 @@ func TestPiCatalogRemovedModelsDoNotRepublishFromLivePricing(t *testing.T) {
 		"mimo-v2.5-pro",
 		"MiniMax-M3",
 		"MiniMax-M3.1-Flash-Preview",
+		"kimi-k2.7-code",
+		"kimi-k2.7-code-highspeed",
+		"kimi-k2.8-preview",
+		"kimi-k3",
 	}
 	pricing := make([]model.Pricing, 0, len(retired))
 	for _, id := range retired {
@@ -1189,6 +1213,8 @@ func TestPiCatalogNewChatModelsRequireLiveIntersection(t *testing.T) {
 		assert.Equal(t, "glm-5.3-flash", models[0].ID)
 		assert.NotContains(t, []string{models[0].ID}, "MiniMax-M3.1-Flash")
 		assert.NotContains(t, []string{models[0].ID}, "LongCat-2.5-Preview")
+		assert.NotContains(t, []string{models[0].ID}, "kimi-k3.1-pro")
+		assert.NotContains(t, []string{models[0].ID}, "kimi-k3.1-pro-highspeed")
 	})
 
 	t.Run("missing openai endpoint", func(t *testing.T) {
@@ -1205,23 +1231,41 @@ func TestPiCatalogNewChatModelsRequireLiveIntersection(t *testing.T) {
 				BillingExpr:            `tier("base", p * 0.3 + c * 1.2 + cr * 0.006)`,
 				SupportedEndpointTypes: nil,
 			},
+			{
+				ModelName:              "kimi-k3.1-pro",
+				BillingMode:            billing_setting.BillingModeTieredExpr,
+				BillingExpr:            `tier("base", p * 1.6 + c * 8 + cr * 0.16)`,
+				SupportedEndpointTypes: []constant.EndpointType{constant.EndpointTypeOpenAIResponse},
+			},
+			{
+				ModelName:              "kimi-k3.1-pro-highspeed",
+				BillingMode:            billing_setting.BillingModeTieredExpr,
+				BillingExpr:            `tier("base", p * 3.2 + c * 16 + cr * 0.16)`,
+				SupportedEndpointTypes: nil,
+			},
 		}
 		models, skipped := catalogService(t, pricing, time.Unix(1, 0).UTC()).BuildModels(pricing)
 		assert.Empty(t, models)
 		reasons := skipByID(skipped)
 		assert.Equal(t, "no live chat completions endpoint", reasons["MiniMax-M3.1-Flash"])
 		assert.Equal(t, "no live chat completions endpoint", reasons["LongCat-2.5-Preview"])
+		assert.Equal(t, "no live chat completions endpoint", reasons["kimi-k3.1-pro"])
+		assert.Equal(t, "no live chat completions endpoint", reasons["kimi-k3.1-pro-highspeed"])
 	})
 
 	t.Run("unsupported expression", func(t *testing.T) {
 		pricing := []model.Pricing{
 			exprChatPricing("MiniMax-M3.1-Flash", `tiered()`),
 			exprChatPricing("LongCat-2.5-Preview", `p * 0.3 + c * 1.2`),
+			exprChatPricing("kimi-k3.1-pro", `tiered()`),
+			exprChatPricing("kimi-k3.1-pro-highspeed", `p * 3.2 + c * 16`),
 		}
 		models, skipped := catalogService(t, pricing, time.Unix(1, 0).UTC()).BuildModels(pricing)
 		assert.Empty(t, models)
 		reasons := skipByID(skipped)
 		assert.Equal(t, "unsupported Pi token pricing expression", reasons["MiniMax-M3.1-Flash"])
 		assert.Equal(t, "unsupported Pi token pricing expression", reasons["LongCat-2.5-Preview"])
+		assert.Equal(t, "unsupported Pi token pricing expression", reasons["kimi-k3.1-pro"])
+		assert.Equal(t, "unsupported Pi token pricing expression", reasons["kimi-k3.1-pro-highspeed"])
 	})
 }
