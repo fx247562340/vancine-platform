@@ -373,7 +373,7 @@ describe('public marketing route wiring', () => {
 
   it('Kimi K3 page acquires the public marketing lock', async () => {
     expect(isPublicMarketingMetadataActive()).toBe(false)
-    renderPage(() => <KimiK3ApiPage />, '/kimi-k3-api')
+    renderPage(() => <KimiK3ApiPage />, '/kimi-api')
     await waitFor(() => {
       expect(isPublicMarketingMetadataActive()).toBe(true)
     })

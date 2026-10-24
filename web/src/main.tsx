@@ -73,7 +73,7 @@ if (!rootElement) {
 // Branding-write contract: this IIFE must only touch `document.title`
 // and `meta[name="title"]` when no public marketing page is mounted.
 // Every public marketing route (Home, Pricing, /seedance-api,
-// /kimi-k3-api, /ai-media-api) calls `usePageMetadata(..., {
+// /kimi-api, /ai-media-api) calls `usePageMetadata(..., {
 // publicMarketingPage: true })` which acquires a module-level lock the
 // `safeApplySystemName` helper consults before writing. Login pages,
 // dashboard pages, and any other authenticated surface that does not

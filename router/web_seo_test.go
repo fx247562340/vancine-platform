@@ -51,6 +51,46 @@ func serveSEO(engine http.Handler, req *http.Request) *httptest.ResponseRecorder
 	return rec
 }
 
+func TestKimiLegacyURLPermanentlyRedirectsWithQuery(t *testing.T) {
+	engine := newWebRouterSEOFixture(t)
+	for _, method := range []string{http.MethodGet, http.MethodHead} {
+		for _, path := range []string{"/kimi-k3-api", "/kimi-k3-api/"} {
+			for _, query := range []string{"", "?utm_source=dev.to&utm_campaign=kimi&ref=a%2Bb&ref=c&redirect=https%3A%2F%2Fevil.example"} {
+				t.Run(method+path+query, func(t *testing.T) {
+					req := httptest.NewRequest(method, path+query, nil)
+					req.Host = "evil.example"
+					req.Header.Set("X-Forwarded-Host", "evil.example")
+					rec := serveSEO(engine, req)
+					require.Equal(t, http.StatusMovedPermanently, rec.Code)
+					assert.Equal(t, "/kimi-api"+query, rec.Header().Get("Location"))
+					assert.NotContains(t, rec.Body.String(), `<div id="root">`)
+				})
+			}
+		}
+	}
+}
+
+func TestKimiEvergreenURLIsTheOnlyPublicCanonical(t *testing.T) {
+	engine := newWebRouterSEOFixture(t)
+	for _, method := range []string{http.MethodGet, http.MethodHead} {
+		for _, path := range []string{"/kimi-api", "/kimi-api/"} {
+			rec := serveSEO(engine, httptest.NewRequest(method, path+"?utm_source=x", nil))
+			require.Equal(t, http.StatusOK, rec.Code)
+			assert.Empty(t, rec.Header().Get("Location"))
+			if method == http.MethodGet {
+				assert.Contains(t, rec.Body.String(), `rel="canonical" href="https://vancine.com/kimi-api"`)
+				assert.Contains(t, rec.Body.String(), `property="og:url" content="https://vancine.com/kimi-api"`)
+			}
+		}
+	}
+	for _, path := range []string{"/sitemap.xml", "/llms.txt"} {
+		rec := serveSEO(engine, httptest.NewRequest(http.MethodGet, path, nil))
+		require.Equal(t, http.StatusOK, rec.Code)
+		assert.Contains(t, rec.Body.String(), "https://vancine.com/kimi-api")
+		assert.NotContains(t, rec.Body.String(), "https://vancine.com/kimi-k3-api")
+	}
+}
+
 // ---------------------------------------------------------------------------
 // 1. robots.txt
 // ---------------------------------------------------------------------------
@@ -295,13 +335,13 @@ var seoPublicRouteCases = []seoPublicRouteCase{
 		wantTwitterCardValue: "summary",
 	},
 	{
-		path:                 "/kimi-k3-api",
+		path:                 "/kimi-api",
 		wantTitle:            "Kimi K3.1 Pro & Highspeed API for Coding Agents | Vancine",
 		wantDescription:      "Choose Kimi K3.1 Pro or Highspeed on an OpenAI-compatible API. Compare live Vancine input and output prices with the October 24, 2026 Kimi official reference.",
-		wantCanonical:        "https://vancine.com/kimi-k3-api",
+		wantCanonical:        "https://vancine.com/kimi-api",
 		wantOGTitle:          "Kimi K3.1 Pro & Highspeed API for Coding Agents",
 		wantOGDescription:    "Choose Kimi K3.1 Pro or Highspeed on an OpenAI-compatible API. Compare live Vancine input and output prices with the October 24, 2026 Kimi official reference.",
-		wantOGURL:            "https://vancine.com/kimi-k3-api",
+		wantOGURL:            "https://vancine.com/kimi-api",
 		wantTwitterTitle:     "Kimi K3.1 Pro & Highspeed API for Coding Agents",
 		wantTwitterDesc:      "Choose Kimi K3.1 Pro or Highspeed on an OpenAI-compatible API. Compare live Vancine input and output prices with the October 24, 2026 Kimi official reference.",
 		wantTwitterCardValue: "summary",

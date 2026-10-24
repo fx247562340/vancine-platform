@@ -32,7 +32,7 @@ export type DeveloperSolutionId =
   | 'ai-media-api'
 
 export type DeveloperSolutionRoute =
-  | '/kimi-k3-api'
+  | '/kimi-api'
   | '/glm-api'
   | '/seedance-api'
   | '/ai-media-api'
@@ -59,7 +59,7 @@ export interface DeveloperSolution {
 export const DEVELOPER_SOLUTIONS: readonly DeveloperSolution[] = [
   {
     id: 'kimi-k3-api',
-    route: '/kimi-k3-api',
+    route: '/kimi-api',
     titleKey: 'Kimi K3.1 Pro & Highspeed API',
     descriptionKey:
       'Kimi K3.1 Pro and Highspeed for coding agents and OpenAI-compatible clients.',

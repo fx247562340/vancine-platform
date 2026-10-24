@@ -52,7 +52,7 @@ describe('developer solutions registry', () => {
       assert.ok(!solution.route.startsWith('/http'))
     }
     const byId = new Map(DEVELOPER_SOLUTIONS.map((s) => [s.id, s]))
-    assert.equal(byId.get('kimi-k3-api')?.route, '/kimi-k3-api')
+    assert.equal(byId.get('kimi-k3-api')?.route, '/kimi-api')
     assert.equal(byId.get('seedance-api')?.route, '/seedance-api')
     assert.equal(byId.get('ai-media-api')?.route, '/ai-media-api')
     assert.equal(byId.get('seedance-api')?.resource, 'seedance_api')

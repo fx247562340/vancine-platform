@@ -154,7 +154,7 @@ function renderDeveloperSolutions(): RenderResult {
         path: '/',
         component: () => <DeveloperSolutions />,
       }),
-      stubRoute(devRoot, '/kimi-k3-api', 'kimi-page'),
+      stubRoute(devRoot, '/kimi-api', 'kimi-page'),
       stubRoute(devRoot, '/seedance-api', 'seedance-page'),
       stubRoute(devRoot, '/ai-media-api', 'ai-media-page'),
     ]),
@@ -190,7 +190,7 @@ describe('DeveloperSolutions component contract', () => {
 
     const learnMoreLinks = screen.getAllByRole('link', { name: /Learn more/ })
     const hrefs = learnMoreLinks.map((link) => link.getAttribute('href'))
-    expect(hrefs).toContain('/kimi-k3-api')
+    expect(hrefs).toContain('/kimi-api')
     expect(hrefs).toContain('/glm-api')
     expect(hrefs).toContain('/seedance-api')
     expect(hrefs).toContain('/ai-media-api')

@@ -25,7 +25,7 @@ import {
 
 /**
  * Pure business logic for the Kimi K3.1 developer landing page. The route
- * and canonical stay /kimi-k3-api so existing links keep working. Live
+ * and canonical use /kimi-api; the server redirects old campaign links. Live
  * Vancine amounts are not stored here.
  */
 
@@ -60,7 +60,7 @@ export const KIMI_K3_RESOURCE_LOCATIONS = [
 
 export type KimiK3ResourceLocation = (typeof KIMI_K3_RESOURCE_LOCATIONS)[number]
 
-export const KIMI_K3_CANONICAL = 'https://vancine.com/kimi-k3-api'
+export const KIMI_K3_CANONICAL = 'https://vancine.com/kimi-api'
 export const KIMI_K3_PRICING_SECTION_ID = 'pricing'
 
 const ALLOWED_UTM_KEYS = new Set([
@@ -132,7 +132,7 @@ interface KimiK3LanguageMetadata {
 const KIMI_K3_METADATA: Record<InterfaceLanguageCode, KimiK3LanguageMetadata> =
   {
     // The English block is pinned byte-for-byte against
-    // router/web_metadata.go's /kimi-k3-api entry.
+    // router/web_metadata.go's /kimi-api entry.
     en: {
       title: 'Kimi K3.1 Pro & Highspeed API for Coding Agents | Vancine',
       description:

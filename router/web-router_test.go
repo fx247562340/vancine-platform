@@ -52,7 +52,7 @@ var expectedSitemapLocs = []string{
 	"https://vancine.com/privacy-policy",
 	"https://vancine.com/sign-in",
 	"https://vancine.com/sign-up",
-	"https://vancine.com/kimi-k3-api",
+	"https://vancine.com/kimi-api",
 	"https://vancine.com/seedance-api",
 	"https://vancine.com/ai-media-api",
 	"https://vancine.com/openrouter-alternative",

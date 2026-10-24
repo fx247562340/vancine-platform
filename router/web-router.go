@@ -85,7 +85,7 @@ var publicSitemapPaths = []string{
 	"/privacy-policy",
 	"/sign-in",
 	"/sign-up",
-	"/kimi-k3-api",
+	"/kimi-api",
 	"/seedance-api",
 	"/ai-media-api",
 	"/openrouter-alternative",
@@ -248,6 +248,20 @@ func SetWebRouter(router *gin.Engine, assets WebAssets, pluginDispatcher gin.Han
 	router.Use(middleware.AccessTokenAudit())
 	router.Use(middleware.GlobalWebRateLimit())
 	router.Use(middleware.Cache())
+
+	// Keep versioned campaign links working without serving a duplicate SPA.
+	// Both legacy forms point directly at the evergreen URL, preserving the
+	// original encoded query and never taking a destination from the request.
+	for _, path := range []string{"/kimi-k3-api", "/kimi-k3-api/"} {
+		router.Match([]string{http.MethodGet, http.MethodHead}, path, func(c *gin.Context) {
+			target := "/kimi-api"
+			if c.Request.URL.RawQuery != "" {
+				target += "?" + c.Request.URL.RawQuery
+			}
+			c.Header("Cache-Control", "no-cache")
+			c.Redirect(http.StatusMovedPermanently, target)
+		})
+	}
 
 	// Register the public benchmark JSON before static.Serve so a same-path
 	// file in web/dist cannot shadow the explicit, pollution-proof handler.

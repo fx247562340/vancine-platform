@@ -70,7 +70,7 @@ await i18n.use(initReactI18next).init({
 const cases = [
   {
     name: 'Kimi K3 API',
-    path: '/kimi-k3-api',
+    path: '/kimi-api',
     node: <KimiK3FinalCta isAuthenticated={false} search='' />,
   },
   {

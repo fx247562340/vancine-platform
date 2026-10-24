@@ -124,7 +124,7 @@ describe('page metadata', () => {
   test('pins canonical and og:url for every language', () => {
     for (const language of supportedLanguages) {
       const metadata = getKimiK3PageMetadata(language)
-      assert.equal(metadata.canonical, 'https://vancine.com/kimi-k3-api')
+      assert.equal(metadata.canonical, 'https://vancine.com/kimi-api')
       assert.equal(metadata.ogUrl, metadata.canonical)
       assert.ok(metadata.title.length > 0)
       assert.ok(metadata.description.length > 0)
@@ -192,7 +192,7 @@ describe('page metadata', () => {
   })
 
   test('exposes the canonical constant', () => {
-    assert.equal(KIMI_K3_CANONICAL, 'https://vancine.com/kimi-k3-api')
+    assert.equal(KIMI_K3_CANONICAL, 'https://vancine.com/kimi-api')
   })
 })
 

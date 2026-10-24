@@ -130,7 +130,7 @@ export function Evidence() {
 
           <div className='flex flex-wrap items-center justify-center gap-6'>
             <Link
-              to='/kimi-k3-api'
+              to='/kimi-api'
               className='text-sm font-medium underline underline-offset-4'
               onClick={() => handleEvidenceLinkClick('kimi_k3_page')}
             >

@@ -41,7 +41,7 @@ import {
 
 /**
  * Public developer landing page for Kimi K3.1 Pro and Highspeed. The route
- * stays /kimi-k3-api. One pricing query feeds both model selections.
+ * uses /kimi-api. One pricing query feeds both model selections.
  */
 export function KimiK3ApiPage(): ReactElement {
   const { i18n } = useTranslation()

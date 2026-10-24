@@ -129,7 +129,7 @@ describe('Kimi K3.1 dated official price snapshot', () => {
     const metadata = getKimiK3PageMetadata('en')
     expect(metadata.description).toMatch(/October 24, 2026/)
     expect(metadata.description).not.toMatch(/20%/)
-    expect(metadata.canonical).toBe('https://vancine.com/kimi-k3-api')
+    expect(metadata.canonical).toBe('https://vancine.com/kimi-api')
   })
 })
 

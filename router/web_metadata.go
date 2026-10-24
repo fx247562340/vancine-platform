@@ -18,7 +18,7 @@ import (
 // reasons:
 //   1. Search crawlers request the raw HTML and never run the SPA, so the
 //      contract for these tags must live on the server.
-//   2. The three acquisition pages — /kimi-k3-api, /seedance-api, and
+//   2. The three acquisition pages — /kimi-api, /seedance-api, and
 //      /ai-media-api — must keep their metadata byte-identical to what the
 //      SPA returns for English (`getKimiK3PageMetadata('en')`,
 //      `getSeedancePageMetadata('en')`, `getAiMediaPageMetadata('en')`).
@@ -309,7 +309,7 @@ var publicMarketingPages = []publicPageMeta{
 		twitterCardValue: "summary",
 	},
 	{
-		path:  "/kimi-k3-api",
+		path:  "/kimi-api",
 		title: "Kimi K3.1 Pro & Highspeed API for Coding Agents | Vancine",
 		description: "Choose Kimi K3.1 Pro or Highspeed on an OpenAI-compatible API. " +
 			"Compare live Vancine input and output prices with the October 24, 2026 " +
@@ -479,7 +479,7 @@ const llmsTxtBody = `# Vancine public documentation index for LLM agents.
 
 ## Other acquisition pages
 
-- [Kimi K3.1 Pro and Highspeed API for coding agents](https://vancine.com/kimi-k3-api)
+- [Kimi K3.1 Pro and Highspeed API for coding agents](https://vancine.com/kimi-api)
 - [OpenRouter alternative for Chinese AI models](https://vancine.com/openrouter-alternative)
 - [GLM-5.3 & GLM-5.3 Flash API pricing](https://vancine.com/glm-api)
 - [8 Chinese AI models tested in Pi coding agent](https://vancine.com/coding-agent-benchmark)

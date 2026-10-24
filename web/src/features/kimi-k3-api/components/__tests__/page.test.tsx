@@ -43,7 +43,8 @@ import type { PricingData, PricingModel } from '@/features/pricing/types'
 import enLocale from '@/i18n/locales/en.json'
 import zhLocale from '@/i18n/locales/zh.json'
 import { trackEvent } from '@/lib/analytics'
-import { Route as KimiK3ApiRouteImport } from '@/routes/kimi-k3-api/index'
+import { Route as KimiK3ApiRouteImport } from '@/routes/kimi-api/index'
+import { Route as LegacyKimiRouteImport } from '@/routes/kimi-k3-api/index'
 import { useAuthStore } from '@/stores/auth-store'
 
 // Isolate the page from the full site header (its dynamic nav would need
@@ -122,6 +123,12 @@ async function initTestI18n(): Promise<void> {
 // every internal link target.
 const testRootRoute = createRootRoute({ component: () => <Outlet /> })
 const TestKimiRoute = KimiK3ApiRouteImport.update({
+  id: '/kimi-api/',
+  path: '/kimi-api/',
+  getParentRoute: () => testRootRoute,
+} as never)
+
+const TestLegacyKimiRoute = LegacyKimiRouteImport.update({
   id: '/kimi-k3-api/',
   path: '/kimi-k3-api/',
   getParentRoute: () => testRootRoute,
@@ -137,6 +144,7 @@ function stubRoute(path: string, testId: string): AnyRoute {
 
 const testRouteTree = testRootRoute.addChildren([
   TestKimiRoute,
+  TestLegacyKimiRoute,
   stubRoute('/sign-up', 'sign-up-page'),
   stubRoute('/playground', 'playground-page'),
   stubRoute('/pricing', 'pricing-page'),
@@ -191,12 +199,14 @@ const LIVE_MODELS = [
   ),
 ]
 
-function renderPage(initialPath = '/kimi-k3-api/'): RenderResult & {
+function renderPage(initialPath = '/kimi-api/'): RenderResult & {
   queryClient: QueryClient
+  history: ReturnType<typeof createMemoryHistory>
 } {
+  const history = createMemoryHistory({ initialEntries: [initialPath] })
   const router = createRouter({
     routeTree: testRouteTree,
-    history: createMemoryHistory({ initialEntries: [initialPath] }),
+    history,
   })
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -206,7 +216,7 @@ function renderPage(initialPath = '/kimi-k3-api/'): RenderResult & {
       <RouterProvider router={router} />
     </QueryClientProvider>
   )
-  return Object.assign(result, { queryClient })
+  return Object.assign(result, { queryClient, history })
 }
 
 function setAuthenticated(isAuthenticated: boolean): void {
@@ -241,6 +251,33 @@ afterEach(() => {
 })
 
 describe('kimi-k3-api page structure', () => {
+  it.each(['/kimi-k3-api', '/kimi-k3-api/'])(
+    'redirects %s to the evergreen page with attribution and anchor intact',
+    async (path) => {
+      const { history } = renderPage(
+        `${path}?utm_source=dev.to&utm_campaign=kimi_launch#quickstart`
+      )
+      await screen.findByRole('heading', {
+        level: 1,
+        name: 'Kimi K3.1 Pro & Highspeed API for Coding Agents',
+      })
+      expect(history.location.pathname.replace(/\/$/, '')).toBe('/kimi-api')
+      expect(
+        new URLSearchParams(history.location.search).get('utm_source')
+      ).toBe('dev.to')
+      expect(history.location.hash).toBe('#quickstart')
+      expect(screen.getByTestId('kimi-k3-hero-primary-cta')).toHaveAttribute(
+        'href',
+        '/sign-up?utm_source=dev.to&utm_campaign=kimi_launch'
+      )
+      expect(document.querySelector('link[rel="canonical"]')).toHaveAttribute(
+        'href',
+        'https://vancine.com/kimi-api'
+      )
+      expect(getPricingMock).toHaveBeenCalledTimes(1)
+    }
+  )
+
   it('renders exactly one h1 and all required sections in decision order', async () => {
     renderPage()
 
@@ -327,7 +364,7 @@ describe('kimi-k3-api page structure', () => {
 describe('CTA destinations and UTM safety', () => {
   it('points every guest destination CTA at /sign-up and keeps only allowlisted UTM parameters', async () => {
     renderPage(
-      '/kimi-k3-api/?utm_source=launch&utm_campaign=kimi&email=a@b.com&api_key=sk-secret&redirect=%2Fevil'
+      '/kimi-api/?utm_source=launch&utm_campaign=kimi&email=a@b.com&api_key=sk-secret&redirect=%2Fevil'
     )
 
     const heroPrimary = await screen.findByTestId('kimi-k3-hero-primary-cta')
@@ -360,7 +397,7 @@ describe('CTA destinations and UTM safety', () => {
 
   it('points every authenticated destination CTA at /playground', async () => {
     setAuthenticated(true)
-    renderPage('/kimi-k3-api/?utm_source=launch&token=abc')
+    renderPage('/kimi-api/?utm_source=launch&token=abc')
 
     const heroPrimary = await screen.findByTestId('kimi-k3-hero-primary-cta')
     const heroSecondary = screen.getByTestId('kimi-k3-hero-secondary-cta')
@@ -519,14 +556,14 @@ describe('anonymous analytics emissions', () => {
     const user = userEvent.setup()
     // Each click navigates the memory router away from the landing page, so
     // exercise the resource link and the CTA on separate renders.
-    const first = renderPage('/kimi-k3-api/?utm_source=launch&email=a@b.com')
+    const first = renderPage('/kimi-api/?utm_source=launch&email=a@b.com')
     await screen.findByRole('heading', { level: 1 })
     await user.click(
       screen.getAllByRole('link', { name: /Vancine live Pricing/ })[0]
     )
     first.unmount()
 
-    const second = renderPage('/kimi-k3-api/?utm_source=launch&email=a@b.com')
+    const second = renderPage('/kimi-api/?utm_source=launch&email=a@b.com')
     await screen.findByRole('heading', { level: 1 })
     await user.click(
       screen.getAllByRole('button', { name: /Create an API key/ })[0]
@@ -624,7 +661,7 @@ describe('VANCINE-FINAL-GATE-REMEDIATION: no inactive-promo copy on the Kimi K3 
 
   it('guest UTM allowlist still strips sensitive parameters', async () => {
     renderPage(
-      '/kimi-k3-api/?utm_source=launch&utm_campaign=kimi&email=a@b.com&api_key=sk-secret&redirect=%2Fevil&token=t-1'
+      '/kimi-api/?utm_source=launch&utm_campaign=kimi&email=a@b.com&api_key=sk-secret&redirect=%2Fevil&token=t-1'
     )
     const heroCta = await screen.findAllByRole('button', {
       name: /Create an API key/,

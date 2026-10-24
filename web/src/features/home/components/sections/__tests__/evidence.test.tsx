@@ -220,7 +220,7 @@ function makeRouteTree() {
     stubRoute('/sign-up', 'sign-up-page'),
     stubRoute('/dashboard', 'dashboard-page'),
     stubRoute('/pricing', 'pricing-page'),
-    stubRoute('/kimi-k3-api', 'kimi-page'),
+    stubRoute('/kimi-api', 'kimi-page'),
     stubRoute('/coding-agent-benchmark', 'benchmark-page'),
     stubRoute('/ai-media-api', 'ai-media-page'),
   ])
@@ -392,7 +392,7 @@ describe('Evidence section', () => {
     const kimiLink = screen.getByRole('link', {
       name: 'View Kimi K3 page',
     })
-    expect(kimiLink).toHaveAttribute('href', '/kimi-k3-api')
+    expect(kimiLink).toHaveAttribute('href', '/kimi-api')
     // Same-origin: no target=_blank
     expect(kimiLink).not.toHaveAttribute('target', '_blank')
   })

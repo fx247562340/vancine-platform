@@ -126,7 +126,7 @@ const testRouteTree = testRootRoute.addChildren([
     path: '/',
     component: () => <PublicHeader />,
   }),
-  stubRoute('/kimi-k3-api', 'kimi-page'),
+  stubRoute('/kimi-api', 'kimi-page'),
   stubRoute('/glm-api', 'glm-page'),
   stubRoute('/seedance-api', 'seedance-page'),
   stubRoute('/ai-media-api', 'ai-media-page'),
@@ -197,7 +197,7 @@ describe('desktop API Solutions menu', () => {
     })
     expect(
       within(popup).getByRole('link', { name: /Kimi K3.1 Pro & Highspeed API/ })
-    ).toHaveAttribute('href', '/kimi-k3-api')
+    ).toHaveAttribute('href', '/kimi-api')
     expect(
       within(popup).getByRole('link', { name: /GLM-5.3 and GLM-5.3 Flash API/ })
     ).toHaveAttribute('href', '/glm-api')
@@ -323,7 +323,7 @@ describe('mobile menu Developer solutions group', () => {
     const aiMediaLink = await screen.findByRole('link', {
       name: 'AI Media API',
     })
-    expect(kimiLink).toHaveAttribute('href', '/kimi-k3-api')
+    expect(kimiLink).toHaveAttribute('href', '/kimi-api')
     expect(glmLink).toHaveAttribute('href', '/glm-api')
     expect(seedanceLink).toHaveAttribute('href', '/seedance-api')
     expect(aiMediaLink).toHaveAttribute('href', '/ai-media-api')

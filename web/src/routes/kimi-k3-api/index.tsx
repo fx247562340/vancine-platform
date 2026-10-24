@@ -16,10 +16,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { createFileRoute } from '@tanstack/react-router'
-
-import { KimiK3ApiPage } from '@/features/kimi-k3-api'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/kimi-k3-api/')({
-  component: KimiK3ApiPage,
+  beforeLoad: ({ location }) => {
+    throw redirect({
+      to: '/kimi-api',
+      search: location.search,
+      hash: location.hash,
+      replace: true,
+      statusCode: 301,
+    })
+  },
 })

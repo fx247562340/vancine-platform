@@ -33,8 +33,8 @@ const BASE_METADATA: PageMetadata = {
   description: 'Connect coding agents to Kimi K3 with one API key.',
   ogTitle: 'Kimi K3 for Coding Agents',
   ogDescription: 'One OpenAI-compatible key for coding agents.',
-  ogUrl: 'https://vancine.com/kimi-k3-api',
-  canonical: 'https://vancine.com/kimi-k3-api',
+  ogUrl: 'https://vancine.com/kimi-api',
+  canonical: 'https://vancine.com/kimi-api',
 }
 
 const OTHER_METADATA: PageMetadata = {

@@ -88,7 +88,7 @@ const testRouteTree = testRootRoute.addChildren([
     component: () => <DocsSidebar activeSlug={null} />,
   }),
   stubRoute('/docs/$slug', 'docs-page'),
-  stubRoute('/kimi-k3-api', 'kimi-page'),
+  stubRoute('/kimi-api', 'kimi-page'),
   stubRoute('/seedance-api', 'seedance-page'),
   stubRoute('/ai-media-api', 'ai-media-page'),
 ])
@@ -116,7 +116,7 @@ describe('Docs sidebar Developer solutions block', () => {
     const kimiLink = await screen.findByRole('link', {
       name: 'Kimi K3.1 Pro & Highspeed API',
     })
-    expect(kimiLink).toHaveAttribute('href', '/kimi-k3-api')
+    expect(kimiLink).toHaveAttribute('href', '/kimi-api')
     expect(kimiLink).not.toHaveAttribute('target')
 
     const glmLink = await screen.findByRole('link', {

@@ -473,8 +473,8 @@ describe('public marketing page metadata switches', () => {
       document.head
         .querySelector('meta[property="og:url"]')
         ?.getAttribute('content')
-    ).toBe('https://vancine.com/kimi-k3-api')
-    expect(canonicalHref()).toBe('https://vancine.com/kimi-k3-api')
+    ).toBe('https://vancine.com/kimi-api')
+    expect(canonicalHref()).toBe('https://vancine.com/kimi-api')
     expect(
       document.head
         .querySelector('meta[name="twitter:title"]')
@@ -493,7 +493,7 @@ describe('public marketing page metadata switches', () => {
     expect(document.title).toBe(
       'Kimi K3.1 Pro & Highspeed API for Coding Agents | Vancine'
     )
-    expect(canonicalHref()).toBe('https://vancine.com/kimi-k3-api')
+    expect(canonicalHref()).toBe('https://vancine.com/kimi-api')
     expect(isPublicMarketingMetadataActive()).toBe(true)
 
     kimi.unmount()

@@ -35,6 +35,7 @@ import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as DocsSlugRouteImport } from './routes/docs/$slug'
 import { Route as GlmApiIndexRouteImport } from './routes/glm-api/index'
 import { Route as GuidesFastCodingModelsRouteImport } from './routes/guides/fast-coding-models'
+import { Route as KimiApiIndexRouteImport } from './routes/kimi-api/index'
 import { Route as KimiK3ApiIndexRouteImport } from './routes/kimi-k3-api/index'
 import { Route as OauthProviderRouteImport } from './routes/oauth/$provider'
 import { Route as OpenrouterAlternativeIndexRouteImport } from './routes/openrouter-alternative/index'
@@ -220,6 +221,11 @@ const GlmApiIndexRoute = GlmApiIndexRouteImport.update({
 const GuidesFastCodingModelsRoute = GuidesFastCodingModelsRouteImport.update({
   id: '/guides/fast-coding-models',
   path: '/guides/fast-coding-models',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KimiApiIndexRoute = KimiApiIndexRouteImport.update({
+  id: '/kimi-api/',
+  path: '/kimi-api/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const KimiK3ApiIndexRoute = KimiK3ApiIndexRouteImport.update({
@@ -565,6 +571,7 @@ export interface FileRoutesByFullPath {
   '/coding-agent-benchmark/': typeof CodingAgentBenchmarkIndexRoute
   '/docs/': typeof DocsIndexRoute
   '/glm-api/': typeof GlmApiIndexRoute
+  '/kimi-api/': typeof KimiApiIndexRoute
   '/kimi-k3-api/': typeof KimiK3ApiIndexRoute
   '/openrouter-alternative/': typeof OpenrouterAlternativeIndexRoute
   '/pricing/': typeof PricingIndexRoute
@@ -646,6 +653,7 @@ export interface FileRoutesByTo {
   '/coding-agent-benchmark': typeof CodingAgentBenchmarkIndexRoute
   '/docs': typeof DocsIndexRoute
   '/glm-api': typeof GlmApiIndexRoute
+  '/kimi-api': typeof KimiApiIndexRoute
   '/kimi-k3-api': typeof KimiK3ApiIndexRoute
   '/openrouter-alternative': typeof OpenrouterAlternativeIndexRoute
   '/pricing': typeof PricingIndexRoute
@@ -731,6 +739,7 @@ export interface FileRoutesById {
   '/coding-agent-benchmark/': typeof CodingAgentBenchmarkIndexRoute
   '/docs/': typeof DocsIndexRoute
   '/glm-api/': typeof GlmApiIndexRoute
+  '/kimi-api/': typeof KimiApiIndexRoute
   '/kimi-k3-api/': typeof KimiK3ApiIndexRoute
   '/openrouter-alternative/': typeof OpenrouterAlternativeIndexRoute
   '/pricing/': typeof PricingIndexRoute
@@ -815,6 +824,7 @@ export interface FileRouteTypes {
     | '/coding-agent-benchmark/'
     | '/docs/'
     | '/glm-api/'
+    | '/kimi-api/'
     | '/kimi-k3-api/'
     | '/openrouter-alternative/'
     | '/pricing/'
@@ -896,6 +906,7 @@ export interface FileRouteTypes {
     | '/coding-agent-benchmark'
     | '/docs'
     | '/glm-api'
+    | '/kimi-api'
     | '/kimi-k3-api'
     | '/openrouter-alternative'
     | '/pricing'
@@ -980,6 +991,7 @@ export interface FileRouteTypes {
     | '/coding-agent-benchmark/'
     | '/docs/'
     | '/glm-api/'
+    | '/kimi-api/'
     | '/kimi-k3-api/'
     | '/openrouter-alternative/'
     | '/pricing/'
@@ -1056,6 +1068,7 @@ export interface RootRouteChildren {
   CodingAgentBenchmarkIndexRoute: typeof CodingAgentBenchmarkIndexRoute
   DocsIndexRoute: typeof DocsIndexRoute
   GlmApiIndexRoute: typeof GlmApiIndexRoute
+  KimiApiIndexRoute: typeof KimiApiIndexRoute
   KimiK3ApiIndexRoute: typeof KimiK3ApiIndexRoute
   OpenrouterAlternativeIndexRoute: typeof OpenrouterAlternativeIndexRoute
   PricingIndexRoute: typeof PricingIndexRoute
@@ -1256,6 +1269,13 @@ declare module '@tanstack/react-router' {
       path: '/guides/fast-coding-models'
       fullPath: '/guides/fast-coding-models'
       preLoaderRoute: typeof GuidesFastCodingModelsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/kimi-api/': {
+      id: '/kimi-api/'
+      path: '/kimi-api'
+      fullPath: '/kimi-api/'
+      preLoaderRoute: typeof KimiApiIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/kimi-k3-api/': {
@@ -1817,6 +1837,7 @@ const rootRouteChildren: RootRouteChildren = {
   CodingAgentBenchmarkIndexRoute: CodingAgentBenchmarkIndexRoute,
   DocsIndexRoute: DocsIndexRoute,
   GlmApiIndexRoute: GlmApiIndexRoute,
+  KimiApiIndexRoute: KimiApiIndexRoute,
   KimiK3ApiIndexRoute: KimiK3ApiIndexRoute,
   OpenrouterAlternativeIndexRoute: OpenrouterAlternativeIndexRoute,
   PricingIndexRoute: PricingIndexRoute,
