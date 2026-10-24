@@ -41,6 +41,7 @@ import {
   KIMI_K3_EVIDENCE_LIMITATION_KEYS,
   KIMI_K3_EVIDENCE_STARTER_REPO,
   KIMI_K3_FAQ,
+  KIMI_K3_I18N_KEYS,
   KIMI_K3_MEASURED_USAGE_EVIDENCE,
   KIMI_K3_OPENCODE_AGENT_EVIDENCE,
   KIMI_K3_RESOURCE_EVENT,
@@ -343,26 +344,55 @@ describe('analytics event enumeration', () => {
     )
   })
 
-  test('FAQ contract covers pricing, comparison, model identity, evidence, limits, and quickstart', () => {
-    assert.equal(KIMI_K3_FAQ.length, 8)
+  test('visible-page key contract carries no historical K3 or internal-process copy', () => {
+    for (const needle of [
+      'Historical',
+      '$0.19',
+      '84345',
+      'e52f78b7',
+      'retired model',
+      'not Kimi K3.1 results',
+      'temperature:0',
+      'not live-verified on Vancine',
+      'Discount not confirmed',
+      'OpenRouter is not shown',
+      'not published yet',
+      'Kimi K3 live results',
+      'published Kimi specification',
+      'Not a Vancine measurement',
+      'Kimi official guide',
+      'Official guide:',
+    ]) {
+      assert.equal(
+        KIMI_K3_I18N_KEYS.some((key) => key.includes(needle)),
+        false,
+        `visible-page contract must not include: ${needle}`
+      )
+    }
+    // Evidence link constants stay internal (unrendered) and unchanged.
+    assert.ok(KIMI_K3_EVIDENCE_FILE_URL.includes('kimi-k3-api-starter'))
+    assert.ok(KIMI_K3_EVIDENCE_STARTER_REPO.includes('kimi-k3-api-starter'))
+  })
+
+  test('FAQ contract covers the five practical purchase and setup questions', () => {
+    assert.equal(KIMI_K3_FAQ.length, 5)
     const questions = KIMI_K3_FAQ.map((entry) => entry.questionKey).join(' ')
     const answers = KIMI_K3_FAQ.map((entry) => entry.answerKey).join(' ')
-    assert.ok(questions.includes('current Kimi K3.1 pricing'))
-    assert.ok(questions.includes('input and output discount'))
-    assert.ok(questions.includes('verified on Vancine'))
-    assert.ok(questions.includes('actually been tested'))
-    assert.ok(answers.includes('retired model kimi-k3'))
-    assert.ok(answers.includes('not Kimi K3.1 results'))
-    assert.ok(questions.includes('rate limits and availability'))
-    assert.ok(questions.includes('OpenAI-compatible request'))
-    // The officiality question was removed and not replaced.
+    assert.ok(questions.includes('How do I choose between'))
+    assert.ok(questions.includes('Which prices apply'))
+    assert.ok(questions.includes('How do I send my first request'))
+    assert.ok(questions.includes('How do I configure coding clients'))
+    assert.ok(questions.includes('Which parameters are restricted'))
+    // The speed claim stays plain (no attribution clause), the key stays in
+    // the environment, and no answer references the retired K3 model.
+    assert.ok(answers.includes('about 2–3× the speed of Kimi K3.1 Pro'))
     assert.equal(
-      /official (?:Moonshot|Kimi service)|officially partnered/i.test(
-        questions
-      ),
+      /official guide|Not a Vancine measurement/.test(answers),
       false,
-      'FAQ must not raise an official-relationship question'
+      'FAQ must not carry attribution clauses'
     )
+    assert.ok(answers.includes('VANCINE_API_KEY'))
+    assert.equal(/retired model|not Kimi K3\.1 results/.test(answers), false)
   })
 })
 

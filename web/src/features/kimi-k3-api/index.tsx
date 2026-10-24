@@ -28,10 +28,10 @@ import { useAuthStore } from '@/stores/auth-store'
 
 import { AgentCompatibility } from './components/agent-compatibility'
 import { Availability } from './components/availability'
-import { Evidence } from './components/evidence'
 import { Faq } from './components/faq'
 import { FinalCta } from './components/final-cta'
 import { Hero } from './components/hero'
+import { ModelProfiles } from './components/model-profiles'
 import { Quickstart } from './components/quickstart'
 import {
   getKimiK3PageMetadata,
@@ -73,12 +73,8 @@ export function KimiK3ApiPage(): ReactElement {
           onModelChange={setModelId}
           vancinePrice={vancinePrice}
         />
-        <Availability
-          modelId={modelId}
-          onModelChange={setModelId}
-          vancinePrice={vancinePrice}
-        />
-        <Evidence />
+        <ModelProfiles />
+        <Availability modelId={modelId} vancinePrice={vancinePrice} />
         <Quickstart
           isAuthenticated={isAuthenticated}
           search={search}

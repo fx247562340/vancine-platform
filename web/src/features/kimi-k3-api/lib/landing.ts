@@ -259,6 +259,52 @@ export const KIMI_K31_OFFICIAL_GUIDE_URL =
 
 export const KIMI_K31_PRICE_VERIFIED_ON = '2026-10-24'
 
+/**
+ * OpenRouter reference for the SAME model ID (moonshotai/kimi-k3.1-pro).
+ * Shown on the page only for Kimi K3.1 Pro; Highspeed has no independent
+ * OpenRouter model entry with the same pricing basis, so it renders no row.
+ * Amounts are a dated snapshot from OpenRouter's public pricing page, never
+ * a Vancine billing rate.
+ */
+export const KIMI_K31_OPENROUTER_MODEL_URL =
+  'https://openrouter.ai/moonshotai/kimi-k3.1-pro'
+export const KIMI_K31_OPENROUTER_PRICE_VERIFIED_ON = '2026-10-24'
+export const KIMI_K31_OPENROUTER_INPUT_USD = 2
+export const KIMI_K31_OPENROUTER_OUTPUT_USD = 10
+
+export interface KimiK31ModelProfile {
+  /** i18n key describing which tasks the model fits. */
+  positioningKey: string
+  /** i18n keys for the concrete K3.1 use cases. */
+  useCaseKeys: readonly string[]
+  /** Only Highspeed carries Moonshot's official 2–3× speed note. */
+  officialSpeedNote: boolean
+}
+
+export const KIMI_K31_MODEL_PROFILES: Record<
+  KimiK31ModelId,
+  KimiK31ModelProfile
+> = {
+  'kimi-k3.1-pro': {
+    positioningKey: 'For cost-sensitive coding tasks',
+    useCaseKeys: [
+      'Code modification and refactoring',
+      'Test tasks',
+      'Long-context project analysis',
+    ],
+    officialSpeedNote: false,
+  },
+  'kimi-k3.1-pro-highspeed': {
+    positioningKey: 'For interactive tasks where response speed matters',
+    useCaseKeys: [
+      'Code modification and refactoring',
+      'Test tasks',
+      'Long-context project analysis',
+    ],
+    officialSpeedNote: true,
+  },
+}
+
 export const KIMI_K3_PRICE_UNIT_KEY = 'USD per 1M tokens'
 
 export const KIMI_K31_DISCOUNT_KEY =
@@ -322,14 +368,14 @@ export function formatKimiK3Usd(value: number): string {
 }
 
 export const KIMI_K3_PRICE_DISCLAIMER_KEYS = [
-  'All prices are shown per 1M tokens.',
-  'Official input and output prices were snapshotted on October 24, 2026 from the Kimi API pricing page.',
-  'OpenRouter is not shown because it has no separate Highspeed model ID with the same pricing basis.',
-  'Cache write prices and TTL tiers are excluded. A live cache-read price, when shown, is not part of the input and output discount.',
-  'The input and output discount is calculated from the current Vancine price and the dated official reference for the selected model. It is hidden when those prices do not confirm one shared percentage.',
-  'Third-party prices may change.',
-  'Current Vancine settlement prices are on the Vancine Pricing page.',
+  'All prices are per 1M tokens. Kimi official and third-party references are dated October 24, 2026; current charges are governed by the Vancine Pricing page.',
 ] as const
+
+export const KIMI_K31_CACHE_DISCLAIMER_KEY =
+  'Cache reads are priced separately; cache write prices and TTL tiers are on the Vancine Pricing page.'
+
+export const KIMI_K31_OPENROUTER_DISCLAIMER_KEY =
+  'The OpenRouter input and output reference was snapshotted on October 24, 2026 for the same model ID.'
 
 export const KIMI_K3_API_BASE_URL = 'https://vancine.com/v1'
 export const KIMI_K3_CHAT_ENDPOINT = 'https://vancine.com/v1/chat/completions'
@@ -538,45 +584,29 @@ export interface KimiK3FaqEntry {
 
 export const KIMI_K3_FAQ: readonly KimiK3FaqEntry[] = [
   {
-    questionKey: 'Where can I confirm current Kimi K3.1 pricing?',
+    questionKey: 'How do I choose between Kimi K3.1 Pro and Highspeed?',
     answerKey:
-      'Check Vancine live Pricing for the selected model ID. The official reference on this page is a dated snapshot; live Pricing is authoritative for current Vancine rates.',
+      'Pick Kimi K3.1 Pro for cost-sensitive coding tasks. Pick Highspeed for interactive work where response speed matters; Highspeed runs about 2–3× the speed of Kimi K3.1 Pro.',
   },
   {
-    questionKey: 'How does the input and output discount work?',
+    questionKey: 'Which prices apply to my requests?',
     answerKey:
-      'The page compares live Vancine input and output prices with the October 24, 2026 Kimi official reference for the selected model. A percentage is shown only when both prices confirm the same discount. It is not a promise that the total bill is lower by that percentage. Cache write prices and TTL tiers are not included.',
+      'Vancine charges the live prices on the Vancine Pricing page for the selected model ID. The Kimi official and OpenRouter rows are dated references from their own pricing pages, not Vancine billing rates. Cache reads are priced separately when shown.',
   },
   {
-    questionKey: 'Is Kimi K3.1 Pro or Highspeed verified on Vancine?',
+    questionKey: 'How do I send my first request?',
     answerKey:
-      'No live verification of kimi-k3.1-pro or kimi-k3.1-pro-highspeed is published on this page. The HTTP 200 probe and OpenCode run used the retired model kimi-k3.',
+      'Create a Vancine account, generate an API key, and send a chat completion to https://vancine.com/v1 with the selected model ID. Read the key from VANCINE_API_KEY and omit sampling parameters such as temperature.',
   },
   {
-    questionKey: 'What has actually been tested?',
+    questionKey: 'How do I configure coding clients like Cline or Roo Code?',
     answerKey:
-      'A historical compatibility probe returned HTTP 200 for kimi-k3, and one controlled OpenCode v1.18.3 run on kimi-k3 completed tool calls and passed tests. Those results are not Kimi K3.1 results. Cline and Roo Code were not independently live-verified.',
+      'Choose the OpenAI-compatible provider, set the base URL to https://vancine.com/v1, and use your VANCINE_API_KEY. The OpenCode tab in the quickstart shows a copyable provider configuration with the selected model ID.',
   },
   {
-    questionKey: 'Are rate limits and availability guaranteed?',
+    questionKey: 'Which parameters are restricted?',
     answerKey:
-      'No. Availability, limits, latency, and prices can change. This page does not promise a service level or a permanent rate.',
-  },
-  {
-    questionKey: 'How do I start with an OpenAI-compatible request?',
-    answerKey:
-      'Create a Vancine account, generate an API key, and send a chat completion to https://vancine.com/v1 with the selected model ID, reading the key from VANCINE_API_KEY. Omit temperature and max_tokens.',
-  },
-  {
-    questionKey: 'Does Highspeed mean Vancine measured a faster model?',
-    answerKey:
-      'No. Moonshot states that Highspeed is about 2–3× the speed of Kimi K3.1 Pro. That is an official claim, not a Vancine measurement.',
-  },
-  {
-    questionKey:
-      'Are streaming, reasoning, and tool calls verified on Vancine?',
-    answerKey:
-      'Official Kimi docs describe streaming, reasoning_effort values low, high, and max, and tool calling for these model IDs. Vancine has not live-verified those capabilities for Kimi K3.1 Pro or Highspeed.',
+      'The examples omit temperature, top_p, n, presence_penalty, and frequency_penalty because official Kimi docs fix them. The parameter notes next to the quickstart examples have the details.',
   },
 ]
 
@@ -586,18 +616,27 @@ export const KIMI_K3_I18N_KEYS = [
   'Choose a Kimi K3.1 model',
   'Kimi K3.1 Pro',
   'Kimi K3.1 Pro Highspeed',
-  'Official guide: about 2–3× the speed of Kimi K3.1 Pro. Not a Vancine measurement.',
-  'The 1M-token context window is a published Kimi specification, not a Vancine measurement.',
+  'View integration examples',
+  'Choose the model that fits your task',
+  'Both models run on one OpenAI-compatible API with a 1M-token context window.',
+  'For cost-sensitive coding tasks',
+  'For interactive tasks where response speed matters',
+  'Code modification and refactoring',
+  'Test tasks',
+  'Long-context project analysis',
+  'About 2–3× the speed of Kimi K3.1 Pro.',
+  'Model profiles',
   KIMI_K31_DISCOUNT_KEY,
-  KIMI_K31_DISCOUNT_UNCONFIRMED_KEY,
   'Create an API key',
   'Open Playground',
-  'Compare prices',
   'Kimi K3.1 live pricing',
   'Vancine',
   'Kimi official',
+  'OpenRouter',
+  'Standard price reference',
   'OpenAI-compatible API',
   'Pay as you go',
+  'Current charges are governed by the Vancine Pricing page.',
   'Loading',
   'View live pricing',
   'Dynamic Pricing',
@@ -615,8 +654,10 @@ export const KIMI_K3_I18N_KEYS = [
   'Current Vancine price',
   'Vancine live Pricing',
   'Kimi official pricing',
+  'OpenRouter pricing',
+  KIMI_K31_CACHE_DISCLAIMER_KEY,
+  'View cache pricing',
   ...KIMI_K3_PRICE_DISCLAIMER_KEYS,
-  'Quickstart',
   'OpenAI-compatible quickstart',
   'Send a chat completion for the selected model ID. Read the key from VANCINE_API_KEY. Do not send temperature or max_tokens.',
   'Quickstart languages',
@@ -625,10 +666,11 @@ export const KIMI_K3_I18N_KEYS = [
   'Code copied',
   'Unable to copy code',
   'Copy example code to clipboard',
-  'Official docs fix temperature, top_p, n, presence_penalty, and frequency_penalty. Omit them. The old K3 probe used temperature 0 and max_tokens 16; that is not a K3.1 example.',
-  'Official docs describe streaming, reasoning_effort, and tool calling for these model IDs. Vancine has not live-verified those capabilities for Kimi K3.1 Pro or Highspeed.',
+  'Parameter notes',
+  'Official Kimi docs fix temperature, top_p, n, presence_penalty, and frequency_penalty for these model IDs. The examples omit them.',
+  'Streaming, reasoning_effort, and tool calling follow the official Kimi parameter guide.',
   'Agent setup',
-  'OpenAI-compatible clients',
+  'Point your coding clients at the Vancine base URL with an environment-backed key.',
   'Configure a Vancine provider',
   'Use the OpenAI-compatible SDK provider, the Vancine base URL, and an environment-backed key.',
   'Cline and Roo Code',
@@ -636,47 +678,9 @@ export const KIMI_K3_I18N_KEYS = [
   'Choose OpenAI Compatible as the API provider.',
   'Set the base URL to https://vancine.com/v1 and use your VANCINE_API_KEY.',
   'Selected model ID',
-  'Kimi K3.1 Pro and Highspeed are not live-verified on Vancine.',
-  'The public starter repository still targets kimi-k3 only. It is a historical K3 asset, not a K3.1 verified example.',
-  'Moonshot says full model weights will be released by November 4, 2026. They are not open yet.',
-  'Evidence',
-  'Historical Kimi K3 test record',
-  'Headline results from a single historical kimi-k3 run: the request succeeded, the returned model matched, tool calls completed, tests passed, and the evidence file is public. These results are not Kimi K3.1 results.',
-  'Request succeeded',
-  'Returned model',
-  'Tool calls completed',
-  'Tests passed',
-  'Evidence file is public',
-  'Historical K3 record',
-  'Measured',
-  'OpenCode coding agent',
-  'API compatibility',
-  'Measured usage',
-  'View public evidence file',
-  'View starter repository',
-  'temperature:0 probe accepted',
-  'Requested model',
-  'Response model',
-  'Usage (prompt / completion / total tokens)',
-  'Reasoning tokens',
-  'Completion stop reason',
-  'Agent client',
-  'Execution environment',
-  'Model steps completed',
-  'Tool calls completed (read / edit / bash)',
-  'Tool calls failed',
-  'Tests',
-  'PASS',
-  'FAIL',
-  'Run duration',
-  'Run ID',
-  'Agent telemetry tokens (total)',
-  'Token breakdown (input / output / reasoning / cache read / cache write)',
-  'Measured Vancine usage',
-  'The probe used a 16-token completion budget that was mostly consumed by reasoning, so its visible content is inconclusive. This small reasoning-heavy response is not a content-generation failure. It is a historical kimi-k3 probe, not a K3.1 example.',
-  ...KIMI_K3_EVIDENCE_LIMITATION_KEYS,
+  'OpenAI-compatible clients',
   'Frequently asked questions',
   ...KIMI_K3_FAQ.flatMap((entry) => [entry.questionKey, entry.answerKey]),
   'Get Kimi K3.1 Pro or Highspeed through an OpenAI-compatible API',
-  'Choose a model, create a Vancine API key, and send a request. Kimi K3.1 live results are not published yet.',
+  'Choose a model, create a Vancine API key, and send your first request.',
 ] as const

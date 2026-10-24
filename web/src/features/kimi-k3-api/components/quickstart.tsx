@@ -22,6 +22,12 @@ import { Link } from '@tanstack/react-router'
 import type { ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -84,18 +90,25 @@ export function Quickstart(props: QuickstartProps): ReactElement {
         ))}
       </Tabs>
 
-      <ul className='text-muted-foreground mt-6 list-disc space-y-2 pl-5 text-sm'>
-        <li>
-          {t(
-            'Official docs fix temperature, top_p, n, presence_penalty, and frequency_penalty. Omit them. The old K3 probe used temperature 0 and max_tokens 16; that is not a K3.1 example.'
-          )}
-        </li>
-        <li>
-          {t(
-            'Official docs describe streaming, reasoning_effort, and tool calling for these model IDs. Vancine has not live-verified those capabilities for Kimi K3.1 Pro or Highspeed.'
-          )}
-        </li>
-      </ul>
+      <Accordion className='mt-6'>
+        <AccordionItem value='parameter-notes'>
+          <AccordionTrigger>{t('Parameter notes')}</AccordionTrigger>
+          <AccordionContent>
+            <ul className='text-muted-foreground list-disc space-y-2 pl-5 text-sm'>
+              <li>
+                {t(
+                  'Official Kimi docs fix temperature, top_p, n, presence_penalty, and frequency_penalty for these model IDs. The examples omit them.'
+                )}
+              </li>
+              <li>
+                {t(
+                  'Streaming, reasoning_effort, and tool calling follow the official Kimi parameter guide.'
+                )}
+              </li>
+            </ul>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
 
       <Separator className='my-8' />
 

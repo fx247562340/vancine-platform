@@ -38,7 +38,6 @@ import {
   KIMI_K31_DISCOUNT_KEY,
   KIMI_K3_CTA_EVENT,
   KIMI_K3_PRICE_UNIT_KEY,
-  KIMI_K3_PRICING_SECTION_ID,
   type KimiK31ModelId,
 } from '../lib/landing'
 import { ModelChoice } from './model-choice'
@@ -123,17 +122,8 @@ function HeroPriceCard(props: {
         {t('OpenAI-compatible API')} · {t('Pay as you go')}
       </p>
       <p className='text-muted-foreground mt-2 text-xs'>
-        {t(
-          'The 1M-token context window is a published Kimi specification, not a Vancine measurement.'
-        )}
+        {t('Current charges are governed by the Vancine Pricing page.')}
       </p>
-      {props.modelId === 'kimi-k3.1-pro-highspeed' ? (
-        <p className='text-muted-foreground mt-2 text-xs'>
-          {t(
-            'Official guide: about 2–3× the speed of Kimi K3.1 Pro. Not a Vancine measurement.'
-          )}
-        </p>
-      ) : null}
     </aside>
   )
 }
@@ -188,11 +178,16 @@ export function Hero(props: HeroProps): ReactElement {
               size='lg'
               className='h-11 px-6'
               data-testid='kimi-k3-hero-secondary-cta'
-              render={<a href={`#${KIMI_K3_PRICING_SECTION_ID}`} />}
+              render={<a href='#quickstart' />}
             >
-              {t('Compare prices')}
+              {t('View integration examples')}
             </Button>
           </div>
+          <p className='text-muted-foreground text-sm'>
+            {t(
+              'Both models run on one OpenAI-compatible API with a 1M-token context window.'
+            )}
+          </p>
         </div>
         <HeroPriceCard
           modelId={props.modelId}

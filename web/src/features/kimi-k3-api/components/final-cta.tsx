@@ -60,7 +60,7 @@ export function FinalCta(props: FinalCtaProps): ReactElement {
         </h2>
         <p className='text-muted-foreground'>
           {t(
-            'Choose a model, create a Vancine API key, and send a request. Kimi K3.1 live results are not published yet.'
+            'Choose a model, create a Vancine API key, and send your first request.'
           )}
         </p>
         <FirstTopUpBonusCallout className='w-full max-w-xl' />

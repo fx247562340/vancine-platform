@@ -33,19 +33,23 @@ import {
   getKimiK31InputOutputDiscountPercent,
   getKimiK31Model,
   KIMI_K31_DISCOUNT_KEY,
-  KIMI_K31_DISCOUNT_UNCONFIRMED_KEY,
   KIMI_K31_OFFICIAL_PRICING_URL,
+  KIMI_K31_OPENROUTER_DISCLAIMER_KEY,
+  KIMI_K31_OPENROUTER_INPUT_USD,
+  KIMI_K31_OPENROUTER_MODEL_URL,
+  KIMI_K31_OPENROUTER_OUTPUT_USD,
   KIMI_K3_PRICE_DISCLAIMER_KEYS,
   KIMI_K3_PRICE_UNIT_KEY,
   KIMI_K3_PRICING_SECTION_ID,
   KIMI_K3_RESOURCE_EVENT,
   type KimiK31ModelId,
 } from '../lib/landing'
-import { ModelChoice } from './model-choice'
+
+type ProviderKind = 'vancine' | 'official' | 'openrouter'
 
 function SourceLink(props: {
   modelId: KimiK31ModelId
-  kind: 'vancine' | 'official'
+  kind: ProviderKind
 }): ReactElement {
   const { t } = useTranslation()
   const icon = (
@@ -78,6 +82,27 @@ function SourceLink(props: {
     )
   }
 
+  if (props.kind === 'openrouter') {
+    return (
+      <a
+        data-testid='kimi-k3-openrouter-source-link'
+        className={className}
+        href={KIMI_K31_OPENROUTER_MODEL_URL}
+        target='_blank'
+        rel='noopener noreferrer'
+        onClick={() =>
+          trackEvent(KIMI_K3_RESOURCE_EVENT, {
+            resource: 'openrouter_pricing',
+            location: 'pricing',
+          })
+        }
+      >
+        {t('OpenRouter pricing')}
+        {icon}
+      </a>
+    )
+  }
+
   return (
     <a
       data-testid='kimi-k3-kimi_official-source-link'
@@ -98,9 +123,15 @@ function SourceLink(props: {
   )
 }
 
+/**
+ * Price comparison for the selected model: live Vancine prices, the dated
+ * Kimi official reference, and — for Kimi K3.1 Pro only — the dated
+ * OpenRouter standard-price reference for the same model ID. Highspeed has
+ * no independent OpenRouter entry with the same pricing basis, so its table
+ * renders two rows.
+ */
 export function Availability(props: {
   modelId: KimiK31ModelId
-  onModelChange: (modelId: KimiK31ModelId) => void
   vancinePrice: LandingModelPrice
 }): ReactElement {
   const { t } = useTranslation()
@@ -111,8 +142,12 @@ export function Availability(props: {
   )
   const officialDifference =
     discount === null
-      ? t(KIMI_K31_DISCOUNT_UNCONFIRMED_KEY)
+      ? t('Current charges are governed by the Vancine Pricing page.')
       : t(KIMI_K31_DISCOUNT_KEY, { percent: discount })
+  const showCache =
+    props.vancinePrice.status === 'ready' &&
+    props.vancinePrice.amounts.cacheReadUsd !== null
+
   const rows = [
     {
       id: 'vancine',
@@ -130,6 +165,18 @@ export function Availability(props: {
       difference: officialDifference,
       source: <SourceLink modelId={props.modelId} kind='official' />,
     },
+    ...(model.id === 'kimi-k3.1-pro'
+      ? [
+          {
+            id: 'openrouter',
+            name: t('OpenRouter'),
+            input: formatKimiK3Usd(KIMI_K31_OPENROUTER_INPUT_USD),
+            output: formatKimiK3Usd(KIMI_K31_OPENROUTER_OUTPUT_USD),
+            difference: t('Standard price reference'),
+            source: <SourceLink modelId={props.modelId} kind='openrouter' />,
+          },
+        ]
+      : []),
   ] as const
 
   return (
@@ -139,15 +186,16 @@ export function Availability(props: {
       className='bg-muted/30 scroll-mt-24 px-4 py-16 md:px-6'
     >
       <div className='mx-auto flex w-full max-w-5xl flex-col gap-6'>
-        <div className='flex flex-col gap-4'>
+        <div className='flex flex-col gap-2'>
           <h2 id='kimi-k3-pricing-title' className='text-3xl font-bold'>
             {t('Kimi K3.1 price comparison')}
           </h2>
-          <ModelChoice
-            idPrefix='kimi-k31-pricing'
-            modelId={props.modelId}
-            onModelChange={props.onModelChange}
-          />
+          <p className='text-muted-foreground text-sm'>
+            {t(model.labelKey)}{' '}
+            <span className='text-muted-foreground font-mono text-xs'>
+              {model.id}
+            </span>
+          </p>
         </div>
 
         <div className='border-border bg-card/30 overflow-hidden rounded-xl border'>
@@ -234,6 +282,27 @@ export function Availability(props: {
             </tbody>
           </table>
         </div>
+
+        {showCache ? (
+          <p className='text-muted-foreground text-xs'>
+            {t('Cache read')}{' '}
+            <VancineLivePrice price={props.vancinePrice} field='cache' />{' '}
+            {t(KIMI_K3_PRICE_UNIT_KEY)}.{' '}
+            <Link
+              className='underline underline-offset-2'
+              to='/pricing/$modelId'
+              params={{ modelId: props.modelId }}
+            >
+              {t('View cache pricing')}
+            </Link>
+          </p>
+        ) : null}
+
+        {model.id === 'kimi-k3.1-pro' ? (
+          <p className='text-muted-foreground text-xs'>
+            {t(KIMI_K31_OPENROUTER_DISCLAIMER_KEY)}
+          </p>
+        ) : null}
 
         <ul className='text-muted-foreground list-disc space-y-2 pl-5 text-xs md:text-sm'>
           {KIMI_K3_PRICE_DISCLAIMER_KEYS.map((key) => (

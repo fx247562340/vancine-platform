@@ -16,8 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { InformationCircleIcon } from '@hugeicons/core-free-icons'
-import { HugeiconsIcon } from '@hugeicons/react'
 import type { ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -31,6 +29,10 @@ import {
 
 import type { KimiK31ModelId } from '../lib/landing'
 
+/**
+ * Client configuration for the selected model ID: OpenCode provider JSON,
+ * OpenAI-compatible clients, and Cline / Roo Code connection steps.
+ */
 export function AgentCompatibility(props: {
   modelId: KimiK31ModelId
 }): ReactElement {
@@ -40,7 +42,7 @@ export function AgentCompatibility(props: {
     <section
       id='agents'
       aria-labelledby='kimi-k3-agents-title'
-      className='bg-muted/30 scroll-mt-24 px-4 py-16 md:px-6'
+      className='scroll-mt-24 px-4 py-16 md:px-6'
     >
       <div className='mx-auto flex w-full max-w-5xl flex-col gap-8'>
         <div className='flex flex-col gap-2'>
@@ -48,7 +50,9 @@ export function AgentCompatibility(props: {
             {t('Agent setup')}
           </h2>
           <p className='text-muted-foreground max-w-3xl'>
-            {t('Kimi K3.1 Pro and Highspeed are not live-verified on Vancine.')}
+            {t(
+              'Point your coding clients at the Vancine base URL with an environment-backed key.'
+            )}
           </p>
         </div>
 
@@ -107,45 +111,15 @@ export function AgentCompatibility(props: {
                 {t('Use the same OpenAI-compatible connection')}
               </CardDescription>
             </CardHeader>
-            <CardContent className='flex flex-col gap-3'>
+            <CardContent>
               <p>
                 {t(
                   'Set the base URL to https://vancine.com/v1 and use your VANCINE_API_KEY.'
                 )}
               </p>
-              <p className='flex items-start gap-2'>
-                <HugeiconsIcon
-                  icon={InformationCircleIcon}
-                  className='text-muted-foreground mt-0.5 shrink-0'
-                  aria-hidden='true'
-                />
-                <span className='text-muted-foreground text-xs'>
-                  {t(
-                    'Official docs describe streaming, reasoning_effort, and tool calling for these model IDs. Vancine has not live-verified those capabilities for Kimi K3.1 Pro or Highspeed.'
-                  )}
-                </span>
-              </p>
             </CardContent>
           </Card>
         </div>
-
-        <ul className='text-muted-foreground list-disc space-y-2 pl-5 text-sm'>
-          <li>
-            {t(
-              'The public starter repository still targets kimi-k3 only. It is a historical K3 asset, not a K3.1 verified example.'
-            )}
-          </li>
-          <li>
-            {t(
-              'Moonshot says full model weights will be released by November 4, 2026. They are not open yet.'
-            )}
-          </li>
-          <li>
-            {t(
-              'Official guide: about 2–3× the speed of Kimi K3.1 Pro. Not a Vancine measurement.'
-            )}
-          </li>
-        </ul>
       </div>
     </section>
   )

@@ -254,13 +254,49 @@ describe('kimi-k3-api page structure', () => {
       .getAllByRole('heading', { level: 2 })
       .map((heading) => heading.textContent)
     expect(sections).toEqual([
+      'Choose the model that fits your task',
       'Kimi K3.1 price comparison',
-      'Historical Kimi K3 test record',
       'OpenAI-compatible quickstart',
       'Agent setup',
       'Frequently asked questions',
       'Get Kimi K3.1 Pro or Highspeed through an OpenAI-compatible API',
     ])
+  })
+
+  it('keeps only Kimi K3.1 content and no historical K3 evidence on the page', async () => {
+    renderPage()
+    await screen.findByRole('heading', { level: 1 })
+    const pageText = document.body.textContent ?? ''
+    // The retired model ID must not appear as a bare token (kimi-k3.1 IDs
+    // contain the substring, so the negative lookahead guards them).
+    expect(pageText).not.toMatch(/kimi-k3(?![.\d])/)
+    for (const needle of [
+      '84345',
+      '$0.19',
+      'HTTP 200',
+      'e52f78b7',
+      'kimi-k3-api-starter',
+      'Historical',
+      'temperature:0',
+      'not live-verified',
+      'retired model',
+      'OpenRouter is not shown',
+      'Discount not confirmed',
+      'Kimi K3.1 live results are not published',
+      'published Kimi specification',
+      'Not a Vancine measurement',
+      'Kimi official guide',
+    ]) {
+      expect(pageText).not.toContain(needle)
+    }
+  })
+
+  it('renders exactly one model radiogroup on the whole page', async () => {
+    renderPage()
+    await screen.findByRole('heading', { level: 1 })
+    // The duplicate pricing-section selector was removed; the hero owns the
+    // only radiogroup.
+    expect(screen.getAllByRole('radiogroup')).toHaveLength(1)
   })
 
   it('does not present a generalized China-model portfolio', async () => {
@@ -311,7 +347,7 @@ describe('CTA destinations and UTM safety', () => {
     expect(heroPrimary).toHaveAttribute('href', expectedSignUp)
     expect(quickstartCta).toHaveAttribute('href', expectedSignUp)
     expect(finalCta).toHaveAttribute('href', expectedSignUp)
-    expect(heroSecondary).toHaveAttribute('href', '#pricing')
+    expect(heroSecondary).toHaveAttribute('href', '#quickstart')
 
     for (const cta of [heroPrimary, quickstartCta, finalCta]) {
       const href = String(cta.getAttribute('href'))
@@ -340,7 +376,7 @@ describe('CTA destinations and UTM safety', () => {
       'href',
       '/playground?utm_source=launch'
     )
-    expect(heroSecondary).toHaveAttribute('href', '#pricing')
+    expect(heroSecondary).toHaveAttribute('href', '#quickstart')
 
     for (const cta of [heroPrimary, quickstartCta, finalCta]) {
       expect(String(cta.getAttribute('href'))).not.toContain('token')
@@ -456,21 +492,20 @@ describe('link safety', () => {
     }
   })
 
-  it('opens GitHub evidence links in a new tab with noopener noreferrer', async () => {
+  it('opens third-party reference links in a new tab with noopener noreferrer', async () => {
     renderPage()
     await screen.findByRole('heading', { level: 1 })
 
-    const evidenceLink = screen.getAllByRole('button', {
-      name: /View public evidence file/,
-    })[0]
-    const starterLink = screen.getAllByRole('button', {
-      name: /View starter repository/,
-    })[0]
-    for (const link of [evidenceLink, starterLink]) {
+    const externalLinks = [
+      ...screen.getAllByRole('link', { name: /Kimi official pricing/ }),
+      ...screen.getAllByRole('link', { name: /OpenRouter pricing/ }),
+    ]
+    expect(externalLinks.length).toBeGreaterThanOrEqual(2)
+    for (const link of externalLinks) {
+      const href = String(link.getAttribute('href'))
       expect(
-        String(link.getAttribute('href')).startsWith(
-          'https://github.com/VancineAI/kimi-k3-api-starter'
-        )
+        href.startsWith('https://platform.moonshot.ai/') ||
+          href.startsWith('https://openrouter.ai/')
       ).toBe(true)
       expect(link).toHaveAttribute('target', '_blank')
       expect(link.getAttribute('rel')).toContain('noopener')
@@ -498,6 +533,10 @@ describe('anonymous analytics emissions', () => {
     )
     second.unmount()
 
+    expect(trackEventMock.mock.calls).toContainEqual([
+      'developer_resource_clicked',
+      { resource: 'pricing', location: 'pricing' },
+    ])
     expect(trackEventMock.mock.calls.length).toBeGreaterThanOrEqual(2)
     const allowedEvents = new Set([
       'get_started_clicked',
@@ -511,6 +550,12 @@ describe('anonymous analytics emissions', () => {
       }
       expect(JSON.stringify(payload)).not.toContain('launch')
       expect(JSON.stringify(payload)).not.toContain('a@b.com')
+      // The (removed) guide-link tracking must not resurface as a pricing
+      // event from the profiles section.
+      expect(payload).not.toEqual({
+        resource: 'kimi_official_pricing',
+        location: 'pricing',
+      })
     }
   })
 })
@@ -520,13 +565,15 @@ describe('FAQ keyboard accessibility', () => {
     const user = userEvent.setup()
     renderPage()
 
-    const question = 'Where can I confirm current Kimi K3.1 pricing?'
+    const question = 'How do I choose between Kimi K3.1 Pro and Highspeed?'
     const trigger = await screen.findByRole('button', { name: question })
     trigger.focus()
     await user.keyboard('{Enter}')
 
     await waitFor(() => {
-      expect(screen.getByText(/Check Vancine live Pricing/)).toBeVisible()
+      expect(
+        screen.getByText(/Pick Kimi K3.1 Pro for cost-sensitive coding tasks/)
+      ).toBeVisible()
     })
   })
 })
@@ -605,16 +652,18 @@ describe('price comparison', () => {
     expect(card.textContent).toContain('Output $10.00')
     expect(card.textContent).toContain('Vancine')
     expect(card.textContent).toContain('Kimi official')
-    expect(card.textContent).not.toContain('OpenRouter')
     expect(card.textContent).not.toContain('$2.40')
     expect(card.textContent).not.toContain('$12.00')
     expect(within(card).getByText('USD per 1M tokens')).toBeInTheDocument()
     expect(card.textContent).toContain(
       'Input and output are 20% lower than the October 24, 2026 Kimi official reference. This is not a total-bill discount.'
     )
+    expect(card.textContent).toContain(
+      'Current charges are governed by the Vancine Pricing page.'
+    )
   })
 
-  it('shows live Vancine prices with the dated Kimi official reference', async () => {
+  it('shows live Vancine prices with dated official and OpenRouter references for Pro', async () => {
     renderPage()
     await screen.findByRole('heading', {
       level: 2,
@@ -628,18 +677,70 @@ describe('price comparison', () => {
     expect(pageText).toContain('$8.00')
     expect(pageText).toContain('$2.00')
     expect(pageText).toContain('$10.00')
-    expect(pageText).not.toContain('$2.40')
-    expect(pageText).not.toContain('$12.00')
-    expect(pageText).not.toContain('$3.00')
-    expect(pageText).not.toContain('$15.00')
+    // OpenRouter same-model-ID reference row (Pro only).
+    expect(pageText).toContain('OpenRouter')
+    expect(pageText).toContain('Standard price reference')
     expect(pageText).toContain('October 24, 2026')
     expect(pageText).toContain('Current Vancine price')
     expect(pageText).toContain(
       'Input and output are 20% lower than the October 24, 2026 Kimi official reference. This is not a total-bill discount.'
     )
-    expect(pageText).toContain('$0.19')
-    expect(pageText).toContain('kimi-k3')
+    expect(pageText).toContain(
+      'Current charges are governed by the Vancine Pricing page.'
+    )
+    // No historical K3 evidence anywhere on the page.
+    expect(pageText).not.toContain('$0.19')
+    expect(pageText).not.toContain('84345')
     expect(pageText).not.toContain('Verified')
+  })
+
+  it('renders three reference rows for Pro and two for Highspeed in table and cards', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByRole('heading', {
+      level: 2,
+      name: 'Kimi K3.1 price comparison',
+    })
+
+    const table = screen.getByTestId('kimi-k3-price-table')
+    const proNames = [...table.querySelectorAll('tbody tr th')].map(
+      (cell) => cell.textContent
+    )
+    expect(proNames).toEqual(['Vancine', 'Kimi official', 'OpenRouter'])
+    expect(screen.getAllByTestId('kimi-k3-price-card')).toHaveLength(3)
+
+    // Pricing section shows the current model name only — no selector.
+    const pricingSection = table.closest('section') as HTMLElement
+    expect(within(pricingSection).queryAllByRole('radiogroup')).toHaveLength(0)
+    expect(
+      within(pricingSection).getAllByText('kimi-k3.1-pro').length
+    ).toBeGreaterThan(0)
+
+    await waitFor(() => {
+      expect(table).toHaveTextContent('$1.60')
+    })
+    const proOpenRouterRow = [...table.querySelectorAll('tbody tr')].find(
+      (row) => row.textContent?.includes('OpenRouter')
+    )
+    expect(proOpenRouterRow).toHaveTextContent('$2.00')
+    expect(proOpenRouterRow).toHaveTextContent('$10.00')
+
+    await user.click(
+      screen.getAllByTestId('kimi-k31-hero-kimi-k3.1-pro-highspeed')[0]
+    )
+    await waitFor(() => {
+      expect(table).toHaveTextContent('$3.20')
+    })
+    const hsNames = [...table.querySelectorAll('tbody tr th')].map(
+      (cell) => cell.textContent
+    )
+    expect(hsNames).toEqual(['Vancine', 'Kimi official'])
+    const section = table.closest('section') as HTMLElement
+    expect(section.textContent).not.toContain('OpenRouter')
+    expect(section.textContent).not.toContain('same model ID')
+    expect(screen.getAllByTestId('kimi-k3-price-card')).toHaveLength(2)
+    expect(table).toHaveTextContent('$4.00')
+    expect(table).toHaveTextContent('$20.00')
   })
 
   it('uses accessible names on the pricing source links for the selected model', async () => {
@@ -665,9 +766,17 @@ describe('price comparison', () => {
     expect(official).toHaveAttribute('target', '_blank')
     expect(official.getAttribute('rel')).toContain('noopener')
     expect(official.getAttribute('rel')).toContain('noreferrer')
-    expect(
-      screen.queryByRole('link', { name: /OpenRouter Models API/ })
-    ).toBeNull()
+
+    const openRouter = screen.getAllByRole('link', {
+      name: /OpenRouter pricing/,
+    })[0]
+    expect(openRouter).toHaveAttribute(
+      'href',
+      'https://openrouter.ai/moonshotai/kimi-k3.1-pro'
+    )
+    expect(openRouter).toHaveAttribute('target', '_blank')
+    expect(openRouter.getAttribute('rel')).toContain('noopener')
+    expect(openRouter.getAttribute('rel')).toContain('noreferrer')
   })
 
   it('renders the same providers, prices, and conclusions in the table and mobile cards', async () => {
@@ -679,9 +788,9 @@ describe('price comparison', () => {
 
     const cards = screen.getAllByTestId('kimi-k3-price-card')
     const table = screen.getByTestId('kimi-k3-price-table')
-    expect(cards).toHaveLength(2)
+    expect(cards).toHaveLength(3)
     expect(table.tagName).toBe('TABLE')
-    expect(table.querySelectorAll('tbody tr')).toHaveLength(2)
+    expect(table.querySelectorAll('tbody tr')).toHaveLength(3)
 
     await waitFor(() => {
       expect(cards[0]).toHaveTextContent('$1.60')
@@ -700,6 +809,12 @@ describe('price comparison', () => {
         output: '$10.00',
         difference:
           'Input and output are 20% lower than the October 24, 2026 Kimi official reference. This is not a total-bill discount.',
+      },
+      {
+        name: 'OpenRouter',
+        input: '$2.00',
+        output: '$10.00',
+        difference: 'Standard price reference',
       },
     ] as const
 
@@ -775,7 +890,7 @@ describe('price comparison', () => {
     })
     expect(card.textContent).not.toContain('20% lower')
     expect(document.body.textContent ?? '').toContain(
-      'Discount not confirmed against the dated official reference'
+      'Current charges are governed by the Vancine Pricing page.'
     )
   })
 
@@ -850,47 +965,68 @@ describe('price comparison', () => {
   })
 })
 
-describe('evidence hierarchy', () => {
-  it('leads with request success, returned model, tool calls, tests, and the public file', async () => {
+describe('model profiles', () => {
+  it('presents both K3.1 profiles with positioning and shared use cases', async () => {
     renderPage()
     await screen.findByRole('heading', {
       level: 2,
-      name: 'Historical Kimi K3 test record',
+      name: 'Choose the model that fits your task',
     })
-    const headline = screen.getByTestId('kimi-k3-evidence-headline')
-    expect(headline).toHaveTextContent('HTTP 200')
-    expect(headline).toHaveTextContent('kimi-k3')
-    expect(headline).toHaveTextContent('PASS')
-    expect(
-      screen.getAllByRole('button', { name: /View public evidence file/ })
-        .length
-    ).toBeGreaterThanOrEqual(1)
-  })
 
-  it('keeps the single-run limitations next to the evidence', async () => {
+    const pro = screen.getByTestId('kimi-k3-model-profile-kimi-k3.1-pro')
+    const hs = screen.getByTestId(
+      'kimi-k3-model-profile-kimi-k3.1-pro-highspeed'
+    )
+    expect(pro).toHaveTextContent('For cost-sensitive coding tasks')
+    expect(hs).toHaveTextContent(
+      'For interactive tasks where response speed matters'
+    )
+    for (const card of [pro, hs]) {
+      expect(card).toHaveTextContent('Code modification and refactoring')
+      expect(card).toHaveTextContent('Test tasks')
+      expect(card).toHaveTextContent('Long-context project analysis')
+    }
+    // The plain 2–3× speed note appears only on the Highspeed card, with no
+    // attribution clause, no outbound link, and no analytics tracking.
+    expect(pro.textContent).not.toContain('2–3×')
+    expect(hs.textContent).toContain('About 2–3× the speed of Kimi K3.1 Pro.')
+    expect(hs.textContent).not.toContain('Not a Vancine measurement')
+    expect(hs.textContent).not.toContain('official guide')
+    expect(within(hs).queryAllByRole('link')).toHaveLength(0)
+    expect(within(pro).queryAllByRole('link')).toHaveLength(0)
+    // The profiles cards carry no second model selector and no spec
+    // explanation line.
+    expect(pro.querySelectorAll('input[type="radio"]')).toHaveLength(0)
+    expect(pro.textContent).not.toContain('published Kimi specification')
+  })
+})
+
+describe('quickstart parameter notes', () => {
+  it('moves the parameter restrictions into an expandable disclosure', async () => {
+    const user = userEvent.setup()
     renderPage()
     await screen.findByRole('heading', {
       level: 2,
-      name: 'Historical Kimi K3 test record',
+      name: 'OpenAI-compatible quickstart',
     })
-    const pageText = document.body.textContent ?? ''
-    expect(pageText).toContain('single historical controlled run')
-    expect(pageText).toContain('not a current price or credit commitment')
-    expect(pageText).toContain(
-      'Cline and Roo Code configurations in the starter repository have not been independently live-verified'
-    )
-    expect(pageText).toContain('retired model kimi-k3')
-    expect(pageText).toContain(
-      'not a verification of kimi-k3.1-pro or kimi-k3.1-pro-highspeed'
-    )
-    // The relationship caveat is no longer published, and the page never
-    // claims an official relationship either.
-    expect(pageText).not.toMatch(
-      /not an official Moonshot|independent third-party API/i
-    )
-    expect(pageText).not.toMatch(/is an official (?:Moonshot|Kimi)/i)
-    expect(pageText.toLowerCase()).not.toContain('99.9%')
-    expect(pageText.toLowerCase()).not.toContain('production sla')
-    expect(pageText.toLowerCase()).not.toContain('unlimited rate')
+
+    // Collapsed by default: the detailed copy is hidden.
+    expect(
+      screen.queryByText(
+        /Official Kimi docs fix temperature, top_p, n, presence_penalty/
+      )
+    ).toBeNull()
+
+    await user.click(screen.getByRole('button', { name: 'Parameter notes' }))
+    expect(
+      screen.getByText(
+        /Official Kimi docs fix temperature, top_p, n, presence_penalty/
+      )
+    ).toBeVisible()
+    expect(
+      screen.getByText(
+        /Streaming, reasoning_effort, and tool calling follow the official Kimi parameter guide/
+      )
+    ).toBeVisible()
   })
 })
