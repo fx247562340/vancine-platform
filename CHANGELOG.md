@@ -1,3 +1,11 @@
+## 2.12.2 - 2026-11-04
+
+### Agent Catalog
+
+- 将 `LongCat-2.0` 与 `LongCat-2.5-Preview` 替换为稳定版 `LongCat-2.5`，同步更新多模态能力、1M 上下文和 256K 最大输出元数据。
+- 将 `hy4-preview` 替换为稳定版 `hy4`，同步新增视觉输入能力并保留 1M 上下文与 64K 最大输出边界。
+- 对两款稳定模型显式发布 `supportsReasoningEffort=false`，覆盖 Pi 的 OpenAI-compatible 自动检测，避免发送模型未完整支持的通用推理等级。
+
 ## 2.12.1 - 2026-10-24
 
 ### Kimi 固定获客入口

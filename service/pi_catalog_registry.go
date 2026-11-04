@@ -30,7 +30,11 @@ type PiModelMeta struct {
 	ContextWindow int
 	MaxTokens     int
 	// SupportsReasoningEffort is optional. Set only from a verified Chat
-	// Completions fact; nil omits the field so Pi keeps its own default.
+	// Completions fact. A nil value omits the field from the published JSON,
+	// and Pi then falls back to its own auto-detected default, which is true
+	// for a standard OpenAI-compatible provider. A model that does not accept
+	// Pi's generic reasoning_effort levels must therefore publish an
+	// explicit false to override that auto-detection.
 	SupportsReasoningEffort *bool
 	// Source records where the stable fields were verified. It is never
 	// serialized into the public catalog.
@@ -39,16 +43,22 @@ type PiModelMeta struct {
 
 var piCatalogRegistry = loadPiCatalogRegistry([]PiModelMeta{
 	{
-		ID:            "hy4-preview",
-		Name:          "Hy4 preview",
+		ID:            "hy4",
+		Name:          "Hy4",
 		Kind:          piCatalogKindChat,
 		API:           piCatalogAPI,
 		Endpoint:      piCatalogEndpoint,
-		Input:         []string{piCatalogInputText},
+		Input:         []string{piCatalogInputText, piCatalogInputImage},
 		Reasoning:     true,
 		ContextWindow: 1024000,
 		MaxTokens:     64000,
-		Source:        "VANCINE-ACQ-PI-CATALOG-ENDPOINT-PHASE1 audited facts; pi-provider-vancine docs/model-facts.md (2026-08-31)",
+		// Explicit false: the official reasoning_effort for hy4 is a
+		// provider-specific finite set (high / no_think) that the Pi
+		// catalog cannot map through a thinkingLevelMap. An explicit false
+		// overrides Pi's auto-detected true for OpenAI-compatible providers
+		// so Pi never sends an unsupported generic reasoning level.
+		SupportsReasoningEffort: common.GetPointer(false),
+		Source:                  "Tencent Hy official documentation, accessed 2026-11-04: https://www.tencentcloud.com/document/product/1300/80695 (hy4 is the official stable release of Hy4 and is OpenAI Chat Completions compatible; context window 1M with 960k max input and 64k max output; visual understanding is supported for the first time), https://www.tencentcloud.com/document/product/1300/80637 (deep reasoning uses the thinking switch {\"type\":\"enabled\"} / {\"type\":\"disabled\"}, default enabled, plus a provider-specific reasoning_effort whose only allowed values for hy4 are high and no_think, default high), and https://hy.tencent.ai/research/hy4?langVersion=en (Hy4 release note, published 2026-11-04). The original input modalities are text+image, which the Pi projection keeps unchanged. contextWindow is 1024000 (official 960k max input + 64k max output) and maxTokens is 64000. The official reasoning_effort for hy4 is only the provider-specific finite set high / no_think, and the current Pi catalog has no thinkingLevelMap, so those values cannot be mapped onto Pi's generic reasoning levels. supportsReasoningEffort is therefore published as an explicit false, which overrides Pi's auto-detected true for standard OpenAI-compatible providers and stops Pi from sending unsupported generic reasoning levels; the default reasoning capability continues to be expressed by reasoning=true. Models.dev has no first-party stable Hy4 record (tencent-tokenhub only lists hy4-preview, and vercel tencent/hy4 and kilo tencent/hy4 are third-party gateway records), so no Models.dev source is claimed. Production GET https://vancine.com/api/pricing confirmed the exact ID hy4, an openai Chat Completions endpoint, billing_mode tiered_expr, and the single-tier token expression tier(\"base\", p * 0.33 + c * 1.01 + cr * 0.017). Prices are not stored in this registry; they come from the live pricing expression.",
 	},
 	{
 		ID:            "glm-5.3-flash",
@@ -191,28 +201,21 @@ var piCatalogRegistry = loadPiCatalogRegistry([]PiModelMeta{
 		Source:                  "Moonshot official model list https://platform.moonshot.ai/docs/models and Kimi K3.1 Pro guide https://platform.moonshot.ai/docs/guide/kimi-k3-1-pro-quickstart, accessed 2026-10-24. kimi-k3.1-pro-highspeed is the high-speed variant of Kimi K3.1 Pro: same intelligence, about 2-3x the speed. Original modalities are text/image/video; Pi input keeps only text+image and drops video. Official context is a 1M-token window; contextWindow is 1048576. Chat Completions https://platform.moonshot.ai/docs/api/chat (accessed 2026-10-24) states max_completion_tokens defaults to 131072 and may be set up to 1048576 for kimi-k3.1-pro and kimi-k3.1-pro-highspeed, so maxTokens is 1048576. Reasoning is always on. reasoning_effort supports low/high/max. Models.dev API provider moonshotai model kimi-k3.1-pro-highspeed is the corresponding stable record (accessed 2026-10-24): reasoning true, effort low/high/max, input text/image/video, limit context 1048576, output 1048576. Models.dev cost fields are not copied. Production GET https://vancine.com/api/pricing confirmed exact ID kimi-k3.1-pro-highspeed, openai Chat Completions endpoint, billing_mode tiered_expr, and standard single-tier token expression tier(\"base\", p * 3.2 + c * 16 + cr * 0.16). Prices are not stored in this registry; they come from the live pricing expression. supportsReasoningEffort=true because relaykit/dto/openai_request.go GeneralOpenAIRequest carries reasoning_effort and relay/channel/moonshot/adaptor.go ConvertOpenAIRequest passes that request through for this model (the only mutation is temperature=1 for kimi-k2.6).",
 	},
 	{
-		ID:            "LongCat-2.0",
-		Name:          "LongCat-2.0",
-		Kind:          piCatalogKindChat,
-		API:           piCatalogAPI,
-		Endpoint:      piCatalogEndpoint,
-		Input:         []string{piCatalogInputText},
-		Reasoning:     true,
-		ContextWindow: 1000000,
-		MaxTokens:     131072,
-		Source:        "vancine-models-dev/models.dev/models/meituan/longcat-2.0.toml; providers/vancine/models/LongCat-2.0.toml (lab limit/modalities/reasoning; overlay accessed 2026-08-30)",
-	},
-	{
-		ID:            "LongCat-2.5-Preview",
-		Name:          "LongCat-2.5-Preview",
+		ID:            "LongCat-2.5",
+		Name:          "LongCat-2.5",
 		Kind:          piCatalogKindChat,
 		API:           piCatalogAPI,
 		Endpoint:      piCatalogEndpoint,
 		Input:         []string{piCatalogInputText, piCatalogInputImage},
 		Reasoning:     true,
-		ContextWindow: 1000000,
-		MaxTokens:     131072,
-		Source:        "Models.dev global model record meituan/longcat-2.5-preview (accessed 2026-10-01). input=text/image, context=1000000, output=131072, reasoning=true. Production GET https://vancine.com/api/pricing confirmed openai Chat Completions and a standard token expression.",
+		ContextWindow: 1048576,
+		MaxTokens:     262144,
+		// Explicit false: the official reasoning control is a thinking
+		// switch plus thinking_budget, and no generic reasoning_effort
+		// level is documented. An explicit false overrides Pi's
+		// auto-detected true for OpenAI-compatible providers.
+		SupportsReasoningEffort: common.GetPointer(false),
+		Source:                  "LongCat official documentation, accessed 2026-11-04: https://longcat.ai/platform/docs/api/model-params (LongCat-2.5 context length 1,048,576 and max_tokens limit 262,144; thinking switch {\"type\":\"enabled\"} / {\"type\":\"disabled\"} plus thinking_budget up to 262,144, and no generic reasoning_effort parameter is documented), https://longcat.ai/platform/docs/image-video-understanding (LongCat-2.5 accepts images and videos alongside text; the Pi projection keeps text+image and drops video), and https://longcat.ai/platform/docs/api/chat (OpenAI-compatible POST /v1/chat/completions, model id LongCat-2.5, thinking switch only). contextWindow is 1048576 and maxTokens is 262144 from the official limits. The official reasoning control is a thinking on/off switch plus a thinking budget, and no Pi generic reasoning_effort level is declared for this model, so supportsReasoningEffort is published as an explicit false, which overrides Pi's auto-detected true for standard OpenAI-compatible providers and stops Pi from sending unsupported generic reasoning levels; the default reasoning capability continues to be expressed by reasoning=true. Models.dev has no first-party stable LongCat-2.5 record (its longcat provider still lists LongCat-2.5-Preview and LongCat-2.0), and third-party records such as vercel meituan/longcat-2.5 and nano-gpt meituan/longcat-2.5-preview report a lower 131072 output limit that conflicts with the official 262,144; the official limit is used and the conflicting third-party limit is not recorded as a source. Production GET https://vancine.com/api/pricing confirmed the exact ID LongCat-2.5, an openai Chat Completions endpoint, billing_mode tiered_expr, and the single-tier token expression tier(\"base\", p * 0.24 + c * 0.96 + cr * 0.006). Prices are not stored in this registry; they come from the live pricing expression.",
 	},
 	{
 		ID:            "mimo-v2.6-flash",

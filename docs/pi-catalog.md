@@ -113,7 +113,7 @@ refresh. A brand-new model ID still needs trusted Pi metadata
 (contextWindow, maxTokens, modalities, reasoning) before it can appear.
 
 - Registry: verified Chat Completions metadata for current live candidates
-  plus the original validation set (`hy4-preview`, `glm-5.3-flash`,
+  plus the original validation set (`hy4`, `glm-5.3-flash`,
   `qwen3.8-flash`). Those are not a maximum; they are omitted when they are
   not live. Retired Pi catalog IDs are no longer in the registry:
   `deepseek-v4-flash`, `deepseek-v4-flash-vision-exp`, and `deepseek-flash`.
@@ -146,11 +146,27 @@ refresh. A brand-new model ID still needs trusted Pi metadata
   only when compile-time reviewed Pi metadata, live pricing, an `openai`
   Chat Completions endpoint, and a lossless parseable token price all hold
   at once.
-  Current LongCat Chat Completions IDs
-  include `LongCat-2.0` and `LongCat-2.5-Preview`. Those IDs are published
-  only when compile-time reviewed Pi metadata, live pricing, an `openai`
-  Chat Completions endpoint, and a lossless parseable token price all hold
-  at once. A registry row alone is not enough.
+  Current LongCat Chat Completions ID is only `LongCat-2.5` (display name
+  `LongCat-2.5`; stable release). `LongCat-2.0` and `LongCat-2.5-Preview`
+  have been removed from the catalog registry. Neither old ID is kept as an
+  alias or compatibility mapping: even if `LongCat-2.0` or
+  `LongCat-2.5-Preview` reappear in current or future live pricing, they
+  will not automatically enter the Pi catalog because they have no Pi
+  metadata. This document does not assert whether those old IDs remain
+  callable through other platform routes. The current ID is published only
+  when compile-time reviewed Pi metadata, live pricing, an `openai` Chat
+  Completions endpoint, and a lossless parseable token price all hold at
+  once. A registry row alone is not enough.
+  Current Hy Chat Completions ID is only `hy4` (display name `Hy4`; stable
+  release). `hy4-preview` has been removed from the catalog registry. The
+  old ID is not kept as an alias or compatibility mapping: even if
+  `hy4-preview` reappears in current or future live pricing, it will not
+  automatically enter the Pi catalog because it has no Pi metadata. This
+  document does not assert whether the old ID remains callable through
+  other platform routes. The current ID is published only when
+  compile-time reviewed Pi metadata, live pricing, an `openai` Chat
+  Completions endpoint, and a lossless parseable token price all hold at
+  once. A registry row alone is not enough.
 - Runtime output is every registry model that is currently enabled,
   token-priced, and advertised with a live OpenAI Chat Completions
   endpoint. Media, per-request, task, fixed, multi-tier, request-
