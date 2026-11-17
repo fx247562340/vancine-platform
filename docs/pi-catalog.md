@@ -157,16 +157,38 @@ refresh. A brand-new model ID still needs trusted Pi metadata
   when compile-time reviewed Pi metadata, live pricing, an `openai` Chat
   Completions endpoint, and a lossless parseable token price all hold at
   once. A registry row alone is not enough.
-  Current Hy Chat Completions ID is only `hy4` (display name `Hy4`; stable
-  release). `hy4-preview` has been removed from the catalog registry. The
-  old ID is not kept as an alias or compatibility mapping: even if
-  `hy4-preview` reappears in current or future live pricing, it will not
-  automatically enter the Pi catalog because it has no Pi metadata. This
-  document does not assert whether the old ID remains callable through
-  other platform routes. The current ID is published only when
-  compile-time reviewed Pi metadata, live pricing, an `openai` Chat
-  Completions endpoint, and a lossless parseable token price all hold at
-  once. A registry row alone is not enough.
+  Current Hy Chat Completions IDs are `hy4` (display name `Hy4`; stable
+  release) and `hy4-flash` (display name `Hy4 Flash`). `hy4-preview` has
+  been removed from the catalog registry. The old ID is not kept as an alias
+  or compatibility mapping: even if `hy4-preview` reappears in current or
+  future live pricing, it will not automatically enter the Pi catalog
+  because it has no Pi metadata. This document does not assert whether the
+  old ID remains callable through other platform routes. Each current ID is
+  published only when compile-time reviewed Pi metadata, live pricing, an
+  `openai` Chat Completions endpoint, and a lossless parseable token price
+  all hold at once. A registry row alone is not enough.
+  Current Qwen coverage includes `qwen3.7-plus`, `qwen3.8-flash`,
+  `qwen3.8-max`, and `qwen4-max`. The production public ID `qwen4-max`
+  currently maps to upstream `qwen4-max-preview`, so its catalog entry
+  deliberately uses the Preview maximum output of 131072 tokens. If that
+  production mapping is manually changed to stable `qwen4-max` later, the
+  registry `maxTokens` must be reviewed and updated separately to 262144;
+  this document and the registry update do not change production routing.
+  Current ERNIE Chat Completions coverage is `ernie-5.5-flash-preview`
+  (display name `ERNIE 5.5 Flash Preview`). It currently routes through
+  OpenRouter as `baidu/ernie-5.5-flash-preview:free`. Its zero prices reflect
+  current live pricing only: the free route may have rate limits, quotas, or
+  future price changes, and free availability is not a permanent commitment.
+  `Doubao-Seed-2.1-pro` and `Doubao-Seed-2.1-turbo` have been removed from
+  the registry without aliases. If either ID reappears in live pricing, it
+  will be skipped with `missing Pi metadata` rather than entering the Pi
+  catalog. This removal does not assert whether those IDs remain available
+  through any other platform route. Current Doubao coverage in this catalog
+  is `doubao-seed-evolving` only.
+  Every current and future ID still requires the complete intersection of
+  reviewed registry metadata, current live pricing, a live `openai` Chat
+  Completions endpoint, and a lossless parseable token expression (or valid
+  legacy token ratios). No registry entry bypasses those live checks.
 - Runtime output is every registry model that is currently enabled,
   token-priced, and advertised with a live OpenAI Chat Completions
   endpoint. Media, per-request, task, fixed, multi-tier, request-

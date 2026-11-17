@@ -149,7 +149,7 @@ func TestPiCatalogPriorityModelFields(t *testing.T) {
 	assert.Equal(t, 131072, qwen.MaxTokens)
 }
 
-func TestPiCatalogDoubaoContextWindows(t *testing.T) {
+func TestPiCatalogDelistedDoubaoModelsStayOutOfCatalog(t *testing.T) {
 	pricing := []model.Pricing{
 		chatPricing("Doubao-Seed-2.1-pro", 0.1, 1),
 		chatPricing("Doubao-Seed-2.1-turbo", 0.1, 1),
@@ -157,28 +157,15 @@ func TestPiCatalogDoubaoContextWindows(t *testing.T) {
 	}
 	svc := catalogService(t, pricing, time.Unix(1, 0).UTC())
 	models, skipped := svc.BuildModels(pricing)
-	require.Empty(t, skipped)
-	require.Len(t, models, 3)
+	require.Len(t, models, 1)
+	assert.Equal(t, "doubao-seed-evolving", models[0].ID)
+	assert.Equal(t, 1024000, models[0].ContextWindow)
+	assert.Equal(t, 256000, models[0].MaxTokens)
 
-	byID := map[string]PiCatalogModel{}
-	for _, item := range models {
-		byID[item.ID] = item
+	reasons := skipByID(skipped)
+	for _, id := range []string{"Doubao-Seed-2.1-pro", "Doubao-Seed-2.1-turbo"} {
+		assert.Equal(t, "missing Pi metadata", reasons[id], "%s must stay out of the Pi catalog even if it reappears in future pricing", id)
 	}
-
-	pro, ok := byID["Doubao-Seed-2.1-pro"]
-	require.True(t, ok)
-	assert.Equal(t, 256000, pro.ContextWindow)
-	assert.Equal(t, 256000, pro.MaxTokens)
-
-	turbo, ok := byID["Doubao-Seed-2.1-turbo"]
-	require.True(t, ok)
-	assert.Equal(t, 256000, turbo.ContextWindow)
-	assert.Equal(t, 256000, turbo.MaxTokens)
-
-	evolving, ok := byID["doubao-seed-evolving"]
-	require.True(t, ok)
-	assert.Equal(t, 1024000, evolving.ContextWindow)
-	assert.Equal(t, 256000, evolving.MaxTokens)
 }
 
 func TestPiCatalogCostComesFromLiveRatiosNotRegistry(t *testing.T) {
@@ -347,6 +334,42 @@ func TestPiCatalogPublishesExplicitReasoningEffortFalse(t *testing.T) {
 	}
 	assert.True(t, byID["LongCat-2.5"], "LongCat-2.5 must be present in the published catalog")
 	assert.True(t, byID["hy4"], "hy4 must be present in the published catalog")
+}
+
+func TestPiCatalogNewModelsPublishExplicitReasoningEffortJSON(t *testing.T) {
+	pricing := []model.Pricing{
+		exprChatPricing("hy4-flash", `tier("base", p * 0.024 + c * 0.1124 + cr * 0.0012)`),
+		exprChatPricing("qwen4-max", `tier("base", p * 1.14 + c * 3.42 + cr * 0.057)`),
+		exprChatPricing("ernie-5.5-flash-preview", `tier("base", p * 0 + c * 0)`),
+	}
+	snapshot, err := catalogService(t, pricing, time.Unix(1, 0).UTC()).Snapshot()
+	require.NoError(t, err)
+
+	var payload struct {
+		Models []struct {
+			ID     string `json:"id"`
+			Compat struct {
+				SupportsReasoningEffort *bool `json:"supportsReasoningEffort"`
+			} `json:"compat"`
+		} `json:"models"`
+	}
+	require.NoError(t, common.Unmarshal(snapshot.Body, &payload))
+	want := map[string]bool{
+		"hy4-flash":               false,
+		"qwen4-max":               true,
+		"ernie-5.5-flash-preview": true,
+	}
+	seen := make(map[string]bool, len(want))
+	for _, item := range payload.Models {
+		expected, ok := want[item.ID]
+		if !ok {
+			continue
+		}
+		seen[item.ID] = true
+		require.NotNil(t, item.Compat.SupportsReasoningEffort, "%s must serialize supportsReasoningEffort rather than omit it", item.ID)
+		assert.Equal(t, expected, *item.Compat.SupportsReasoningEffort, "%s must serialize the exact explicit boolean", item.ID)
+	}
+	assert.Len(t, seen, len(want))
 }
 
 func TestPiCatalogOmitsMissingCacheRatiosAsZero(t *testing.T) {
@@ -825,6 +848,16 @@ func TestPiCatalogStandardExpressionAcceptsLiteralVariants(t *testing.T) {
 	}
 }
 
+func TestPiCatalogFreeExpressionPublishesZeroPrices(t *testing.T) {
+	pricing := []model.Pricing{
+		exprChatPricing("ernie-5.5-flash-preview", `tier("base", p * 0 + c * 0)`),
+	}
+	models, skipped := catalogService(t, pricing, time.Unix(1, 0).UTC()).BuildModels(pricing)
+	require.Empty(t, skipped)
+	require.Len(t, models, 1)
+	assert.Equal(t, PiCatalogCost{Input: 0, Output: 0, CacheRead: 0, CacheWrite: 0}, models[0].Cost)
+}
+
 func TestPiCatalogLegacyRatioPricingUnchangedAlongsideExpressions(t *testing.T) {
 	pricing := []model.Pricing{
 		chatPricing("hy4", 0.335, 2.985074626866),
@@ -975,8 +1008,6 @@ func TestPiCatalogSnapshotOmitsBillingExpressionSource(t *testing.T) {
 
 func existingLivePiCatalogIDs() []string {
 	return []string{
-		"Doubao-Seed-2.1-pro",
-		"Doubao-Seed-2.1-turbo",
 		"deepseek-v4.1-flash",
 		"doubao-seed-evolving",
 		"glm-5.3",
@@ -1002,6 +1033,9 @@ func productionShapePiCatalogPricing() []model.Pricing {
 		exprChatPricing("MiniMax-M3.1-Flash", `tier("base", p * 0.12 + c * 0.48 + cr * 0.012)`),
 		exprChatPricing("LongCat-2.5", `tier("base", p * 0.24 + c * 0.96 + cr * 0.006)`),
 		exprChatPricing("hy4", `tier("base", p * 0.33 + c * 1.01 + cr * 0.017)`),
+		exprChatPricing("hy4-flash", `tier("base", p * 0.024 + c * 0.1124 + cr * 0.0012)`),
+		exprChatPricing("qwen4-max", `tier("base", p * 1.14 + c * 3.42 + cr * 0.057)`),
+		exprChatPricing("ernie-5.5-flash-preview", `tier("base", p * 0 + c * 0)`),
 	)
 	for _, item := range []model.Pricing{
 		{ModelName: "Doubao-Seedance-2.0", QuotaType: 1, ModelPrice: 0.02, SupportedEndpointTypes: []constant.EndpointType{constant.EndpointTypeOpenAIVideo}},
@@ -1020,7 +1054,7 @@ func productionShapePiCatalogPricing() []model.Pricing {
 	return pricing
 }
 
-func TestPiCatalogProductionShapePublishesEighteenChatModels(t *testing.T) {
+func TestPiCatalogProductionShapePublishesNineteenChatModels(t *testing.T) {
 	pricing := productionShapePiCatalogPricing()
 	svc := catalogService(t, pricing, time.Unix(1, 0).UTC())
 	models, skipped := svc.BuildModels(pricing)
@@ -1031,19 +1065,19 @@ func TestPiCatalogProductionShapePublishesEighteenChatModels(t *testing.T) {
 		ids[i] = item.ID
 		byID[item.ID] = item
 	}
-	require.Len(t, models, 18)
+	require.Len(t, models, 19)
 	assert.Equal(t, []string{
-		"Doubao-Seed-2.1-pro",
-		"Doubao-Seed-2.1-turbo",
 		"LongCat-2.5",
 		"MiniMax-M3.1-Flash",
 		"deepseek-v4-pro",
 		"deepseek-v4.1-flash",
 		"doubao-seed-evolving",
+		"ernie-5.5-flash-preview",
 		"glm-5.3",
 		"glm-5.3-flash",
 		"glm-5.3-flashx",
 		"hy4",
+		"hy4-flash",
 		"kimi-k3.1-pro",
 		"kimi-k3.1-pro-highspeed",
 		"mimo-v2.6-flash",
@@ -1051,6 +1085,7 @@ func TestPiCatalogProductionShapePublishesEighteenChatModels(t *testing.T) {
 		"qwen3.7-plus",
 		"qwen3.8-flash",
 		"qwen3.8-max",
+		"qwen4-max",
 	}, ids)
 
 	for _, id := range existingLivePiCatalogIDs() {
@@ -1118,6 +1153,24 @@ func TestPiCatalogProductionShapePublishesEighteenChatModels(t *testing.T) {
 			contextWindow: 1024000, maxTokens: 64000,
 			cost:                    PiCatalogCost{Input: 0.33, Output: 1.01, CacheRead: 0.017, CacheWrite: 0.33},
 			supportsReasoningEffort: common.GetPointer(false),
+		},
+		"hy4-flash": {
+			name: "Hy4 Flash", input: []string{"text", "image"},
+			contextWindow: 1024000, maxTokens: 64000,
+			cost:                    PiCatalogCost{Input: 0.024, Output: 0.1124, CacheRead: 0.0012, CacheWrite: 0.024},
+			supportsReasoningEffort: common.GetPointer(false),
+		},
+		"qwen4-max": {
+			name: "Qwen4 Max", input: []string{"text", "image"},
+			contextWindow: 1000000, maxTokens: 131072,
+			cost:                    PiCatalogCost{Input: 1.14, Output: 3.42, CacheRead: 0.057, CacheWrite: 1.14},
+			supportsReasoningEffort: common.GetPointer(true),
+		},
+		"ernie-5.5-flash-preview": {
+			name: "ERNIE 5.5 Flash Preview", input: []string{"text"},
+			contextWindow: 1024000, maxTokens: 921600,
+			cost:                    PiCatalogCost{Input: 0, Output: 0, CacheRead: 0, CacheWrite: 0},
+			supportsReasoningEffort: common.GetPointer(true),
 		},
 	}
 	for id, want := range added {
@@ -1306,6 +1359,9 @@ func TestPiCatalogNewChatModelsRequireLiveIntersection(t *testing.T) {
 		assert.NotContains(t, []string{models[0].ID}, "hy4")
 		assert.NotContains(t, []string{models[0].ID}, "kimi-k3.1-pro")
 		assert.NotContains(t, []string{models[0].ID}, "kimi-k3.1-pro-highspeed")
+		assert.NotContains(t, []string{models[0].ID}, "hy4-flash")
+		assert.NotContains(t, []string{models[0].ID}, "qwen4-max")
+		assert.NotContains(t, []string{models[0].ID}, "ernie-5.5-flash-preview")
 	})
 
 	t.Run("missing openai endpoint", func(t *testing.T) {
@@ -1340,6 +1396,24 @@ func TestPiCatalogNewChatModelsRequireLiveIntersection(t *testing.T) {
 				BillingExpr:            `tier("base", p * 3.2 + c * 16 + cr * 0.16)`,
 				SupportedEndpointTypes: nil,
 			},
+			{
+				ModelName:              "hy4-flash",
+				BillingMode:            billing_setting.BillingModeTieredExpr,
+				BillingExpr:            `tier("base", p * 0.024 + c * 0.1124 + cr * 0.0012)`,
+				SupportedEndpointTypes: []constant.EndpointType{constant.EndpointTypeOpenAIResponse},
+			},
+			{
+				ModelName:              "qwen4-max",
+				BillingMode:            billing_setting.BillingModeTieredExpr,
+				BillingExpr:            `tier("base", p * 1.14 + c * 3.42 + cr * 0.057)`,
+				SupportedEndpointTypes: nil,
+			},
+			{
+				ModelName:              "ernie-5.5-flash-preview",
+				BillingMode:            billing_setting.BillingModeTieredExpr,
+				BillingExpr:            `tier("base", p * 0 + c * 0)`,
+				SupportedEndpointTypes: []constant.EndpointType{constant.EndpointTypeOpenAIResponse},
+			},
 		}
 		models, skipped := catalogService(t, pricing, time.Unix(1, 0).UTC()).BuildModels(pricing)
 		assert.Empty(t, models)
@@ -1349,6 +1423,9 @@ func TestPiCatalogNewChatModelsRequireLiveIntersection(t *testing.T) {
 		assert.Equal(t, "no live chat completions endpoint", reasons["hy4"])
 		assert.Equal(t, "no live chat completions endpoint", reasons["kimi-k3.1-pro"])
 		assert.Equal(t, "no live chat completions endpoint", reasons["kimi-k3.1-pro-highspeed"])
+		assert.Equal(t, "no live chat completions endpoint", reasons["hy4-flash"])
+		assert.Equal(t, "no live chat completions endpoint", reasons["qwen4-max"])
+		assert.Equal(t, "no live chat completions endpoint", reasons["ernie-5.5-flash-preview"])
 	})
 
 	t.Run("unsupported expression", func(t *testing.T) {
@@ -1358,6 +1435,9 @@ func TestPiCatalogNewChatModelsRequireLiveIntersection(t *testing.T) {
 			exprChatPricing("hy4", `tiered()`),
 			exprChatPricing("kimi-k3.1-pro", `tiered()`),
 			exprChatPricing("kimi-k3.1-pro-highspeed", `p * 3.2 + c * 16`),
+			exprChatPricing("hy4-flash", `tiered()`),
+			exprChatPricing("qwen4-max", `p * 1.14 + c * 3.42`),
+			exprChatPricing("ernie-5.5-flash-preview", `not a valid expr!!!`),
 		}
 		models, skipped := catalogService(t, pricing, time.Unix(1, 0).UTC()).BuildModels(pricing)
 		assert.Empty(t, models)
@@ -1367,5 +1447,8 @@ func TestPiCatalogNewChatModelsRequireLiveIntersection(t *testing.T) {
 		assert.Equal(t, "unsupported Pi token pricing expression", reasons["hy4"])
 		assert.Equal(t, "unsupported Pi token pricing expression", reasons["kimi-k3.1-pro"])
 		assert.Equal(t, "unsupported Pi token pricing expression", reasons["kimi-k3.1-pro-highspeed"])
+		assert.Equal(t, "unsupported Pi token pricing expression", reasons["hy4-flash"])
+		assert.Equal(t, "unsupported Pi token pricing expression", reasons["qwen4-max"])
+		assert.Equal(t, "unsupported Pi token pricing expression", reasons["ernie-5.5-flash-preview"])
 	})
 }

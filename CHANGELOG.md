@@ -1,3 +1,11 @@
+## 2.12.3 - 2026-11-17
+
+### Agent Catalog
+
+- 新增 `hy4-flash`、`qwen4-max` 与免费模型 `ernie-5.5-flash-preview` 的已审核 Chat Completions 元数据。
+- `qwen4-max` 当前仍按生产 `qwen4-max-preview` 映射使用 131K 最大输出；ERNIE 零价格仅反映当前 OpenRouter 免费路由，不构成永久免费承诺。
+- 从 Catalog 注册表移除已下架的 `Doubao-Seed-2.1-pro` 与 `Doubao-Seed-2.1-turbo`，防止旧 ID 因未来定价变化重新发布。
+
 ## 2.12.2 - 2026-11-04
 
 ### Agent Catalog
